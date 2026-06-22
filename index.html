@@ -52,6 +52,8 @@
     /* === RESET === */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html { background: var(--pandan-deep); }
+
     body {
       font-family: var(--font-sans);
       background: var(--coconut-white);
@@ -141,7 +143,7 @@
 
     .hero-title {
       font-family: var(--font-display);
-      font-size: var(--type-display);
+      font-size: clamp(4.5rem, 10vw, 7rem);
       font-weight: 700;
       letter-spacing: var(--tracking-display);
       color: var(--coconut-white);
@@ -158,6 +160,9 @@
       max-width: 52ch;
       margin-inline: auto;
     }
+
+    .hero-link { color: var(--egg-yellow); text-decoration: none; }
+    .hero-link:hover { text-decoration: underline; }
 
     /* Countdown grid: 4 units */
     .countdown-grid {
@@ -368,7 +373,7 @@
       border-radius: var(--radius-card);
       padding: 22px 26px;
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 22px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
     }
@@ -378,9 +383,9 @@
     .steps-list > .step-card:nth-child(3) { background: var(--coconut-white); }
     .steps-list > .step-card:nth-child(4) { background: var(--egg-yellow); }
     .steps-list > .step-card:nth-child(5) { background: var(--coconut-white); }
-    .steps-list > .step-card:nth-child(6) { background: var(--pandan-light); }
+    .steps-list > .step-card:nth-child(6) { background: var(--rose-light); }
     .steps-list > .step-card:nth-child(7) { background: var(--coconut-white); }
-    .steps-list > .step-card:nth-child(8) { background: var(--rose-light); }
+    .steps-list > .step-card:nth-child(8) { background: var(--pandan-light); }
 
     .step-num {
       font-family: var(--font-display);
@@ -410,6 +415,7 @@
       align-items: center;
       justify-content: center;
       width: 40px;
+      align-self: center;
     }
 
     .spark {
@@ -457,6 +463,20 @@
     /* Code pills */
     .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
+    kbd {
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-style: normal;
+      background: var(--coconut-cream);
+      color: var(--text-primary);
+      border: 1px solid var(--coconut-border);
+      border-radius: var(--radius-interactive);
+      padding: 2px 7px;
+      white-space: nowrap;
+      display: inline-block;
+      line-height: 1.5;
+    }
+
     .pill {
       font-family: var(--font-mono);
       font-size: 0.8rem;
@@ -477,19 +497,18 @@
     }
     .site-footer p {
       font-size: 0.8125rem;
-      color: var(--pandan-light);
-      opacity: 0.55;
+      color: var(--text-on-dark);
     }
 
     /* === RESPONSIVE === */
     @media (max-width: 640px) {
-      .container { padding: 0 16px; }
-      .hero { padding: 48px 16px 52px; }
+      .container { padding: 0 10px; }
+      .hero { padding: 48px 10px 52px; }
       .countdown-grid { gap: 0 14px; }
       .cd-sep { font-size: 1.75rem; }
-      .dates-section { padding: 60px 16px 140px; }
-      .guide-section { padding: 60px 16px; }
-      .step-card { padding: 16px; gap: 12px; }
+      .dates-section { padding: 60px 10px 140px; }
+      .guide-section { padding: 60px 10px; }
+      .step-card { padding: 14px 12px; gap: 10px; }
 
       /* Vertical timeline: 3-col grid — today | track | labels */
       .timeline-wrapper {
@@ -560,7 +579,7 @@
   <!-- HERO + COUNTDOWN -->
   <section class="hero reveal">
 <h1 class="hero-title"><span class="layered-k">Kueh</span> Machine</h1>
-    <p class="hero-tagline">A team L&amp;D project. Each person builds an app, and we assemble it into the Kueh Machine.</p>
+    <p class="hero-tagline">A team L&amp;D project. Each person builds an app, and we assemble it into the Kueh Machine, right here on <a href="https://www.kuehmachine.com" class="hero-link">www.kuehmachine.com</a></p>
 
     <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">
       <div class="cd-unit">
@@ -704,8 +723,8 @@
         <div class="step-card">
           <span class="step-num">05</span>
           <div class="step-body">
-            <p class="step-heading">Download CLAUDE.md and save it to your home folder</p>
-            <p class="step-text">This file gives Claude its instructions for your project. Save it to your home folder, not inside a project folder.</p>
+            <p class="step-heading">Download CLAUDE.md and move it to your home folder</p>
+            <p class="step-text">This file gives Claude its instructions for your project. In Finder, press <kbd>⇧ + ⌘ + H</kbd> to go straight to your home folder and drop it in.</p>
             <a class="file-card" href="files/CLAUDE.md" download="CLAUDE.md">
               <span class="fc-icon">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -724,10 +743,6 @@
                 </svg>
               </span>
             </a>
-            <div class="pills">
-              <span class="pill">~/CLAUDE.md</span>
-              <span class="pill">C:\Users\yourname\CLAUDE.md</span>
-            </div>
           </div>
         </div>
 
@@ -767,7 +782,7 @@
 
   <!-- FOOTER -->
   <footer class="site-footer">
-    <p>Kueh Machine &mdash; 2026</p>
+    <p>&copy; <span id="footer-year"></span> Wealth Design Team</p>
   </footer>
 
   <script>
@@ -879,6 +894,7 @@
         observer.observe(el);
       });
     })();
+  document.getElementById('footer-year').textContent = new Date().getFullYear();
   </script>
 
 </body>
