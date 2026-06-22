@@ -521,7 +521,7 @@
       /* Vertical timeline: 3-col grid — today | track | labels */
       .timeline-wrapper {
         display: grid;
-        grid-template-columns: 1fr 2px 1fr;
+        grid-template-columns: 0.4fr 2px 1fr;
         column-gap: 16px;
         margin-top: 40px;
       }
@@ -563,8 +563,9 @@
         bottom: auto;
         top: 50%;
         transform: translateY(-50%);
-        white-space: nowrap;
+        white-space: normal;
         text-align: right;
+        width: 3.5rem;
       }
 
       /* Labels: right column, centered on their matching dot */
@@ -839,7 +840,7 @@
       var rawPct  = (todaySGT - startMs) / (endMs - startMs) * 100;
       var mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       var labelEl = document.getElementById('js-tl-label');
-      if (labelEl) labelEl.textContent = 'Today · ' + mn[nowSGT.getUTCMonth()] + ' ' + nowSGT.getUTCDate();
+      if (labelEl) labelEl.innerHTML = mn[nowSGT.getUTCMonth()].toUpperCase() + ' ' + nowSGT.getUTCDate() + '<br>TODAY';
       [{id:'tl-dot-1', ms:startMs}, {id:'tl-dot-2', ms:date2Ms}, {id:'tl-dot-3', ms:endMs}]
         .forEach(function (n) {
           var el = document.getElementById(n.id);
