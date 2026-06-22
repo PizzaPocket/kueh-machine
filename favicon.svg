@@ -5,12 +5,12 @@
     </clipPath>
   </defs>
   <g clip-path="url(#c)">
-    <rect x="0" y="4"  width="32" height="5" fill="#95D5B2"/>
+    <rect x="0" y="4"  width="32" height="5" fill="#F4978E"/>
     <rect x="0" y="9"  width="32" height="1" fill="#FFF8F0"/>
     <rect x="0" y="10" width="32" height="5" fill="#F9C74F"/>
     <rect x="0" y="15" width="32" height="1" fill="#FFF8F0"/>
-    <rect x="0" y="16" width="32" height="5" fill="#F4978E"/>
+    <rect x="0" y="16" width="32" height="5" fill="#95D5B2"/>
     <rect x="0" y="21" width="32" height="1" fill="#FFF8F0"/>
-    <rect x="0" y="22" width="32" height="6" fill="#61A081"/>
+    <rect x="0" y="22" width="32" height="6" fill="#2D6A4F"/>
   </g>
 </svg>
