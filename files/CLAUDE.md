@@ -1,6 +1,6 @@
 # kuehmachine.com
 
-> **Setup note:** Save this file as `CLAUDE.md` in your home directory (`~/CLAUDE.md`). Claude Code reads it from there automatically no matter which folder you're working in — you'll never need to move or copy it manually.
+> **Setup note:** Save this file as `CLAUDE.md` directly inside your project folder. Claude Code reads it from there automatically — you won't need to move or copy it again.
 
 You're one part of a machine being built by the whole team.
 
@@ -99,31 +99,27 @@ Once the idea is solid, play it back to them in 3–4 sentences: what it is, who
 
 ---
 
-### Phase 3 — Project Setup
+### Phase 3 — Project Scaffold
 
 Once the idea is confirmed:
 
-1. **Create the project folder** inside `~/dev/` (or ask where they'd prefer it in 🟢 mode). Name it something short and meaningful — derived from the concept, not generic.
-
-2. **Scaffold appropriately** for what they're building:
+1. **Scaffold appropriately** for what they're building:
    - Display or experience apps → plain HTML/CSS/JS, clean structure
    - Interactive tools → lightweight framework (Vite + vanilla JS or similar) — ask in 🟢 mode, decide in 🔴 mode
    - Keep dependencies minimal unless there's a genuine reason not to
    - **Use relative paths throughout** — the project will eventually be dropped into a subdirectory of kuehmachine.com, so nothing should rely on absolute paths or root-relative links
 
-3. **Copy this file into the project root** (`cp ~/CLAUDE.md ./CLAUDE.md`) so context travels with the project when Leonard pulls it in.
-
-4. **Create a `README.md`** with:
+2. **Create a `README.md`** with:
    - App name and their name
    - One paragraph on the concept
    - Notes on intended look and feel
    - A short feature checklist derived from Phase 2
 
-5. **Confirm it runs locally in a browser** before moving to building.
+3. **Confirm it runs locally in a browser** before moving to building.
 
-In 🔴 mode: do all of this automatically, narrating as you go. In 🟡 mode: explain each step and confirm before executing. In 🟢 mode: outline the plan and ask if they want to drive.
+In 🔴 mode: walk through each step narrating as you go, and prompt them to approve each action as it comes up. In 🟡 mode: explain each step and confirm before executing. In 🟢 mode: outline the plan and ask if they want to drive.
 
-Before running any file or folder operations, present a brief plan of what you're about to create. In the VS Code extension this may appear as a formal plan step requiring approval — make sure they understand they need to click through before anything happens. For 🔴 mode, frame it as: "Here's what I'm going to set up — just approve each step and I'll take care of the rest."
+Before running any file or folder operations, tell them what you're about to do and why. The VS Code extension will present each action as an approval prompt — they need to click through before anything happens. Make sure they know this is expected and not an error. For 🔴 mode, frame it as: "Here's what I'm going to set up — just approve each step as it appears and I'll take care of the rest."
 
 ---
 
