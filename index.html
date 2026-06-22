@@ -7,7 +7,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     /* === TOKENS === */
     :root {
@@ -122,6 +122,7 @@
     .l14 { background: #F0E8DA; }
 
     .layered-k {
+      font-weight: 800;
       background: linear-gradient(to bottom,
         var(--pandan-light) 0%,      var(--pandan-light) 7.14%,
         var(--coconut-white) 7.14%,  var(--coconut-white) 14.29%,
@@ -146,7 +147,7 @@
     .hero-title {
       font-family: var(--font-display);
       font-size: clamp(4.5rem, 10vw, 7rem);
-      font-weight: 700;
+      font-weight: 600;
       letter-spacing: var(--tracking-display);
       color: var(--coconut-white);
       line-height: var(--leading-display);
@@ -379,13 +380,13 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
     }
 
-    .steps-list > .step-card:nth-child(1) { background: var(--coconut-white); }
+    .steps-list > .step-card:nth-child(1) { background: var(--coconut-cream); }
     .steps-list > .step-card:nth-child(2) { background: var(--pandan-light); }
     .steps-list > .step-card:nth-child(3) { background: var(--coconut-white); }
     .steps-list > .step-card:nth-child(4) { background: var(--egg-yellow); }
     .steps-list > .step-card:nth-child(5) { background: var(--coconut-white); }
     .steps-list > .step-card:nth-child(6) { background: var(--rose-light); }
-    .steps-list > .step-card:nth-child(7) { background: var(--coconut-white); }
+    .steps-list > .step-card:nth-child(7) { background: var(--coconut-cream); }
     .steps-list > .step-card:nth-child(8) { background: var(--pandan-light); }
 
     .step-num {
@@ -408,7 +409,6 @@
     .step-text {
       font-size: 0.9rem;
       line-height: 1.6;
-      color: var(--text-primary-muted);
     }
 
     .step-icon {
@@ -726,7 +726,7 @@
           <span class="step-num">05</span>
           <div class="step-body">
             <p class="step-heading">Download CLAUDE.md and move it to your home folder</p>
-            <p class="step-text">This file gives Claude its instructions for your project. On Mac, open Finder and press <kbd>⇧ + ⌘ + H</kbd> to jump straight to your home folder, then drop the file in. On Windows, open File Explorer and navigate to <kbd>C:\Users\yourname</kbd>.</p>
+            <p class="step-text">This file gives Claude its instructions for your project. On Mac, open Finder and press <kbd>⇧ + ⌘ + H</kbd> to jump straight to your home folder, then drop the file in. (On Windows, open File Explorer and navigate to <kbd>C:\Users\yourname</kbd>.)</p>
             <a class="file-card" href="files/CLAUDE.md" download="CLAUDE.md">
               <span class="fc-icon">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
