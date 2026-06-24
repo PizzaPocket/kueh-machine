@@ -239,6 +239,37 @@
       line-height: var(--leading-heading);
     }
 
+    /* === BRIEF === */
+    .brief-section {
+      background: var(--pandan-light);
+      padding: 80px 32px;
+    }
+
+    .brief-inner {
+      max-width: 54ch;
+      margin-inline: auto;
+    }
+
+    .brief-heading {
+      font-family: var(--font-display);
+      font-size: var(--type-heading);
+      font-weight: 700;
+      letter-spacing: var(--tracking-heading);
+      line-height: var(--leading-heading);
+      color: var(--pandan-deep);
+      margin-bottom: 20px;
+    }
+
+    .brief-link { color: var(--pandan-deep); text-decoration: underline; }
+    .brief-link:hover { opacity: 0.75; }
+
+    .brief-text {
+      font-size: clamp(1rem, 2vw, 1.125rem);
+      font-weight: 400;
+      line-height: 1.75;
+      color: var(--text-primary);
+    }
+
     /* === TIMELINE === */
     .dates-section {
       padding: 80px 32px;
@@ -514,6 +545,7 @@
       .hero { padding: 48px 10px 52px; }
       .countdown-grid { gap: 0 14px; }
       .cd-sep { font-size: 1.75rem; }
+      .brief-section { padding: 60px 10px; }
       .dates-section { padding: 60px 10px 140px; }
       .guide-section { padding: 60px 10px; }
       .step-card { padding: 14px 12px; gap: 10px; }
@@ -612,6 +644,14 @@
       </div>
     </div>
     <p class="countdown-sublabel">Until the Showcase — August 26, 2026 at 2:00 PM SGT</p>
+  </section>
+
+  <!-- BRIEF -->
+  <section class="brief-section reveal">
+    <div class="brief-inner">
+      <h2 class="brief-heading">What is Kueh Machine?</h2>
+      <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is an L&amp;D exercise built around making. Each person on the team builds one small app or website using Claude Code, getting hands-on experience with tools that are changing what designers can do. Every piece comes together at <a href="https://www.kuehmachine.com" class="brief-link">kuehmachine.com</a> by August 26, our Monthly Meeting.</p>
+    </div>
   </section>
 
   <!-- KEY DATES -->
