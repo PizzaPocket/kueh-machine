@@ -3,13 +3,10 @@
 // already present in index.html.
 
 import { generatePalette, applyPalette, DEFAULT_THEME } from '../tokens/colors.js';
+import { applyChromeScale } from '../tokens/chrome-scale.js';
 import { KUEH_DATA, KUEH_SEED_TABLE, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 import { renderKuehSvg } from '../atoms/kueh-icon.js';
 import { createTabGroup } from '../molecules/tab-group.js';
-
-function titleCase(str) {
-  return str.replace(/(^|[\s/(])([a-z])/g, (_, pre, ch) => pre + ch.toUpperCase());
-}
 
 // Rotation is anchored to a fixed start date rather than Jan 1, so day 0
 // lands on today (when this shipped) — and KUEH_DATA lists the 7
@@ -34,10 +31,18 @@ function buildMedia(kueh) {
   const wrap = document.createElement('div');
   wrap.className = 'kod-media';
 
+  const template = KUEH_SHAPE_TABLE[kueh.id] || 'disc';
   const tag = document.createElement('p');
   tag.className = 'section-label kod-tag';
-  tag.textContent = 'Kueh of the day';
+  tag.innerHTML = `${renderKuehSvg(kueh, template, 16)}<span>Kueh of the day</span>`;
+  const tagIcon = tag.querySelector('svg');
+  if (tagIcon) tagIcon.classList.add('kueh-icon');
   wrap.appendChild(tag);
+
+  const heading = document.createElement('h2');
+  heading.className = 'section-title kod-name';
+  heading.textContent = kueh.name;
+  wrap.appendChild(heading);
 
   if (kueh.photo) {
     const img = document.createElement('img');
@@ -46,11 +51,11 @@ function buildMedia(kueh) {
     img.loading = 'lazy';
     wrap.appendChild(img);
   } else {
-    const template = KUEH_SHAPE_TABLE[kueh.id] || 'disc';
     const svgWrap = document.createElement('div');
     svgWrap.innerHTML = renderKuehSvg(kueh, template, 220);
     wrap.appendChild(svgWrap.firstElementChild);
   }
+
   return wrap;
 }
 
@@ -126,13 +131,18 @@ function buildRecipePanel(kueh) {
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.className = 'kod-see-more';
-  toggle.textContent = 'See more';
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-controls', collapse.id);
+  toggle.innerHTML =
+    '<span class="kod-see-more-label">See more</span>' +
+    '<svg class="kod-see-more-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" ' +
+    'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M4 6l4 4 4-4"/></svg>';
+  const label = toggle.querySelector('.kod-see-more-label');
   toggle.addEventListener('click', () => {
     const expanded = collapse.classList.toggle('expanded');
     toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    toggle.textContent = expanded ? 'See less' : 'See more';
+    label.textContent = expanded ? 'See less' : 'See more';
   });
   panel.appendChild(toggle);
 
@@ -142,24 +152,6 @@ function buildRecipePanel(kueh) {
 function buildContent(kueh) {
   const wrap = document.createElement('div');
   wrap.className = 'kod-content';
-
-  const template = KUEH_SHAPE_TABLE[kueh.id] || 'disc';
-  const heading = document.createElement('h2');
-  heading.className = 'section-title kod-name';
-  heading.innerHTML = `${renderKuehSvg(kueh, template, 22)}<span>${kueh.name}</span>`;
-  const icon = heading.querySelector('svg');
-  if (icon) icon.classList.add('kueh-icon');
-  wrap.appendChild(heading);
-
-  const metaRow = document.createElement('div');
-  metaRow.className = 'kod-meta-pills';
-  [kueh.category, kueh.occasion].filter(Boolean).forEach((value) => {
-    const span = document.createElement('span');
-    span.className = 'pill';
-    span.textContent = titleCase(value);
-    metaRow.appendChild(span);
-  });
-  wrap.appendChild(metaRow);
 
   const overviewPanel = buildOverviewPanel(kueh);
   const recipePanel = buildRecipePanel(kueh);
@@ -191,6 +183,9 @@ function renderKuehOfDay(section, index) {
 
   mount.innerHTML = '';
   mount.appendChild(card);
+
+  applyChromeScale(card, 2);
+  applyChromeScale(card.querySelector('.tab-group'), 3);
 }
 
 export function init() {

@@ -2,13 +2,32 @@
 
 /* .tab-group — floating pill tab bar. Elevation matches the site's existing
    .step-card/.file-card shadow language (see index.html) rather than
-   inventing a new one. */
+   inventing a new one.
+
+   "Liquid chrome" edge (--chrome-edge, tokens.css): a thin (1.5px) ring
+   using a repeating gradient rather than a flat border color, so light
+   appears to travel around the curve like it would on polished metal.
+   Achieved via the dual-background trick: one flat background painted to
+   padding-box (the tab-group's fill), the chrome pattern painted to
+   border-box (the ring), with the actual `border` left transparent just
+   to reserve the 1.5px gap between the two.
+
+   background-size uses --chrome-tile-px/--chrome-tile-noise-px (tokens.css
+   for the fallback, src/tokens/chrome-scale.js for the real per-element
+   value) — a true square px tile computed from this element's own
+   perimeter, set as an inline custom property on this specific element
+   when the kueh-of-day organism renders it, with a smaller "repeats"
+   value than .kod-card since it's a much smaller element. */
 .tab-group {
   display: inline-flex;
   gap: 4px;
   padding: 4px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-surface-border);
+  border: 1.5px solid transparent;
   border-radius: var(--radius-pill);
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    var(--chrome-edge-noise) border-box,
+    var(--chrome-edge) border-box;
+  background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.06);
 }

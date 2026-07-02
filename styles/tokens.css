@@ -19,4 +19,67 @@
   --color-text-on-surface-muted:  #4D7A63;
   --color-text-on-primary:        #D4E8DF;
   --color-text-on-primary-muted:  #9ECBB5;
+
+  /* "Liquid chrome" treatment, shared by .tab-group, .kod-card, the
+     site-nav divider, and the "Machine" wordmark. Defined once as a
+     repeating gradient with PERCENTAGE stops — 0% to 100% is one full
+     "sweep." Percentage stops on their own would just stretch that one
+     sweep across whatever box uses it (which is what smeared on the big
+     card), so the tile's actual physical size is set separately per
+     element via `background-size` (--chrome-tile*, below) — that's what
+     keeps the same visual density whether the element is a small pill or
+     a wide card, instead of either stretching into a wash or tiling into
+     a busy repeat.
+
+     Stop widths are deliberately uneven, not spaced on a regular interval
+     — real specular highlights work that way: broad, slow ambient shading
+     (white <-> surface-border, ~20-22% of the cycle each) punctuated by
+     sharp, narrow glints (white <-> accent/highlight, ~3% each). Evenly-
+     spaced stops read as a mechanical pattern; this ratio (broad shading
+     to narrow glint is roughly 7:1) is what reads as light catching metal
+     rather than a striped decoration. */
+  --chrome-edge: repeating-linear-gradient(
+    115deg,
+    #ffffff 0%,
+    var(--color-surface-border) 20%,
+    #ffffff 42%,
+    var(--color-accent) 45%,
+    #ffffff 48%,
+    var(--color-surface-border) 70%,
+    #ffffff 90%,
+    var(--color-highlight) 93%,
+    #ffffff 96%,
+    #ffffff 100%
+  );
+
+  /* Layered on top of --chrome-edge (its own background layer, a different
+     angle and a tile size that isn't a clean multiple of the primary's —
+     see the background-size values at each use site) so the two patterns
+     drift out of phase across the element. CSS gradients can't be truly
+     random, but two regular patterns that don't repeat in sync read as
+     organic/irregular rather than one obviously-tiled unit. Mostly
+     transparent — this only needs to unevenly brighten a few spots, not
+     compete with the primary sweep. */
+  --chrome-edge-noise: repeating-linear-gradient(
+    25deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.4) 42%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0) 78%,
+    rgba(255, 255, 255, 0.25) 85%,
+    rgba(255, 255, 255, 0) 92%,
+    rgba(255, 255, 255, 0) 100%
+  );
+
+  /* Tile size is computed per-element in JS from the element's actual
+     perimeter (src/tokens/chrome-scale.js), not a fixed px or % guess —
+     that's what makes density self-adjusting (and always a true square
+     tile, never distorted) instead of something to hand-tune per
+     component. --chrome-tile-noise-px is set to a smaller fraction of the
+     same measurement (not a clean multiple), keeping the two layers out of
+     phase (see --chrome-edge-noise above). These fallback values only
+     apply for the instant before JS runs. */
+  --chrome-tile-px: 400px;
+  --chrome-tile-noise-px: 320px;
 }

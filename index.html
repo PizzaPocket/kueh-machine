@@ -155,7 +155,32 @@
       color: var(--color-surface);
       line-height: var(--leading-display);
       margin-bottom: 10px;
-      filter: drop-shadow(0 10px 32px rgba(0,0,0,0.28)) drop-shadow(0 2px 6px rgba(0,0,0,0.18));
+    }
+
+    /* "Machine" gets the same --chrome-edge pattern as the tab-group/card/nav
+       edges, clipped to text instead of a border — the wordmark itself
+       becomes the metal half of "kueh" (organic, layered, .layered-k) vs
+       "machine" (brushed chrome). */
+    /* Text can't take a literal border, and -webkit-text-stroke only
+       accepts a solid color (no gradient) — so the "rim" here is a thin
+       stroke in --color-surface-border (the same shading tone used
+       throughout --chrome-edge) rather than a literal chrome ring.
+       -webkit-text-stroke itself is avoided: it centers the stroke on the
+       glyph path with no join control, so sharp/concave corners (the
+       counters in "a"/"e", the apex of "M") self-intersect into visible
+       triangular seams. Stacked drop-shadows work on the rendered alpha
+       silhouette instead of the path geometry, so corners don't do that. */
+    .chrome-text {
+      background: var(--chrome-edge-noise), var(--chrome-edge);
+      background-size: var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter:
+        drop-shadow(1px 0 0 var(--color-surface-border))
+        drop-shadow(-1px 0 0 var(--color-surface-border))
+        drop-shadow(0 1px 0 var(--color-surface-border))
+        drop-shadow(0 -1px 0 var(--color-surface-border));
     }
 
     .hero-tagline {
@@ -405,7 +430,19 @@
       gap: 10px;
     }
 
+    /* Same diagonal chrome pattern as .tab-group/.kod-card (tokens.css).
+       Real px tile computed per-card from its own perimeter, with a low
+       "repeats" value (main.js) — well under 1, since this is a
+       repeated-8-times list, not a singular showcase element: each row
+       should show only a small fragment of the sweep, not a complete
+       cycle, otherwise 8 full sweeps in a row reads as busy no matter how
+       "correct" any single one looks. Each card's own fill color has to
+       be redeclared per nth-child alongside the chrome layers, since the
+       `background` shorthand replaces all layers at once —
+       background-size stays on the shared base rule since it doesn't vary
+       by card. */
     .step-card {
+      border: 1.5px solid transparent;
       border-radius: var(--radius-card);
       padding: 22px 26px;
       display: flex;
@@ -414,14 +451,21 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
     }
 
-    .steps-list > .step-card:nth-child(1) { background: var(--color-surface); }
-    .steps-list > .step-card:nth-child(2) { background: var(--color-primary-soft); }
-    .steps-list > .step-card:nth-child(3) { background: var(--color-surface); }
-    .steps-list > .step-card:nth-child(4) { background: var(--color-accent); }
-    .steps-list > .step-card:nth-child(5) { background: var(--color-surface); }
-    .steps-list > .step-card:nth-child(6) { background: var(--color-highlight-soft); }
-    .steps-list > .step-card:nth-child(7) { background: var(--color-surface); }
-    .steps-list > .step-card:nth-child(8) { background: var(--color-primary-soft); }
+    /* background-size has to be repeated in every nth-child rule below,
+       not left on the shared .step-card rule above — the `background`
+       shorthand resets background-size to `auto` for any sub-property it
+       doesn't mention, and these higher-specificity nth-child selectors
+       would silently win that reset over the base rule otherwise (this
+       was a real bug here: the tile-size tuning was never actually taking
+       effect on step-cards because of exactly this). */
+    .steps-list > .step-card:nth-child(1) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(2) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(3) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(4) { background: linear-gradient(var(--color-accent), var(--color-accent)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(5) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(6) { background: linear-gradient(var(--color-highlight-soft), var(--color-highlight-soft)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(7) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    .steps-list > .step-card:nth-child(8) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
 
     .step-num {
       font-family: var(--font-display);
@@ -625,7 +669,7 @@
 
   <!-- HERO + COUNTDOWN -->
   <section class="hero reveal">
-<h1 class="hero-title"><span class="layered-k">Kueh</span> Machine</h1>
+<h1 class="hero-title"><span class="layered-k">Kueh</span> <span class="chrome-text">Machine</span></h1>
     <p class="hero-tagline">A team L&amp;D project. Each person builds an app/website, and we assemble it into the Kueh Machine, right here on <a href="https://www.kuehmachine.com" class="hero-link">www.kuehmachine.com</a></p>
 
     <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">
@@ -752,7 +796,7 @@
           </div>
           <div class="step-icon" aria-hidden="true">
             <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M34.0342 1.01758C34.5895 0.916023 35.9432 1.25844 36.3838 1.58984C38.2505 2.99386 40.0187 4.8684 41.6533 6.55859C43.5538 8.52398 46.5686 10.4697 46.4062 13.4717C46.2622 16.1332 43.6594 17.4557 42.0459 19.2539C41.0279 20.3535 39.9204 21.5816 38.8291 22.5928C40.0687 22.6878 41.3064 23.0655 42.2041 23.9609C43.5774 25.3308 43.5657 26.7809 43.5762 28.5645L43.5752 35.6211C43.575 37.3444 43.6842 39.2719 43.375 40.9541C43.114 42.3735 41.6254 44.0461 40.1484 44.2227C37.3732 44.5541 34.4308 44.4242 31.626 44.4238L15.4346 44.4209C12.7479 44.4135 10.0396 44.4888 7.35547 44.376C5.12553 44.2824 3.42128 42.9419 3.16797 40.6455C2.94269 38.6021 3.01049 36.5315 3.01074 34.4678L3.01465 24.8867L3.00977 14.1729C3.00952 12.0498 2.95339 9.86158 3.11719 7.74902C3.21185 6.52782 3.62114 5.51404 4.60938 4.71973C5.15512 4.28211 5.80241 3.98852 6.49121 3.86621C8.07953 3.57945 12.0612 3.74931 13.8174 3.71289C15.9365 3.66893 18.61 3.68913 20.7539 3.79199C21.8384 3.84411 23.1928 4.54789 23.8789 5.45605C24.537 6.32167 24.8159 7.4174 24.6514 8.49219C27.0525 6.35822 29.3137 3.51881 31.9053 1.61719C32.4319 1.23076 33.3861 1.0942 34.0342 1.01758ZM5.84863 25.4551C5.83664 27.6633 5.61181 40.1114 6.07227 40.9688C6.88862 41.5713 8.98146 41.4603 10.0078 41.4434C13.9355 41.3786 17.9222 41.5289 21.8438 41.4229C21.7991 39.5692 21.7893 37.6595 21.8135 35.8057C21.8581 32.3763 21.7297 28.8895 21.8428 25.4648L11.1865 25.4629C9.56891 25.4623 7.4313 25.5273 5.84863 25.4551ZM38.9893 25.4795C34.2675 25.4691 29.5157 25.4144 24.792 25.4727C24.6773 26.2608 24.7519 29.5088 24.7529 30.5303L24.7617 41.4404L34.4551 41.4395C36.0574 41.4395 37.7931 41.4888 39.3887 41.3809C39.7305 41.3577 39.9934 41.238 40.2568 41.0176C41.0522 39.572 40.2961 29.7548 40.5859 27.5498C40.7256 26.4873 40.1551 25.3776 38.9893 25.4795ZM34.165 3.69336C33.5846 3.90721 33.1302 4.1858 32.6504 4.57422C31.31 5.65945 25.4699 11.4574 24.8721 12.792C24.7539 13.0562 24.7213 13.2613 24.8301 13.5332C25.0014 13.9615 25.336 14.3791 25.6416 14.7217C26.9062 16.1394 28.3937 17.4344 29.7578 18.7637C30.7053 19.687 31.5864 20.6966 32.5615 21.5879C32.9474 21.9407 33.4531 22.4417 33.9434 22.6377C34.0485 22.6797 34.1508 22.7032 34.2637 22.707C34.6096 22.5497 34.9095 22.3883 35.1973 22.1348C36.1996 21.2512 37.0333 20.1879 37.9727 19.2393C39.5754 17.6206 41.2917 16.0679 42.8184 14.3809C43.0887 14.082 43.443 13.701 43.5889 13.3242C43.6399 13.1924 43.5889 13.0929 43.5312 12.9697C43.0637 11.9708 36.8875 5.62003 35.7568 4.62598C35.3606 4.27755 34.9604 3.93714 34.4531 3.76367C34.3568 3.73075 34.2669 3.70382 34.165 3.69336ZM24.6787 17.917C24.8592 19.1045 24.7575 21.3657 24.7627 22.6475C26.2375 22.653 27.9305 22.6982 29.3877 22.626C28.7862 21.9164 25.2335 18.0794 24.6787 17.917ZM20.3828 6.69727C16.5296 6.54575 12.6529 6.67745 8.79492 6.6416C8.27735 6.63685 7.68901 6.64371 7.17773 6.67969C6.17376 6.90339 5.88922 7.14576 5.85156 8.2334C5.78471 10.1628 5.84484 12.0995 5.83105 14.0303C5.86443 16.8902 5.79445 19.7959 5.84473 22.6475L20.2998 22.6553L21.8496 22.6406C21.7736 21.399 21.8114 19.8162 21.8115 18.5547L21.8154 11.5459C21.8159 10.5042 21.8675 8.60798 21.7695 7.61914C21.3711 7.09996 21.1036 6.72566 20.3828 6.69727Z" fill="#2D6A4F"/>
+              <path d="M34.0342 1.01758C34.5895 0.916023 35.9432 1.25844 36.3838 1.58984C38.2505 2.99386 40.0187 4.8684 41.6533 6.55859C43.5538 8.52398 46.5686 10.4697 46.4062 13.4717C46.2622 16.1332 43.6594 17.4557 42.0459 19.2539C41.0279 20.3535 39.9204 21.5816 38.8291 22.5928C40.0687 22.6878 41.3064 23.0655 42.2041 23.9609C43.5774 25.3308 43.5657 26.7809 43.5762 28.5645L43.5752 35.6211C43.575 37.3444 43.6842 39.2719 43.375 40.9541C43.114 42.3735 41.6254 44.0461 40.1484 44.2227C37.3732 44.5541 34.4308 44.4242 31.626 44.4238L15.4346 44.4209C12.7479 44.4135 10.0396 44.4888 7.35547 44.376C5.12553 44.2824 3.42128 42.9419 3.16797 40.6455C2.94269 38.6021 3.01049 36.5315 3.01074 34.4678L3.01465 24.8867L3.00977 14.1729C3.00952 12.0498 2.95339 9.86158 3.11719 7.74902C3.21185 6.52782 3.62114 5.51404 4.60938 4.71973C5.15512 4.28211 5.80241 3.98852 6.49121 3.86621C8.07953 3.57945 12.0612 3.74931 13.8174 3.71289C15.9365 3.66893 18.61 3.68913 20.7539 3.79199C21.8384 3.84411 23.1928 4.54789 23.8789 5.45605C24.537 6.32167 24.8159 7.4174 24.6514 8.49219C27.0525 6.35822 29.3137 3.51881 31.9053 1.61719C32.4319 1.23076 33.3861 1.0942 34.0342 1.01758ZM5.84863 25.4551C5.83664 27.6633 5.61181 40.1114 6.07227 40.9688C6.88862 41.5713 8.98146 41.4603 10.0078 41.4434C13.9355 41.3786 17.9222 41.5289 21.8438 41.4229C21.7991 39.5692 21.7893 37.6595 21.8135 35.8057C21.8581 32.3763 21.7297 28.8895 21.8428 25.4648L11.1865 25.4629C9.56891 25.4623 7.4313 25.5273 5.84863 25.4551ZM38.9893 25.4795C34.2675 25.4691 29.5157 25.4144 24.792 25.4727C24.6773 26.2608 24.7519 29.5088 24.7529 30.5303L24.7617 41.4404L34.4551 41.4395C36.0574 41.4395 37.7931 41.4888 39.3887 41.3809C39.7305 41.3577 39.9934 41.238 40.2568 41.0176C41.0522 39.572 40.2961 29.7548 40.5859 27.5498C40.7256 26.4873 40.1551 25.3776 38.9893 25.4795ZM34.165 3.69336C33.5846 3.90721 33.1302 4.1858 32.6504 4.57422C31.31 5.65945 25.4699 11.4574 24.8721 12.792C24.7539 13.0562 24.7213 13.2613 24.8301 13.5332C25.0014 13.9615 25.336 14.3791 25.6416 14.7217C26.9062 16.1394 28.3937 17.4344 29.7578 18.7637C30.7053 19.687 31.5864 20.6966 32.5615 21.5879C32.9474 21.9407 33.4531 22.4417 33.9434 22.6377C34.0485 22.6797 34.1508 22.7032 34.2637 22.707C34.6096 22.5497 34.9095 22.3883 35.1973 22.1348C36.1996 21.2512 37.0333 20.1879 37.9727 19.2393C39.5754 17.6206 41.2917 16.0679 42.8184 14.3809C43.0887 14.082 43.443 13.701 43.5889 13.3242C43.6399 13.1924 43.5889 13.0929 43.5312 12.9697C43.0637 11.9708 36.8875 5.62003 35.7568 4.62598C35.3606 4.27755 34.9604 3.93714 34.4531 3.76367C34.3568 3.73075 34.2669 3.70382 34.165 3.69336ZM24.6787 17.917C24.8592 19.1045 24.7575 21.3657 24.7627 22.6475C26.2375 22.653 27.9305 22.6982 29.3877 22.626C28.7862 21.9164 25.2335 18.0794 24.6787 17.917ZM20.3828 6.69727C16.5296 6.54575 12.6529 6.67745 8.79492 6.6416C8.27735 6.63685 7.68901 6.64371 7.17773 6.67969C6.17376 6.90339 5.88922 7.14576 5.85156 8.2334C5.78471 10.1628 5.84484 12.0995 5.83105 14.0303C5.86443 16.8902 5.79445 19.7959 5.84473 22.6475L20.2998 22.6553L21.8496 22.6406C21.7736 21.399 21.8114 19.8162 21.8115 18.5547L21.8154 11.5459C21.8159 10.5042 21.8675 8.60798 21.7695 7.61914C21.3711 7.09996 21.1036 6.72566 20.3828 6.69727Z" fill="var(--color-primary-strong)"/>
             </svg>
           </div>
         </div>

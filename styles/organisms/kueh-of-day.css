@@ -4,20 +4,33 @@
   background: var(--color-surface-tint);
 }
 
+/* Same "liquid chrome" ring as .tab-group (see molecules.css) — real px
+   tile computed from this element's own perimeter (chrome-scale.js), set
+   as an inline custom property when the kueh-of-day organism renders it.
+   overflow:hidden still clips the media/content children to the rounded
+   corners; it doesn't affect the card's own border/background painting. */
 .kod-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  background: var(--color-surface);
+  border: 1.5px solid transparent;
   border-radius: var(--radius-card);
+  background:
+    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+    var(--chrome-edge-noise) border-box,
+    var(--chrome-edge) border-box;
+  background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.06);
   overflow: hidden;
 }
 
 /* Stretches full row height (matches .kod-content) so the tinted background
    always reaches the bottom of the shelf, regardless of which tab is active
-   — only the image itself is weighted to the top via justify-content. */
+   — only the image itself is weighted to the top via justify-content.
+   Uses --color-accent, matching step 4's card background in the guide
+   section below, so the two reuse the same token rather than inventing a
+   new background choice. */
 .kod-media {
-  background: var(--color-surface-tint);
+  background: var(--color-accent);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,8 +40,15 @@
 }
 
 .kod-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   align-self: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
+}
+
+.kod-tag .kueh-icon {
+  flex-shrink: 0;
 }
 
 .kod-media img {
@@ -43,25 +63,17 @@
 }
 
 .kod-name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.kod-name .kueh-icon {
-  flex-shrink: 0;
-}
-
-.kod-meta-pills {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 22px;
+  align-self: flex-start;
+  margin-bottom: 10px;
 }
 
 .tab-group {
   margin-bottom: 22px;
+}
+
+.kod-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 .kod-panel[hidden] {
@@ -141,27 +153,39 @@
 }
 
 .kod-see-more {
-  display: block;
-  margin-top: 12px;
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 6px;
+  margin-top: 14px;
+  background: transparent;
   border: none;
-  padding: 0;
+  border-radius: var(--radius-interactive);
+  padding: 7px 14px;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: var(--color-primary-strong);
-  text-decoration: underline;
-  text-underline-offset: 2px;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .kod-see-more:hover {
-  color: var(--color-primary);
+  background: var(--color-surface-tint);
 }
 
 .kod-see-more:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.kod-see-more-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.kod-see-more[aria-expanded="true"] .kod-see-more-chevron {
+  transform: rotate(180deg);
 }
 
 @media (max-width: 640px) {
