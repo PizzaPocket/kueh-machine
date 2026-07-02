@@ -1,0 +1,22 @@
+/* === COLOR TOKENS ===
+   Semantic roles, not ingredient names — the values below are the original
+   kueh-lapis palette (see src/tokens/colors.js DEFAULT_THEME for the
+   archived reference), used as the initial paint before JS runs and as the
+   literal palette on kueh-lapis's own "kueh of the day". Every other day,
+   src/organisms/kueh-of-day.js overwrites these via generatePalette(). */
+:root {
+  --color-primary-strong:  #2D6A4F;
+  --color-primary:         #61A081;
+  --color-primary-soft:    #95D5B2;
+  --color-accent:          #F9C74F;
+  --color-surface:         #FFF8F0;
+  --color-surface-tint:    #F0E8DA;
+  --color-surface-border:  #D6C8B4;
+  --color-highlight:       #F4978E;
+  --color-highlight-soft:  #FAD9D6;
+
+  --color-text-on-surface:        #0F3D28;
+  --color-text-on-surface-muted:  #4D7A63;
+  --color-text-on-primary:        #D4E8DF;
+  --color-text-on-primary-muted:  #9ECBB5;
+}

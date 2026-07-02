@@ -1,0 +1,50 @@
+/* === SITE NAV === */
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-surface-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.site-nav-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.site-nav a {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  color: var(--color-text-on-surface-muted);
+  padding: 6px 2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.site-nav a:hover {
+  color: var(--color-text-on-surface);
+}
+
+.site-nav a.active {
+  color: var(--color-text-on-surface);
+  border-bottom-color: var(--color-accent);
+}
+
+@media (max-width: 640px) {
+  .site-nav-inner {
+    padding: 12px 16px;
+    gap: 20px;
+  }
+  .site-nav a {
+    font-size: 0.75rem;
+  }
+}

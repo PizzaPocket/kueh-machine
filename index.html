@@ -8,24 +8,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/atoms.css">
+  <link rel="stylesheet" href="styles/molecules.css">
+  <link rel="stylesheet" href="styles/organisms/kueh-of-day.css">
+  <link rel="stylesheet" href="styles/organisms/site-nav.css">
   <style>
-    /* === TOKENS === */
+    /* === TOKENS ===
+       Color tokens live in styles/tokens.css (semantic names, daily-themed
+       by src/organisms/kueh-of-day.js). Everything else — radius, type,
+       spacing — stays here since it never changes with the day's kueh. */
     :root {
-      --pandan-deep:    #2D6A4F;
-      --pandan-mid:     #61A081;
-      --pandan-light:   #95D5B2;
-      --egg-yellow:     #F9C74F;
-      --rose-pink:      #F4978E;
-      --rose-light:     #FAD9D6;
-      --coconut-white:  #FFF8F0;
-      --coconut-cream:  #F0E8DA;
-      --coconut-border: #D6C8B4;
-
-      --text-primary:       #0F3D28;
-      --text-primary-muted: #4D7A63;
-      --text-on-dark:       #D4E8DF;
-      --text-on-dark-muted: #9ECBB5;
-
       --radius-card:        12px;
       --radius-interactive:  8px;
       --radius-pill:      9999px;
@@ -54,12 +47,12 @@
     /* === RESET === */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { background: var(--pandan-deep); }
+    html { background: var(--color-primary-strong); scroll-behavior: smooth; }
 
     body {
       font-family: var(--font-sans);
-      background: var(--coconut-white);
-      color: var(--text-primary);
+      background: var(--color-surface);
+      color: var(--color-text-on-surface);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
@@ -86,11 +79,12 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .reveal { opacity: 1; transform: none; }
+      html { scroll-behavior: auto; }
     }
 
     /* === HERO + COUNTDOWN (combined, above fold) === */
     .hero {
-      background: var(--pandan-deep);
+      background: var(--color-primary-strong);
       padding: 72px 32px 64px;
       text-align: center;
     }
@@ -106,44 +100,47 @@
     }
 
     .kueh-layer { height: 11px; width: 100%; }
-    .l1  { background: #2D6A4F; }
-    .l2  { background: #FFF8F0; }
-    .l3  { background: #52B788; }
-    .l4  { background: #FFF8F0; }
-    .l5  { background: #F9C74F; }
-    .l6  { background: #FFF8F0; }
-    .l7  { background: #2D6A4F; }
-    .l8  { background: #FFF8F0; }
-    .l9  { background: #F4978E; }
-    .l10 { background: #FFF8F0; }
-    .l11 { background: #52B788; }
-    .l12 { background: #FFF8F0; }
-    .l13 { background: #2D6A4F; }
-    .l14 { background: #F0E8DA; }
+    .l1  { background: var(--color-primary-strong); }
+    .l2  { background: var(--color-surface); }
+    .l3  { background: var(--color-primary); }
+    .l4  { background: var(--color-surface); }
+    .l5  { background: var(--color-accent); }
+    .l6  { background: var(--color-surface); }
+    .l7  { background: var(--color-primary-strong); }
+    .l8  { background: var(--color-surface); }
+    .l9  { background: var(--color-highlight); }
+    .l10 { background: var(--color-surface); }
+    .l11 { background: var(--color-primary); }
+    .l12 { background: var(--color-surface); }
+    .l13 { background: var(--color-primary-strong); }
+    .l14 { background: var(--color-surface-tint); }
 
+    /* Retheme with the rest of the page (see src/organisms/kueh-of-day.js) —
+       the "Kueh" title's layered gradient uses the same semantic tokens as
+       everything else, so it reflects the day's kueh too. */
     .layered-k {
       font-weight: 800;
       background: linear-gradient(to bottom,
-        var(--rose-pink)     0%,   var(--rose-pink)     5%,  /* top */
-        var(--rose-pink)     5%,   var(--rose-pink)     10%,
-        var(--rose-pink)     10%,  var(--rose-pink)     15%,
-        var(--rose-pink)     15%,  var(--rose-pink)     20%,
-        var(--rose-pink)     20%,  var(--rose-pink)     25%,
-        var(--rose-pink)     25%,  var(--rose-pink)     30%,
-        var(--coconut-cream) 30%,  var(--coconut-cream) 35%,
-        var(--coconut-white) 35%,  var(--coconut-white) 40%,
-        var(--pandan-light)  40%,  var(--pandan-light)  45%,
-        var(--pandan-mid)    45%,  var(--pandan-mid)    50%,
-        var(--egg-yellow)    50%,  var(--egg-yellow)    55%,
-        var(--coconut-cream) 55%,  var(--coconut-cream) 60%,
-        var(--coconut-white) 60%,  var(--coconut-white) 65%,
-        var(--pandan-light)  65%,  var(--pandan-light)  70%,
-        var(--pandan-mid)    70%,  var(--pandan-mid)    75%,
-        var(--pandan-mid)    75%,  var(--pandan-mid)    80%,
-        var(--pandan-mid)    80%,  var(--pandan-mid)    85%,
-        var(--pandan-mid)    85%,  var(--pandan-mid)    90%,
-        var(--pandan-mid)    90%,  var(--pandan-mid)    95%,
-        var(--pandan-mid)    95%,  var(--pandan-mid)    100% /* bottom */
+        var(--color-highlight)      0%,   var(--color-highlight)      5%,  /* top */
+        var(--color-highlight)      5%,   var(--color-highlight)      10%,
+        var(--color-highlight)      10%,  var(--color-highlight)      15%,
+        var(--color-highlight)      15%,  var(--color-highlight)      20%,
+        var(--color-highlight)      20%,  var(--color-highlight)      25%,
+        var(--color-highlight)      25%,  var(--color-highlight)      30%,
+        var(--color-surface-tint)   30%,  var(--color-surface-tint)   35%,
+        var(--color-surface)        35%,  var(--color-surface)        40%,
+        var(--color-primary-soft)   40%,  var(--color-primary-soft)   45%,
+        var(--color-primary)        45%,  var(--color-primary)        50%,
+        var(--color-accent)         50%,  var(--color-accent)         55%,
+        var(--color-surface-tint)   55%,  var(--color-surface-tint)   60%,
+        var(--color-surface)        60%,  var(--color-surface)        65%,
+        var(--color-primary-soft)   65%,  var(--color-primary-soft)   70%,
+        var(--color-primary)        70%,  var(--color-primary)        75%,
+        var(--color-primary)        75%,  var(--color-primary)        80%,
+        var(--color-primary)        80%,  var(--color-primary)        85%,
+        var(--color-primary)        85%,  var(--color-primary)        90%,
+        var(--color-primary)        90%,  var(--color-primary)        95%,
+        var(--color-primary)        95%,  var(--color-primary)        100% /* bottom */
       );
       -webkit-background-clip: text;
       background-clip: text;
@@ -155,7 +152,7 @@
       font-size: clamp(4.5rem, 10vw, 7rem);
       font-weight: 600;
       letter-spacing: var(--tracking-display);
-      color: var(--coconut-white);
+      color: var(--color-surface);
       line-height: var(--leading-display);
       margin-bottom: 10px;
       filter: drop-shadow(0 10px 32px rgba(0,0,0,0.28)) drop-shadow(0 2px 6px rgba(0,0,0,0.18));
@@ -163,14 +160,14 @@
 
     .hero-tagline {
       font-size: 1rem;
-      color: var(--text-on-dark);
+      color: var(--color-text-on-primary);
       margin-bottom: 28px;
       line-height: 1.6;
       max-width: 52ch;
       margin-inline: auto;
     }
 
-    .hero-link { color: var(--egg-yellow); text-decoration: none; }
+    .hero-link { color: var(--color-accent); text-decoration: none; }
     .hero-link:hover { text-decoration: underline; }
 
     /* Countdown grid: 4 units */
@@ -189,7 +186,7 @@
       font-size: var(--type-display);
       font-weight: 700;
       letter-spacing: var(--tracking-counter);
-      color: var(--egg-yellow);
+      color: var(--color-accent);
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
@@ -200,14 +197,14 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: var(--text-on-dark);
+      color: var(--color-text-on-primary);
       margin-top: 6px;
     }
 
     .cd-sep {
       font-size: clamp(2rem, 7vw, 4rem);
       font-weight: 300;
-      color: var(--pandan-mid);
+      color: var(--color-primary);
       line-height: 1;
       padding-top: 4px;
       align-self: start;
@@ -216,7 +213,7 @@
 
     .countdown-sublabel {
       font-size: 0.875rem;
-      color: var(--text-on-dark-muted);
+      color: var(--color-text-on-primary-muted);
       margin-top: 20px;
     }
 
@@ -226,7 +223,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: var(--text-primary);
+      color: var(--color-text-on-surface);
       margin-bottom: 10px;
     }
 
@@ -235,13 +232,13 @@
       font-size: var(--type-heading);
       font-weight: 700;
       letter-spacing: var(--tracking-heading);
-      color: var(--text-primary);
+      color: var(--color-text-on-surface);
       line-height: var(--leading-heading);
     }
 
     /* === BRIEF === */
     .brief-section {
-      background: var(--pandan-light);
+      background: var(--color-primary-soft);
       padding: 80px 32px;
     }
 
@@ -256,24 +253,24 @@
       font-weight: 700;
       letter-spacing: var(--tracking-heading);
       line-height: var(--leading-heading);
-      color: var(--pandan-deep);
+      color: var(--color-primary-strong);
       margin-bottom: 20px;
     }
 
-    .brief-link { color: var(--pandan-deep); text-decoration: underline; }
+    .brief-link { color: var(--color-primary-strong); text-decoration: underline; }
     .brief-link:hover { opacity: 0.75; }
 
     .brief-text {
       font-size: clamp(1rem, 2vw, 1.125rem);
       font-weight: 400;
       line-height: 1.75;
-      color: var(--text-primary);
+      color: var(--color-text-on-surface);
     }
 
     /* === TIMELINE === */
     .dates-section {
       padding: 80px 32px;
-      background: var(--coconut-cream);
+      background: var(--color-surface-tint);
     }
 
     .timeline-wrapper {
@@ -283,7 +280,7 @@
     .timeline-track {
       position: relative;
       height: 2px;
-      background: var(--coconut-border);
+      background: var(--color-surface-border);
       border-radius: var(--radius-pill);
       margin-top: 64px; /* space above for today label */
     }
@@ -292,7 +289,7 @@
       position: absolute;
       left: 0; top: 0;
       height: 100%;
-      background: var(--pandan-mid);
+      background: var(--color-primary);
       border-radius: var(--radius-pill);
       width: 0;
     }
@@ -307,14 +304,14 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--coconut-cream);
-      border: 2px solid var(--coconut-border);
+      background: var(--color-surface-tint);
+      border: 2px solid var(--color-surface-border);
       box-sizing: border-box;
     }
 
     .tl-dot.reached {
-      background: var(--pandan-mid);
-      border-color: var(--pandan-mid);
+      background: var(--color-primary);
+      border-color: var(--color-primary);
     }
 
     /* Today marker */
@@ -331,7 +328,7 @@
       width: 1px;
       height: 30px;
       top: -30px;
-      background: var(--pandan-deep);
+      background: var(--color-primary-strong);
     }
 
     .tl-today-dot {
@@ -339,7 +336,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--pandan-deep);
+      background: var(--color-primary-strong);
       top: -4px;
       left: -4px;
     }
@@ -353,7 +350,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--pandan-deep);
+      color: var(--color-primary-strong);
       white-space: nowrap;
     }
 
@@ -372,32 +369,32 @@
     .tl-label-date {
       font-size: 0.9375rem;
       font-weight: 700;
-      color: var(--text-primary);
+      color: var(--color-text-on-surface);
       margin-bottom: 3px;
     }
 
     .tl-label-name {
       font-size: 0.875rem;
-      color: var(--text-primary);
+      color: var(--color-text-on-surface);
       margin-bottom: 2px;
     }
 
     .tl-label-time {
       font-size: 0.8rem;
-      color: var(--text-primary-muted);
+      color: var(--color-text-on-surface-muted);
     }
 
     /* === GETTING STARTED === */
     .guide-section {
       padding: 80px 32px;
-      background: var(--coconut-white);
+      background: var(--color-surface);
     }
 
     .guide-intro {
       margin-top: 20px;
       max-width: 580px;
       font-size: 0.9375rem;
-      color: var(--text-primary);
+      color: var(--color-text-on-surface);
       line-height: 1.7;
     }
 
@@ -417,14 +414,14 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
     }
 
-    .steps-list > .step-card:nth-child(1) { background: var(--coconut-white); }
-    .steps-list > .step-card:nth-child(2) { background: var(--pandan-light); }
-    .steps-list > .step-card:nth-child(3) { background: var(--coconut-white); }
-    .steps-list > .step-card:nth-child(4) { background: var(--egg-yellow); }
-    .steps-list > .step-card:nth-child(5) { background: var(--coconut-white); }
-    .steps-list > .step-card:nth-child(6) { background: var(--rose-light); }
-    .steps-list > .step-card:nth-child(7) { background: var(--coconut-white); }
-    .steps-list > .step-card:nth-child(8) { background: var(--pandan-light); }
+    .steps-list > .step-card:nth-child(1) { background: var(--color-surface); }
+    .steps-list > .step-card:nth-child(2) { background: var(--color-primary-soft); }
+    .steps-list > .step-card:nth-child(3) { background: var(--color-surface); }
+    .steps-list > .step-card:nth-child(4) { background: var(--color-accent); }
+    .steps-list > .step-card:nth-child(5) { background: var(--color-surface); }
+    .steps-list > .step-card:nth-child(6) { background: var(--color-highlight-soft); }
+    .steps-list > .step-card:nth-child(7) { background: var(--color-surface); }
+    .steps-list > .step-card:nth-child(8) { background: var(--color-primary-soft); }
 
     .step-num {
       font-family: var(--font-display);
@@ -459,28 +456,28 @@
 
     .spark {
       font-style: normal;
-      color: var(--pandan-deep);
+      color: var(--color-primary-strong);
       line-height: 1;
     }
     .spark-sm { font-size: 22px; }
     .spark-lg { font-size: 30px; }
 
     .step-link {
-      color: var(--pandan-deep);
+      color: var(--color-primary-strong);
       font-weight: 600;
       text-decoration: underline;
       text-underline-offset: 2px;
       text-decoration-thickness: 1px;
     }
-    .step-link:hover { color: var(--pandan-mid); }
+    .step-link:hover { color: var(--color-primary); }
 
     /* File card */
     .file-card {
       display: inline-flex;
       align-items: center;
       gap: 12px;
-      background: var(--coconut-white);
-      border: 1px solid var(--coconut-border);
+      background: var(--color-surface);
+      border: 1px solid var(--color-surface-border);
       border-radius: var(--radius-interactive);
       padding: 10px 14px;
       text-decoration: none;
@@ -489,15 +486,15 @@
       max-width: 280px;
     }
     .file-card:hover {
-      background: var(--coconut-cream);
-      border-color: var(--pandan-mid);
+      background: var(--color-surface-tint);
+      border-color: var(--color-primary);
     }
 
-    .fc-icon { color: var(--pandan-mid); flex-shrink: 0; }
+    .fc-icon { color: var(--color-primary); flex-shrink: 0; }
     .fc-info { flex: 1; min-width: 0; }
-    .fc-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); display: block; }
-    .fc-meta { font-size: 0.8rem; color: var(--text-primary); display: block; }
-    .fc-dl   { color: var(--text-primary); flex-shrink: 0; }
+    .fc-name { font-size: 0.9rem; font-weight: 600; color: var(--color-text-on-surface); display: block; }
+    .fc-meta { font-size: 0.8rem; color: var(--color-text-on-surface); display: block; }
+    .fc-dl   { color: var(--color-text-on-surface); flex-shrink: 0; }
 
     /* Code pills */
     .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -506,9 +503,9 @@
       font-family: var(--font-sans);
       font-size: 0.8rem;
       font-style: normal;
-      background: var(--coconut-cream);
-      color: var(--text-primary);
-      border: 1px solid var(--coconut-border);
+      background: var(--color-surface-tint);
+      color: var(--color-text-on-surface);
+      border: 1px solid var(--color-surface-border);
       border-radius: var(--radius-interactive);
       padding: 2px 7px;
       white-space: nowrap;
@@ -519,9 +516,9 @@
     .pill {
       font-family: var(--font-mono);
       font-size: 0.8rem;
-      background: var(--coconut-cream);
-      color: var(--pandan-deep);
-      border: 1px solid var(--coconut-border);
+      background: var(--color-surface-tint);
+      color: var(--color-primary-strong);
+      border: 1px solid var(--color-surface-border);
       border-radius: var(--radius-pill);
       padding: 3px 11px;
       white-space: nowrap;
@@ -531,12 +528,12 @@
     /* === FOOTER === */
     .site-footer {
       padding: 28px 32px;
-      background: var(--pandan-deep);
+      background: var(--color-primary-strong);
       text-align: center;
     }
     .site-footer p {
       font-size: 0.8125rem;
-      color: var(--text-on-dark);
+      color: var(--color-text-on-primary);
     }
 
     /* === RESPONSIVE === */
@@ -617,6 +614,15 @@
 </head>
 <body>
 
+  <!-- SITE NAV -->
+  <nav class="site-nav" aria-label="Section navigation">
+    <div class="site-nav-inner">
+      <a href="#brief" data-nav-target="brief">Brief</a>
+      <a href="#schedule" data-nav-target="schedule">Schedule</a>
+      <a href="#guide" data-nav-target="guide">Getting Started</a>
+    </div>
+  </nav>
+
   <!-- HERO + COUNTDOWN -->
   <section class="hero reveal">
 <h1 class="hero-title"><span class="layered-k">Kueh</span> Machine</h1>
@@ -646,8 +652,15 @@
     <p class="countdown-sublabel">Until the Showcase — August 26, 2026 at 2:00 PM SGT</p>
   </section>
 
+  <!-- KUEH OF THE DAY -->
+  <section id="kueh-of-day" class="kueh-of-day-section reveal">
+    <div class="container">
+      <div class="kod-mount"></div>
+    </div>
+  </section>
+
   <!-- BRIEF -->
-  <section class="brief-section reveal">
+  <section id="brief" class="brief-section reveal">
     <div class="brief-inner">
       <h2 class="brief-heading">What is Kueh Machine?</h2>
       <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is an L&amp;D exercise built around making. Each person on the team builds one small app or website using Claude Code, getting hands-on experience with tools that are changing what designers can do. Every piece comes together at <a href="https://www.kuehmachine.com" class="brief-link">kuehmachine.com</a> by August 26, our Monthly Meeting.</p>
@@ -655,7 +668,7 @@
   </section>
 
   <!-- KEY DATES -->
-  <section class="dates-section reveal">
+  <section id="schedule" class="dates-section reveal">
     <div class="container">
       <p class="section-label">Schedule</p>
       <h2 class="section-title">Three Monthly Meetings, June to August.</h2>
@@ -702,7 +715,7 @@
   </section>
 
   <!-- GETTING STARTED -->
-  <section class="guide-section reveal">
+  <section id="guide" class="guide-section reveal">
     <div class="container">
       <p class="section-label">Getting started</p>
       <h2 class="section-title">Set up your workspace for this project</h2>
@@ -945,6 +958,8 @@
     })();
   document.getElementById('footer-year').textContent = new Date().getFullYear();
   </script>
+
+  <script type="module" src="src/main.js"></script>
 
 </body>
 </html>

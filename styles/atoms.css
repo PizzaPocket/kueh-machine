@@ -1,0 +1,40 @@
+/* === ATOMS === */
+
+/* .tab — pill-radius interactive control, same radius tier as the site's
+   existing pill/chip elements (ui-philosophy.md: fully-rounded radius for
+   pill/chip interactive elements). */
+.tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  color: var(--color-text-on-surface-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab:hover:not([aria-selected="true"]) {
+  background: var(--color-surface-tint);
+  color: var(--color-text-on-surface);
+}
+
+.tab[aria-selected="true"] {
+  background: var(--color-primary-strong);
+  color: var(--color-text-on-primary);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* .kueh-icon — small inline SVG wrapper, sits next to the kueh name */
+.kueh-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
