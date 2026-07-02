@@ -7,6 +7,17 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
+/* Anchor-jump targets: offsets each linked section's scroll position so it
+   stops clear of the sticky nav instead of scrolling right underneath it.
+   --site-nav-height is measured in site-nav.js (the nav's own height
+   differs between desktop and the 640px mobile layout below); the 64px
+   fallback only matters for the instant before that JS runs. */
+#brief,
+#schedule,
+#guide {
+  scroll-margin-top: calc(var(--site-nav-height, 64px) + 12px);
+}
+
 /* One-shot linear "liquid chrome" (src/tokens/chrome-metal.js), not a
    repeating/tiled gradient — set via site-nav.js on the --nav-divider-bg
    custom property, since JS can't set backgroundImage directly on a
