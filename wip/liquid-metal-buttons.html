@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spectral Liquid Metal Buttons</title>
+<style>
+  @property --angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; }
+  body {
+    background: #f4f4f2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  .scroll-spacer {
+    height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #b8b8b4;
+    font-size: 0.85rem;
+    font-family: monospace;
+    text-align: center;
+    padding: 0 2rem;
+  }
+
+  .stage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 3rem 1.5rem;
+  }
+
+  /* background-image is assigned in JS (metal + procedural glint layer) —
+     only structural/shape properties live here */
+  .btn-wrap {
+    position: relative;
+    width: 200px;
+    height: 56px;
+    border-radius: 999px;
+    padding: 2.5px; /* rim thickness */
+    box-shadow:
+      0 1px 2px rgba(20,20,25,0.06),
+      0 8px 20px rgba(20,20,25,0.08);
+  }
+
+  button.metal-btn {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffffff, #f0f0f1 70%);
+    color: #1a1a1d;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  .btn-wrap:active button.metal-btn {
+    transform: scale(0.98);
+  }
+
+  .card-wrap {
+    position: relative;
+    width: min(320px, 80vw);
+    height: 200px;
+    border-radius: 20px;
+    padding: 1.5px; /* rim thickness */
+    box-shadow:
+      0 1px 2px rgba(20,20,25,0.06),
+      0 12px 28px rgba(20,20,25,0.10);
+  }
+
+  .card-face {
+    width: 100%;
+    height: 100%;
+    border-radius: 18.5px;
+    background: linear-gradient(180deg, #ffffff, #f6f6f7 70%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9a9a9e;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+  <div class="scroll-spacer">scroll ↓ — rim reacts to scroll + cursor</div>
+
+  <div class="stage">
+    <div class="btn-wrap" data-variant="warm"><button class="metal-btn">Continue</button></div>
+    <div class="btn-wrap" data-variant="cool"><button class="metal-btn">Generate</button></div>
+  </div>
+
+  <div class="scroll-spacer">keep scrolling</div>
+
+  <div class="stage">
+    <div class="card-wrap" data-variant="card">
+      <div class="card-face">same rim, on a card</div>
+    </div>
+  </div>
+
+  <div class="scroll-spacer">glints are now randomized per element — refresh for a different layout</div>
+
+<script>
+  // ---------- metal base layer per variant ----------
+  const metalTemplates = {
+    warm: `conic-gradient(from var(--angle), #6b6e78 0deg, #ffffff 60deg, #6b6e78 120deg, #ffffff 180deg, #6b6e78 240deg, #ffffff 300deg, #6b6e78 360deg)`,
+    cool: `conic-gradient(from var(--angle), #4c5570 0deg, #ffffff 60deg, #4c5570 120deg, #ffffff 180deg, #4c5570 240deg, #ffffff 300deg, #4c5570 360deg)`,
+    card: `conic-gradient(from var(--angle), #6b6e78 0deg, #ffffff 45deg, #6b6e78 90deg, #ffffff 135deg, #6b6e78 180deg, #ffffff 225deg, #6b6e78 270deg, #ffffff 315deg, #6b6e78 360deg)`
+  };
+
+  // angles where the base metal gradient transitions light->dark or dark->light —
+  // glints cluster loosely around these, never exactly on them
+  const peaksByVariant = {
+    warm: [60, 180, 300],
+    cool: [60, 180, 300],
+    card: [45, 135, 225, 315]
+  };
+
+  // ---------- procedural glint layer ----------
+  // Builds a conic-gradient of narrow, irregular color slivers near each
+  // transition point. Every run varies: some transitions get 0 glints, some
+  // get 2; widths, offsets, hue, and opacity all vary — this is what breaks
+  // the "evenly spaced clock face" look and makes it feel organic.
+  function buildGlintGradient(peaks) {
+    const events = [];
+
+    for (const peak of peaks) {
+      if (Math.random() < 0.18) continue; // sometimes a transition gets no glint at all
+
+      const count = Math.random() < 0.75 ? 1 : 2;
+      for (let i = 0; i < count; i++) {
+        const sign = Math.random() < 0.5 ? -1 : 1;
+        const dist = 3 + Math.random() * 11;     // 3-14deg off the peak
+        const center = peak + sign * dist;
+        const width = 1.5 + Math.random() * 2.5; // 1.5-4deg solid core
+        const fade = 1 + Math.random() * 2.5;    // 1-3.5deg falloff
+
+        // glints before a peak lean warm, after lean cool, but not strictly —
+        // occasional flips are what keep it from looking rule-based
+        const isWarm = sign < 0 ? Math.random() < 0.78 : Math.random() < 0.22;
+        const hue = isWarm ? 12 + Math.random() * 40 : 188 + Math.random() * 48;
+        const sat = 70 + Math.random() * 25;
+        const light = 54 + Math.random() * 14;
+        const alpha = 0.32 + Math.random() * 0.3; // toned down from full opacity
+
+        events.push({
+          center,
+          width,
+          fade,
+          color: `hsla(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%, ${alpha.toFixed(2)})`
+        });
+      }
+    }
+
+    events.sort((a, b) => a.center - b.center);
+
+    const stops = [];
+    let cursor = 0;
+    for (const ev of events) {
+      const fadeInStart = ev.center - ev.width / 2 - ev.fade;
+      const solidStart = ev.center - ev.width / 2;
+      const solidEnd = ev.center + ev.width / 2;
+      const fadeOutEnd = ev.center + ev.width / 2 + ev.fade;
+      if (fadeInStart <= cursor || fadeOutEnd >= 360) continue; // skip collisions/out of range
+
+      stops.push(`transparent ${fadeInStart.toFixed(1)}deg`);
+      stops.push(`${ev.color} ${solidStart.toFixed(1)}deg`);
+      stops.push(`${ev.color} ${solidEnd.toFixed(1)}deg`);
+      stops.push(`transparent ${fadeOutEnd.toFixed(1)}deg`);
+      cursor = fadeOutEnd;
+    }
+
+    if (stops.length === 0) return 'conic-gradient(from var(--angle), transparent 0deg, transparent 360deg)';
+    return `conic-gradient(from var(--angle), transparent 0deg, ${stops.join(', ')}, transparent 360deg)`;
+  }
+
+  // ---------- init: assign background + collect elements for the angle loop ----------
+  const wraps = Array.from(document.querySelectorAll('.btn-wrap, .card-wrap')).map(el => {
+    const variant = el.dataset.variant;
+    const glintLayer = buildGlintGradient(peaksByVariant[variant]);
+    el.style.backgroundImage = `${glintLayer}, ${metalTemplates[variant]}`;
+    el.style.backgroundBlendMode = 'normal, normal';
+    return { el, current: 0, target: 0 };
+  });
+
+  // ---------- cursor + scroll -> --angle ----------
+  let pointerX = window.innerWidth / 2;
+  let pointerY = window.innerHeight / 2;
+  let havePointer = false;
+
+  function setPointer(x, y) { pointerX = x; pointerY = y; havePointer = true; }
+
+  window.addEventListener('pointermove', (e) => setPointer(e.clientX, e.clientY), { passive: true });
+  window.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (t) setPointer(t.clientX, t.clientY);
+  }, { passive: true });
+
+  let scrollAngle = 0;
+  let lastScrollY = window.scrollY;
+
+  window.addEventListener('scroll', () => {
+    const delta = window.scrollY - lastScrollY;
+    lastScrollY = window.scrollY;
+    scrollAngle += delta * 0.6;
+  }, { passive: true });
+
+  function tick() {
+    for (const w of wraps) {
+      const rect = w.el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      let target = scrollAngle;
+
+      if (havePointer) {
+        const dx = pointerX - cx;
+        const dy = pointerY - cy;
+        const cursorAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+        target = cursorAngle + scrollAngle * 0.3;
+      }
+
+      let diff = ((target - w.current + 540) % 360) - 180;
+      w.current += diff * 0.08;
+
+      w.el.style.setProperty('--angle', w.current + 'deg');
+    }
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+</script>
+
+</body>
+</html>
