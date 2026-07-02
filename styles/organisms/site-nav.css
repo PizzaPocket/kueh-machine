@@ -7,10 +7,10 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-/* Same diagonal chrome pattern as .tab-group/.kod-card (tokens.css). Real
-   px tile computed from the divider's own (2px-tall) perimeter
-   (site-nav.js) — custom properties inherit from .site-nav down to this
-   ::after, since JS can't set a property directly on a pseudo-element. */
+/* One-shot linear "liquid chrome" (src/tokens/chrome-metal.js), not a
+   repeating/tiled gradient — set via site-nav.js on the --nav-divider-bg
+   custom property, since JS can't set backgroundImage directly on a
+   ::after pseudo-element; custom properties inherit down to it instead. */
 .site-nav::after {
   content: '';
   position: absolute;
@@ -18,8 +18,7 @@
   right: 0;
   bottom: 0;
   height: 2px;
-  background: var(--chrome-edge-noise), var(--chrome-edge);
-  background-size: var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px);
+  background-image: var(--nav-divider-bg);
 }
 
 .site-nav-inner {

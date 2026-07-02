@@ -4,22 +4,23 @@
   background: var(--color-surface-tint);
 }
 
-/* Same "liquid chrome" ring as .tab-group (see molecules.css) — real px
-   tile computed from this element's own perimeter (chrome-scale.js), set
-   as an inline custom property when the kueh-of-day organism renders it.
-   overflow:hidden still clips the media/content children to the rounded
-   corners; it doesn't affect the card's own border/background painting. */
+/* .kod-card-rim — the outer element: its padding is the rim thickness,
+   its background is the conic "liquid chrome" gradient set by
+   src/organisms/kueh-of-day.js (src/tokens/chrome-metal.js). .kod-card
+   (inner) is the actual card fill/layout, sized to fill whatever the rim
+   padding leaves — same two-element pattern as .tab-group-rim/.tab-group
+   (molecules.css). */
+.kod-card-rim {
+  border-radius: var(--radius-card);
+  padding: 1.5px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
 .kod-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  border: 1.5px solid transparent;
-  border-radius: var(--radius-card);
-  background:
-    linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
-    var(--chrome-edge-noise) border-box,
-    var(--chrome-edge) border-box;
-  background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.06);
+  border-radius: calc(var(--radius-card) - 1.5px);
+  background: var(--color-surface);
   overflow: hidden;
 }
 
@@ -67,7 +68,7 @@
   margin-bottom: 10px;
 }
 
-.tab-group {
+.kod-content .tab-group-rim {
   margin-bottom: 22px;
 }
 

@@ -6,9 +6,14 @@
 //
 // flavor_profile / origin_sentence / recipe are new content, authored for
 // this feature (not present in the original export) and currently only
-// written for the first 7 photographed kueh. Same caveat as the original
+// written for the 14 photographed kueh. Same caveat as the original
 // dataset's own note: worth a human read-through for accuracy before this
 // goes live.
+//
+// Order matters: photographed kueh are listed first, so the day-index
+// rotation (src/organisms/kueh-of-day.js, dayOfYear % KUEH_DATA.length)
+// cycles through real photos before reaching the SVG-fallback kueh at the
+// end of the list.
 
 export const KUEH_DATA = [
   {
@@ -217,15 +222,6 @@ export const KUEH_DATA = [
     },
   },
   {
-    id: 'kueh-ku',
-    name: 'Kueh Ku',
-    origin: 'Chinese/Peranakan',
-    category: 'sweet',
-    texture: 'steamed',
-    occasion: 'festive/ritual',
-    description: 'Similar to ang ku kueh but often smaller, softer-skinned, and made in varied colors, pressed with a wooden or plastic mold.',
-  },
-  {
     id: 'kueh-pie-tee',
     name: 'Kueh Pie Tee',
     origin: 'Peranakan',
@@ -233,6 +229,27 @@ export const KUEH_DATA = [
     texture: 'fried',
     occasion: 'festive',
     description: 'Crispy thin pastry cups filled with a savory stir-fried mix of turnip, carrot, and shrimp, garnished fresh at the table.',
+    photo: 'images/kueh/kueh-pie-tee.png',
+    flavor_profile: ['Savory', 'Crispy', 'Umami', 'Fresh'],
+    origin_sentence: 'A Peranakan classic built for the table: a crisp pastry cup hand-filled to order with stir-fried turnip, carrot, and shrimp.',
+    recipe: {
+      ingredients: [
+        'Pie tee pastry cups (store-bought, or homemade batter fried in a mold)',
+        '300g jicama (bangkuang), julienned',
+        '1 carrot, julienned',
+        '150g shrimp, peeled and diced',
+        '2 cloves garlic, minced',
+        '2 tbsp light soy sauce',
+        'Fresh lettuce, egg strips, and chili for garnish',
+      ],
+      steps: [
+        'Sauté garlic until fragrant, then add shrimp and cook until pink.',
+        'Add jicama and carrot, stir-frying until softened but still with a little bite.',
+        'Season with soy sauce and a pinch of sugar, cooking until the mixture is slightly dry, not wet.',
+        'Just before serving, spoon the warm filling into crispy pastry cups.',
+        'Top with a shred of lettuce, an egg strip, and a touch of chili, and serve immediately so the cup stays crisp.',
+      ],
+    },
   },
   {
     id: 'kueh-lapis-legit',
@@ -242,6 +259,28 @@ export const KUEH_DATA = [
     texture: 'baked',
     occasion: 'festive (Chinese New Year, Christmas)',
     description: 'Rich, buttery spiced layer cake baked one thin layer at a time under a grill, a legacy of Dutch colonial baking traditions.',
+    photo: 'images/kueh/kueh-lapis-legit.png',
+    flavor_profile: ['Rich', 'Buttery', 'Spiced', 'Dense'],
+    origin_sentence: 'A legacy of Dutch colonial kitchens in Indonesia, its dozens of thin spiced layers are baked one at a time under a grill, by hand.',
+    recipe: {
+      ingredients: [
+        '20 egg yolks',
+        '5 egg whites',
+        '250g butter, softened',
+        '200g sugar',
+        '100g flour',
+        '1 tsp ground cinnamon',
+        '1/2 tsp ground cloves',
+        '1/4 tsp ground nutmeg',
+      ],
+      steps: [
+        'Cream the butter and half the sugar until light and fluffy.',
+        'In a separate bowl, whisk the egg yolks, egg whites, and remaining sugar until thick and pale.',
+        'Fold the egg mixture into the butter mixture, then fold in the flour and spices.',
+        'Pour a thin layer of batter into a lined tin and grill until just set and lightly browned.',
+        'Add the next thin layer on top and grill again; repeat, layer by layer, until the batter is used up, then cool completely before slicing.',
+      ],
+    },
   },
   {
     id: 'putu-piring',
@@ -251,6 +290,25 @@ export const KUEH_DATA = [
     texture: 'steamed',
     occasion: 'everyday',
     description: 'Small steamed rice flour discs with a pocket of melted palm sugar inside, served with fresh grated coconut.',
+    photo: 'images/kueh/putu-piring.png',
+    flavor_profile: ['Sweet', 'Fragrant', 'Soft', 'Gula Melaka'],
+    origin_sentence: 'A Malay kueh with South Indian influence, steamed to order in small individual molds so the palm sugar center stays warm and molten.',
+    recipe: {
+      ingredients: [
+        '250g rice flour',
+        '150ml water, plus extra for sprinkling',
+        '1/4 tsp salt',
+        '100g gula melaka (palm sugar), chopped small',
+        '1 cup grated coconut, steamed with a pinch of salt',
+      ],
+      steps: [
+        'Rub the rice flour with water and salt until it forms a fine, damp, crumbly texture, not a dough.',
+        'Press a layer of the rice flour mixture into a small mold, add a spoonful of gula melaka, then top with more rice flour mixture.',
+        'Level off the top and unmold onto a piece of muslin cloth over a steamer.',
+        'Steam over high heat for about 8 minutes, until the disc turns slightly translucent.',
+        'Serve warm with fresh grated coconut on the side.',
+      ],
+    },
   },
   {
     id: 'kueh-bingka',
@@ -260,6 +318,27 @@ export const KUEH_DATA = [
     texture: 'baked',
     occasion: 'festive',
     description: 'Dense, chewy baked tapioca cake with a caramelized golden crust, similar in spirit to bibingka.',
+    photo: 'images/kueh/kueh-bingka.png',
+    flavor_profile: ['Sweet', 'Chewy', 'Caramelized', 'Coconut'],
+    origin_sentence: 'A Malay and Peranakan baked tapioca cake, dense and chewy under a deeply caramelized golden crust.',
+    recipe: {
+      ingredients: [
+        '600g tapioca, grated (or frozen grated tapioca, thawed)',
+        '200ml coconut milk',
+        '150g sugar',
+        '2 eggs',
+        '50g butter, melted',
+        '1/2 tsp salt',
+        '1/4 tsp vanilla extract',
+      ],
+      steps: [
+        'Squeeze excess liquid from the grated tapioca, then mix with coconut milk, sugar, eggs, melted butter, salt, and vanilla.',
+        'Whisk until smooth and well combined.',
+        'Pour into a greased baking tin.',
+        'Bake in a hot oven until the top turns deep golden brown and the center is set.',
+        'Cool completely before slicing, so it firms up and holds together.',
+      ],
+    },
   },
   {
     id: 'kueh-koci',
@@ -269,6 +348,26 @@ export const KUEH_DATA = [
     texture: 'steamed',
     occasion: 'festive',
     description: 'Pyramid-shaped glutinous rice dumpling wrapped in banana leaf, filled with sweet coconut and palm sugar.',
+    photo: 'images/kueh/kueh-koci.png',
+    flavor_profile: ['Sweet', 'Chewy', 'Coconut', 'Gula Melaka'],
+    origin_sentence: "A Malay and Peranakan kueh pressed into a pyramid and wrapped in banana leaf, so the coconut and palm sugar filling steams inside its own fragrant parcel.",
+    recipe: {
+      ingredients: [
+        '250g glutinous rice flour',
+        '200ml warm water',
+        '1 tbsp oil',
+        '1 cup grated coconut',
+        '80g gula melaka (palm sugar), chopped',
+        'Banana leaf squares, softened over a flame',
+      ],
+      steps: [
+        'Cook the grated coconut and gula melaka together until the sugar melts and coats the coconut, then set aside to cool.',
+        'Knead glutinous rice flour, warm water, and oil into a smooth, soft dough.',
+        'Flatten a piece of dough, wrap around a spoonful of the coconut filling, and shape into a small pyramid.',
+        'Wrap the pyramid in a banana leaf square, folding into a neat parcel.',
+        'Steam for about 20 minutes, until the dough turns glossy and firm.',
+      ],
+    },
   },
   {
     id: 'apam-balik',
@@ -278,6 +377,30 @@ export const KUEH_DATA = [
     texture: 'grilled/pan-fried',
     occasion: 'everyday',
     description: 'Folded pancake with a crisp, lacy exterior and a soft interior, filled with crushed peanuts and sugar.',
+    photo: 'images/kueh/apam-balik.png',
+    flavor_profile: ['Sweet', 'Crisp', 'Nutty', 'Warm'],
+    origin_sentence: 'A Malay and Chinese teatime pancake, cooked until the edges turn crisp and lacy while the center stays soft, then folded around crushed peanuts and sugar.',
+    recipe: {
+      ingredients: [
+        '200g flour',
+        '1 egg',
+        '1 tsp instant yeast',
+        '1/2 tsp baking soda',
+        '250ml water',
+        '2 tbsp sugar',
+        'Pinch of salt',
+        '100g crushed roasted peanuts',
+        '3 tbsp sugar, for the filling',
+        'Butter, for spreading',
+      ],
+      steps: [
+        'Whisk flour, egg, yeast, baking soda, water, sugar, and salt into a smooth batter, then rest for 30 minutes until slightly bubbly.',
+        'Pour the batter into a hot, lightly greased pan and swirl to cover the base thinly.',
+        'Cover and cook over medium-low heat until the top is full of small bubbles and the edges turn crisp and golden.',
+        'Spread butter over the surface, then sprinkle with crushed peanuts and sugar.',
+        'Fold the pancake in half and cook briefly before slicing into wedges.',
+      ],
+    },
   },
   {
     id: 'kueh-tutu',
@@ -287,6 +410,35 @@ export const KUEH_DATA = [
     texture: 'steamed',
     occasion: 'everyday',
     description: 'Small steamed rice flour cakes pressed in a mold and steamed over a pandan leaf, giving a fragrant aroma; filled with ground peanut or palm sugar.',
+    photo: 'images/kueh/kueh-tutu.png',
+    flavor_profile: ['Sweet', 'Fragrant', 'Nutty', 'Delicate'],
+    origin_sentence: "A Chinese and Malay-Singaporean street kueh, steamed in small molds over pandan leaf so the rice cake itself picks up the leaf's fragrance.",
+    recipe: {
+      ingredients: [
+        '250g rice flour',
+        '100ml water, plus extra for sprinkling',
+        'Pinch of salt',
+        '100g ground roasted peanuts (or gula melaka, chopped)',
+        '2 tbsp sugar',
+        'Pandan leaves, cut into squares',
+      ],
+      steps: [
+        'Rub the rice flour with water and salt until fine and slightly damp, then sieve for an even texture.',
+        'Mix ground peanuts with sugar for the filling.',
+        'Line a small mold with a pandan leaf square, press in a layer of rice flour, add a spoonful of filling, then top with more rice flour.',
+        'Level off and unmold directly onto the steamer, leaf side down.',
+        'Steam over high heat for about 10 minutes, until firm, then serve warm.',
+      ],
+    },
+  },
+  {
+    id: 'kueh-ku',
+    name: 'Kueh Ku',
+    origin: 'Chinese/Peranakan',
+    category: 'sweet',
+    texture: 'steamed',
+    occasion: 'festive/ritual',
+    description: 'Similar to ang ku kueh but often smaller, softer-skinned, and made in varied colors, pressed with a wooden or plastic mold.',
   },
   {
     id: 'kueh-kosui',

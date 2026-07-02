@@ -155,32 +155,56 @@
       color: var(--color-surface);
       line-height: var(--leading-display);
       margin-bottom: 10px;
+      filter: drop-shadow(0 10px 32px rgba(0,0,0,0.28)) drop-shadow(0 2px 6px rgba(0,0,0,0.18));
     }
 
-    /* "Machine" gets the same --chrome-edge pattern as the tab-group/card/nav
-       edges, clipped to text instead of a border — the wordmark itself
-       becomes the metal half of "kueh" (organic, layered, .layered-k) vs
-       "machine" (brushed chrome). */
-    /* Text can't take a literal border, and -webkit-text-stroke only
-       accepts a solid color (no gradient) — so the "rim" here is a thin
-       stroke in --color-surface-border (the same shading tone used
-       throughout --chrome-edge) rather than a literal chrome ring.
-       -webkit-text-stroke itself is avoided: it centers the stroke on the
-       glyph path with no join control, so sharp/concave corners (the
-       counters in "a"/"e", the apex of "M") self-intersect into visible
-       triangular seams. Stacked drop-shadows work on the rendered alpha
-       silhouette instead of the path geometry, so corners don't do that. */
-    .chrome-text {
-      background: var(--chrome-edge-noise), var(--chrome-edge);
-      background-size: var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px);
+    /* "Machine" gets the same liquid-chrome treatment as the tab-group/
+       card/nav edges (src/tokens/chrome-metal.js) — the wordmark becomes
+       the metal half of "kueh" (organic, layered, .layered-k) vs "machine"
+       (brushed chrome), fill in a solid palette color with the chrome
+       showing only as a rim.
+
+       Text can't take a literal border, and -webkit-text-stroke only
+       accepts a solid color (no gradient) — there's no native way to give
+       text a gradient-filled outline. This fakes one by stacking two
+       copies of the same word: .chrome-text-rim sits behind, filled with
+       the chrome gradient via background-clip:text and widened with
+       text-stroke (background-clip clips the stroke too, so the whole
+       widened glyph shows the gradient); .chrome-text-fill sits on top,
+       normal weight, solid --color-accent — same accent the countdown
+       digits below use, so the wordmark echoes them. Only the rim layer's
+       extra width peeks out around the fill layer, reading as a chrome
+       outline. */
+    .chrome-text-wrap {
+      position: relative;
+      display: inline-block;
+    }
+    .chrome-text-rim {
+      position: absolute;
+      /* Wider than the wrap's own exact bounds horizontally (not inset: 0)
+         — the 3px text-stroke below bleeds outward from each glyph's
+         edge, and at inset: 0 the rightmost letter's stroke had nowhere
+         to render without touching the box edge, clipping its tip.
+         top/bottom stay at 0: expanding those too made the rim's box
+         taller than the fill layer's, which shifted how the text
+         vertically centered within it — a visible offset between the
+         two layers that had nothing to do with the clipping fix. */
+      inset: 0 -4px;
+      /* backgroundImage set by src/organisms/chrome-accents.js
+         (applyConicChrome) — a conic sweep, not repeating, so there's
+         nothing here to size/tile. */
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      filter:
-        drop-shadow(1px 0 0 var(--color-surface-border))
-        drop-shadow(-1px 0 0 var(--color-surface-border))
-        drop-shadow(0 1px 0 var(--color-surface-border))
-        drop-shadow(0 -1px 0 var(--color-surface-border));
+      -webkit-text-stroke: 3px transparent;
+    }
+    .chrome-text-fill {
+      position: relative;
+      /* Always the calibrated light-on-dark text token, not the daily
+         accent — the accent already gets heavy use elsewhere on this
+         dark hero background (the countdown digits), and text needs a
+         token that's specifically verified to hold contrast there. */
+      color: var(--color-text-on-primary);
     }
 
     .hero-tagline {
@@ -430,17 +454,12 @@
       gap: 10px;
     }
 
-    /* Same diagonal chrome pattern as .tab-group/.kod-card (tokens.css).
-       Real px tile computed per-card from its own perimeter, with a low
-       "repeats" value (main.js) — well under 1, since this is a
-       repeated-8-times list, not a singular showcase element: each row
-       should show only a small fragment of the sweep, not a complete
-       cycle, otherwise 8 full sweeps in a row reads as busy no matter how
-       "correct" any single one looks. Each card's own fill color has to
-       be redeclared per nth-child alongside the chrome layers, since the
-       `background` shorthand replaces all layers at once —
-       background-size stays on the shared base rule since it doesn't vary
-       by card. */
+    /* Liquid chrome edge (src/organisms/chrome-accents.js) — each card gets
+       its own independently-randomized glints, which is what actually
+       solves 8 rows looking like one mechanically repeated flourish
+       (real per-element randomness, not a shared pattern trying to fake
+       it). Fill color is still redeclared per nth-child below, since the
+       `background` shorthand replaces all layers at once. */
     .step-card {
       border: 1.5px solid transparent;
       border-radius: var(--radius-card);
@@ -451,21 +470,21 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
     }
 
-    /* background-size has to be repeated in every nth-child rule below,
-       not left on the shared .step-card rule above — the `background`
-       shorthand resets background-size to `auto` for any sub-property it
-       doesn't mention, and these higher-specificity nth-child selectors
-       would silently win that reset over the base rule otherwise (this
-       was a real bug here: the tile-size tuning was never actually taking
-       effect on step-cards because of exactly this). */
-    .steps-list > .step-card:nth-child(1) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(2) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(3) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(4) { background: linear-gradient(var(--color-accent), var(--color-accent)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(5) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(6) { background: linear-gradient(var(--color-highlight-soft), var(--color-highlight-soft)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(7) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
-    .steps-list > .step-card:nth-child(8) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--chrome-edge-noise) border-box, var(--chrome-edge) border-box; background-size: auto, var(--chrome-tile-noise-px) var(--chrome-tile-noise-px), var(--chrome-tile-px) var(--chrome-tile-px); }
+    /* --step-chrome-bg (set per-card by src/organisms/chrome-accents.js)
+       already includes its own `border-box` tags baked into the value —
+       see that file for why. One-shot gradients, not repeating, so
+       there's no background-size to keep in sync here either (unlike the
+       repeating-gradient approach this replaced, which needed
+       background-size repeated in every rule below or the `background`
+       shorthand would silently reset it to `auto`). */
+    .steps-list > .step-card:nth-child(1) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(2) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(3) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(4) { background: linear-gradient(var(--color-accent), var(--color-accent)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(5) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(6) { background: linear-gradient(var(--color-highlight-soft), var(--color-highlight-soft)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(7) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
+    .steps-list > .step-card:nth-child(8) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--step-chrome-bg); }
 
     .step-num {
       font-family: var(--font-display);
@@ -669,7 +688,7 @@
 
   <!-- HERO + COUNTDOWN -->
   <section class="hero reveal">
-<h1 class="hero-title"><span class="layered-k">Kueh</span> <span class="chrome-text">Machine</span></h1>
+<h1 class="hero-title"><span class="layered-k">Kueh</span> <span class="chrome-text-wrap"><span class="chrome-text-rim" aria-hidden="true">Machine</span><span class="chrome-text-fill">Machine</span></span></h1>
     <p class="hero-tagline">A team L&amp;D project. Each person builds an app/website, and we assemble it into the Kueh Machine, right here on <a href="https://www.kuehmachine.com" class="hero-link">www.kuehmachine.com</a></p>
 
     <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">

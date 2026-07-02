@@ -6,10 +6,12 @@
 // reusable beyond the kueh-of-day organism.
 
 import { createTab } from '../atoms/tab.js';
+import { applyConicChrome } from '../tokens/chrome-metal.js';
 
 /**
  * @param {{id: string, label: string, panel?: HTMLElement}[]} tabs
- * @returns {HTMLElement} the tablist container element
+ * @returns {HTMLElement} the rim wrapper (append this — it contains the
+ *   actual tablist inside it)
  */
 export function createTabGroup(tabs) {
   const list = document.createElement('div');
@@ -55,5 +57,10 @@ export function createTabGroup(tabs) {
     });
   });
 
-  return list;
+  const rim = document.createElement('div');
+  rim.className = 'tab-group-rim';
+  rim.appendChild(list);
+  applyConicChrome(rim, { peaks: [60, 180, 300] });
+
+  return rim;
 }

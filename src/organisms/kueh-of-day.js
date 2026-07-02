@@ -3,7 +3,7 @@
 // already present in index.html.
 
 import { generatePalette, applyPalette, DEFAULT_THEME } from '../tokens/colors.js';
-import { applyChromeScale } from '../tokens/chrome-scale.js';
+import { applyConicChrome } from '../tokens/chrome-metal.js';
 import { KUEH_DATA, KUEH_SEED_TABLE, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 import { renderKuehSvg } from '../atoms/kueh-icon.js';
 import { createTabGroup } from '../molecules/tab-group.js';
@@ -181,11 +181,14 @@ function renderKuehOfDay(section, index) {
   card.appendChild(buildMedia(kueh));
   card.appendChild(buildContent(kueh));
 
-  mount.innerHTML = '';
-  mount.appendChild(card);
+  const rim = document.createElement('div');
+  rim.className = 'kod-card-rim';
+  rim.appendChild(card);
 
-  applyChromeScale(card, 2);
-  applyChromeScale(card.querySelector('.tab-group'), 3);
+  mount.innerHTML = '';
+  mount.appendChild(rim);
+
+  applyConicChrome(rim, { peaks: [45, 135, 225, 315] });
 }
 
 export function init() {
