@@ -6,7 +6,7 @@
 // reusable beyond the kueh-of-day organism.
 
 import { createTab } from '../atoms/tab.js';
-import { applyConicChrome } from '../tokens/chrome-metal.js';
+import { applyLayeredConicChrome } from '../tokens/chrome-metal.js';
 
 /**
  * @param {{id: string, label: string, panel?: HTMLElement}[]} tabs
@@ -59,8 +59,7 @@ export function createTabGroup(tabs) {
 
   const rim = document.createElement('div');
   rim.className = 'tab-group-rim';
-  rim.appendChild(list);
-  applyConicChrome(rim, { peaks: [60, 180, 300] });
+  applyLayeredConicChrome(rim, list, { peaks: [60, 180, 300] });
 
   return rim;
 }

@@ -10,7 +10,9 @@
 import { init as initKuehOfDay } from './organisms/kueh-of-day.js';
 import { init as initSiteNav } from './organisms/site-nav.js';
 import { init as initChromeAccents } from './organisms/chrome-accents.js';
+import { init as initBatikAccents } from './organisms/batik-accents.js';
 
 initKuehOfDay();
 initSiteNav();
 initChromeAccents();
+initBatikAccents();

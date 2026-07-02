@@ -1,5 +1,20 @@
 /* === ATOMS === */
 
+/* .chrome-rim-glint — the inner, thinner glint band nested inside a
+   liquid-chrome rim's outer metal band (src/tokens/chrome-metal.js
+   applyLayeredConicChrome). From a rim's outer edge inward: the metal
+   band (the rim element's own padding, e.g. .tab-group-rim/.kod-card-rim/
+   .step-card), then this glint band, then the actual fill content —
+   matching a reference bezel where the base shading sits flush to the
+   outer edge and the dynamic chromatic glint reads as its own thinner,
+   more inset stroke, rather than both sharing one band's full width.
+   border-radius: inherit keeps the nested-corner curve correct whether
+   the outer rim is a pill or a card. */
+.chrome-rim-glint {
+  padding: 0.75px;
+  border-radius: inherit;
+}
+
 /* .text-sheen — a subtle, fixed-vertical light band across text: base
    color, a slightly lighter step, back to base. Unlike the liquid-chrome
    rims, this never rotates — it tracks cursor Y only (src/tokens/

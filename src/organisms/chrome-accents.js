@@ -11,7 +11,7 @@
 // kueh-of-day.js/tab-group.js, the site-nav divider inside site-nav.js,
 // since those two are real conic-chrome rims, not the sheen accent.
 
-import { applyConicChrome, computeConicChromeLayers, registerForRotation, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
+import { applyConicChrome, applyLayeredConicChrome, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
 
 export function init() {
   // interactive: false — the rim sits pixel-aligned behind a separate
@@ -20,18 +20,19 @@ export function init() {
   // reflection.
   applyConicChrome(document.querySelector('.chrome-text-rim'), { interactive: false, fixedAngle: 200 });
 
-  // Each step-card still uses the padding-box/border-box dual-layer trick
-  // (see index.html's per-nth-child rules) to keep its own fill color, so
-  // the chrome layers need explicit `border-box` tags baked into the
-  // property value itself — background's default per-layer box would
-  // otherwise leave the glints layer on padding-box instead. That also
-  // means this can't go through applyConicChrome (which sets
-  // backgroundImage/a plain property directly), so it has to register
-  // itself for the cursor/scroll rotation too, not get it for free.
+  // Each step-card gets its own independently-randomized glints (real
+  // per-element randomness, not a shared pattern trying to fake 8 rows
+  // looking distinct). .step-card is the outer metal band; its original
+  // children (heading, body, icon — see index.html) move into a new
+  // .step-card-fill div, which applyLayeredConicChrome nests inside the
+  // auto-inserted .chrome-rim-glint band — same three-element pattern as
+  // .kod-card-rim/.tab-group-rim now use, just built here since step-cards
+  // are static HTML rather than JS-rendered content.
   document.querySelectorAll('.step-card').forEach((card) => {
-    const { metal, glints } = computeConicChromeLayers([60, 180, 300]);
-    card.style.setProperty('--step-chrome-bg', `${glints} border-box, ${metal} border-box`);
-    registerForRotation(card);
+    const fill = document.createElement('div');
+    fill.className = 'step-card-fill';
+    while (card.firstChild) fill.appendChild(card.firstChild);
+    applyLayeredConicChrome(card, fill, { peaks: [60, 180, 300] });
   });
 
   document.querySelectorAll('.text-sheen').forEach((el) => registerForSheen(el));

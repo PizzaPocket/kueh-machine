@@ -3,7 +3,11 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: var(--color-surface);
+  /* Matches .hero, which the nav sits directly above at the top of the
+     page — both read var(--color-primary-strong), so they retheme
+     together with the day's kueh (src/organisms/kueh-of-day.js) instead
+     of drifting apart. */
+  background: var(--color-primary-strong);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
@@ -16,20 +20,6 @@
 #schedule,
 #guide {
   scroll-margin-top: calc(var(--site-nav-height, 64px) + 12px);
-}
-
-/* One-shot linear "liquid chrome" (src/tokens/chrome-metal.js), not a
-   repeating/tiled gradient — set via site-nav.js on the --nav-divider-bg
-   custom property, since JS can't set backgroundImage directly on a
-   ::after pseudo-element; custom properties inherit down to it instead. */
-.site-nav::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background-image: var(--nav-divider-bg);
 }
 
 .site-nav-inner {
@@ -48,18 +38,21 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   text-decoration: none;
-  --sheen-base: var(--color-text-on-surface-muted);
+  /* on-primary, not on-surface: the nav's own background is now
+     var(--color-primary-strong) (matches .hero), so its text needs the
+     token pairing audited against *that* background, not --color-surface. */
+  --sheen-base: var(--color-text-on-primary-muted);
   padding: 6px 2px;
   border-bottom: 2px solid transparent;
   transition: border-color 0.15s ease;
 }
 
 .site-nav a:hover {
-  --sheen-base: var(--color-text-on-surface);
+  --sheen-base: var(--color-text-on-primary);
 }
 
 .site-nav a.active {
-  --sheen-base: var(--color-text-on-surface);
+  --sheen-base: var(--color-text-on-primary);
   border-bottom-color: var(--color-accent);
 }
 

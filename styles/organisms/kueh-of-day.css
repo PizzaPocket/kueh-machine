@@ -4,12 +4,12 @@
   background: var(--color-surface-tint);
 }
 
-/* .kod-card-rim — the outer element: its padding is the rim thickness,
-   its background is the conic "liquid chrome" gradient set by
-   src/organisms/kueh-of-day.js (src/tokens/chrome-metal.js). .kod-card
-   (inner) is the actual card fill/layout, sized to fill whatever the rim
-   padding leaves — same two-element pattern as .tab-group-rim/.tab-group
-   (molecules.css). */
+/* .kod-card-rim — the outer element: its padding is the metal band's
+   thickness, its background is metal-only conic "liquid chrome" set by
+   src/organisms/kueh-of-day.js (applyLayeredConicChrome,
+   src/tokens/chrome-metal.js), which also inserts a .chrome-rim-glint
+   band (styles/atoms.css) between this and .kod-card for the thinner,
+   more inset glint layer — a three-element nest now, not two. */
 .kod-card-rim {
   border-radius: var(--radius-card);
   padding: 1.5px;
@@ -19,7 +19,9 @@
 .kod-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  border-radius: calc(var(--radius-card) - 1.5px);
+  /* Sheds both the rim's 1.5px metal band and .chrome-rim-glint's 0.75px
+     band to nest correctly, not just the rim's own inset. */
+  border-radius: calc(var(--radius-card) - 2.25px);
   background: var(--color-surface);
   overflow: hidden;
 }
@@ -27,17 +29,37 @@
 /* Stretches full row height (matches .kod-content) so the tinted background
    always reaches the bottom of the shelf, regardless of which tab is active
    — only the image itself is weighted to the top via justify-content.
-   Uses --color-accent, matching step 4's card background in the guide
-   section below, so the two reuse the same token rather than inventing a
-   new background choice. */
+   Clipped to the retro-window superellipse (src/tokens/superellipse.js,
+   #kod-media-clip built/kept in sync in src/organisms/kueh-of-day.js) —
+   background color moved to .kod-media-shadow below, since that's the
+   layer whose fill also carries the inner-shadow SVG filter; --color-accent
+   still reuses the same token as step 4's card background in the guide
+   section below, just read as an SVG fill now instead of a CSS background. */
 .kod-media {
-  background: var(--color-accent);
+  position: relative;
+  clip-path: url(#kod-media-clip);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   padding: 20px 32px 32px;
   min-height: 220px;
+}
+
+/* First child of .kod-media (see buildMediaShapeSvg in kueh-of-day.js) —
+   a filled <path> painting the same superellipse the clip-path above
+   already crops to, plus a baked-in inner-shadow SVG filter. DOM order
+   alone doesn't keep it behind the tag/heading/image: a position:absolute
+   box paints in its own stacking step regardless of tree order, above the
+   static in-flow siblings that follow it. z-index: -1 (against .kod-media's
+   position: relative, which makes .kod-media the stacking context) is what
+   actually pins it behind them. */
+.kod-media-shadow {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .kod-tag {

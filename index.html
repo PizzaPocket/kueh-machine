@@ -296,13 +296,50 @@
 
     /* === BRIEF === */
     .brief-section {
+      position: relative;
       background: var(--color-primary-soft);
       padding: 80px 32px;
+      overflow: hidden; /* .batik-margin bleeds past the section's own edges on all four sides by design */
     }
 
     .brief-inner {
+      position: relative;
+      z-index: 1; /* stays above .batik-margin at any overlap, text never fights the artwork */
       max-width: 54ch;
       margin-inline: auto;
+    }
+
+    /* Batik margin strips: always shown down to the mobile breakpoint —
+       on a narrow-but-not-mobile viewport they'll sit partly behind the
+       text column (z-index above) and bleed off all four screen/section
+       edges (negative inset on every side), which reads as a natural
+       full-bleed composition rather than something that needs to fit
+       strictly within the margin's own whitespace.
+
+       left/right ease from -60px (mild bleed, plenty of margin room)
+       toward -180px as the viewport narrows past 1200px, so less of the
+       artwork reaches in over the text the tighter the column gets — a
+       fixed -60px stayed put all the way down to the 640px cutoff, which
+       read as creeping further into the text the narrower the page got
+       instead of easing out of its way. top/bottom stay a flat -60px
+       bleed — the section's own height doesn't compress the way its width
+       does, so there's no equivalent "creeping into content" risk there. */
+    .batik-margin {
+      position: absolute;
+      z-index: 0;
+      top: -60px;
+      bottom: -60px;
+      width: 220px;
+      pointer-events: none;
+    }
+
+    .batik-margin-left { left: clamp(-180px, calc(-60px - (1200px - 100vw) * 0.2143), -60px); }
+    .batik-margin-right { right: clamp(-180px, calc(-60px - (1200px - 100vw) * 0.2143), -60px); }
+
+    .batik-margin .batik-pattern {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     .brief-heading {
@@ -328,7 +365,7 @@
     /* === TIMELINE === */
     .dates-section {
       padding: 80px 32px;
-      background: var(--color-surface-tint);
+      background: var(--color-surface);
     }
 
     .timeline-wrapper {
@@ -444,8 +481,41 @@
 
     /* === GETTING STARTED === */
     .guide-section {
+      position: relative;
+      overflow: hidden; /* trims .guide-batik's bleed flush at the section edge, same as .brief-section */
       padding: 80px 32px;
-      background: var(--color-surface);
+      background: var(--color-surface-tint);
+    }
+
+    /* Keeps the label/heading/intro/step-cards above .guide-batik at any
+       overlap — same z-index split as .brief-inner vs .batik-margin. */
+    .guide-section .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* The full-bleed batik layer moved here from its own experimental
+       section (killed) — sits behind the step-cards, only visible through
+       the gaps between them and the side/bottom bleed, rather than behind
+       the section's own heading/intro at the top. `top` is a fixed offset
+       tuned to land just below .guide-intro, roughly where .steps-list
+       begins, so the pattern (and the IntersectionObserver reveal that
+       depends on it scrolling into view, see batik-accents.js) starts
+       showing up around the same time the rows themselves do. */
+    .guide-batik {
+      position: absolute;
+      z-index: 0;
+      top: 235px;
+      left: -60px;
+      right: -60px;
+      bottom: -60px;
+      pointer-events: none;
+    }
+
+    .guide-batik .batik-pattern {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     .guide-intro {
@@ -465,35 +535,39 @@
 
     /* Liquid chrome edge (src/organisms/chrome-accents.js) — each card gets
        its own independently-randomized glints, which is what actually
-       solves 8 rows looking like one mechanically repeated flourish
-       (real per-element randomness, not a shared pattern trying to fake
-       it). Fill color is still redeclared per nth-child below, since the
-       `background` shorthand replaces all layers at once. */
+       solves 8 rows looking like one mechanically repeated flourish (real
+       per-element randomness, not a shared pattern trying to fake it).
+       .step-card is now the outer metal band (applyLayeredConicChrome,
+       src/tokens/chrome-metal.js) — chrome-accents.js moves each card's
+       original children into a new .step-card-fill div nested inside the
+       auto-inserted .chrome-rim-glint band, so the layout/padding that
+       used to live here moved there too. Fill color is a custom property
+       (--step-fill-color, set per nth-child below) rather than a literal
+       background, so it can inherit down through the two nested chrome
+       bands to .step-card-fill without needing to know about them. */
     .step-card {
-      border: 1.5px solid transparent;
       border-radius: var(--radius-card);
-      padding: 22px 26px;
-      display: flex;
-      align-items: baseline;
-      gap: 22px;
+      padding: 1.5px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
     }
 
-    /* --step-chrome-bg (set per-card by src/organisms/chrome-accents.js)
-       already includes its own `border-box` tags baked into the value —
-       see that file for why. One-shot gradients, not repeating, so
-       there's no background-size to keep in sync here either (unlike the
-       repeating-gradient approach this replaced, which needed
-       background-size repeated in every rule below or the `background`
-       shorthand would silently reset it to `auto`). */
-    .steps-list > .step-card:nth-child(1) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(2) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(3) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(4) { background: linear-gradient(var(--color-accent), var(--color-accent)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(5) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(6) { background: linear-gradient(var(--color-highlight-soft), var(--color-highlight-soft)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(7) { background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box, var(--step-chrome-bg); }
-    .steps-list > .step-card:nth-child(8) { background: linear-gradient(var(--color-primary-soft), var(--color-primary-soft)) padding-box, var(--step-chrome-bg); }
+    .step-card-fill {
+      display: flex;
+      align-items: baseline;
+      gap: 22px;
+      padding: 22px 26px;
+      border-radius: inherit;
+      background: var(--step-fill-color);
+    }
+
+    .steps-list > .step-card:nth-child(1) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(2) { --step-fill-color: var(--color-primary-soft); }
+    .steps-list > .step-card:nth-child(3) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(4) { --step-fill-color: var(--color-accent); }
+    .steps-list > .step-card:nth-child(5) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(6) { --step-fill-color: var(--color-highlight-soft); }
+    .steps-list > .step-card:nth-child(7) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(8) { --step-fill-color: var(--color-primary-soft); }
 
     .step-num {
       font-family: var(--font-display);
@@ -624,9 +698,10 @@
       .countdown-grid { gap: 0 14px; }
       .cd-sep { font-size: 1.75rem; }
       .brief-section { padding: 60px 20px; }
+      .batik-margin { display: none; } /* mobile column is too narrow to overlap without hurting legibility */
       .dates-section { padding: 60px 10px 140px; }
       .guide-section { padding: 60px 10px; }
-      .step-card { padding: 14px 12px; gap: 10px; }
+      .step-card-fill { padding: 14px 12px; gap: 10px; }
 
       /* Vertical timeline: 3-col grid — today | track | labels */
       .timeline-wrapper {
@@ -707,7 +782,7 @@
   <!-- HERO + COUNTDOWN -->
   <section class="hero reveal">
 <h1 class="hero-title"><span class="layered-k">Kueh</span> <span class="chrome-text-wrap"><span class="chrome-text-rim" aria-hidden="true">Machine</span><span class="chrome-text-fill">Machine</span></span></h1>
-    <p class="hero-tagline">A team L&amp;D project. Each person builds an app/website, and we assemble it into the Kueh Machine, right here on <a href="https://www.kuehmachine.com" class="hero-link">www.kuehmachine.com</a></p>
+    <p class="hero-tagline">a team L&amp;D project</p>
 
     <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">
       <div class="cd-unit">
@@ -730,7 +805,7 @@
         <span class="cd-label">Sec</span>
       </div>
     </div>
-    <p class="countdown-sublabel">Until the Showcase — August 26, 2026 at 2:00 PM SGT</p>
+    <p class="countdown-sublabel">until the showcase</p>
   </section>
 
   <!-- KUEH OF THE DAY -->
@@ -742,10 +817,12 @@
 
   <!-- BRIEF -->
   <section id="brief" class="brief-section reveal">
+    <div class="batik-mount batik-margin batik-margin-left" data-batik-group="brief-margins" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
     <div class="brief-inner">
       <h2 class="brief-heading">What is Kueh Machine?</h2>
-      <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is an L&amp;D exercise built around making. Each person on the team builds one small app or website using Claude Code, getting hands-on experience with tools that are changing what designers can do. Every piece comes together at <a href="https://www.kuehmachine.com" class="brief-link">kuehmachine.com</a> by August 26, our Monthly Meeting.</p>
+      <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is a team L&amp;D project built around making. Each person builds their own small app or website using Claude Code — their own individual interpretation of "Kueh Machine" — getting hands-on experience with tools that are changing what designers can do. Every person's piece comes together into one collective Kueh Machine, live at <a href="https://www.kuehmachine.com" class="brief-link">www.kuehmachine.com</a>.</p>
     </div>
+    <div class="batik-mount batik-margin batik-margin-right" data-batik-group="brief-margins" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
   </section>
 
   <!-- KEY DATES -->
@@ -797,6 +874,7 @@
 
   <!-- GETTING STARTED -->
   <section id="guide" class="guide-section reveal">
+    <div class="batik-mount guide-batik" data-batik-surface="plain" data-batik-width="1400" data-batik-height="900" data-batik-clusters="46" aria-hidden="true"></div>
     <div class="container">
       <p class="section-label">Getting started</p>
       <h2 class="section-title">Set up your workspace for this project</h2>

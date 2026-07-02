@@ -21,6 +21,14 @@
 // hues, and the gradient's own center are all real parameters (not
 // hardcoded), so a future use site can reach for a different material or
 // framing without editing this module.
+//
+// Two ways to apply the result to an element: applyConicChrome paints
+// glints+metal as one shared-thickness layer (simplest — a single rim
+// band); applyLayeredConicChrome paints them as two concentric bands, a
+// wider flush-to-the-edge metal band with a thinner, more inset glint band
+// nested inside it, matching how the reference's own bezel actually reads
+// up close. Use the latter wherever the rim is a real box (a pill, a
+// card, a step-card) that can host the extra nested layer.
 
 const DEFAULT_DARK = 'var(--color-surface-border)';
 const DEFAULT_LIGHT = '#ffffff';
@@ -279,6 +287,54 @@ export function computeConicChromeLayers(
     metal: buildConicMetal(darkVar, lightVar, peaks, center),
     glints: buildConicGlints(peaks, glintVars, center),
   };
+}
+
+/**
+ * Wires up a two-band chrome rim: outerEl (already created by the caller,
+ * with its own padding/border-radius/box-shadow — its padding is the metal
+ * band's thickness, flush to the true outer edge) gets metal-only chrome;
+ * a new .chrome-rim-glint element (its padding is the glint band's
+ * thickness — see styles/atoms.css) is inserted between outerEl and
+ * fillEl and gets glint-only chrome. Two independently-registered rotation
+ * targets, so each band computes its own angle from its own (near-
+ * identical) center rather than one property cascading to the other.
+ *
+ * Ported from a reference (wip/liquid-metal-buttons.html) where the base
+ * metal shading reads as a wider band sitting flush to the outer edge,
+ * with the dynamic chromatic glint as its own thinner, more inset stroke
+ * nested just inside it — not the single shared-thickness band the
+ * original applyConicChrome (below) paints both layers into. Geometry
+ * (how thick each band is) stays a CSS concern, same as before — this
+ * function only wires up the DOM nesting and the two paint layers, so any
+ * rim can opt in by swapping its applyConicChrome call for this one.
+ *
+ * Returns the glint band element (fillEl's new direct parent) in case a
+ * caller needs to keep a handle on it; most callers can ignore the return
+ * value; the DOM connection is already made.
+ */
+export function applyLayeredConicChrome(outerEl, fillEl, opts = {}) {
+  if (!outerEl || !fillEl) return null;
+  const {
+    peaks = [60, 180, 300],
+    glintVars = DEFAULT_GLINT_VARS,
+    darkVar = DEFAULT_DARK,
+    lightVar = DEFAULT_LIGHT,
+    center = null,
+  } = opts;
+
+  const { metal, glints } = computeConicChromeLayers(peaks, { glintVars, darkVar, lightVar, center });
+
+  outerEl.style.backgroundImage = metal;
+  registerForRotation(outerEl);
+
+  const glintBand = document.createElement('div');
+  glintBand.className = 'chrome-rim-glint';
+  glintBand.style.backgroundImage = glints;
+  glintBand.appendChild(fillEl);
+  outerEl.appendChild(glintBand);
+  registerForRotation(glintBand);
+
+  return glintBand;
 }
 
 /**

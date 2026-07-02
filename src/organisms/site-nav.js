@@ -4,8 +4,6 @@
 // scroll, using the same IntersectionObserver approach the page's existing
 // reveal animation uses, but persistent rather than one-shot.
 
-import { applyConicChrome } from '../tokens/chrome-metal.js';
-
 export function init() {
   const nav = document.querySelector('.site-nav');
   if (!nav) return;
@@ -22,22 +20,9 @@ export function init() {
   setNavHeight();
   window.addEventListener('resize', setNavHeight, { passive: true });
 
-  // JS can't set backgroundImage directly on the ::after pseudo-element
-  // that actually paints the divider, so this writes to a custom property
-  // on .site-nav instead, which ::after reads via var() (see site-nav.css)
-  // — custom properties inherit down to pseudo-elements even though
-  // direct style access doesn't reach them.
-  //
-  // center: 100px above the divider itself (which sits at the very top of
-  // the page) rather than the divider's own tiny center — the visible
-  // strip is then a small arc of a much larger circle, which reads as a
-  // gentler curve of light across the line instead of a tight sweep
-  // through a center that's only 2px away vertically.
-  applyConicChrome(nav, { targetProperty: '--nav-divider-bg', center: '50% -100px' });
-
   // The nav links' own .text-sheen accent is registered in the blanket
   // sweep in chrome-accents.js, not here — this organism only owns the
-  // divider chrome and the active-link highlighting below.
+  // active-link highlighting below.
   const links = Array.from(nav.querySelectorAll('a[data-nav-target]'));
 
   if (!('IntersectionObserver' in window)) return;
