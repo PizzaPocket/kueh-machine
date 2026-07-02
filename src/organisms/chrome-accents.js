@@ -1,11 +1,17 @@
 // Organism: applies the "liquid chrome" treatment (src/tokens/chrome-metal.js)
 // to the static decorative elements that aren't owned by another organism —
-// the "Machine" wordmark and the guide section's step-cards. .kod-card-rim/
-// .tab-group-rim are handled inside kueh-of-day.js/tab-group.js, the
-// site-nav divider inside site-nav.js, since those elements are each
-// organism/molecule's own concern.
+// the "Machine" wordmark and the guide section's step-cards — plus a single
+// blanket sweep that wires up every .text-sheen/.icon-sheen element on the
+// page (however it got rendered — static HTML, or dynamic markup from
+// another organism/molecule/atom) for the cursor-Y-tracking light accent.
+// Centralizing that sweep here, run last (see main.js), means individual
+// atoms/organisms that use .text-sheen/.icon-sheen don't each need their own
+// registration call and can't accidentally double-register the same
+// element. .kod-card-rim/.tab-group-rim are handled inside
+// kueh-of-day.js/tab-group.js, the site-nav divider inside site-nav.js,
+// since those two are real conic-chrome rims, not the sheen accent.
 
-import { applyConicChrome, computeConicChromeLayers, registerForRotation } from '../tokens/chrome-metal.js';
+import { applyConicChrome, computeConicChromeLayers, registerForRotation, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
 
 export function init() {
   // interactive: false — the rim sits pixel-aligned behind a separate
@@ -27,4 +33,7 @@ export function init() {
     card.style.setProperty('--step-chrome-bg', `${glints} border-box, ${metal} border-box`);
     registerForRotation(card);
   });
+
+  document.querySelectorAll('.text-sheen').forEach((el) => registerForSheen(el));
+  document.querySelectorAll('.icon-sheen').forEach((el) => applyIconFillSheen(el));
 }

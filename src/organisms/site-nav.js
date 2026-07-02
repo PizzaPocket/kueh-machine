@@ -23,9 +23,13 @@ export function init() {
   // through a center that's only 2px away vertically.
   applyConicChrome(nav, { targetProperty: '--nav-divider-bg', center: '50% -100px' });
 
+  // The nav links' own .text-sheen accent is registered in the blanket
+  // sweep in chrome-accents.js, not here — this organism only owns the
+  // divider chrome and the active-link highlighting below.
+  const links = Array.from(nav.querySelectorAll('a[data-nav-target]'));
+
   if (!('IntersectionObserver' in window)) return;
 
-  const links = Array.from(nav.querySelectorAll('a[data-nav-target]'));
   const linkForId = new Map(links.map((link) => [link.dataset.navTarget, link]));
   const sections = links
     .map((link) => document.getElementById(link.dataset.navTarget))

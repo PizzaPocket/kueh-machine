@@ -117,30 +117,39 @@
 
     /* Retheme with the rest of the page (see src/organisms/kueh-of-day.js) —
        the "Kueh" title's layered gradient uses the same semantic tokens as
-       everything else, so it reflects the day's kueh too. */
+       everything else, so it reflects the day's kueh too.
+
+       Band transitions are soft (a ~2% blend zone at each color change)
+       rather than hard cuts, and rather than a filter: blur() on the whole
+       element — blur applies after background-clip: text has already
+       clipped the gradient to the glyph shapes, so it softens the letter
+       edges right along with the color bands, which reads as out-of-focus
+       text rather than a soft fill. Blending directly in the gradient
+       definition keeps the letter silhouettes perfectly crisp (no filter
+       involved at all) while still softening just the color transitions. */
     .layered-k {
       font-weight: 800;
       background: linear-gradient(to bottom,
-        var(--color-highlight)      0%,   var(--color-highlight)      5%,  /* top */
-        var(--color-highlight)      5%,   var(--color-highlight)      10%,
-        var(--color-highlight)      10%,  var(--color-highlight)      15%,
-        var(--color-highlight)      15%,  var(--color-highlight)      20%,
-        var(--color-highlight)      20%,  var(--color-highlight)      25%,
-        var(--color-highlight)      25%,  var(--color-highlight)      30%,
-        var(--color-surface-tint)   30%,  var(--color-surface-tint)   35%,
-        var(--color-surface)        35%,  var(--color-surface)        40%,
-        var(--color-primary-soft)   40%,  var(--color-primary-soft)   45%,
-        var(--color-primary)        45%,  var(--color-primary)        50%,
-        var(--color-accent)         50%,  var(--color-accent)         55%,
-        var(--color-surface-tint)   55%,  var(--color-surface-tint)   60%,
-        var(--color-surface)        60%,  var(--color-surface)        65%,
-        var(--color-primary-soft)   65%,  var(--color-primary-soft)   70%,
-        var(--color-primary)        70%,  var(--color-primary)        75%,
-        var(--color-primary)        75%,  var(--color-primary)        80%,
-        var(--color-primary)        80%,  var(--color-primary)        85%,
-        var(--color-primary)        85%,  var(--color-primary)        90%,
-        var(--color-primary)        90%,  var(--color-primary)        95%,
-        var(--color-primary)        95%,  var(--color-primary)        100% /* bottom */
+        var(--color-highlight)      0%,
+        var(--color-highlight)      29%,
+        var(--color-surface-tint)   31%,
+        var(--color-surface-tint)   34%,
+        var(--color-surface)        36%,
+        var(--color-surface)        39%,
+        var(--color-primary-soft)   41%,
+        var(--color-primary-soft)   44%,
+        var(--color-primary)        46%,
+        var(--color-primary)        49%,
+        var(--color-accent)         51%,
+        var(--color-accent)         54%,
+        var(--color-surface-tint)   56%,
+        var(--color-surface-tint)   59%,
+        var(--color-surface)        61%,
+        var(--color-surface)        64%,
+        var(--color-primary-soft)   66%,
+        var(--color-primary-soft)   69%,
+        var(--color-primary)        71%,
+        var(--color-primary)        100%
       );
       -webkit-background-clip: text;
       background-clip: text;
@@ -493,6 +502,7 @@
       letter-spacing: var(--tracking-heading);
       flex-shrink: 0;
       width: 24px;
+      --sheen-base: var(--color-text-on-surface);
     }
 
     .step-body { flex: 1; min-width: 0; }
@@ -526,13 +536,21 @@
     .spark-lg { font-size: 30px; }
 
     .step-link {
-      color: var(--color-primary-strong);
+      --sheen-base: var(--color-primary-strong);
       font-weight: 600;
       text-decoration: underline;
+      /* text-decoration-color explicitly, not currentColor (the default)
+         — .text-sheen sets color: transparent to reveal the gradient
+         fill, and the underline would disappear right along with it if
+         left to inherit that same transparent value. */
+      text-decoration-color: var(--color-primary-strong);
       text-underline-offset: 2px;
       text-decoration-thickness: 1px;
     }
-    .step-link:hover { color: var(--color-primary); }
+    .step-link:hover {
+      --sheen-base: var(--color-primary);
+      text-decoration-color: var(--color-primary);
+    }
 
     /* File card */
     .file-card {
@@ -555,7 +573,7 @@
 
     .fc-icon { color: var(--color-primary); flex-shrink: 0; }
     .fc-info { flex: 1; min-width: 0; }
-    .fc-name { font-size: 0.9rem; font-weight: 600; color: var(--color-text-on-surface); display: block; }
+    .fc-name { font-size: 0.9rem; font-weight: 600; --sheen-base: var(--color-text-on-surface); display: block; }
     .fc-meta { font-size: 0.8rem; color: var(--color-text-on-surface); display: block; }
     .fc-dl   { color: var(--color-text-on-surface); flex-shrink: 0; }
 
@@ -680,9 +698,9 @@
   <!-- SITE NAV -->
   <nav class="site-nav" aria-label="Section navigation">
     <div class="site-nav-inner">
-      <a href="#brief" data-nav-target="brief">Brief</a>
-      <a href="#schedule" data-nav-target="schedule">Schedule</a>
-      <a href="#guide" data-nav-target="guide">Getting Started</a>
+      <a href="#brief" data-nav-target="brief" class="text-sheen">Brief</a>
+      <a href="#schedule" data-nav-target="schedule" class="text-sheen">Schedule</a>
+      <a href="#guide" data-nav-target="guide" class="text-sheen">Getting Started</a>
     </div>
   </nav>
 
@@ -787,10 +805,10 @@
 
         <!-- 01 -->
         <div class="step-card">
-          <span class="step-num">01</span>
+          <span class="step-num text-sheen">01</span>
           <div class="step-body">
             <p class="step-heading">Download VS Code</p>
-            <p class="step-text">Get the editor from Microsoft. It's free and runs on Mac and Windows. <a class="step-link" href="https://code.visualstudio.com/" target="_blank" rel="noopener">Download VS Code</a></p>
+            <p class="step-text">Get the editor from Microsoft. It's free and runs on Mac and Windows. <a class="step-link text-sheen" href="https://code.visualstudio.com/" target="_blank" rel="noopener">Download VS Code</a></p>
           </div>
           <div class="step-icon" aria-hidden="true">
             <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -808,13 +826,13 @@
 
         <!-- 02 -->
         <div class="step-card">
-          <span class="step-num">02</span>
+          <span class="step-num text-sheen">02</span>
           <div class="step-body">
             <p class="step-heading">Open the Extensions panel</p>
             <p class="step-text">In VS Code, click the Extensions icon in the left sidebar. It looks like this:</p>
           </div>
           <div class="step-icon" aria-hidden="true">
-            <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg class="icon-sheen" width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M34.0342 1.01758C34.5895 0.916023 35.9432 1.25844 36.3838 1.58984C38.2505 2.99386 40.0187 4.8684 41.6533 6.55859C43.5538 8.52398 46.5686 10.4697 46.4062 13.4717C46.2622 16.1332 43.6594 17.4557 42.0459 19.2539C41.0279 20.3535 39.9204 21.5816 38.8291 22.5928C40.0687 22.6878 41.3064 23.0655 42.2041 23.9609C43.5774 25.3308 43.5657 26.7809 43.5762 28.5645L43.5752 35.6211C43.575 37.3444 43.6842 39.2719 43.375 40.9541C43.114 42.3735 41.6254 44.0461 40.1484 44.2227C37.3732 44.5541 34.4308 44.4242 31.626 44.4238L15.4346 44.4209C12.7479 44.4135 10.0396 44.4888 7.35547 44.376C5.12553 44.2824 3.42128 42.9419 3.16797 40.6455C2.94269 38.6021 3.01049 36.5315 3.01074 34.4678L3.01465 24.8867L3.00977 14.1729C3.00952 12.0498 2.95339 9.86158 3.11719 7.74902C3.21185 6.52782 3.62114 5.51404 4.60938 4.71973C5.15512 4.28211 5.80241 3.98852 6.49121 3.86621C8.07953 3.57945 12.0612 3.74931 13.8174 3.71289C15.9365 3.66893 18.61 3.68913 20.7539 3.79199C21.8384 3.84411 23.1928 4.54789 23.8789 5.45605C24.537 6.32167 24.8159 7.4174 24.6514 8.49219C27.0525 6.35822 29.3137 3.51881 31.9053 1.61719C32.4319 1.23076 33.3861 1.0942 34.0342 1.01758ZM5.84863 25.4551C5.83664 27.6633 5.61181 40.1114 6.07227 40.9688C6.88862 41.5713 8.98146 41.4603 10.0078 41.4434C13.9355 41.3786 17.9222 41.5289 21.8438 41.4229C21.7991 39.5692 21.7893 37.6595 21.8135 35.8057C21.8581 32.3763 21.7297 28.8895 21.8428 25.4648L11.1865 25.4629C9.56891 25.4623 7.4313 25.5273 5.84863 25.4551ZM38.9893 25.4795C34.2675 25.4691 29.5157 25.4144 24.792 25.4727C24.6773 26.2608 24.7519 29.5088 24.7529 30.5303L24.7617 41.4404L34.4551 41.4395C36.0574 41.4395 37.7931 41.4888 39.3887 41.3809C39.7305 41.3577 39.9934 41.238 40.2568 41.0176C41.0522 39.572 40.2961 29.7548 40.5859 27.5498C40.7256 26.4873 40.1551 25.3776 38.9893 25.4795ZM34.165 3.69336C33.5846 3.90721 33.1302 4.1858 32.6504 4.57422C31.31 5.65945 25.4699 11.4574 24.8721 12.792C24.7539 13.0562 24.7213 13.2613 24.8301 13.5332C25.0014 13.9615 25.336 14.3791 25.6416 14.7217C26.9062 16.1394 28.3937 17.4344 29.7578 18.7637C30.7053 19.687 31.5864 20.6966 32.5615 21.5879C32.9474 21.9407 33.4531 22.4417 33.9434 22.6377C34.0485 22.6797 34.1508 22.7032 34.2637 22.707C34.6096 22.5497 34.9095 22.3883 35.1973 22.1348C36.1996 21.2512 37.0333 20.1879 37.9727 19.2393C39.5754 17.6206 41.2917 16.0679 42.8184 14.3809C43.0887 14.082 43.443 13.701 43.5889 13.3242C43.6399 13.1924 43.5889 13.0929 43.5312 12.9697C43.0637 11.9708 36.8875 5.62003 35.7568 4.62598C35.3606 4.27755 34.9604 3.93714 34.4531 3.76367C34.3568 3.73075 34.2669 3.70382 34.165 3.69336ZM24.6787 17.917C24.8592 19.1045 24.7575 21.3657 24.7627 22.6475C26.2375 22.653 27.9305 22.6982 29.3877 22.626C28.7862 21.9164 25.2335 18.0794 24.6787 17.917ZM20.3828 6.69727C16.5296 6.54575 12.6529 6.67745 8.79492 6.6416C8.27735 6.63685 7.68901 6.64371 7.17773 6.67969C6.17376 6.90339 5.88922 7.14576 5.85156 8.2334C5.78471 10.1628 5.84484 12.0995 5.83105 14.0303C5.86443 16.8902 5.79445 19.7959 5.84473 22.6475L20.2998 22.6553L21.8496 22.6406C21.7736 21.399 21.8114 19.8162 21.8115 18.5547L21.8154 11.5459C21.8159 10.5042 21.8675 8.60798 21.7695 7.61914C21.3711 7.09996 21.1036 6.72566 20.3828 6.69727Z" fill="var(--color-primary-strong)"/>
             </svg>
           </div>
@@ -822,10 +840,10 @@
 
         <!-- 03 -->
         <div class="step-card">
-          <span class="step-num">03</span>
+          <span class="step-num text-sheen">03</span>
           <div class="step-body">
             <p class="step-heading">Search "Claude Code" and install the extension</p>
-            <p class="step-text">Find the extension by Anthropic and install it. <a class="step-link" href="https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code" target="_blank" rel="noopener">Open in Marketplace</a></p>
+            <p class="step-text">Find the extension by Anthropic and install it. <a class="step-link text-sheen" href="https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code" target="_blank" rel="noopener">Open in Marketplace</a></p>
           </div>
           <div class="step-icon" aria-hidden="true">
             <svg width="32" height="32" viewBox="0 0 134 134" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -837,7 +855,7 @@
 
         <!-- 04 -->
         <div class="step-card">
-          <span class="step-num">04</span>
+          <span class="step-num text-sheen">04</span>
           <div class="step-body">
             <p class="step-heading">Sign in with your Claude account</p>
             <p class="step-text">VS Code will prompt you when the extension loads. Use your Anthropic account. If you don't have one, create one at claude.ai first.</p>
@@ -846,7 +864,7 @@
 
         <!-- 05 -->
         <div class="step-card">
-          <span class="step-num">05</span>
+          <span class="step-num text-sheen">05</span>
           <div class="step-body">
             <p class="step-heading">Create a project folder and drop CLAUDE.md into it</p>
             <p class="step-text">Make a new folder anywhere on your computer (your Desktop works fine). Download CLAUDE.md below and move it into that folder. This file gives Claude its instructions for your project.</p>
@@ -858,7 +876,7 @@
                 </svg>
               </span>
               <div class="fc-info">
-                <span class="fc-name">CLAUDE.md</span>
+                <span class="fc-name text-sheen">CLAUDE.md</span>
                 <span class="fc-meta">Text file · 4 KB</span>
               </div>
               <span class="fc-dl">
@@ -873,7 +891,7 @@
 
         <!-- 06 -->
         <div class="step-card">
-          <span class="step-num">06</span>
+          <span class="step-num text-sheen">06</span>
           <div class="step-body">
             <p class="step-heading">Open your project folder in VS Code</p>
             <p class="step-text">In VS Code, go to File, then Open Folder, and select the project folder you just created.</p>
@@ -882,7 +900,7 @@
 
         <!-- 07 -->
         <div class="step-card">
-          <span class="step-num">07</span>
+          <span class="step-num text-sheen">07</span>
           <div class="step-body">
             <p class="step-heading">Click the Spark icon in the left sidebar</p>
             <p class="step-text">Look for the <svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle"><path d="M19.6 66.5L39.3 55.5L39.6 54.5L39.3 54H38.3L35 53.8L23.8 53.5L14 53L4.5 52.5L2.1 52L0 49L0.2 47.5L2.2 46.2L5.1 46.4L11.4 46.9L20.9 47.5L27.8 47.9L38 49.1H39.6L39.8 48.4L39.3 48L38.9 47.6L29 41L18.4 34L12.8 29.9L9.8 27.9L8.3 25.9L7.7 21.7L10.4 18.7L14.1 19L15 19.2L18.7 22.1L26.7 28.2L37 36L38.5 37.2L39.1 36.8L39.2 36.5L38.5 35.4L33 25L27 14.6L24.3 10.3L23.6 7.7C23.3 6.7 23.2 5.7 23.2 4.7L26.2 0.5L28 0L32.2 0.6L33.8 2L36.4 8L40.5 17.3L47 29.9L49 33.7L50 37.1L50.3 38.1H51V37.6L51.5 30.4L52.5 21.7L53.5 10.5L53.8 7.3L55.4 3.5L58.4 1.5L61 2.6L63 5.5L62.7 7.3L61.6 15L59 27.1L57.5 35.3H58.4L59.4 34.2L63.5 28.8L70.4 20.2L73.4 16.7L77 13L79.3 11.2H83.6L86.7 15.9L85.3 20.8L80.9 26.4L77.2 31.1L71.9 38.2L68.7 43.9L69 44.3H69.7L81.7 41.7L88.1 40.6L95.7 39.3L99.2 40.9L99.6 42.5L98.2 45.9L90 47.9L80.4 49.9L66.1 53.2L65.9 53.3L66.1 53.6L72.5 54.2L75.3 54.4H82.1L94.7 55.4L98 57.4L99.9 60.1L99.6 62.1L94.5 64.7L87.7 63.1L71.7 59.3L66.3 58H65.5V58.4L70.1 62.9L78.4 70.4L89 80.1L89.5 82.5L88.2 84.5L86.8 84.3L77.6 77.3L74 74.3L66 67.5H65.5V68.2L67.3 70.9L77.1 85.6L77.6 90.1L76.9 91.5L74.3 92.5L71.6 91.9L65.8 83.9L59.8 74.9L55.1 66.7L54.6 67.1L51.7 97.3L50.4 98.8L47.4 100L44.9 98L43.5 95L44.9 88.8L46.5 80.8L47.8 74.4L49 66.5L49.7 63.9V63.7H49L43 72L34 84.3L26.8 91.9L25.1 92.6L22.1 91.1L22.4 88.3L24 86L34 73.2L40 65.3L44 60.7L43.9 60.2H43.6L17.2 77.4L12.5 78L10.5 76L10.7 73L11.7 72L19.7 66.5H19.6Z" fill="#D97757"/></svg> icon in the sidebar. Click it to open the Claude panel.</p>
@@ -894,7 +912,7 @@
 
         <!-- 08 -->
         <div class="step-card">
-          <span class="step-num">08</span>
+          <span class="step-num text-sheen">08</span>
           <div class="step-body">
             <p class="step-heading">Start chatting with Claude Code</p>
             <p class="step-text">Type in the Claude panel and describe what you want to build. Claude has already read the instructions from the file you dropped in. Tell it what you're making and go from there.</p>

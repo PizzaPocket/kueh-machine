@@ -166,7 +166,12 @@
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 700;
+  /* color, not just --sheen-base: the chevron icon uses stroke="currentColor"
+     and isn't a descendant of .kod-see-more-label, so it needs a real,
+     non-transparent color to inherit — only the label span's own color
+     gets overridden to transparent by .text-sheen. */
   color: var(--color-primary-strong);
+  --sheen-base: var(--color-primary-strong);
   cursor: pointer;
   transition: background 0.15s ease;
 }

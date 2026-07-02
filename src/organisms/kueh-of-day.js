@@ -36,7 +36,7 @@ function buildMedia(kueh) {
   tag.className = 'section-label kod-tag';
   tag.innerHTML = `${renderKuehSvg(kueh, template, 16)}<span>Kueh of the day</span>`;
   const tagIcon = tag.querySelector('svg');
-  if (tagIcon) tagIcon.classList.add('kueh-icon');
+  if (tagIcon) tagIcon.classList.add('kueh-icon', 'icon-sheen');
   wrap.appendChild(tag);
 
   const heading = document.createElement('h2');
@@ -134,8 +134,8 @@ function buildRecipePanel(kueh) {
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-controls', collapse.id);
   toggle.innerHTML =
-    '<span class="kod-see-more-label">See more</span>' +
-    '<svg class="kod-see-more-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" ' +
+    '<span class="kod-see-more-label text-sheen">See more</span>' +
+    '<svg class="kod-see-more-chevron icon-sheen" width="16" height="16" viewBox="0 0 16 16" fill="none" ' +
     'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M4 6l4 4 4-4"/></svg>';
   const label = toggle.querySelector('.kod-see-more-label');

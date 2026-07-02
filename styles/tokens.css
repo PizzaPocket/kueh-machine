@@ -40,3 +40,12 @@
   inherits: false;
   initial-value: 0deg;
 }
+
+/* --sheen-pos: the vertical-only cursor-tracking position behind
+   .text-sheen/.icon-sheen (src/tokens/chrome-metal.js registerForSheen) —
+   a separate, non-rotating cousin of --chrome-angle. The root default keeps
+   text/icons legible before JS runs (or under prefers-reduced-motion,
+   where registerForSheen never overrides it). */
+:root {
+  --sheen-pos: 50%;
+}
