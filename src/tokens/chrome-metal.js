@@ -112,8 +112,8 @@ function buildConicGlints(peaks, glintVars, center) {
 // Two independent effects read this same loop's pointer tracking, but drive
 // different custom properties and never influence each other:
 //   - rotationTargets: --chrome-angle, a full rotation for the metal rims
-//     (kod-card, tab-group, step-cards, the site-nav divider) — most of what
-//     reads as "liquid" rather than a static metallic border.
+//     (tab-group, step-cards, the site-nav divider) — most of what reads
+//     as "liquid" rather than a static metallic border.
 //   - sheenTargets: --sheen-pos, a vertical-only position (0%-100% down the
 //     element) for the .text-sheen/.icon-sheen light-catching accent on text
 //     and our own decorative icons — deliberately NOT rotation-based (a

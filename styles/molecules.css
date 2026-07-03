@@ -2,23 +2,51 @@
 
 /* .tab-group-rim — the outer element: its padding IS the rim thickness,
    and its background is the conic "liquid chrome" gradient set by
-   src/tokens/chrome-metal.js. .tab-group (inner) is the actual pill fill
+   src/tokens/chrome-metal.js. .tab-group (inner) is the actual fill
    + tabs, sized to fill whatever the rim padding leaves — two elements
    instead of one with layered padding-box/border-box backgrounds, which
    is easier to reason about and (unlike the repeating-gradient approach
    this replaced) has no tiling/seam to get wrong: a conic-gradient is one
-   continuous 360deg sweep, it doesn't tile. */
+   continuous 360deg sweep, it doesn't tile. Shaped to the retro-rectangle
+   superellipse (src/atoms/retro-shape.js, src/molecules/tab-group.js)
+   rather than border-radius, so drop-shadow (which follows the actual
+   clipped silhouette) replaces box-shadow (which would draw around the
+   full rectangular border-box, ignoring the clip). align-self: flex-start
+   — without it, this stretches to fill its container's cross axis
+   whenever that container is a flex column (e.g. .kod-content-column),
+   which isn't what "inline-block" sizing implies and reads as a layout
+   bug (the metal band spanning the full column width while the tabs
+   inside stay their normal size). */
 .tab-group-rim {
   display: inline-block;
+  align-self: flex-start;
   padding: 1.5px;
-  border-radius: var(--radius-pill);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.06);
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.09)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.06));
 }
 
 .tab-group {
+  position: relative;
   display: inline-flex;
   gap: 4px;
   padding: 4px;
-  border-radius: var(--radius-pill);
   background: var(--color-surface);
+}
+
+/* Slides/resizes to sit behind whichever .tab is selected (see
+   positionHighlight, src/molecules/tab-group.js) instead of each button
+   toggling its own background — that's what makes the switch a motion
+   instead of an instant swap. z-index: -1 (against .tab-group's
+   position: relative) is what keeps it behind the buttons regardless of
+   DOM order — see .retro-shape-fill's comment for why position:absolute
+   alone doesn't guarantee that. top/left: 0 is just the coordinate origin
+   translate() measures from — positionHighlight sets width/height/
+   transform every time, all measured from the selected button itself, so
+   the HIGHLIGHT_INSET gap reads identical on every side. */
+.tab-highlight {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  background: var(--color-primary-strong);
+  transition: transform 0.2s ease, width 0.2s ease, height 0.2s ease;
 }

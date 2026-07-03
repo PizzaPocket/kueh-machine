@@ -21,9 +21,42 @@
   --color-text-on-primary-muted:  #9ECBB5;
 }
 
+/* === METAL PALETTE ===
+   Static, non-day-palette metal tones — unlike --color-accent/
+   --color-highlight above (which rotate daily and feed the *liquid*
+   chrome rim's glints, src/tokens/chrome-metal.js), these stay fixed so a
+   *matte* metal surface reads as a consistent material regardless of
+   which kueh is today's. --metal-base/--metal-base-cool sourced from
+   wip/liquid-metal-buttons.html's own warm/cool metal prototype rather
+   than invented fresh — --metal-base is that prototype's "warm" variant
+   (a neutral steel, not literally warm-hued), --metal-base-cool its
+   "cool" (blue-steel) variant. --metal-base-warm is new here (no wip
+   precedent): a genuinely warm champagne-steel tone, added for
+   .matte-metal-surface below, which wants a visible warm/cool tonal
+   drift across the surface (like ambient color reflecting off brushed
+   steel at a shallow angle) rather than a single flat metal tone.
+
+   Two consumers so far: .rim-matte-inner / .rim-matte-inner-glint
+   (styles/atoms.css) — the static counterpart to the liquid rim: same
+   double-band structure as chrome-metal.js's applyLayeredConicChrome (a
+   wider metal band + a thinner, more concentrated glint band), fixed
+   gradients instead of a --chrome-angle-driven conic sweep. And
+   .matte-metal-surface (styles/atoms.css) — a full matte steel panel
+   background (soft ambient-light gradient + a subtle noise grain),
+   currently applied to .kueh-of-day-section. Pick either wherever
+   something shouldn't visually react to the cursor the way the liquid
+   chrome system does. */
+:root {
+  --metal-highlight: #ffffff;
+  --metal-base:      #6b6e78;
+  --metal-base-warm: #8f8577;
+  --metal-base-cool: #4c5570;
+  --metal-shadow:    #34363d;
+}
+
 /* "Liquid chrome" treatment (src/tokens/chrome-metal.js) — a conic-gradient
-   (closed shapes: .kod-card, .tab-group) or one-shot linear-gradient (open/
-   thin shapes: the site-nav divider, the "Machine" wordmark, step-cards),
+   (closed shapes: .tab-group, step-cards) or one-shot linear-gradient (open/
+   thin shapes: the site-nav divider, the "Machine" wordmark),
    never a *repeating* gradient. Earlier versions used repeating-linear-
    gradient tiled via background-size, which needs the tile width to line
    up exactly with the gradient's own cycle length or it shows a hard seam

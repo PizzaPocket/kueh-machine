@@ -3,8 +3,8 @@
 /* .chrome-rim-glint — the inner, thinner glint band nested inside a
    liquid-chrome rim's outer metal band (src/tokens/chrome-metal.js
    applyLayeredConicChrome). From a rim's outer edge inward: the metal
-   band (the rim element's own padding, e.g. .tab-group-rim/.kod-card-rim/
-   .step-card), then this glint band, then the actual fill content —
+   band (the rim element's own padding, e.g. .tab-group-rim/.step-card),
+   then this glint band, then the actual fill content —
    matching a reference bezel where the base shading sits flush to the
    outer edge and the dynamic chromatic glint reads as its own thinner,
    more inset stroke, rather than both sharing one band's full width.
@@ -13,6 +13,273 @@
 .chrome-rim-glint {
   padding: 0.75px;
   border-radius: inherit;
+}
+
+/* .btn-rim / .btn / .btn-small / .btn-primary (src/atoms/button.js) — a
+   small button with the "reflective" liquid-chrome rim, same
+   double-band structure as .tab-group-rim/.chrome-rim-glint (a metal
+   band, this element's own padding, then the thinner glint band nested
+   inside), retro-rectangle clip-path'd rather than a plain border-radius
+   pill. .btn-rim needs no background of its own — applyLayeredConicChrome
+   (src/atoms/button.js) sets its conic-gradient background-image
+   directly via JS, the same as .tab-group-rim. align-self: flex-start —
+   without it this stretches to fill a flex-column container's cross
+   axis, the same layout bug .tab-group-rim needed the same fix for. */
+.btn-rim {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 1.5px;
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.09)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.06));
+}
+
+.btn-rim[hidden] {
+  display: none;
+}
+
+/* .btn — base button styling shared by every size/color variant. White
+   fill (var(--color-surface)) is the "reflective" rim's actual
+   reflective surface — a transparent button, like .tab or the old
+   .kod-see-more, would show the glint band's own background straight
+   through, reading as a thin ring rather than a solid button. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn:hover {
+  background: var(--color-surface-tint);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.btn-small {
+  padding: 7px 14px;
+  border-radius: var(--radius-interactive);
+  font-size: 0.8125rem;
+}
+
+/* border-radius above is only the :focus-visible fallback shape for
+   browsers that don't clip an element's own outline to its clip-path —
+   see .tab's identical comment, this file, for the fuller reasoning;
+   .btn's real shape comes from its own retro-rectangle clip-path
+   (src/atoms/button.js). */
+.btn-icon {
+  flex-shrink: 0;
+}
+
+/* color, not just --sheen-base: an icon alongside the label (e.g. a
+   chevron using stroke="currentColor") isn't a descendant of .btn-label,
+   so it needs a real, non-transparent color to inherit — only the label
+   span's own color gets overridden to transparent by .text-sheen. Same
+   reasoning as .kod-see-more's own chevron used to need, styles/
+   organisms/kueh-of-day.css. */
+.btn-primary {
+  color: var(--color-primary-strong);
+  --sheen-base: var(--color-primary-strong);
+}
+
+/* .rim-matte-inner / .rim-matte-inner-glint — the static counterpart to
+   .chrome-rim-glint's liquid rim: same double-band structure (a wider
+   metal band, its thickness this element's own padding, then a thinner
+   more-inset glint band nested inside), but fixed diagonal gradients from
+   the metal palette (styles/tokens.css) instead of a --chrome-angle-
+   driven conic sweep — no rotation, no per-element randomization, no JS
+   wiring beyond src/atoms/matte-rim.js's wrapWithInnerMatteRim (which
+   just builds the two-element nest and shapes each band's clip-path, not
+   a rotation loop). Pick a matte rim over the liquid rim wherever a metal
+   bezel shouldn't visually react to the cursor.
+
+   "Inner" specifically: the rim, its glint band, and the fill it wraps
+   are one visual unit sharing a single outer edge and a single elevation
+   shadow (see .kod-media-column .rim-matte-inner, styles/organisms/
+   kueh-of-day.css, for where that shadow actually lives) — the rim reads
+   as this object's own material, not a separate frame. That's distinct
+   from an "outer" rim (not yet built, but the system should grow one): a
+   metal bezel wrapping something that's already a complete, self-
+   contained visual unit with its own bounds — e.g. framing a small icon,
+   or adding a bezel around a control that might already carry its own
+   shadow — where the frame and the thing it frames read as two separate
+   layers, not one fused object. Name any future outer variant
+   .rim-matte-outer / wrapWithOuterMatteRim to keep the pair unambiguous.
+
+   border-radius: inherit is the shape fallback for plain rectangular/
+   pill consumers; a clip-path'd consumer (retro-rectangle shapes) needs its
+   own clip-path set on both bands directly, since clip-path doesn't
+   inherit the way border-radius does — wrapWithInnerMatteRim handles
+   that automatically.
+
+   The dark/mid stops are color-mix()'d toward white, not used raw and
+   not blended toward --metal-base — --metal-base itself (#6b6e78) is a
+   fairly dark medium gray, so an earlier pass that compressed the range
+   by blending the shadow/highlight endpoints *toward --metal-base* still
+   anchored the whole rim around that dark tone and read as too heavy
+   overall, even though the swing between darkest and lightest had
+   shrunk. Mixing toward white instead raises the average lightness while
+   keeping the same light/dark rhythm (contrast .matte-metal-surface,
+   which needed the same "blend toward white, not toward a mid-dark
+   token" move for its own, much wider panel).
+
+   The highlight stop is the opposite case: --metal-highlight is itself
+   #ffffff (styles/tokens.css), so color-mix()'ing it *toward white* is a
+   no-op — 60% white blended with 40% white is still just white,
+   regardless of the ratio, which is why this peak was reading as a flat,
+   blazing #fff no matter how "toned down" the percentage looked on
+   paper. Blending it toward --metal-base instead is what actually pulls
+   it down to a light-but-not-pure-white gray. */
+.rim-matte-inner {
+  width: 100%;
+  height: 100%;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--metal-base) 45%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 30%, white) 20%,
+    color-mix(in srgb, var(--metal-highlight) 78%, var(--metal-base)) 45%,
+    color-mix(in srgb, var(--metal-base) 30%, white) 65%,
+    color-mix(in srgb, var(--metal-base) 45%, white) 100%
+  );
+}
+
+/* width/height: 100% (not just relying on a block element's default
+   fill-width) matters here specifically because height doesn't share
+   that default — a block box with no explicit height shrink-wraps its
+   content instead, so a child further down this chain asking for its
+   own height: 100% would resolve against `auto` and get an ellipse
+   instead of a circle wherever an ancestor (like .rim-matte-inner) does
+   have a real pixel height, e.g. a fixed-size circular badge
+   (.kod-tag-icon-badge, kueh-of-day.css) rather than a shrink-to-content
+   rim like .tab-group-rim. Harmless no-op for those shrink-to-content
+   consumers, since 100% against an auto-height ancestor still just
+   resolves to auto. */
+.rim-matte-inner-glint {
+  width: 100%;
+  height: 100%;
+  padding: 0.75px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    color-mix(in srgb, var(--metal-highlight) 85%, var(--metal-base)) 45%,
+    transparent 60%
+  );
+}
+
+/* .matte-metal-surface — a full matte steel panel background (reference:
+   a brushed elevator control panel), the "surface" counterpart to
+   .rim-matte-inner's "rim" — same static metal palette (styles/
+   tokens.css), no cursor/scroll reaction. Three layers, painted top to
+   bottom:
+     1. a tiled feTurbulence noise texture, desaturated and blended with
+        `multiply` (baked into the SVG's own `opacity` attribute —
+        background-image layers have no CSS opacity of their own),
+        approximating brushed steel's fine grain without drawing actual
+        directional strokes. `multiply` specifically, not `overlay` —
+        overlay only meaningfully darkens where the noise is already
+        dark and barely lightens on a near-white base like this one, so
+        the grain read as essentially invisible at first; multiply
+        darkens proportionally to the noise's own value regardless of
+        how light the base is. 0.25 landed between two bad extremes —
+        0.16 read as no texture at all, 0.4 read as visible speckling
+        rather than a fine grain.
+     2. a soft off-center radial highlight (`soft-light`), reading as a
+        broad, diffuse light source rather than a hard specular point.
+     3. a vertical (top-to-bottom) linear-gradient drifting cool ->
+        neutral -> warm -> neutral, each stop a color-mix() of a metal
+        token with white (18-30% token, the rest white) rather than the
+        raw token — a lighter mix than .rim-matte-inner's own (a thin rim
+        can carry a stronger shadow-to-highlight range and still read as
+        polished metal edge; a whole panel this size at that much
+        contrast reads as a strip light, not brushed steel), but not so
+        light the drift disappears entirely — an earlier pass at 10-12%
+        flattened it past the point of being visible at all. One stop
+        also mixes in a touch of --color-accent — the day's rotating
+        palette (src/tokens/colors.js, applyPalette) — so the panel picks
+        up a faint ambient cast matching today's kueh without needing any
+        cursor/scroll reaction of its own; the palette already only
+        changes once per page load, so this stays as static as every
+        other stop. */
+.matte-metal-surface {
+  background-color: color-mix(in srgb, var(--metal-base) 24%, white);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 90% 70% at 22% 15%, rgba(255, 255, 255, 0.22), transparent 60%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--metal-base-cool) 30%, white) 0%,
+      color-mix(in srgb, var(--metal-base) 24%, white) 32%,
+      color-mix(in srgb, var(--color-accent) 18%, color-mix(in srgb, var(--metal-base) 24%, white)) 55%,
+      color-mix(in srgb, var(--metal-base-warm) 30%, white) 76%,
+      color-mix(in srgb, var(--metal-base) 24%, white) 100%
+    );
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: 200px 200px, cover, cover;
+  background-blend-mode: multiply, soft-light, normal;
+}
+
+/* .metal-rivet-row / .metal-rivet (src/atoms/rivets.js) — a sparse row of
+   small embossed metal dots, meant to sit along a .matte-metal-surface
+   panel's top/bottom edge (reference: a riveted steel panel's seam).
+   justify-content: space-between spreads the dots across the row's real,
+   current width — its container (.metal-rivet-row-top/bottom,
+   kueh-of-day.css) is pinned to the section's own left/right edges, so
+   this always matches the section's actual rendered width at any
+   viewport, no vw-based guessing that could under/overshoot. gap: 85px
+   is a *floor* space-between won't compress below; in practice it only
+   ever becomes the binding constraint right at the width where the
+   container stops having room to spare, which is also exactly the width
+   where kueh-of-day.css's own media query takes over and switches the
+   container itself to a centered, fixed layout — see that rule for why
+   space-between alone can't produce a symmetric bleed past that point
+   (it collapses to flex-start, one-sided, once there's no free space
+   left to distribute). */
+.metal-rivet-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 85px;
+  pointer-events: none;
+}
+
+/* radial-gradient (not a flat fill) is what reads as a small embossed
+   bump rather than a flat dot — a highlight near the top-left, same
+   light-source convention .rim-matte-inner's own diagonal gradient uses,
+   darkening toward the edge. Every stop is color-mix()'d toward white,
+   not toward raw --metal-base — --metal-base itself is noticeably darker
+   than .matte-metal-surface's own rendered tone (that panel blends
+   --metal-base only ~18-22% into white), so anchoring the rivet's
+   mid-tone on raw --metal-base sat visibly darker than the panel it's
+   supposed to sit flush on, even after the highlight/shadow range itself
+   had been softened. Mixing toward white instead lands the rivet's own
+   mid-tone close to the panel's actual color (same fix .rim-matte-inner
+   needed for the same reason). The highlight stop is the opposite case,
+   same as .rim-matte-inner's own highlight stop: --metal-highlight is
+   itself #ffffff, so mixing it *toward white* never actually dims it —
+   blended toward --metal-base instead. The two box-shadows add the
+   actual dimensionality: a soft drop shadow beneath (it's raised off the
+   panel) and a faint inset shadow along the bottom edge (the underside,
+   where the bump curves away from the light). */
+.metal-rivet {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 0%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 55%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 100%
+  );
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.18);
 }
 
 /* .text-sheen — a subtle, fixed-vertical light band across text: base
@@ -86,9 +353,19 @@
   pointer-events: none;
 }
 
-/* .tab — pill-radius interactive control, same radius tier as the site's
-   existing pill/chip elements (ui-philosophy.md: fully-rounded radius for
-   pill/chip interactive elements). */
+/* .tab — sits on top of the tab group's sliding .tab-highlight
+   (src/molecules/tab-group.js), which now paints the selected-tab
+   background, so .tab itself stays transparent except for its own
+   :hover state. Text color still switches per aria-selected here (needs
+   to read against the highlight once it slides underneath), just not the
+   background. Its own hover background is shaped by a per-button
+   retro-rectangle clip-path (set inline by tab-group.js's shapeElement), not
+   border-radius — border-radius here is only a fallback for :focus-visible
+   in browsers that don't clip an element's own outline to its clip-path
+   (outline, like box-shadow, generally paints outside the clipped
+   region), using --radius-interactive rather than the old --radius-pill
+   so that fallback at least approximates the new shape's character
+   instead of a leftover pill. */
 .tab {
   appearance: none;
   border: none;
@@ -104,7 +381,7 @@
   font-size: 0.875rem;
   font-weight: 600;
   padding: 9px 20px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-interactive);
   cursor: pointer;
   --sheen-base: var(--color-text-on-surface-muted);
   transition: background-color 0.15s ease;
@@ -116,7 +393,6 @@
 }
 
 .tab[aria-selected="true"] {
-  background-color: var(--color-primary-strong);
   --sheen-base: var(--color-text-on-primary);
 }
 

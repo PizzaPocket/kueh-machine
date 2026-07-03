@@ -20,7 +20,7 @@
 // solveClearingExponent below ends up dominating anyway, flattening the
 // curve into an ordinary rounded-rect look and defeating the point. A
 // tighter base corner needs less clearance to begin with, so the rendered
-// shape actually reads as the intended retro-window silhouette instead of
+// shape actually reads as the intended retro-rectangle silhouette instead of
 // being overridden toward a plain rectangle.
 
 function fmt(n) {

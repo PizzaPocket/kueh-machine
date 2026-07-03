@@ -1,10 +1,15 @@
 // Organism: picks today's kueh, applies its daily palette, and renders the
-// two-column media/content card into the static #kueh-of-day section
-// already present in index.html.
+// two-column media/content layout into the static #kueh-of-day section
+// already present in index.html. No card frame wraps the two columns —
+// each side is its own floating "window" (src/atoms/retro-shape.js): the
+// kueh photo on its accent-colored window, and the tab content on a
+// white one, both sitting directly on the section's own background.
 
 import { generatePalette, applyPalette, DEFAULT_THEME } from '../tokens/colors.js';
-import { applyLayeredConicChrome } from '../tokens/chrome-metal.js';
-import { buildSuperellipsePath, solveClearingExponent } from '../tokens/superellipse.js';
+import { createRetroShape } from '../atoms/retro-shape.js';
+import { wrapWithInnerMatteRim } from '../atoms/matte-rim.js';
+import { buildRivetRow } from '../atoms/rivets.js';
+import { createSmallButton } from '../atoms/button.js';
 import { KUEH_DATA, KUEH_SEED_TABLE, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 import { renderKuehSvg } from '../atoms/kueh-icon.js';
 import { createTabGroup } from '../molecules/tab-group.js';
@@ -20,43 +25,7 @@ const ROTATION_ANCHOR_UTC = Date.UTC(2026, 6, 2); // 2026-07-02 = day 0
 // Guards against piling up duplicate observers if renderKuehOfDay() is
 // ever called more than once per page load — it isn't today (init() runs
 // exactly once), but the disconnect-before-recreate is cheap insurance.
-let mediaResizeObserver = null;
-
-// Gap between the window shape and .kod-media's own box edge, so the
-// retro window floats inside the card with the card's own surface color
-// showing around it, rather than the shape's bounding box pressing flush
-// against the card edge (which read as too much visual tension in situ).
-const MEDIA_WINDOW_GUTTER = 16;
-
-// Same filled <path> `d` drives both the visible clip boundary and the
-// inner-shadow layer beneath the media content — see buildMedia() below —
-// so they always match exactly. clipPathUnits="userSpaceOnUse" (not the
-// default objectBoundingBox) is what makes this react correctly to
-// non-square boxes: objectBoundingBox normalizes to a 0-1 unit square,
-// which reintroduces exactly the non-uniform-stretch corner distortion a
-// superellipse's independent a/b axes were meant to avoid.
-function updateMediaClip(mediaEl, clipPathEl, shadowPathEl) {
-  const boxWidth = mediaEl.clientWidth;
-  const boxHeight = mediaEl.clientHeight;
-  if (!boxWidth || !boxHeight) return;
-
-  const gutter = Math.min(MEDIA_WINDOW_GUTTER, boxWidth / 4, boxHeight / 4);
-  const width = boxWidth - gutter * 2;
-  const height = boxHeight - gutter * 2;
-
-  // Clearance the corner curve needs to stay clear of is measured from the
-  // (smaller, inset) shape's own edge, not .kod-media's own edge — the
-  // gutter already buys back some of the padding's job, so what's left to
-  // solve for is only however much padding exceeds the gutter.
-  const style = getComputedStyle(mediaEl);
-  const marginX = Math.max(Math.min(parseFloat(style.paddingLeft), parseFloat(style.paddingRight)) - gutter, 0);
-  const marginY = Math.max(Math.min(parseFloat(style.paddingTop), parseFloat(style.paddingBottom)) - gutter, 0);
-  const n = solveClearingExponent({ width, height, marginX, marginY });
-  const d = buildSuperellipsePath({ width, height, n, originX: gutter + width / 2, originY: gutter + height / 2 });
-
-  clipPathEl.setAttribute('d', d);
-  shadowPathEl.setAttribute('d', d);
-}
+let windowObservers = [];
 
 // Same SGT day math _tlData already uses in index.html's inline script,
 // recomputed independently here rather than shared across the classic
@@ -69,79 +38,47 @@ function getDayIndexSGT(length) {
   return ((daysSinceAnchor % length) + length) % length;
 }
 
-// Retro-window silhouette (src/tokens/superellipse.js) behind the media
-// content: a filled <path clip-path> pair (same `d`, kept in sync by
-// updateMediaClip) — one clips .kod-media itself to the shape, the other
-// is a real filled shape carrying an inner-shadow SVG filter, kept behind
-// the tag/heading/image via z-index (see .kod-media-shadow, kueh-of-day.css)
-// — position:absolute takes it out of normal flow and into its own
-// stacking step, so DOM order alone wouldn't keep it under the static
-// siblings that follow it. CSS `box-shadow: inset` can't do the shadow
-// itself: it follows the element's rectangular border-box, not this
-// clip-path outline, so it would shadow the wrong edge everywhere the
-// superellipse pulls in from the corners. Blur values are carried over
-// from .hero-title's own two-layer drop-shadow (index.html) — a wide soft
-// pass plus a tighter crisp pass — translated from CSS blur radius to the
-// roughly-half-sized feGaussianBlur stdDeviation equivalent.
-function buildMediaShapeSvg() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'kod-media-shadow');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML = `
-    <defs>
-      <clipPath id="kod-media-clip" clipPathUnits="userSpaceOnUse">
-        <path d=""/>
-      </clipPath>
-      <filter id="kod-media-inner-shadow" x="-20%" y="-20%" width="140%" height="140%">
-        <!-- Inverting the shape's own alpha (opaque interior -> 0, transparent
-             exterior -> 1) before blurring is what makes the blur spread
-             *inward* from the boundary into a ring, rather than just
-             softening a uniformly-tinted copy of the whole shape (which is
-             what compositing straight against SourceAlpha gives you — a flat
-             tint over the entire fill, not a ring hugging the edge). -->
-        <feComponentTransfer in="SourceAlpha" result="inverted-alpha">
-          <feFuncA type="table" tableValues="1 0"/>
-        </feComponentTransfer>
+// Icon + "Kueh of the day" label, now a standalone block sitting above
+// the media window rather than clipped inside it. The icon sits in a
+// small circular badge (metal rim + light face), not bare — a circle
+// needs no clip-path shaping (border-radius already expresses it
+// natively), so shaped: false skips wrapWithInnerMatteRim's clip-path
+// machinery and just falls back to .rim-matte-inner's own
+// border-radius: inherit.
+function buildMediaTag(kueh, template) {
+  const tag = document.createElement('p');
+  tag.className = 'section-label kod-tag';
 
-        <feGaussianBlur in="inverted-alpha" stdDeviation="14" result="blur-wide"/>
-        <feFlood flood-color="#000" flood-opacity="0.28" result="flood-wide"/>
-        <feComposite in="flood-wide" in2="blur-wide" operator="in" result="tinted-wide"/>
-        <feComposite in="tinted-wide" in2="SourceAlpha" operator="in" result="ring-wide"/>
+  const iconFace = document.createElement('span');
+  iconFace.className = 'kod-tag-icon-face';
+  iconFace.innerHTML = renderKuehSvg(kueh, template, 20);
+  const tagIcon = iconFace.querySelector('svg');
+  if (tagIcon) tagIcon.classList.add('kueh-icon', 'icon-sheen');
 
-        <feGaussianBlur in="inverted-alpha" stdDeviation="3" result="blur-tight"/>
-        <feFlood flood-color="#000" flood-opacity="0.18" result="flood-tight"/>
-        <feComposite in="flood-tight" in2="blur-tight" operator="in" result="tinted-tight"/>
-        <feComposite in="tinted-tight" in2="SourceAlpha" operator="in" result="ring-tight"/>
+  const { el: iconBadge } = wrapWithInnerMatteRim(iconFace, { shaped: false });
+  iconBadge.classList.add('kod-tag-icon-badge');
+  tag.appendChild(iconBadge);
 
-        <feMerge result="both-rings">
-          <feMergeNode in="ring-wide"/>
-          <feMergeNode in="ring-tight"/>
-        </feMerge>
-        <feMerge>
-          <feMergeNode in="SourceGraphic"/>
-          <feMergeNode in="both-rings"/>
-        </feMerge>
-      </filter>
-    </defs>
-    <path fill="var(--color-accent)" filter="url(#kod-media-inner-shadow)" d=""/>
-  `;
-  return svg;
+  const label = document.createElement('span');
+  label.textContent = 'Kueh of the day';
+  tag.appendChild(label);
+
+  return tag;
 }
 
-function buildMedia(kueh) {
+// The kueh window itself: name heading + photo (or SVG fallback) on the
+// accent-colored retro-rectangle shape. Returns { el, refs } — refs is
+// windowEl's own { clipPathEl, shadowPathEl } (createRetroShape), handed
+// to wrapWithInnerMatteRim as `fillRefs` (see buildMediaColumn) so the
+// rim wrapper drives el's shape itself rather than this function wiring
+// up its own observer.
+function buildMediaWindow(kueh, template) {
   const wrap = document.createElement('div');
   wrap.className = 'kod-media';
 
-  const shapeSvg = buildMediaShapeSvg();
-  wrap.appendChild(shapeSvg);
-
-  const template = KUEH_SHAPE_TABLE[kueh.id] || 'disc';
-  const tag = document.createElement('p');
-  tag.className = 'section-label kod-tag';
-  tag.innerHTML = `${renderKuehSvg(kueh, template, 16)}<span>Kueh of the day</span>`;
-  const tagIcon = tag.querySelector('svg');
-  if (tagIcon) tagIcon.classList.add('kueh-icon', 'icon-sheen');
-  wrap.appendChild(tag);
+  const { svg, clipUrl, ...refs } = createRetroShape({ fill: 'var(--color-accent)' });
+  wrap.appendChild(svg);
+  wrap.style.clipPath = clipUrl;
 
   const heading = document.createElement('h2');
   heading.className = 'section-title kod-name';
@@ -160,7 +97,28 @@ function buildMedia(kueh) {
     wrap.appendChild(svgWrap.firstElementChild);
   }
 
-  return wrap;
+  return { el: wrap, refs };
+}
+
+function buildMediaColumn(kueh) {
+  const column = document.createElement('div');
+  column.className = 'kod-media-column';
+
+  const template = KUEH_SHAPE_TABLE[kueh.id] || 'disc';
+  column.appendChild(buildMediaTag(kueh, template));
+
+  const { el: windowEl, refs } = buildMediaWindow(kueh, template);
+  // gutter: 0 — no card to float the window inside anymore. fillRefs:
+  // refs hands windowEl's own { clipPathEl, shadowPathEl } to the rim
+  // wrapper, so it drives windowEl's shape itself (sharing one solved
+  // corner exponent with its rim/glint bands) instead of kueh-of-day.js
+  // observing windowEl independently — see wrapWithInnerMatteRim's own
+  // comment for why solving each band separately made the rim's corners
+  // visibly tighter than the window's.
+  const { el: rim, observer } = wrapWithInnerMatteRim(windowEl, { gutter: 0, fillRefs: refs });
+  column.appendChild(rim);
+
+  return { el: column, observer };
 }
 
 function buildOverviewPanel(kueh) {
@@ -187,6 +145,13 @@ function buildOverviewPanel(kueh) {
   return panel;
 }
 
+// Returns { panel, toggleRim, toggle, label, collapse } — the toggle
+// fields are undefined when there's no recipe (nothing to expand). The
+// toggle button used to live inside `panel` itself; it's built here (it
+// needs `collapse`'s id for aria-controls) but no longer appended to
+// panel — buildContentColumn places its rim outside the content window
+// instead, and wires its click handler there, where it also has access
+// to windowEl for the height animation.
 function buildRecipePanel(kueh) {
   const panel = document.createElement('div');
   panel.className = 'kod-panel';
@@ -196,7 +161,7 @@ function buildRecipePanel(kueh) {
     p.className = 'kod-recipe-empty';
     p.textContent = 'Recipe coming soon for this one.';
     panel.appendChild(p);
-    return panel;
+    return { panel };
   }
 
   const collapse = document.createElement('div');
@@ -232,43 +197,136 @@ function buildRecipePanel(kueh) {
   collapse.appendChild(ol);
   panel.appendChild(collapse);
 
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  toggle.className = 'kod-see-more';
+  const { rim: toggleRim, btn: toggle, labelEl: label } = createSmallButton({
+    label: 'See more',
+    iconSvg:
+      '<svg class="kod-see-more-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" ' +
+      'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M4 6l4 4 4-4"/></svg>',
+  });
+  toggleRim.classList.add('kod-see-more-rim');
+  toggle.classList.add('kod-see-more');
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-controls', collapse.id);
-  toggle.innerHTML =
-    '<span class="kod-see-more-label text-sheen">See more</span>' +
-    '<svg class="kod-see-more-chevron icon-sheen" width="16" height="16" viewBox="0 0 16 16" fill="none" ' +
-    'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-    '<path d="M4 6l4 4 4-4"/></svg>';
-  const label = toggle.querySelector('.kod-see-more-label');
-  toggle.addEventListener('click', () => {
-    const expanded = collapse.classList.toggle('expanded');
-    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    label.textContent = expanded ? 'See less' : 'See more';
-  });
-  panel.appendChild(toggle);
 
-  return panel;
+  return { panel, toggleRim, toggle, label, collapse };
 }
 
-function buildContent(kueh) {
+// The tab content's own window: same retro-rectangle shape as the media
+// window, filled white instead of the day's accent color. Sized by its
+// own content (the active panel) — see buildContentColumn for how height
+// changes here (a tab switch, or the recipe collapse expanding/
+// collapsing) get animated rather than snapping instantly.
+function buildContentWindow(overviewPanel, recipePanel) {
   const wrap = document.createElement('div');
-  wrap.className = 'kod-content';
+  wrap.className = 'kod-content-window';
 
-  const overviewPanel = buildOverviewPanel(kueh);
-  const recipePanel = buildRecipePanel(kueh);
-  const tabGroup = createTabGroup([
-    { id: 'overview', label: 'Overview', panel: overviewPanel },
-    { id: 'recipe', label: 'Recipe', panel: recipePanel },
-  ]);
+  const { svg, clipUrl, ...refs } = createRetroShape({ fill: 'var(--color-surface)' });
+  wrap.appendChild(svg);
+  wrap.style.clipPath = clipUrl;
 
-  wrap.appendChild(tabGroup);
   wrap.appendChild(overviewPanel);
   wrap.appendChild(recipePanel);
 
-  return wrap;
+  return { el: wrap, refs };
+}
+
+function buildContentColumn(kueh) {
+  const column = document.createElement('div');
+  column.className = 'kod-content-column';
+
+  const overviewPanel = buildOverviewPanel(kueh);
+  const { panel: recipePanel, toggleRim, toggle, label, collapse } = buildRecipePanel(kueh);
+
+  const { el: windowEl, refs } = buildContentWindow(overviewPanel, recipePanel);
+  const { el: rim, observer } = wrapWithInnerMatteRim(windowEl, { gutter: 0, fillRefs: refs });
+
+  // windowEl's height otherwise jumps instantly whenever its content does
+  // — a tab switch (toggling a panel's `hidden` attribute has no
+  // transitionable state of its own) or the recipe collapse expanding/
+  // collapsing. Locking the current rendered height right before the
+  // change, then animating to the new content's natural height right
+  // after, is what turns both into a smooth resize instead of a snap —
+  // and since windowEl's own retro-rectangle clip-path is already driven by
+  // a ResizeObserver (wrapWithInnerMatteRim's fillRefs), that shape
+  // morphs in sync with the height transition for free, the same way the
+  // tab group's own sliding highlight rides along with its width/
+  // transform transition.
+  function lockWindowHeight() {
+    windowEl.style.height = `${windowEl.offsetHeight}px`;
+    void windowEl.offsetHeight; // force layout to commit the start height before the mutation that follows
+  }
+
+  function settleWindowHeight() {
+    windowEl.style.height = `${windowEl.scrollHeight}px`;
+  }
+
+  const tabGroup = createTabGroup(
+    [
+      { id: 'overview', label: 'Overview', panel: overviewPanel },
+      { id: 'recipe', label: 'Recipe', panel: recipePanel },
+    ],
+    {
+      onBeforeChange: lockWindowHeight,
+      onChange(index) {
+        if (toggleRim) toggleRim.hidden = index !== 1;
+        settleWindowHeight();
+      },
+    }
+  );
+
+  if (toggle) {
+    toggleRim.hidden = true; // Overview is the initially-selected tab
+
+    toggle.addEventListener('click', () => {
+      const willExpand = !collapse.classList.contains('expanded');
+
+      // windowEl.scrollHeight can't be used to find *its* target height
+      // here the way settleWindowHeight does for a tab switch — collapse
+      // has its own transition: max-height, so reading scrollHeight
+      // synchronously right after changing collapse's max-height still
+      // reflects collapse's *current* rendered height, not its target:
+      // the transition hasn't progressed at all yet (no frame has
+      // rendered), so windowEl's height would end up one click behind
+      // collapse's actual state. Computing the delta collapse's own
+      // height is about to change by, and adding that straight onto
+      // windowEl's current height, sidesteps needing collapse's
+      // transition to finish first — both animations start together and
+      // reach their real targets over the same 0.3s, driven by two
+      // independent CSS transitions rather than one waiting on the other.
+      const collapseCurrentHeight = collapse.offsetHeight;
+      // 180 matches .kod-recipe-collapse's own default max-height
+      // (kueh-of-day.css) — collapse.scrollHeight always reflects the
+      // full content height regardless of state, but there's no
+      // equivalent transition-independent way to ask "what's the
+      // *collapsed* height," so this one value has to stay in sync with
+      // that CSS rule by hand.
+      const collapseTargetHeight = willExpand ? collapse.scrollHeight : 180;
+      const heightDelta = collapseTargetHeight - collapseCurrentHeight;
+
+      lockWindowHeight();
+      const targetWindowHeight = windowEl.offsetHeight + heightDelta;
+
+      collapse.classList.toggle('expanded', willExpand);
+      toggle.setAttribute('aria-expanded', willExpand ? 'true' : 'false');
+      label.textContent = willExpand ? 'See less' : 'See more';
+      // A real measured height (not max-height: none, which can't
+      // transition) is what lets .kod-recipe-collapse's own max-height
+      // animate smoothly.
+      collapse.style.maxHeight = willExpand ? `${collapse.scrollHeight}px` : '';
+
+      windowEl.style.height = `${targetWindowHeight}px`;
+    });
+  }
+
+  // Floats directly on the section background now — no card behind it —
+  // but it already carries its own chrome rim + white pill fill
+  // (src/molecules/tab-group.js), so it needs no changes here.
+  column.appendChild(tabGroup);
+  column.appendChild(rim);
+  if (toggleRim) column.appendChild(toggleRim);
+
+  return { el: column, observer };
 }
 
 function renderKuehOfDay(section, index) {
@@ -280,26 +338,19 @@ function renderKuehOfDay(section, index) {
   const mount = section.querySelector('.kod-mount');
   if (!mount) return;
 
-  const card = document.createElement('div');
-  card.className = 'kod-card';
-  card.appendChild(buildMedia(kueh));
-  card.appendChild(buildContent(kueh));
+  const layout = document.createElement('div');
+  layout.className = 'kod-layout';
 
-  const rim = document.createElement('div');
-  rim.className = 'kod-card-rim';
+  const media = buildMediaColumn(kueh);
+  const content = buildContentColumn(kueh);
+  layout.appendChild(media.el);
+  layout.appendChild(content.el);
 
   mount.innerHTML = '';
-  mount.appendChild(rim);
+  mount.appendChild(layout);
 
-  applyLayeredConicChrome(rim, card, { peaks: [45, 135, 225, 315] });
-
-  const mediaEl = card.querySelector('.kod-media');
-  const clipPathEl = mediaEl.querySelector('#kod-media-clip path');
-  const shadowPathEl = mediaEl.querySelector('.kod-media-shadow > path');
-
-  if (mediaResizeObserver) mediaResizeObserver.disconnect();
-  mediaResizeObserver = new ResizeObserver(() => updateMediaClip(mediaEl, clipPathEl, shadowPathEl));
-  mediaResizeObserver.observe(mediaEl);
+  windowObservers.forEach((observer) => observer.disconnect());
+  windowObservers = [media.observer, content.observer];
 }
 
 export function init() {
@@ -308,4 +359,13 @@ export function init() {
 
   const index = getDayIndexSGT(KUEH_DATA.length);
   renderKuehOfDay(section, index);
+
+  // Decorates the section's own .matte-metal-surface panel, not the
+  // rotating kueh content — built once here rather than inside
+  // renderKuehOfDay, which only owns what changes per kueh/day.
+  const topRivets = buildRivetRow();
+  topRivets.classList.add('metal-rivet-row-top');
+  const bottomRivets = buildRivetRow();
+  bottomRivets.classList.add('metal-rivet-row-bottom');
+  section.append(topRivets, bottomRivets);
 }

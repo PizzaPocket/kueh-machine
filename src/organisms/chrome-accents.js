@@ -7,9 +7,10 @@
 // Centralizing that sweep here, run last (see main.js), means individual
 // atoms/organisms that use .text-sheen/.icon-sheen don't each need their own
 // registration call and can't accidentally double-register the same
-// element. .kod-card-rim/.tab-group-rim are handled inside
-// kueh-of-day.js/tab-group.js, the site-nav divider inside site-nav.js,
-// since those two are real conic-chrome rims, not the sheen accent.
+// element. .tab-group-rim is handled inside tab-group.js, the site-nav
+// divider inside site-nav.js, since those are real conic-chrome rims, not
+// the sheen accent. Kueh of the Day (kueh-of-day.js) dropped its own
+// chrome rim in favor of retro-rectangle shapes (src/atoms/retro-shape.js).
 
 import { applyConicChrome, applyLayeredConicChrome, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
 
@@ -25,9 +26,9 @@ export function init() {
   // looking distinct). .step-card is the outer metal band; its original
   // children (heading, body, icon — see index.html) move into a new
   // .step-card-fill div, which applyLayeredConicChrome nests inside the
-  // auto-inserted .chrome-rim-glint band — same three-element pattern as
-  // .kod-card-rim/.tab-group-rim now use, just built here since step-cards
-  // are static HTML rather than JS-rendered content.
+  // auto-inserted .chrome-rim-glint band — same three-element pattern
+  // .tab-group-rim uses, just built here since step-cards are static HTML
+  // rather than JS-rendered content.
   document.querySelectorAll('.step-card').forEach((card) => {
     const fill = document.createElement('div');
     fill.className = 'step-card-fill';

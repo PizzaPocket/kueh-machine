@@ -1,43 +1,166 @@
 /* === KUEH OF THE DAY === */
+/* Background is .matte-metal-surface (styles/atoms.css, applied in
+   index.html) instead of the flat --color-surface-tint every other
+   section uses — a deliberate departure for this section specifically,
+   not a system-wide swap. position: relative is for the two
+   .metal-rivet-row-* rows (src/atoms/rivets.js, appended in
+   kueh-of-day.js's init()) — decorative riveted-seam edges along the
+   panel, positioned absolute against this section rather than affecting
+   its layout height. overflow-x: hidden clips those rows cleanly at the
+   section's own edge on narrow viewports (see .metal-rivet-row's own
+   comment, styles/atoms.css, for why they're allowed to run past it)
+   instead of adding page-level horizontal scroll. */
 .kueh-of-day-section {
+  position: relative;
+  overflow-x: hidden;
   padding: 32px 32px 80px;
-  background: var(--color-surface-tint);
 }
 
-/* .kod-card-rim — the outer element: its padding is the metal band's
-   thickness, its background is metal-only conic "liquid chrome" set by
-   src/organisms/kueh-of-day.js (applyLayeredConicChrome,
-   src/tokens/chrome-metal.js), which also inserts a .chrome-rim-glint
-   band (styles/atoms.css) between this and .kod-card for the thinner,
-   more inset glint layer — a three-element nest now, not two. */
-.kod-card-rim {
-  border-radius: var(--radius-card);
-  padding: 1.5px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.06);
+/* Pinned to the section's own left/right edges (32px inset) — this is
+   what lets .metal-rivet-row's own justify-content: space-between (styles/
+   atoms.css) spread the dots across the section's *real* width at
+   whatever size it actually renders, with no vw-based guessing that
+   could under/overshoot. That only works while the container has enough
+   room; past the point where it doesn't (see the media query below), the
+   row switches to a centered, fixed-width layout instead so it can
+   overflow both edges symmetrically rather than however space-between
+   degrades once there's no free space left to distribute. */
+.metal-rivet-row-top,
+.metal-rivet-row-bottom {
+  position: absolute;
+  left: 32px;
+  right: 32px;
 }
 
-.kod-card {
+.metal-rivet-row-top {
+  top: 14px;
+}
+
+.metal-rivet-row-bottom {
+  bottom: 14px;
+}
+
+/* Below the exact width where the row's own minimum content (5 dots at
+   7px + 4 gaps at .metal-rivet-row's 85px floor = 375px, styles/
+   atoms.css) plus this container's own 64px inset (32px each side, above)
+   no longer fits, justify-content: space-between has nothing left to
+   distribute and collapses to flex-start — packing everything against
+   the left edge and overflowing one-sided to the right, not the
+   symmetric bleed this is going for. Past that point (375 + 64 = 439px),
+   switch the container itself to a fixed-width, centered box instead —
+   left: 50% + translateX(-50%) centers it regardless of how much wider
+   than the viewport it ends up, so the overflow reads evenly on both
+   sides. The 438px breakpoint isn't an arbitrary design choice; it's
+   solved directly from the row's own numbers above, so if those ever
+   change, this needs to move with them. */
+@media (max-width: 438px) {
+  .metal-rivet-row-top,
+  .metal-rivet-row-bottom {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+
+/* Two independent floating "windows" (src/atoms/retro-shape.js) side by
+   side, directly on the section's own background — no shared card frame.
+   align-items: start keeps each column sized to its own content instead
+   of CSS Grid's default row-stretch, which used to make .kod-media match
+   .kod-content's height (including growing when the recipe's "see more"
+   expanded it) — the media window now always stays its own natural size. */
+.kod-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  /* Sheds both the rim's 1.5px metal band and .chrome-rim-glint's 0.75px
-     band to nest correctly, not just the rim's own inset. */
-  border-radius: calc(var(--radius-card) - 2.25px);
-  background: var(--color-surface);
-  overflow: hidden;
+  align-items: start;
+  gap: 40px;
 }
 
-/* Stretches full row height (matches .kod-content) so the tinted background
-   always reaches the bottom of the shelf, regardless of which tab is active
-   — only the image itself is weighted to the top via justify-content.
-   Clipped to the retro-window superellipse (src/tokens/superellipse.js,
-   #kod-media-clip built/kept in sync in src/organisms/kueh-of-day.js) —
-   background color moved to .kod-media-shadow below, since that's the
-   layer whose fill also carries the inner-shadow SVG filter; --color-accent
-   still reuses the same token as step 4's card background in the guide
-   section below, just read as an SVG fill now instead of a CSS background. */
+.kod-media-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.kod-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-bottom: 14px;
+}
+
+/* Unlike every other .section-label (index.html), this one sits directly
+   on .matte-metal-surface, not the --color-surface-tint
+   --color-text-on-surface is calibrated against — that surface is a
+   near-light-gray now (see .matte-metal-surface, styles/atoms.css), so
+   dark text reads reliably across it; --metal-shadow (styles/tokens.css)
+   is the same dark charcoal .rim-matte-inner uses at the dark end of its
+   own gradient, reused here rather than reaching for
+   --color-text-on-surface (calibrated for a different, warmer surface).
+   A faint light drop-shadow reads as a slight etched-into-the-metal
+   recess rather than serving legibility (dark-on-light-gray already has
+   plenty of contrast on its own). The .kod-media-column-scoped selector
+   (not just .kod-tag) is deliberate, not decorative — .section-label's
+   own color rule lives in index.html's inline <style>, which loads
+   *after* this stylesheet, so an equal-specificity .kod-tag rule here
+   would actually lose that cascade order; the extra ancestor class is
+   what wins regardless of load order. */
+.kod-media-column .kod-tag {
+  color: var(--metal-shadow);
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.5));
+}
+
+/* Circular badge around the tag's kueh icon (32px, metal rim + light
+   face) — see buildMediaTag, kueh-of-day.js. Sizing the outer
+   .rim-matte-inner element directly (width/height here, not on the face)
+   means .rim-matte-inner-glint's own padding (styles/atoms.css) insets
+   the face from the rim naturally, the same nesting every other
+   .rim-matte-inner consumer relies on. */
+.kod-tag-icon-badge {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.kod-tag-icon-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  /* --color-highlight-soft, not the near-neutral --color-surface — same
+     "light, colored, carries today's palette" token .kod-flavor-pill
+     already uses for its own light badge-like background. */
+  background: var(--color-highlight-soft);
+}
+
+/* The icon templates' own artwork (src/atoms/kueh-icon.js) isn't
+   perfectly centered within its 64x64 viewBox — most sit a little
+   low (the "dome" template's drawn content spans roughly y=20-54, a
+   visual center around y=37, not the viewBox's true center at 32) — a
+   few px that's invisible at the icon's other usage sizes but reads as
+   "off-center" once cropped tightly into a 32px circle. Nudging the
+   wrap (not the bare .kueh-icon svg) keeps the .icon-sheen-highlight
+   clone — an exact copy absolutely positioned inset: 0 on the wrap
+   (styles/atoms.css) — moving as one unit with the base icon instead of
+   drifting out of alignment with it. */
+.kod-tag-icon-face .icon-sheen-wrap {
+  transform: translateY(-1.5px);
+}
+
+/* The kueh photo's own window: clipped to a retro-rectangle superellipse
+   (clip-path set from JS — src/atoms/retro-shape.js hands back a
+   per-instance clipUrl, so it can't be a static rule here) with the
+   window's own accent-colored fill + inner shadow painted by its
+   .retro-shape-fill child. Wrapped in a .rim-matte-inner /
+   .rim-matte-inner-glint metal bezel (src/atoms/matte-rim.js) — the
+   drop-shadow that lifts the whole assembly off the page now lives on
+   that outer rim (below), not here, since the rim is the true outer edge
+   now. No longer stretched to match .kod-content-window's height (see
+   .kod-layout) — sized by its own heading + image + padding. */
 .kod-media {
   position: relative;
-  clip-path: url(#kod-media-clip);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -46,32 +169,33 @@
   min-height: 220px;
 }
 
-/* First child of .kod-media (see buildMediaShapeSvg in kueh-of-day.js) —
-   a filled <path> painting the same superellipse the clip-path above
-   already crops to, plus a baked-in inner-shadow SVG filter. DOM order
-   alone doesn't keep it behind the tag/heading/image: a position:absolute
-   box paints in its own stacking step regardless of tree order, above the
-   static in-flow siblings that follow it. z-index: -1 (against .kod-media's
-   position: relative, which makes .kod-media the stacking context) is what
-   actually pins it behind them. */
-.kod-media-shadow {
+/* drop-shadow (not box-shadow) is what lifts the retro-rectangle-shaped
+   windows off the page: box-shadow would draw a shadow around the
+   element's full rectangular border-box regardless of the clip-path,
+   while drop-shadow is computed from the actual clipped, rendered
+   pixels, so it hugs the silhouette — same reasoning .tab-group-rim
+   (molecules.css) uses for its own drop-shadow. Scoped to these two
+   columns rather than baked into the shared .rim-matte-inner class
+   (styles/atoms.css), since not every future .rim-matte-inner consumer
+   necessarily wants to read as a floating card. */
+.kod-media-column .rim-matte-inner,
+.kod-content-column .rim-matte-inner {
+  filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.09)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.06));
+}
+
+/* First child of both .kod-media and .kod-content-window — the filled
+   <path> painting each window's superellipse + inner shadow (see
+   createRetroShape, src/atoms/retro-shape.js). DOM order alone doesn't
+   keep it behind the rest of that element's content: a position:absolute
+   box paints in its own stacking step regardless of tree order. z-index:
+   -1 (against the parent's position: relative, which makes it the
+   stacking context) is what actually pins it behind them. */
+.retro-shape-fill {
   position: absolute;
   z-index: -1;
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.kod-tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  margin-bottom: 10px;
-}
-
-.kod-tag .kueh-icon {
-  flex-shrink: 0;
 }
 
 .kod-media img {
@@ -81,17 +205,41 @@
   object-fit: contain;
 }
 
-.kod-content {
-  padding: 32px 36px;
-}
-
 .kod-name {
   align-self: flex-start;
   margin-bottom: 10px;
 }
 
-.kod-content .tab-group-rim {
+.kod-content-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Floats directly on the section background now (no card behind it) —
+   already carries its own chrome rim + white pill fill
+   (src/molecules/tab-group.js), so no changes needed there, just spacing
+   before the content window below. */
+.kod-content-column .tab-group-rim {
   margin-bottom: 22px;
+}
+
+/* The tab panels' own window — same retro-rectangle treatment as .kod-media
+   (see the comment there for the .rim-matte-inner wrapper and where its
+   drop-shadow now lives), just a white fill (the day's palette doesn't
+   touch this one) instead of the accent color. Height changes (switching
+   Overview/Recipe tabs, or the recipe collapse expanding/collapsing) are
+   driven explicitly to a pixel value by buildContentColumn
+   (kueh-of-day.js) rather than left at height: auto, specifically so this
+   transition has something numeric to animate between — auto can't
+   transition. overflow: hidden clips content that doesn't fit the
+   *current* (mid-transition, still animating) height yet, so a growing
+   panel reveals smoothly from the top rather than instantly poking out
+   past the rim before the box catches up to it. */
+.kod-content-window {
+  position: relative;
+  overflow: hidden;
+  padding: 32px 36px;
+  transition: height 0.3s ease;
 }
 
 .kod-panel {
@@ -154,14 +302,15 @@
   color: var(--color-text-on-surface-muted);
 }
 
+/* max-height's expanded target is set inline by JS (buildContentColumn,
+   kueh-of-day.js) as collapse.scrollHeight — a real measured pixel value,
+   not max-height: none, which can't transition smoothly (there's no
+   interpolatable path from a fixed px value to the "none" keyword). */
 .kod-recipe-collapse {
   position: relative;
   max-height: 180px;
   overflow: hidden;
-}
-
-.kod-recipe-collapse.expanded {
-  max-height: none;
+  transition: max-height 0.3s ease;
 }
 
 .kod-recipe-collapse:not(.expanded)::after {
@@ -175,40 +324,21 @@
   pointer-events: none;
 }
 
-.kod-see-more {
-  display: inline-flex;
-  align-items: center;
+/* Everything about the toggle's own look (white fill, the reflective
+   liquid-chrome rim, retro-rectangle shape, hover/focus states) comes from
+   .btn/.btn-small/.btn-primary/.btn-rim now (styles/atoms.css,
+   src/atoms/button.js) — this file only owns what's specific to this
+   one instance: where it sits (moved out from inside .kod-content-window
+   to below the whole rimmed window, see buildContentColumn, kueh-of-
+   day.js), and the chevron's rotate-on-expand. Visibility is toggled by
+   the tab group's onChange in JS, not CSS — .btn-rim[hidden]'s own rule
+   (styles/atoms.css) handles hiding it. */
+.kod-see-more-rim {
   align-self: flex-end;
-  gap: 6px;
-  margin-top: 14px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-interactive);
-  padding: 7px 14px;
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  /* color, not just --sheen-base: the chevron icon uses stroke="currentColor"
-     and isn't a descendant of .kod-see-more-label, so it needs a real,
-     non-transparent color to inherit — only the label span's own color
-     gets overridden to transparent by .text-sheen. */
-  color: var(--color-primary-strong);
-  --sheen-base: var(--color-primary-strong);
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.kod-see-more:hover {
-  background: var(--color-surface-tint);
-}
-
-.kod-see-more:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  margin-top: 16px;
 }
 
 .kod-see-more-chevron {
-  flex-shrink: 0;
   transition: transform 0.2s ease;
 }
 
@@ -220,10 +350,10 @@
   .kueh-of-day-section {
     padding: 60px 20px;
   }
-  .kod-card {
+  .kod-layout {
     grid-template-columns: 1fr;
   }
-  .kod-content {
+  .kod-content-window {
     padding: 24px 20px 28px;
   }
 }
