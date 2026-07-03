@@ -257,8 +257,42 @@ function buildContentColumn(kueh) {
     void windowEl.offsetHeight; // force layout to commit the start height before the mutation that follows
   }
 
+  // scrollHeight can't be used directly here the way it first looks like
+  // it should: scrollHeight is defined as max(content's natural height,
+  // the element's own current clientHeight) — so it only ever reports a
+  // number >= windowEl's height *right now*. That's harmless while
+  // content is growing (the natural height is the bigger number anyway),
+  // but switching to a *shorter* panel (e.g. Recipe, expanded, back to
+  // Overview) reads scrollHeight while windowEl is still at its old,
+  // taller locked height — scrollHeight then reports that old height
+  // right back, since the real (smaller) content height loses the max()
+  // comparison, and the window never shrinks. height: auto removes that
+  // artificial floor so offsetHeight reflects the visible panel's true
+  // natural height instead.
+  //
+  // That measurement can't happen directly on windowEl while its
+  // transition is live, though: switching height to auto and then
+  // immediately back to a px value, with no render in between, still
+  // makes the browser treat `auto` as the "before" state it's
+  // transitioning from — auto has no interpolatable numeric value, so the
+  // transition engine just gives up and snaps straight to the target
+  // instead of animating (confirmed empirically: without the transition:
+  // none below, this shrank correctly but with no visible animation).
+  // Turning the transition off for the measure-then-restore round trip,
+  // forcing that restore to commit via the same void-offsetHeight trick
+  // lockWindowHeight uses, and only turning it back on right before
+  // setting the real target keeps `auto` from ever being the "before"
+  // value the transition actually sees — the animation still runs from
+  // the real locked px height to the real target px height.
   function settleWindowHeight() {
-    windowEl.style.height = `${windowEl.scrollHeight}px`;
+    const startHeight = windowEl.style.height;
+    windowEl.style.transition = 'none';
+    windowEl.style.height = 'auto';
+    const target = windowEl.offsetHeight;
+    windowEl.style.height = startHeight;
+    void windowEl.offsetHeight;
+    windowEl.style.transition = '';
+    windowEl.style.height = `${target}px`;
   }
 
   const tabGroup = createTabGroup(
@@ -269,14 +303,33 @@ function buildContentColumn(kueh) {
     {
       onBeforeChange: lockWindowHeight,
       onChange(index) {
-        if (toggleRim) toggleRim.hidden = index !== 1;
+        // Was toggleRim.hidden = index !== 1 — display: none can't
+        // transition, so the button (and the space it occupies) used to
+        // snap in/out instantly, yanking the section's overall height
+        // with it even though windowEl's own resize right below is
+        // smoothly animated. .kod-see-more-rim-collapsed (styles/
+        // organisms/kueh-of-day.css) transitions max-height/opacity/
+        // margin instead, so this now animates in step with windowEl.
+        // `hidden` used to also pull the button out of the tab order and
+        // the accessibility tree for free; a CSS-only collapse (still in
+        // the DOM, just visually clipped) doesn't, so aria-hidden/
+        // tabIndex are set by hand here to keep that same behavior.
+        if (toggleRim) {
+          const collapsed = index !== 1;
+          toggleRim.classList.toggle('kod-see-more-rim-collapsed', collapsed);
+          toggleRim.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+          toggle.tabIndex = collapsed ? -1 : 0;
+        }
         settleWindowHeight();
       },
     }
   );
 
   if (toggle) {
-    toggleRim.hidden = true; // Overview is the initially-selected tab
+    // Overview is the initially-selected tab, so the toggle starts collapsed.
+    toggleRim.classList.add('kod-see-more-rim-collapsed');
+    toggleRim.setAttribute('aria-hidden', 'true');
+    toggle.tabIndex = -1;
 
     toggle.addEventListener('click', () => {
       const willExpand = !collapse.classList.contains('expanded');

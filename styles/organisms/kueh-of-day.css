@@ -333,12 +333,42 @@
    src/atoms/button.js) — this file only owns what's specific to this
    one instance: where it sits (moved out from inside .kod-content-window
    to below the whole rimmed window, see buildContentColumn, kueh-of-
-   day.js), and the chevron's rotate-on-expand. Visibility is toggled by
-   the tab group's onChange in JS, not CSS — .btn-rim[hidden]'s own rule
-   (styles/atoms.css) handles hiding it. */
+   day.js), the chevron's rotate-on-expand, and the collapsed state below.
+   Visibility is toggled by the tab group's onChange in JS via the
+   .kod-see-more-rim-collapsed class, not the `hidden` attribute
+   (.btn-rim[hidden]'s display: none, styles/atoms.css, can't transition —
+   see buildContentColumn's own comment for why that used to make the
+   section's height jump instead of animate alongside the content window). */
 .kod-see-more-rim {
   align-self: flex-end;
   margin-top: 16px;
+  /* Without this, flex-end lines the button's right edge up with the
+     window's own outer rim edge — but that rim (1.5px .rim-matte-inner +
+     0.75px .rim-matte-inner-glint padding, styles/atoms.css) plus
+     .kod-content-window's own 36px right padding (above) sit outside the
+     actual text content, so the button read as hanging further right
+     than the text it sits below. 38.25px = 1.5 + 0.75 + 36, pulling the
+     button's right edge in to match the text's own right edge instead. */
+  margin-right: 38.25px;
+  /* 40px is a small buffer over the button's actual rendered height
+     (~34.5px) — max-height (not height) is what lets this collapse to a
+     fixed 0 without knowing the button's exact height up front the way
+     .kod-recipe-collapse's own max-height needs a real measured
+     scrollHeight (that content varies per-recipe; this button's doesn't).
+     overflow: hidden is what makes max-height actually clip/reveal it
+     instead of just changing the box's stated size while content still
+     pokes out. */
+  max-height: 40px;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.2s ease, margin-top 0.3s ease;
+}
+
+.kod-see-more-rim.kod-see-more-rim-collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  pointer-events: none;
 }
 
 .kod-see-more-chevron {

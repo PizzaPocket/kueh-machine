@@ -223,7 +223,30 @@
       color-mix(in srgb, var(--metal-base) 24%, white) 100%
     );
   background-repeat: repeat, no-repeat, no-repeat;
-  background-size: 200px 200px, cover, cover;
+  /* 100% 100vh (not `cover`) on the radial-highlight and linear-gradient
+     layers — `cover`'s percentage stops are sized against whatever box is
+     painting the background, so every time .kueh-of-day-section's own
+     height changes (e.g. mid-transition while "See more" expands
+     .kod-content-window and the section grows with it) `cover` recomputes
+     against the new, taller box and the gradient visibly restretches/
+     redistributes frame-to-frame — a "moving gradient" during what should
+     just be a height change. Sizing to 100vh instead ties the gradient's
+     scale to the viewport height, a value that doesn't change when the
+     section resizes, so growing the section just reveals more of the same
+     fixed-scale gradient rather than recalculating a stretched one — and
+     since the linear-gradient's own 100% stop already equals this
+     background's flat background-color exactly, any height beyond 100vh
+     (an unusually tall expanded state) fades into that flat color with no
+     visible seam rather than an abrupt cutoff.
+     (An earlier attempt used background-attachment: fixed instead, which
+     sizes/positions a layer against the viewport directly — cleaner in
+     theory, but it silently falls back to acting like `scroll` here,
+     because .kueh-of-day-section also carries the `reveal` class, and
+     `.reveal.visible` sets `transform: translateY(0)` — any non-`none`
+     transform, even a no-op identity one, creates a new containing block
+     that background-attachment: fixed treats as its viewport substitute.
+     Sizing against 100vh instead sidesteps that interaction entirely.) */
+  background-size: 200px 200px, 100% 100vh, 100% 100vh;
   background-blend-mode: multiply, soft-light, normal;
 }
 
