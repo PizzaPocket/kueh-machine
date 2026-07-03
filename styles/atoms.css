@@ -145,7 +145,7 @@
     135deg,
     color-mix(in srgb, var(--metal-base) 45%, white) 0%,
     color-mix(in srgb, var(--metal-base) 30%, white) 20%,
-    color-mix(in srgb, var(--metal-highlight) 78%, var(--metal-base)) 45%,
+    color-mix(in srgb, var(--metal-highlight) 88%, var(--metal-base)) 45%,
     color-mix(in srgb, var(--metal-base) 30%, white) 65%,
     color-mix(in srgb, var(--metal-base) 45%, white) 100%
   );
@@ -170,7 +170,7 @@
   background: linear-gradient(
     135deg,
     transparent 0%,
-    color-mix(in srgb, var(--metal-highlight) 85%, var(--metal-base)) 45%,
+    color-mix(in srgb, var(--metal-highlight) 94%, var(--metal-base)) 45%,
     transparent 60%
   );
 }

@@ -167,23 +167,28 @@
       filter: drop-shadow(0 10px 32px rgba(0,0,0,0.28)) drop-shadow(0 2px 6px rgba(0,0,0,0.18));
     }
 
-    /* "Machine" gets the same liquid-chrome treatment as the tab-group/
-       card/nav edges (src/tokens/chrome-metal.js) — the wordmark becomes
-       the metal half of "kueh" (organic, layered, .layered-k) vs "machine"
-       (brushed chrome), fill in a solid palette color with the chrome
-       showing only as a rim.
+    /* "Machine" gets the same matte-metal rim treatment as the Kueh of
+       the Day windows' bezel (.rim-matte-inner, styles/atoms.css) — the
+       wordmark becomes the metal half of "kueh" (organic, layered,
+       .layered-k) vs "machine" (brushed chrome), fill in a solid palette
+       color with the metal showing only as a rim. Static/non-reactive
+       (matte, not liquid chrome) since the rim sits directly behind a
+       separate solid-color fill layer at an exact pixel alignment — a
+       moving rim would read as a rendering glitch rather than a
+       reflection, the two layers visibly drifting apart as one rotates
+       and the other doesn't (same reasoning applyConicChrome's own
+       `interactive: false` used to document, before this switched to the
+       matte rim's static gradient entirely and dropped the JS call).
 
        Text can't take a literal border, and -webkit-text-stroke only
        accepts a solid color (no gradient) — there's no native way to give
        text a gradient-filled outline. This fakes one by stacking two
        copies of the same word: .chrome-text-rim sits behind, filled with
-       the chrome gradient via background-clip:text and widened with
+       the matte metal gradient via background-clip:text and widened with
        text-stroke (background-clip clips the stroke too, so the whole
        widened glyph shows the gradient); .chrome-text-fill sits on top,
-       normal weight, solid --color-accent — same accent the countdown
-       digits below use, so the wordmark echoes them. Only the rim layer's
-       extra width peeks out around the fill layer, reading as a chrome
-       outline. */
+       normal weight. Only the rim layer's extra width peeks out around
+       the fill layer, reading as a metal outline. */
     .chrome-text-wrap {
       position: relative;
       display: inline-block;
@@ -198,14 +203,33 @@
          taller than the fill layer's, which shifted how the text
          vertically centered within it — a visible offset between the
          two layers that had nothing to do with the clipping fix. */
-      inset: 0 -4px;
-      /* backgroundImage set by src/organisms/chrome-accents.js
-         (applyConicChrome) — a conic sweep, not repeating, so there's
-         nothing here to size/tile. */
+      /* -6px (not -4px): widened alongside the 4.5px text-stroke below so
+         the wider bleed still has room to render without clipping the
+         rightmost letter's tip — see the original -4px note above, same
+         reasoning, just rescaled for the thicker stroke. */
+      inset: 0 -6px;
+      /* Same fixed gradient/stops as .rim-matte-inner (styles/atoms.css)
+         — set here directly rather than via matte-rim.js's DOM-wrapping
+         helper, since text-stroke + background-clip:text is its own
+         mechanism that doesn't fit that atom's box-shaped rim/glint nest. */
+      background-image: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--metal-base) 45%, white) 0%,
+        color-mix(in srgb, var(--metal-base) 30%, white) 20%,
+        color-mix(in srgb, var(--metal-highlight) 88%, var(--metal-base)) 45%,
+        color-mix(in srgb, var(--metal-base) 30%, white) 65%,
+        color-mix(in srgb, var(--metal-base) 45%, white) 100%
+      );
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      -webkit-text-stroke: 3px transparent;
+      /* 4.5px, not 3px — a text-stroke straddles the glyph's true outline
+         (half inside, half outside), and .chrome-text-fill sits on top
+         with no stroke of its own, covering exactly to that outline — so
+         only the outward half of this ever shows. 4.5px puts that visible
+         sliver at ~2.25px, matching .rim-matte-inner + .rim-matte-inner-
+         glint's combined band width (1.5px + 0.75px) elsewhere. */
+      -webkit-text-stroke: 4.5px transparent;
     }
     .chrome-text-fill {
       position: relative;

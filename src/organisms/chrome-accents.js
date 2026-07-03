@@ -11,16 +11,14 @@
 // divider inside site-nav.js, since those are real conic-chrome rims, not
 // the sheen accent. Kueh of the Day (kueh-of-day.js) dropped its own
 // chrome rim in favor of retro-rectangle shapes (src/atoms/retro-shape.js).
+// The "Machine" wordmark's rim (.chrome-text-rim) used to be wired up here
+// via applyConicChrome, but is now a static matte-metal gradient set
+// directly in index.html's CSS (see that file's .chrome-text-rim comment)
+// — no JS registration needed since it never rotates.
 
-import { applyConicChrome, applyLayeredConicChrome, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
+import { applyLayeredConicChrome, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
 
 export function init() {
-  // interactive: false — the rim sits pixel-aligned behind a separate
-  // solid-color fill layer (see .chrome-text-fill in index.html); rotating
-  // it would visibly drift apart from the fill instead of reading as a
-  // reflection.
-  applyConicChrome(document.querySelector('.chrome-text-rim'), { interactive: false, fixedAngle: 200 });
-
   // Each step-card gets its own independently-randomized glints (real
   // per-element randomness, not a shared pattern trying to fake 8 rows
   // looking distinct). .step-card is the outer metal band; its original
