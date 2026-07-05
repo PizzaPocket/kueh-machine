@@ -67,12 +67,86 @@
    align-items: start keeps each column sized to its own content instead
    of CSS Grid's default row-stretch, which used to make .kod-media match
    .kod-content's height (including growing when the recipe's "see more"
-   expanded it) — the media window now always stays its own natural size. */
+   expanded it) — the media window now always stays its own natural size.
+   The middle `auto` track is .kod-seam-wrap (buildSeam, kueh-of-day.js) —
+   an explicit column rather than leaving it to fall into an implicit one,
+   so its width is just its own content (a thin metal line + a rivet
+   column) instead of splitting the gap evenly with the other two tracks.
+   The two 24px gaps this creates read as roughly the same total
+   media-to-content spacing the old single 40px gap did, just with the
+   seam now sitting in the middle of it instead of bare space. */
 .kod-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr);
   align-items: start;
-  gap: 40px;
+  gap: 24px;
+}
+
+/* align-self: stretch (overriding .kod-layout's own align-items: start,
+   which every other grid item still uses) is what makes this column's
+   height follow the grid row's own height — set by whichever of
+   .kod-media-column/.kod-content-column renders taller — rather than
+   collapsing to its own near-zero content height. That real height is
+   what .kod-seam-line's own negative top/bottom offsets below measure
+   from to reach the section's actual edges; without it (a near-zero-
+   height box) `bottom` would resolve against a bottom edge sitting right
+   on top of `top`, not the section's real bottom. width: 24px just gives
+   .kod-seam-line/-rivets (both absolutely positioned within it) a
+   horizontal anchor at the grid's actual gap position — this element's
+   own width otherwise plays no visual role. */
+.kod-seam-wrap {
+  position: relative;
+  align-self: stretch;
+  width: 24px;
+}
+
+/* The seam line pair itself (.metal-seam/-line, src/atoms/metal-seam.js) —
+   centered in .kod-seam-wrap horizontally, but bled vertically past this
+   row entirely: top/bottom aren't 0, they're negative by exactly
+   .kueh-of-day-section's own top/bottom padding (32px/80px, above), so
+   the lines' actual rendered edges land flush with the *section's*
+   top/bottom edges rather than stopping at this row's. height: auto
+   overrides .metal-seam's own height: 100% — with both top and bottom
+   set, an explicit height would win the box model's over-constrained
+   resolution instead of letting top+bottom imply it, which is what
+   actually produces the full-bleed span. width: 2px is just enough for
+   the pair's own 1px + 1px lines, flush against each other (.metal-seam's
+   gap: 0) — sized here (not left to shrink-to-fit) since this element
+   also needs a known width for left: 50%/translateX(-50%) to center
+   correctly. Crossing behind the top/bottom rivet rows (metal-rivet-row-
+   top/-bottom, near the very edges) is deliberate, not a collision to
+   avoid — a real riveted seam continues underneath a cross-seam, it
+   doesn't stop short of it. */
+.kod-seam-line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -32px;
+  bottom: -80px;
+  height: auto;
+  width: 2px;
+}
+
+/* Deliberately not bled the way .kod-seam-line is — these stay within
+   this row's own bounds (top/bottom insets past 0), which already sits
+   comfortably clear of the top/bottom rivet rows near the section's
+   actual edges (32px/80px of section padding, above, versus those rows'
+   own 14px inset — see .metal-rivet-row-top/-bottom). Left of the line
+   (toward .kod-media-column), offset past the line pair's own 2px width
+   plus a gap rather than centered on it, so line + rivets read as one
+   riveted seam assembly instead of the dots overlapping the line.
+   height: auto overrides .metal-rivet-row-vertical's own height: 100%
+   for the same reason .kod-seam-line overrides .metal-seam's — with
+   top, bottom, AND an explicit height all present, height wins the box
+   model's over-constrained resolution and bottom gets ignored, which
+   would blow this past the 12px bottom inset instead of respecting it. */
+.kod-seam-rivets {
+  position: absolute;
+  right: 50%;
+  margin-right: 8px;
+  top: 12px;
+  bottom: 12px;
+  height: auto;
 }
 
 .kod-media-column {
@@ -85,7 +159,14 @@
   align-items: center;
   gap: 6px;
   align-self: flex-start;
-  margin-bottom: 14px;
+  /* Top offset isn't the same 16px as the left inset — it's this row's
+     own height (32px, just the icon badge) split against
+     .tab-group-rim's taller box (~47.5px: its own rim padding + .tab-
+     group's padding + .tab's own padding/line-height) so the two boxes'
+     vertical *centers* line up despite starting from the same grid-row
+     top (.kod-layout's align-items: start) — half the height
+     difference, not a matched top margin. */
+  margin: 8px 0 14px 16px;
 }
 
 /* Unlike every other .section-label (index.html), this one sits directly
@@ -129,13 +210,11 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  /* --color-text-on-primary — the same palette token the "Machine"
-     wordmark's fill uses (.chrome-text-fill, index.html), so the icon
-     face echoes the hero wordmark's color rather than picking its own
-     separate light palette token. It's already a light, low-chroma
-     color verified for on-dark contrast (src/tokens/colors.js), so it
-     reads the same as a dedicated light badge fill would. */
-  background: var(--color-text-on-primary);
+  /* --color-accent — the same fill the kueh photo's own window uses
+     (buildMediaWindow, kueh-of-day.js), so the icon badge reads as a
+     smaller echo of that window's background rather than picking its
+     own separate light palette token. */
+  background: var(--color-accent);
 }
 
 /* The icon templates' own artwork (src/atoms/kueh-icon.js) isn't
@@ -388,5 +467,12 @@
   }
   .kod-content-window {
     padding: 24px 20px 28px;
+  }
+  /* The seam only makes sense as a between-columns divider; stacked to a
+     single column, it'd have no real height to stretch to (nothing else
+     shares its row) and would render as a near-invisible sliver rather
+     than a full-height line. */
+  .kod-seam-wrap {
+    display: none;
   }
 }

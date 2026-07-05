@@ -3,6 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Opts out of the browser's own automatic scroll-position restoration
+       on reload. Without this, each refresh restores whatever scroll
+       position was in effect right before it — and the Syne web font
+       swapping in late (display=swap, see the stylesheet link below) can
+       nudge the page down a few px via Chrome's scroll anchoring
+       (compensating for the reflow its own metrics cause). Left on its
+       default ('auto'), that small nudge gets *restored* on the next
+       refresh, then nudged again on top of that — a small cumulative
+       downward drift with every reload. Set as early as possible (before
+       any stylesheet/script) so it's in effect before the browser makes
+       its own restoration decision for this load. -->
+  <script>if ('scrollRestoration' in history) history.scrollRestoration = 'manual';</script>
   <title>Kueh Machine</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,6 +25,8 @@
   <link rel="stylesheet" href="styles/molecules.css">
   <link rel="stylesheet" href="styles/organisms/kueh-of-day.css">
   <link rel="stylesheet" href="styles/organisms/site-nav.css">
+  <link rel="stylesheet" href="styles/organisms/timeline-panel.css">
+  <link rel="stylesheet" href="styles/organisms/drop-chute.css">
   <style>
     /* === TOKENS ===
        Color tokens live in styles/tokens.css (semantic names, daily-themed
@@ -28,7 +42,6 @@
       --font-mono: "SF Mono", "Monaco", "Cascadia Code", "Courier New", monospace;
 
       /* Typographic scale */
-      --type-display:    clamp(3rem, 10vw, 7rem);
       --type-heading:    clamp(1.625rem, 3.5vw, 2.25rem);
       --type-subheading: 1.125rem;
 
@@ -84,8 +97,42 @@
 
     /* === HERO + COUNTDOWN (combined, above fold) === */
     .hero {
-      background: var(--color-primary-strong);
-      padding: 72px 32px 64px;
+      /* Establishes a real stacking context (with no other visual side
+         effects, unlike a transform trick) — needed since .hero no longer
+         carries the `reveal` class (that used to apply `transform:
+         translateY(0)` once revealed, which — even at a no-op 0px — still
+         creates a stacking context per spec, same as .timeline-section's
+         own transform does for the same reason). Without one here, the
+         water clock's own background/liquid fill layers
+         (.retro-shape-fill, styles/organisms/kueh-of-day.css — shared
+         with the Kueh of the Day windows) carry `z-index: -1`, meant to
+         tuck them just behind their own window's content — relying on
+         *some* ancestor stacking context to contain that negative
+         z-index. With none, it escaped all the way to the document root,
+         painting behind .hero's own background entirely instead of behind
+         just the countdown window's own content — read as "the water
+         clock's own background color is gone, I just see .hero's". */
+      isolation: isolate;
+      /* Same noise-grain texture as .matte-metal-surface (styles/atoms.css)
+         — the exact feTurbulence recipe, tiled and blended via multiply —
+         layered over the flat theme color instead of swapping in that
+         panel's own metal-tinted gradient underneath (this is the day's
+         theme-color surface, not a metal panel; only the grain belongs
+         here, not the cool/warm-tinted color stops). */
+      background-color: var(--color-primary-strong);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      background-blend-mode: multiply;
+      /* Bottom padding grown from the original 64 to 140 — room for the
+         drop-chute (src/organisms/drop-chute.js) to stay entirely within
+         this section instead of spilling into .brief-section. Paired
+         with dropping the old tagline paragraph and nudging the title's
+         own margin-bottom down below (both free up space higher in the
+         section), the section's *overall* height stays close to where
+         it was — the freed space just moves from mid-section to the
+         bottom, where the chute actually needs it. */
+      padding: 72px 32px 140px;
       text-align: center;
     }
 
@@ -129,6 +176,15 @@
        involved at all) while still softening just the color transitions. */
     .layered-k {
       font-weight: 800;
+      /* position: relative — same reason .chrome-text-fill needs it:
+         "Kueh" now sits in a .chrome-text-wrap alongside its own
+         .chrome-text-rim (behind it, absolutely positioned), and only a
+         *positioned* sibling participates in DOM-order paint stacking
+         against another positioned element. Without this, the
+         static-position fill would paint in the earlier "in-flow
+         non-positioned content" step and the rim would paint over it
+         instead of peeking out only around the glyph edges. */
+      position: relative;
       background: linear-gradient(to bottom,
         var(--color-highlight)      0%,
         var(--color-highlight)      29%,
@@ -163,32 +219,53 @@
       letter-spacing: var(--tracking-display);
       color: var(--color-surface);
       line-height: var(--leading-display);
-      margin-bottom: 10px;
-      filter: drop-shadow(0 10px 32px rgba(0,0,0,0.28)) drop-shadow(0 2px 6px rgba(0,0,0,0.18));
+      /* Was 10px, spacing before the old tagline paragraph (now removed
+         — see .hero's own comment) — this is the title-to-countdown-clock
+         gap directly now, so a bit more than that tight tagline-spacing
+         value reads better without the tagline as a visual step between
+         them. */
+      margin-bottom: 24px;
     }
 
-    /* "Machine" gets the same matte-metal rim treatment as the Kueh of
-       the Day windows' bezel (.rim-matte-inner, styles/atoms.css) — the
-       wordmark becomes the metal half of "kueh" (organic, layered,
-       .layered-k) vs "machine" (brushed chrome), fill in a solid palette
-       color with the metal showing only as a rim. Static/non-reactive
-       (matte, not liquid chrome) since the rim sits directly behind a
-       separate solid-color fill layer at an exact pixel alignment — a
-       moving rim would read as a rendering glitch rather than a
-       reflection, the two layers visibly drifting apart as one rotates
-       and the other doesn't (same reasoning applyConicChrome's own
-       `interactive: false` used to document, before this switched to the
-       matte rim's static gradient entirely and dropped the JS call).
+    /* Both wordmark halves get the same double-rim "housing" treatment —
+       each sits in its own .chrome-text-wrap with *two* .chrome-text-rim
+       copies behind it (a thin inner one at the base --chrome-angle, a
+       thick outer one 55° offset, same "two rings, deliberately
+       different" idea as housing-frame.js's own accent ring), so "Kueh"
+       (organic, layered, .layered-k) and "Machine" (brushed chrome,
+       .chrome-text-fill) share the same double-metal outline even though
+       their own fills — and their rims' own color source — differ.
+       .chrome-text-rim--themed pulls from the day's --color-primary-strong
+       (same approach as the water clock's outer housing,
+       HOUSING_DARK/HOUSING_LIGHT in countdown-clock.js); .chrome-text-rim--
+       metal pulls from the neutral --metal-base every other rim on the
+       site defaults to. "Kueh" is --themed on both its rims; "Machine"
+       splits the two — its outer (thicker) rim is --themed too, its inner
+       one stays --metal — so "Machine" reads as brushed chrome with a
+       day-tinted edge, rather than either wordmark being one uniform
+       color source. Both are real conic-gradients (computeConicChromeLayers,
+       chrome-metal.js —
+       same helper every other chrome rim on the site uses), set in JS
+       (src/organisms/chrome-accents.js) rather than a CSS linear-gradient
+       — a text-clipped conic-gradient sweeps as one coherent band across
+       the whole word instead of a flat diagonal streak. Static/non-
+       reactive (a fixed --chrome-angle, not registered for cursor
+       rotation) since each rim sits directly behind a separate solid-
+       color fill layer at an exact pixel alignment — a moving rim would
+       read as a rendering glitch rather than a reflection, the two layers
+       visibly drifting apart as one rotates and the other doesn't (same
+       reasoning applyConicChrome's own `interactive: false` documents).
 
        Text can't take a literal border, and -webkit-text-stroke only
        accepts a solid color (no gradient) — there's no native way to give
-       text a gradient-filled outline. This fakes one by stacking two
-       copies of the same word: .chrome-text-rim sits behind, filled with
-       the matte metal gradient via background-clip:text and widened with
-       text-stroke (background-clip clips the stroke too, so the whole
-       widened glyph shows the gradient); .chrome-text-fill sits on top,
-       normal weight. Only the rim layer's extra width peeks out around
-       the fill layer, reading as a metal outline. */
+       text a gradient-filled outline. This fakes one by stacking three
+       copies of the same word: the two .chrome-text-rim copies sit
+       behind, filled with their gradient via background-clip:text and
+       widened with text-stroke (background-clip clips the stroke too, so
+       the whole widened glyph shows the gradient); the fill layer
+       (.chrome-text-fill/.layered-k) sits on top, normal-width. Only each
+       rim's own extra width peeks out around whatever's in front of it,
+       reading as metal outlines. */
     .chrome-text-wrap {
       position: relative;
       display: inline-block;
@@ -203,57 +280,225 @@
          taller than the fill layer's, which shifted how the text
          vertically centered within it — a visible offset between the
          two layers that had nothing to do with the clipping fix. */
-      /* -6px (not -4px): widened alongside the 4.5px text-stroke below so
-         the wider bleed still has room to render without clipping the
-         rightmost letter's tip — see the original -4px note above, same
-         reasoning, just rescaled for the thicker stroke. */
-      inset: 0 -6px;
-      /* Same fixed gradient/stops as .rim-matte-inner (styles/atoms.css)
-         — set here directly rather than via matte-rim.js's DOM-wrapping
-         helper, since text-stroke + background-clip:text is its own
-         mechanism that doesn't fit that atom's box-shaped rim/glint nest. */
-      background-image: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--metal-base) 45%, white) 0%,
-        color-mix(in srgb, var(--metal-base) 30%, white) 20%,
-        color-mix(in srgb, var(--metal-highlight) 88%, var(--metal-base)) 45%,
-        color-mix(in srgb, var(--metal-base) 30%, white) 65%,
-        color-mix(in srgb, var(--metal-base) 45%, white) 100%
-      );
+      /* em, not a fixed px, for both this and the text-stroke below — the
+         wordmark's own font-size (.hero-title) is clamp(4.5rem, 10vw,
+         7rem), so it shrinks on a narrow viewport; a fixed px rim stayed
+         the same physical width regardless, reading as proportionally
+         thicker against the smaller glyphs on mobile than it did at
+         desktop's max size. em ties both to the *inherited* font-size
+         instead, so they shrink/grow together with the text.
+         -0.0536em (not -0.0357em): widened alongside the 0.0402em
+         text-stroke below so the wider bleed still has room to render
+         without clipping the rightmost letter's tip — see the original
+         -4px-vs-3px-stroke note this replaced, same reasoning, just
+         rescaled for the thicker stroke. Both em values are the original
+         tuned px amounts (6px/4.5px) divided by 112px — the font-size
+         .hero-title computes to at its own clamp() ceiling (7rem, i.e.
+         desktop width), which is what these were visually tuned against. */
+      inset: 0 -0.0536em;
+      /* background-image is set in JS (src/organisms/chrome-accents.js),
+         not here — every .chrome-text-rim instance now gets a real
+         conic-gradient (computeConicChromeLayers, chrome-metal.js) keyed
+         by whichever color-source modifier it carries (--themed or
+         --metal, below); no CSS fallback, same as every other conic-
+         chrome element on the site (.btn-rim, .tab-group-rim, …). */
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      /* 4.5px, not 3px — a text-stroke straddles the glyph's true outline
-         (half inside, half outside), and .chrome-text-fill sits on top
-         with no stroke of its own, covering exactly to that outline — so
-         only the outward half of this ever shows. 4.5px puts that visible
-         sliver at ~2.25px, matching .rim-matte-inner + .rim-matte-inner-
-         glint's combined band width (1.5px + 0.75px) elsewhere. */
-      -webkit-text-stroke: 4.5px transparent;
+      /* 0.0402em (4.5px at the 112px reference size, see inset's own
+         comment above), not a smaller stroke — a text-stroke straddles
+         the glyph's true outline (half inside, half outside), and
+         whatever sits on top of this rim has no stroke of its own,
+         covering exactly to that outline — so only the outward half of
+         this ever shows. 4.5px puts that visible sliver at ~2.25px,
+         matching .rim-matte-inner + .rim-matte-inner-glint's combined
+         band width (1.5px + 0.75px) elsewhere, at that same reference
+         size. */
+      -webkit-text-stroke: 0.0402em transparent;
+    }
+    /* "Kueh"'s rims duplicate .layered-k's own font-weight: 800 (they'd
+       otherwise fall back to .hero-title's 600) — a rim is a same-text
+       copy sized/positioned to trace the fill layer's exact glyph edges,
+       so any weight mismatch between the two misaligns the outline
+       against the letterforms it's supposed to trace, not just look
+       thinner. "Machine"'s rims skip this — .chrome-text-fill stays at
+       the inherited 600, so its rims do too. */
+    .chrome-text-rim--bold {
+      font-weight: 800;
+    }
+    /* Color-source markers read by chrome-accents.js to pick which
+       darkVar/lightVar pair a given .chrome-text-rim gets (see that
+       file's own KUEH_RIM_ and MACHINE_RIM_ constants) — --themed for the
+       day's theme color, --metal for the neutral metal-base. Every rim
+       carries exactly one; which one is per-rim, not per-word — "Kueh"
+       carries --themed on both its layers, "Machine" splits them
+       (--themed on its thick outer rim, --metal on its thin inner one).
+       Whether a given rim is the thin inner layer or the thick outer one
+       (and therefore which --chrome-angle it gets) is read from whether
+       it also carries .chrome-text-rim--outer, below — entirely
+       independent of which color-source class it carries. No CSS rule
+       needed for either marker, since chrome-accents.js selects by class
+       name and sets background-image directly. */
+    /* A second, thicker rim layer sitting behind (earlier in DOM than)
+       the thin inner rim — same "two rings, deliberately different" idea
+       as housing-frame.js's own accent ring (accentAngle: 55deg, offset
+       from the main ring's own angle "so the two conic-gradients visibly
+       disagree with each other rather than lining up into what would
+       just read as one thicker band"); chrome-accents.js gives any
+       element carrying this class that same 55° --chrome-angle offset.
+       inset/text-stroke scaled up from the base rim's own -0.0536em/
+       0.0402em by the same ratio, so the wider stroke still has room to
+       render without clipping the rightmost letter's tip — em here for
+       the same reason as the base rim (see its own comment): ties the
+       thicker outer rim's width to the wordmark's own font-size too, so
+       it shrinks in step with the inner rim on a narrow viewport instead
+       of staying a fixed px width while the text around it shrinks. */
+    .chrome-text-rim--outer {
+      inset: 0 -0.125em;
+      -webkit-text-stroke: 0.09375em transparent;
     }
     .chrome-text-fill {
       position: relative;
-      /* Always the calibrated light-on-dark text token, not the daily
-         accent — the accent already gets heavy use elsewhere on this
-         dark hero background (the countdown digits), and text needs a
-         token that's specifically verified to hold contrast there. */
-      color: var(--color-text-on-primary);
+      /* Same fill recipe as .matte-metal-surface (styles/atoms.css) —
+         noise-grain texture blended over a soft highlight + the same
+         cool/warm-tinted panel gradient — clipped to the glyphs instead
+         of painted across a whole section. background-size uses 100%
+         100% rather than .matte-metal-surface's viewport-relative 100vh
+         (that sizing exists so a resizing *section* doesn't restretch
+         its gradient — irrelevant here, where the box is just the fixed
+         text itself), so the highlight/gradient bands land consistently
+         within the word regardless of its rendered size. */
+      background-color: color-mix(in srgb, var(--metal-base) 24%, white);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 90% 70% at 22% 15%, rgba(255, 255, 255, 0.22), transparent 60%),
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--metal-base-cool) 30%, white) 0%,
+          color-mix(in srgb, var(--metal-base) 24%, white) 32%,
+          color-mix(in srgb, var(--color-accent) 18%, color-mix(in srgb, var(--metal-base) 24%, white)) 55%,
+          color-mix(in srgb, var(--metal-base-warm) 30%, white) 76%,
+          color-mix(in srgb, var(--metal-base) 24%, white) 100%
+        );
+      background-repeat: repeat, no-repeat, no-repeat;
+      background-size: 100px 100px, 100% 100%, 100% 100%;
+      background-blend-mode: multiply, soft-light, normal;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
-    .hero-tagline {
-      font-size: 1rem;
-      color: var(--color-text-on-primary);
-      margin-bottom: 28px;
-      line-height: 1.6;
-      max-width: 52ch;
-      margin-inline: auto;
+
+    /* Countdown "water clock": a funnel-bottomed retro-rectangle window
+       (buildFunnelPath, src/tokens/superellipse.js; wired up by
+       src/organisms/countdown-clock.js) built from two stacked fill+shadow
+       layers — .countdown-window-bg and .countdown-liquid (the latter
+       masked to a bottom-up "water level" via --liquid-fill, set every
+       tick by the countdown script below). Both layers' visible fill +
+       inner shadow are painted by a createRetroShape SVG child
+       (countdown-clock.js), same recipe the Kueh of the Day windows use —
+       no CSS background needed here. Wrapped in a tinted rim
+       (.countdown-rim-wrap, src/atoms/housing-frame.js — a gap-aware ring
+       so the funnel's own spout reads as genuinely open, not
+       wrapWithInnerMatteRim's plain closed shape) and, outside that, the
+       thicker decorative housing (.housing-frame-wrap); its own
+       margin-bottom (trailing space before the hero's own bottom padding)
+       is set below, since .countdown-viewport is no longer the outermost
+       element once wrapped.
+
+       --countdown-bg-color/--countdown-liquid-color are the single place
+       to retune either color — countdown-clock.js's createRetroShape fills
+       and .countdown-drop below all read these two custom properties
+       rather than each hardcoding (and re-explaining) a token of their
+       own, so swapping a color is one edit here instead of several. */
+    :root {
+      --countdown-bg-color: var(--color-highlight-soft); /* instruction row 6's background */
+      --countdown-liquid-color: var(--color-primary-soft); /* .brief-section's background ("What is Kueh Machine?") */
     }
 
-    .hero-link { color: var(--color-accent); text-decoration: none; }
-    .hero-link:hover { text-decoration: underline; }
+    /* Height is purely content-driven (no min-height) — the box is exactly
+       the digit grid's own height plus this padding, so it stays snug at
+       any font size/breakpoint instead of a fixed height that's oversized
+       for some and cramped for others. Top/bottom padding kept close to
+       equal (not the funnel's own fixed reserve) so the content still
+       reads centered in the flat body — the funnel itself is shallow
+       enough now (funnelDepthRatio 0.09) that it doesn't need a much
+       bigger bottom allowance than top the way the earlier, deeper/wider
+       funnel did. */
+    .countdown-viewport {
+      position: relative;
+      display: inline-block;
+      padding: 16px 48px 28px;
+    }
+
+    /* .housing-frame-wrap (styles/atoms.css — src/atoms/housing-frame.js),
+       not .rim-matte-inner-tinted itself (which used to be the outermost
+       element here, before countdown-clock.js wrapped it in a housing
+       frame) — margin-bottom on a plain block collapses out through its
+       container, but .housing-frame-wrap is inline-block, which blocks
+       that collapsing, so the margin would otherwise get trapped *inside*
+       the wrapper (inflating its own auto-height) instead of adding space
+       below it. */
+    .hero .housing-frame-wrap {
+      margin-bottom: 12px;
+    }
+
+    .countdown-window-bg,
+    .countdown-liquid {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* Exists only to host a drop-shadow filter for .countdown-liquid
+       (countdown-clock.js wraps it in here) — see that module's own
+       comment for why the filter has to live on this wrapper rather than
+       on .countdown-liquid itself (which already carries the mask below).
+       Negative y offset projects the shadow upward, onto
+       .countdown-window-bg behind it, as if the water were casting it
+       onto the wall right above its own surface. */
+    .countdown-liquid-shadow-wrap {
+      position: absolute;
+      inset: 0;
+      /* Blur and opacity both trimmed down from 10px/0.3 — read as too
+         strong/heavy a cast shadow onto the window background above the
+         water line. */
+      filter: drop-shadow(0 -8px 6px rgba(0, 0, 0, 0.18));
+    }
+
+    .countdown-liquid {
+      -webkit-mask-image: linear-gradient(to top,
+        black 0%, black var(--liquid-fill, 50%),
+        transparent var(--liquid-fill, 50%));
+      mask-image: linear-gradient(to top,
+        black 0%, black var(--liquid-fill, 50%),
+        transparent var(--liquid-fill, 50%));
+    }
+
+    /* Thin darker band right at the water's current surface — reads the
+       exact same --liquid-fill custom property as .countdown-liquid's own
+       mask above (set via countdown-clock.js's `surface` div), so it
+       tracks the surface, ripple wobble included, automatically. The first
+       gradient stop being "transparent" below the band rather than an
+       explicit 0% start is deliberate: with no earlier stop, a CSS gradient
+       extends that same color backward to 0% on its own. */
+    .countdown-liquid-surface {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      --surface-color: color-mix(in srgb, var(--countdown-liquid-color) 90%, black);
+      --surface-thickness: 3px;
+      background: linear-gradient(to top,
+        transparent calc(var(--liquid-fill, 50%) - var(--surface-thickness)),
+        var(--surface-color) calc(var(--liquid-fill, 50%) - var(--surface-thickness)),
+        var(--surface-color) var(--liquid-fill, 50%),
+        transparent var(--liquid-fill, 50%));
+    }
 
     /* Countdown grid: 4 units */
     .countdown-grid {
+      position: relative;
+      z-index: 1;
       display: inline-grid;
       grid-template-columns: repeat(7, auto);
       gap: 0 24px;
@@ -262,15 +507,53 @@
 
     .cd-unit {}
 
+    /* All three read against both --countdown-bg-color and
+       --countdown-liquid-color (defined above .countdown-viewport), so
+       they share one token verified (by script, across every seeded kueh)
+       to hold 4.5:1+ against the current pairing of those two —
+       colorTextOnSurfaceMuted is NOT safe here, since it's only
+       calibrated against colorSurface/colorSurfaceTint. Re-check contrast
+       if either --countdown-*-color is retuned to a darker token. */
     .cd-number {
       display: block;
       font-family: var(--font-display);
-      font-size: var(--type-display);
+      /* Derived, not a flat `10vw` guess (this used to be
+         var(--type-display): clamp(3rem, 10vw, 7rem)) — a raw vw
+         percentage has no notion of the layout's own fixed overhead
+         (.hero's side padding + .countdown-viewport's own padding, 160px
+         combined), so right after the 640px mobile breakpoint — where
+         the *desktop* rules first apply but the viewport is barely wider
+         than mobile ever was — 10vw produced a font-size demanding more
+         width than was actually available, overflowing past .hero's own
+         right edge (confirmed directly: ~60px of overflow at 641px,
+         shrinking to 0 only past ~880px). This formula instead divides
+         the *actual* available width (100vw minus that 160px fixed
+         overhead, minus the grid's 6 fixed 24px gaps (144px), minus a
+         small safety margin) by the combined glyph-width-per-font-size-
+         unit of the 4 number columns + 3 separators (1.6234x per number,
+         from .cd-number's own `min-width: 2.2ch` reserve below, which
+         governs each column's real footprint now — see the mobile
+         formula's own comment, styles above, for why that's larger than
+         the numeral's bare rendered width). Floor (3rem) matches where
+         the mobile formula above now ends, for a smooth handoff at the
+         breakpoint instead of a jarring jump. */
+      font-size: clamp(3rem, calc((100vw - 320px) / 6.9), 7rem);
       font-weight: 700;
       letter-spacing: var(--tracking-counter);
-      color: var(--color-accent);
+      color: var(--color-text-on-surface);
       line-height: 1;
+      /* font-variant-numeric: tabular-nums is a no-op here — Syne
+         (--font-display) doesn't implement the 'tnum' OpenType feature,
+         so digits still render at their own proportional widths. Without
+         a fixed-width reserve, .cd-unit's grid column (grid-template-
+         columns: repeat(7, auto) on .countdown-grid) re-measures on every
+         tick, nudging the whole countdown sideways whenever a narrower/
+         wider digit swaps in. min-width reserves room for the widest
+         plausible 2-digit pair up front so the column stays put;
+         text-align: center (inherited from .countdown-grid) keeps
+         narrower numbers centered in that reserved space. */
       font-variant-numeric: tabular-nums;
+      min-width: 2.2ch;
     }
 
     .cd-label {
@@ -279,24 +562,69 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: var(--color-text-on-primary);
+      color: var(--color-text-on-surface);
       margin-top: 6px;
     }
 
     .cd-sep {
-      font-size: clamp(2rem, 7vw, 4rem);
+      /* Tied to .cd-number's own formula (× 0.6, same relationship the
+         mobile rule below already uses) instead of an independently
+         guessed clamp(2rem, 7vw, 4rem) — that guess didn't track
+         .cd-number's own overflow fix at all, so it could no longer be
+         trusted to stay proportionate to it. */
+      font-size: clamp(1.8rem, calc((100vw - 320px) / 6.9 * 0.6), 4.2rem);
       font-weight: 300;
-      color: var(--color-primary);
+      color: var(--color-text-on-surface);
       line-height: 1;
       padding-top: 4px;
       align-self: start;
       margin-top: 6px;
     }
 
-    .countdown-sublabel {
-      font-size: 0.875rem;
-      color: var(--color-text-on-primary-muted);
-      margin-top: 20px;
+    /* Grows in place at the funnel's mouth over each ten-second decade
+       (--drop-progress set once per second by updateDrop() below, eased
+       between those discrete updates by the transition) then falls on the
+       exact tick the seconds display reaches a multiple of ten — see
+       updateDrop's own comment for why that timing (not a plain 10s
+       interval) matters. transform-origin: top so scaling from 0 to 1
+       reads as the droplet emerging from a fixed point at the tip and
+       swelling downward, not growing from its own center. */
+    .countdown-drop {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      margin-left: -6px;
+      border-radius: 50%;
+      /* Round highlight offset toward the top, like light catching the
+         top of a bead of liquid — layered over the base liquid color, not
+         replacing it. */
+      background:
+        radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
+        var(--countdown-liquid-color);
+      pointer-events: none;
+      z-index: 999;
+      transform-origin: top center;
+      transform: scale(var(--drop-progress, 0));
+      transition: transform 1s linear;
+    }
+
+    /* Little air bubbles rising from the spout right as a drop releases
+       (src/atoms/liquid-bubbles.js, spawnBubbleBurst) — appended straight
+       into #js-countdown-liquid, so its own bottom-up mask-image
+       (--liquid-fill, above) clips each bubble the instant it rises past
+       the current water level for free. z-index: 1 (same reasoning as
+       .countdown-grid, below) keeps them above the liquid's own fill SVG,
+       which paints itself at z-index: -1 (.retro-shape-fill). Radial
+       highlight distinct from the flat liquid color is what reads as an
+       air bubble rather than another droplet of the liquid itself. */
+    .countdown-liquid-bubble {
+      position: absolute;
+      z-index: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.15) 60%, rgba(255, 255, 255, 0) 75%);
+      box-shadow: inset 0 0 1px rgba(255, 255, 255, 0.6);
+      pointer-events: none;
     }
 
     /* === SECTION CHROME === */
@@ -386,122 +714,7 @@
       color: var(--color-text-on-surface);
     }
 
-    /* === TIMELINE === */
-    .dates-section {
-      padding: 80px 32px;
-      background: var(--color-surface);
-    }
-
-    .timeline-wrapper {
-      margin-top: 72px;
-    }
-
-    .timeline-track {
-      position: relative;
-      height: 2px;
-      background: var(--color-surface-border);
-      border-radius: var(--radius-pill);
-      margin-top: 64px; /* space above for today label */
-    }
-
-    .timeline-progress {
-      position: absolute;
-      left: 0; top: 0;
-      height: 100%;
-      background: var(--color-primary);
-      border-radius: var(--radius-pill);
-      width: 0;
-    }
-
-    .tl-node {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .tl-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--color-surface-tint);
-      border: 2px solid var(--color-surface-border);
-      box-sizing: border-box;
-    }
-
-    .tl-dot.reached {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-    }
-
-    /* Today marker */
-    .tl-today {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .tl-today-needle {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1px;
-      height: 30px;
-      top: -30px;
-      background: var(--color-primary-strong);
-    }
-
-    .tl-today-dot {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--color-primary-strong);
-      top: -4px;
-      left: -4px;
-    }
-
-    .tl-today-label {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: calc(100% + 32px);
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--color-primary-strong);
-      white-space: nowrap;
-    }
-
-    /* Labels below track */
-    .tl-labels {
-      position: relative;
-      margin-top: 20px;
-      height: 76px;
-    }
-
-    .tl-label { position: absolute; }
-    .tl-label-left  { left: 0;        text-align: left; }
-    .tl-label-mid   { left: 55.556%;  transform: translateX(-50%); text-align: center; }
-    .tl-label-right { right: 0;       text-align: right; }
-
-    .tl-label-date {
-      font-size: 0.9375rem;
-      font-weight: 700;
-      color: var(--color-text-on-surface);
-      margin-bottom: 3px;
-    }
-
-    .tl-label-name {
-      font-size: 0.875rem;
-      color: var(--color-text-on-surface);
-      margin-bottom: 2px;
-    }
-
-    .tl-label-time {
-      font-size: 0.8rem;
-      color: var(--color-text-on-surface-muted);
-    }
+    /* === TIMELINE === now styles/organisms/timeline-panel.css */
 
     /* === GETTING STARTED === */
     .guide-section {
@@ -568,11 +781,19 @@
        used to live here moved there too. Fill color is a custom property
        (--step-fill-color, set per nth-child below) rather than a literal
        background, so it can inherit down through the two nested chrome
-       bands to .step-card-fill without needing to know about them. */
+       bands to .step-card-fill without needing to know about them.
+       border-radius here is only the :focus-visible fallback shape for
+       browsers that don't clip an element's own outline to its clip-path
+       (same convention as .btn-small/.tab, styles/atoms.css) — the real
+       shape is the retro-rectangle clip-path chrome-accents.js attaches to
+       this, its glint band, and .step-card-fill. box-shadow would get
+       clipped away with it (it draws around the full rectangular
+       border-box regardless of clip-path), so this is a filter:
+       drop-shadow instead, same recipe as .btn-rim. */
     .step-card {
       border-radius: var(--radius-card);
       padding: 1.5px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06);
+      filter: drop-shadow(0 4px 20px rgba(0,0,0,0.09)) drop-shadow(0 1px 4px rgba(0,0,0,0.06));
     }
 
     .step-card-fill {
@@ -650,23 +871,48 @@
       text-decoration-color: var(--color-primary);
     }
 
-    /* File card */
+    /* File card — shaped to the retro-rectangle silhouette
+       (attachRetroShapeClip + SMALL_RETRO_SHAPE_OPTS, chrome-accents.js),
+       same small-control shape as .btn/.tab. border-radius is only the
+       :focus-visible fallback for browsers that don't clip an outline to
+       clip-path.
+
+       .file-card is now the outer rim band, the old 1px border's replacement
+       — a straight CSS border doesn't follow a clip-path'd corner's curve
+       (it just gets cut off at an angle), so instead the border color is
+       this element's own background, showing through as a thin ring in the
+       gap between its clip-path and the inner .file-card-fill's (its
+       padding below sets that ring's thickness) — same rim/fill nesting
+       .step-card/.step-card-fill and .btn-rim/.btn use, just a flat color
+       instead of a chrome gradient. */
     .file-card {
       display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--color-surface);
-      border: 1px solid var(--color-surface-border);
+      background: var(--color-surface-border);
       border-radius: var(--radius-interactive);
-      padding: 10px 14px;
+      padding: 1.5px;
       text-decoration: none;
       margin-top: 14px;
-      transition: background 0.15s, border-color 0.15s;
       max-width: 280px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
+      transition: background 0.15s;
     }
     .file-card:hover {
+      background: var(--color-primary);
+    }
+
+    .file-card-fill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+      background: var(--color-surface);
+      border-radius: inherit;
+      padding: 10px 14px;
+      transition: background 0.15s;
+    }
+    .file-card:hover .file-card-fill {
       background: var(--color-surface-tint);
-      border-color: var(--color-primary);
     }
 
     .fc-icon { color: var(--color-primary); flex-shrink: 0; }
@@ -718,77 +964,76 @@
     /* === RESPONSIVE === */
     @media (max-width: 640px) {
       .container { padding: 0 10px; }
-      .hero { padding: 48px 10px 52px; }
-      .countdown-grid { gap: 0 14px; }
-      .cd-sep { font-size: 1.75rem; }
+      .hero { padding: 48px 10px 150px; } /* trimmed back down 40px — no longer coupled to the chute's own height (drop-chute.js's mobile chute height is now a fixed constant, not derived from this element's live bottom edge), so this is free to change without squashing the chute */
+      /* Stretched wide (most of the screen, just a little side margin)
+         rather than shrink-wrapped to the digit content like desktop —
+         .housing-frame-wrap's own width/height: auto (styles/atoms.css)
+         is what shrink-wraps it there, so this overrides just the width
+         half of that for narrow viewports. Targets .countdown-rim-wrap
+         specifically (housing-frame.js's own wrapClassName for the
+         countdown's inner rim), not every .housing-frame-wrap — the
+         outer housing (an unnamed wrapWithHousingFrame call) should keep
+         shrink-wrapping to whatever this inner rim resolves to, not get
+         its own independent override.
+
+         `100vw`-based, not `calc(100% - 16px)` (tried first, and the
+         original form here) — that percentage resolves against
+         .housing-frame-wrap, which per the paragraph above is left as
+         plain `auto`/shrink-wrap specifically so it hugs this rim
+         snugly. But a child sized as "100% of a parent that's sized by
+         shrink-wrapping to that same child" is a genuine circular
+         reference, and the practical fallback browsers use for it
+         quietly drops this element's own intended width down to
+         whatever its own content (ultimately .countdown-grid) demands —
+         which is how .countdown-viewport's own padding (below) ended up
+         silently ignored: the whole chain was actually being sized
+         bottom-up from the digits' own content, not top-down from the
+         viewport width the comments below assumed. Anchoring to `100vw`
+         (always a genuine, definite value, never dependent on any
+         shrink-wrapped ancestor) breaks that cycle at its source — once
+         *this* element has a real resolved width, .housing-frame-wrap
+         can correctly shrink-wrap to it (no longer circular), and
+         .countdown-viewport's own `width: 100%` below (of *this*,
+         now-definite, element) finally resolves the normal, intended
+         way, padding included. */
+      .countdown-rim-wrap { width: calc(100vw - 36px); }
+      .countdown-viewport { width: 100%; padding: 10px 8px 20px; }
+      /* Derived, not guessed — re-derived (this specific formula was
+         stale): .countdown-viewport's own content-box width is
+         100vw - 92px (.countdown-rim-wrap's own -36px reduction above +
+         .countdown-viewport's own 8px+8px padding + a small safety
+         margin), minus the grid's 6 fixed 6px gaps (36px), divided by the
+         combined glyph-width-per-font-size-unit of the 4 number columns
+         + 3 separators. The glyph ratio here is 1.6234x a number's own
+         font-size — NOT the 1.3361x this formula used before: that was
+         the two-digit numeral's own *natural* rendered width, measured
+         before .cd-number grew a `min-width: 2.2ch` reserve (fixes the
+         digits visibly nudging the whole countdown sideways whenever a
+         narrower/wider digit swaps in) — min-width is larger than the
+         natural width for most digit pairs, so it's what actually
+         governs each column's real footprint now, and this formula needs
+         to fit *that*, not the glyph's own bare rendered size. Ceiling
+         raised to 7rem (matching the desktop formula's own) rather than
+         capped low — the point of re-deriving this properly was so the
+         clock keeps scaling smoothly with viewport width the same way
+         it does on desktop, all the way to the breakpoint, instead of
+         flattening out early (confirmed the formula itself stays safely
+         within the available width the whole way, so nothing but the
+         old artificial ceiling was stopping it from growing). It won't
+         actually reach anywhere near 7rem before 640px arrives (~4.95rem
+         at most), so this ceiling is really just "no practical cap in
+         this range" — the size change crossing into the desktop
+         breakpoint is a bit more noticeable now, but that's a fair trade
+         for not looking frozen mid-range on mobile, and the layout
+         itself changes structurally at that same point anyway (the
+         pulley/rig, spring track, etc.). */
+      .countdown-grid { gap: 0 6px; }
+      .cd-number { font-size: clamp(1.5rem, calc((100vw - 92px) / 6.9), 7rem); }
+      .cd-sep { font-size: clamp(0.9rem, calc((100vw - 92px) / 6.9 * 0.6), 4.2rem); }
       .brief-section { padding: 60px 20px; }
       .batik-margin { display: none; } /* mobile column is too narrow to overlap without hurting legibility */
-      .dates-section { padding: 60px 10px 140px; }
       .guide-section { padding: 60px 10px; }
       .step-card-fill { padding: 14px 12px; gap: 10px; }
-
-      /* Vertical timeline: 3-col grid — today | track | labels */
-      .timeline-wrapper {
-        display: grid;
-        grid-template-columns: 0.4fr 2px 1fr;
-        column-gap: 16px;
-        margin-top: 40px;
-      }
-
-      .timeline-track {
-        grid-column: 2;
-        width: 2px;
-        height: 280px;
-        margin-top: 0;
-        overflow: visible;
-      }
-
-      .timeline-progress {
-        width: 100%;
-        height: 0; /* set by JS */
-      }
-
-      /* Nodes: flip from left% to top% */
-      .tl-node              { left: 50% !important; }
-      .tl-node:nth-child(2) { top: 0%; }
-      .tl-node:nth-child(3) { top: 55.556%; }
-      .tl-node:nth-child(4) { top: 100%; }
-
-      /* Today: anchored on track, needle + label extend LEFT into col 1 */
-      .tl-today { left: 50% !important; /* top set by JS */ }
-
-      .tl-today-needle {
-        right: 0;
-        left: auto;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 20px;
-        height: 1px;
-      }
-
-      .tl-today-label {
-        right: 24px;
-        left: auto;
-        bottom: auto;
-        top: 50%;
-        transform: translateY(-50%);
-        white-space: normal;
-        text-align: right;
-        width: 3.5rem;
-      }
-
-      /* Labels: right column, centered on their matching dot */
-      .tl-labels {
-        grid-column: 3;
-        position: relative;
-        height: 280px;
-        margin-top: 0;
-      }
-
-      .tl-label           { position: absolute; text-align: left; transform: translateY(-12px); }
-      .tl-label-left      { top: 0%;      left: 0; right: auto; }
-      .tl-label-mid       { top: 55.556%; left: 0; right: auto; }
-      .tl-label-right     { top: 100%;    left: 0; right: auto; }
     }
   </style>
 </head>
@@ -798,38 +1043,47 @@
   <nav class="site-nav" aria-label="Section navigation">
     <div class="site-nav-inner">
       <a href="#brief" data-nav-target="brief" class="text-sheen">Brief</a>
-      <a href="#schedule" data-nav-target="schedule" class="text-sheen">Schedule</a>
+      <a href="#timeline" data-nav-target="timeline" class="text-sheen">Timeline</a>
       <a href="#guide" data-nav-target="guide" class="text-sheen">Getting Started</a>
     </div>
   </nav>
 
   <!-- HERO + COUNTDOWN -->
-  <section class="hero reveal">
-<h1 class="hero-title"><span class="layered-k">Kueh</span> <span class="chrome-text-wrap"><span class="chrome-text-rim" aria-hidden="true">Machine</span><span class="chrome-text-fill">Machine</span></span></h1>
-    <p class="hero-tagline">a team L&amp;D project</p>
-
-    <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">
-      <div class="cd-unit">
-        <span class="cd-number" id="js-days">—</span>
-        <span class="cd-label">Days</span>
-      </div>
-      <div class="cd-sep" aria-hidden="true">:</div>
-      <div class="cd-unit">
-        <span class="cd-number" id="js-hours">—</span>
-        <span class="cd-label">Hours</span>
-      </div>
-      <div class="cd-sep" aria-hidden="true">:</div>
-      <div class="cd-unit">
-        <span class="cd-number" id="js-minutes">—</span>
-        <span class="cd-label">Min</span>
-      </div>
-      <div class="cd-sep" aria-hidden="true">:</div>
-      <div class="cd-unit">
-        <span class="cd-number" id="js-seconds">—</span>
-        <span class="cd-label">Sec</span>
+  <!-- No `reveal` class here, deliberately — .hero is already >8% visible
+       at scroll position 0, so the IntersectionObserver below would fire
+       essentially instantly on every load, playing the fade/translateY(20px)
+       entrance transition for content that was never actually offscreen
+       to begin with. That read as the page "scrolling into place" on
+       every single refresh (it wasn't scrolling — .hero itself was
+       sliding up under the sticky nav). Reveal-on-scroll only makes sense
+       for the sections further down the page. -->
+  <section class="hero">
+<h1 class="hero-title"><span class="chrome-text-wrap"><span class="chrome-text-rim chrome-text-rim--bold chrome-text-rim--outer chrome-text-rim--themed" aria-hidden="true">Kueh</span><span class="chrome-text-rim chrome-text-rim--bold chrome-text-rim--themed" aria-hidden="true">Kueh</span><span class="layered-k">Kueh</span></span> <span class="chrome-text-wrap"><span class="chrome-text-rim chrome-text-rim--outer chrome-text-rim--themed" aria-hidden="true">Machine</span><span class="chrome-text-rim chrome-text-rim--metal" aria-hidden="true">Machine</span><span class="chrome-text-fill">Machine</span></span></h1>
+    <div class="countdown-viewport">
+      <div class="countdown-window-bg" aria-hidden="true"></div>
+      <div class="countdown-liquid" id="js-countdown-liquid" aria-hidden="true"></div>
+      <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">
+        <div class="cd-unit">
+          <span class="cd-number" id="js-days">—</span>
+          <span class="cd-label">Days</span>
+        </div>
+        <div class="cd-sep" aria-hidden="true">:</div>
+        <div class="cd-unit">
+          <span class="cd-number" id="js-hours">—</span>
+          <span class="cd-label">Hours</span>
+        </div>
+        <div class="cd-sep" aria-hidden="true">:</div>
+        <div class="cd-unit">
+          <span class="cd-number" id="js-minutes">—</span>
+          <span class="cd-label">Min</span>
+        </div>
+        <div class="cd-sep" aria-hidden="true">:</div>
+        <div class="cd-unit">
+          <span class="cd-number" id="js-seconds">—</span>
+          <span class="cd-label">Sec</span>
+        </div>
       </div>
     </div>
-    <p class="countdown-sublabel">until the showcase</p>
   </section>
 
   <!-- KUEH OF THE DAY -->
@@ -849,45 +1103,37 @@
     <div class="batik-mount batik-margin batik-margin-right" data-batik-group="brief-margins" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
   </section>
 
-  <!-- KEY DATES -->
-  <section id="schedule" class="dates-section reveal">
+  <!-- TIMELINE -->
+  <section id="timeline" class="timeline-section matte-metal-surface reveal">
+    <!-- TEMP TESTING CONTROL — remove this whole div (and its script
+         block near the bottom of the page, search "dev-date-override")
+         before launch. To hide without deleting: add style="display:none"
+         here. Lets you simulate any date in the project's own range so
+         the spring/dial/chip can be checked at every day in the cycle
+         without waiting for real time to pass. -->
+    <div id="dev-date-override" style="display:none; position:relative; z-index:1; align-items:center; gap:10px; padding:8px 16px; background:#1a1a1a; color:#fff; font:12px/1.4 monospace;">
+      <label for="dev-date-select">Simulate date:</label>
+      <select id="dev-date-select" style="font:inherit;"></select>
+    </div>
     <div class="container">
-      <p class="section-label">Schedule</p>
+      <p class="section-label">Timeline</p>
       <h2 class="section-title">Three Monthly Meetings, June to August.</h2>
-      <div class="timeline-wrapper">
-        <div class="timeline-track">
-          <div class="timeline-progress" id="js-tl-progress"></div>
-
-          <div class="tl-node" style="left:0%">
-            <div class="tl-dot" id="tl-dot-1"></div>
-          </div>
-          <div class="tl-node" style="left:55.556%">
-            <div class="tl-dot" id="tl-dot-2"></div>
-          </div>
-          <div class="tl-node" style="left:100%">
-            <div class="tl-dot" id="tl-dot-3"></div>
-          </div>
-
-          <div class="tl-today" id="js-tl-today">
-            <div class="tl-today-label" id="js-tl-label">Today</div>
-            <div class="tl-today-needle"></div>
-            <div class="tl-today-dot"></div>
-          </div>
-        </div>
+      <div class="tl-body">
+        <div class="tl-mount"></div>
 
         <div class="tl-labels">
           <div class="tl-label tl-label-left">
-            <p class="tl-label-date">June 24</p>
+            <p class="tl-label-date">24 June</p>
             <p class="tl-label-name">Kick-off meeting</p>
             <p class="tl-label-time">2:00 PM SGT<br>First look at the project</p>
           </div>
           <div class="tl-label tl-label-mid">
-            <p class="tl-label-date">July 29</p>
+            <p class="tl-label-date">29 July</p>
             <p class="tl-label-name">Check-in meeting</p>
             <p class="tl-label-time">2:00 PM SGT<br>Show what you have</p>
           </div>
           <div class="tl-label tl-label-right">
-            <p class="tl-label-date">August 26</p>
+            <p class="tl-label-date">26 August</p>
             <p class="tl-label-name">Showcase &amp; submission</p>
             <p class="tl-label-time">2:00 PM SGT<br>Present and hand off</p>
           </div>
@@ -1033,13 +1279,145 @@
   <script>
     // === COUNTDOWN (SGT = UTC+8, ticks every second) ===
     var TARGET_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // Aug 26 2026 06:00 UTC = 14:00 SGT
+    var PROJECT_START_UTC = Date.UTC(2026, 5, 24); // June 24 2026 kickoff
 
     function pad(n) {
       return n < 10 ? '0' + n : '' + n;
     }
 
+    // Water level = time remaining, not elapsed: full at PROJECT_START_UTC,
+    // drained to empty by TARGET_UTC. Factored out of updateLiquidFill so
+    // rippleLiquid (below) can read the same real level its brief
+    // released-drop wobble oscillates on top of.
+    function remainingPct() {
+      var totalMs = TARGET_UTC - PROJECT_START_UTC;
+      var elapsedMs = Date.now() - PROJECT_START_UTC;
+      return 100 - Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+    }
+
+    function updateLiquidFill() {
+      var el = document.getElementById('js-countdown-liquid');
+      if (!el) return;
+      el.style.setProperty('--liquid-fill', remainingPct() + '%');
+    }
+
+    // A brief damped oscillation on top of the real liquid level, right as
+    // a drop detaches (updateDrop's phase === 0, below) — not a true wavy-
+    // surface simulation (the liquid is a flat mask-image edge, not a
+    // textured surface a real height-field ripple could distort), but the
+    // level visibly dipping and bobbing back level is roughly the real
+    // physical effect anyway, and needs no canvas.
+    function rippleLiquid() {
+      var el = document.getElementById('js-countdown-liquid');
+      if (!el) return;
+      var start = performance.now();
+
+      // A single fixed-amplitude, fixed-frequency damped sine, identical
+      // on every single release all countdown long, read as mechanical
+      // rather than organic. Randomizing amplitude/duration/frequency per
+      // call, and summing in a second, smaller decaying wave at an
+      // unrelated frequency (so the two drift in and out of phase instead
+      // of reinforcing every cycle, like a real surface settling from a
+      // couple of superimposed ripple modes at once) breaks that
+      // regularity without changing the overall rAF/decay approach.
+      var amplitude = 0.9 + Math.random() * 0.6; // 0.9-1.5 percentage points
+      var duration = 780 + Math.random() * 260; // 780-1040ms
+      var decay = 3.6 + Math.random() * 1.2;
+      var freq1 = 2.6 + Math.random() * 0.8; // cycles over the full duration
+      var freq2 = freq1 * (1.6 + Math.random() * 0.5); // unrelated to freq1, not a clean harmonic
+      var phase2 = Math.random() * Math.PI * 2;
+
+      (function step(now) {
+        var t = (now - start) / duration;
+        if (t >= 1) {
+          updateLiquidFill(); // hand back to the normal per-second updater
+          return;
+        }
+        var envelope = amplitude * Math.exp(-decay * t);
+        var wave = envelope * (
+          0.75 * Math.sin(t * freq1 * 2 * Math.PI) +
+          0.25 * Math.sin(t * freq2 * 2 * Math.PI + phase2)
+        );
+        el.style.setProperty('--liquid-fill', (remainingPct() + wave) + '%');
+        requestAnimationFrame(step);
+      })(start);
+    }
+
+    // === COUNTDOWN DRIP ===
+    // Appended to document.body, not inside .hero — a sibling of .hero,
+    // not a descendant of it, so .hero's own `transform` (from
+    // .reveal/.reveal.visible) has no effect on this element's containing
+    // block either way (that hijack only reaches actual DOM descendants
+    // of the transformed element). .countdown-drop is `position: absolute`
+    // with document coordinates (not `fixed` with viewport coordinates,
+    // as this used to be) so it scrolls with the page like everything
+    // else, rather than staying pinned to a screen position while the
+    // funnel it's supposed to be growing out of scrolls away underneath
+    // it.
+    var dropEl = null;
+
+    function positionDrop(el) {
+      var viewport = document.querySelector('.countdown-viewport');
+      if (!viewport) return;
+      var rect = viewport.getBoundingClientRect();
+      el.style.left = (rect.left + rect.width / 2 + window.scrollX) + 'px';
+      // Nudged up a few px from the viewport's true bottom edge (~the
+      // spout tip) so the drop grows out of just above the funnel's mouth
+      // rather than hanging right at/below it.
+      el.style.top = (rect.bottom - 2 + window.scrollY) + 'px';
+    }
+
+    // Otherwise the drop only ever gets repositioned once per second,
+    // as a side effect of updateDrop's own countdown tick (below) — during
+    // an active window resize, it just sits at whatever screen position
+    // was last computed (up to ~1s stale) until that next tick happens to
+    // fire, with no relation to when the resize itself actually settles.
+    // positionDrop is cheap (one getBoundingClientRect + two style
+    // writes), so there's no need to debounce this — it can just run on
+    // every resize event directly.
+    window.addEventListener('resize', function () {
+      if (dropEl) positionDrop(dropEl);
+    });
+
+    // Grows in place at the funnel's mouth over each ten-second decade
+    // (--drop-progress, eased between per-second updates by .countdown-drop's
+    // own CSS transition), then falls the instant the displayed seconds
+    // value itself reaches a multiple of ten (50, 40, 30...) — tied to the
+    // same `seconds` value updateCountdown already computes every tick,
+    // rather than an independent setInterval(fn, 10000), so the release
+    // always lands in visible sync with the seconds display hitting a
+    // round ten instead of drifting against it.
+    function updateDrop(seconds) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      if (!dropEl) {
+        dropEl = document.createElement('div');
+        dropEl.className = 'countdown-drop';
+        document.body.appendChild(dropEl);
+      }
+      positionDrop(dropEl);
+
+      var phase = seconds % 10; // 9 down to 0 within each decade
+      dropEl.style.setProperty('--drop-progress', ((10 - phase) / 10).toFixed(3));
+
+      if (phase === 0) {
+        rippleLiquid();
+        dropEl.remove();
+        dropEl = null; // next tick builds a fresh drop for the next decade
+        // Hands off immediately — drop-chute.js's own spawnFallToChute
+        // (chute:ball-released) spawns its own ball at this exact spout
+        // position and owns the whole fall from here: straight down until
+        // it meets the chute at whatever point the chute's curve happens
+        // to cross underneath it, then rolls. Used to animate its own
+        // straight fall the full window.innerHeight and just vanish,
+        // before the chute existed.
+        window.dispatchEvent(new CustomEvent('chute:ball-released'));
+      }
+    }
+
     function updateCountdown() {
       var diff = TARGET_UTC - Date.now();
+      updateLiquidFill();
 
       if (diff <= 0) {
         document.getElementById('js-days').textContent    = '00';
@@ -1059,63 +1437,12 @@
       document.getElementById('js-hours').textContent   = pad(hours);
       document.getElementById('js-minutes').textContent = pad(minutes);
       document.getElementById('js-seconds').textContent = pad(seconds);
+      updateDrop(seconds);
 
       setTimeout(updateCountdown, 1000);
     }
 
     updateCountdown();
-
-    // === TIMELINE ===
-    var _tlData = (function () {
-      var sgOffsetMs = 8 * 60 * 60 * 1000;
-      var nowSGT = new Date(Date.now() + sgOffsetMs);
-      var todaySGT = Date.UTC(nowSGT.getUTCFullYear(), nowSGT.getUTCMonth(), nowSGT.getUTCDate());
-      var startMs = Date.UTC(2026, 5, 24);
-      var date2Ms = Date.UTC(2026, 6, 29);
-      var endMs   = Date.UTC(2026, 7, 26);
-      var rawPct  = (todaySGT - startMs) / (endMs - startMs) * 100;
-      var mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      var labelEl = document.getElementById('js-tl-label');
-      if (labelEl) labelEl.innerHTML = mn[nowSGT.getUTCMonth()].toUpperCase() + ' ' + nowSGT.getUTCDate() + '<br>TODAY';
-      [{id:'tl-dot-1', ms:startMs}, {id:'tl-dot-2', ms:date2Ms}, {id:'tl-dot-3', ms:endMs}]
-        .forEach(function (n) {
-          var el = document.getElementById(n.id);
-          if (el && todaySGT >= n.ms) el.classList.add('reached');
-        });
-      return { rawPct: rawPct };
-    })();
-
-    function positionTimeline() {
-      var pct       = _tlData.rawPct;
-      var clamped   = Math.min(Math.max(pct, -7), 107);
-      var fill      = Math.max(0, Math.min(100, pct));
-      var isMobile  = window.innerWidth <= 640;
-      var todayEl   = document.getElementById('js-tl-today');
-      var progressEl = document.getElementById('js-tl-progress');
-
-      if (todayEl) {
-        if (isMobile) {
-          todayEl.style.left = '50%';
-          todayEl.style.top  = clamped + '%';
-        } else {
-          todayEl.style.left = clamped + '%';
-          todayEl.style.top  = '50%';
-        }
-      }
-
-      if (progressEl) {
-        if (isMobile) {
-          progressEl.style.width  = '100%';
-          progressEl.style.height = fill + '%';
-        } else {
-          progressEl.style.width  = fill + '%';
-          progressEl.style.height = '100%';
-        }
-      }
-    }
-
-    positionTimeline();
-    window.addEventListener('resize', positionTimeline);
 
     // === SCROLL REVEAL ===
     (function () {
@@ -1126,6 +1453,16 @@
         return;
       }
 
+      var THRESHOLD = 0.08;
+
+      function visibleFraction(el) {
+        var rect = el.getBoundingClientRect();
+        if (rect.height <= 0) return 0;
+        var visibleTop = Math.max(rect.top, 0);
+        var visibleBottom = Math.min(rect.bottom, window.innerHeight);
+        return Math.max(0, visibleBottom - visibleTop) / rect.height;
+      }
+
       var observer = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting) {
@@ -1133,13 +1470,75 @@
             observer.unobserve(entry.target);
           }
         });
-      }, { threshold: 0.08 });
+      }, { threshold: THRESHOLD });
 
       document.querySelectorAll('.reveal').forEach(function (el) {
+        // Any section already at/past the observer's own threshold before
+        // the user has scrolled at all (a short section right below a
+        // tall hero, say, or just a tall viewport) would otherwise still
+        // get the full animated fade/slide-in — the observer's very first
+        // check fires immediately for something already intersecting,
+        // indistinguishable from a genuine scroll-into-view. Snap those
+        // straight to the revealed state with transitions disabled for
+        // that one assignment, rather than animating in content that was
+        // never actually offscreen to begin with. Sections genuinely
+        // below the fold still observe normally and reveal-on-scroll as
+        // usual.
+        if (visibleFraction(el) >= THRESHOLD) {
+          el.style.transition = 'none';
+          el.classList.add('visible');
+          void el.offsetHeight; // force reflow so transition:none is actually applied before it's cleared
+          el.style.transition = '';
+          return;
+        }
         observer.observe(el);
       });
     })();
+
+
   document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+  // === TEMP: dev date override (see #dev-date-override above) ===
+  // Remove this whole block (and the #dev-date-override div near the top
+  // of the Timeline section) before launch. Monkey-patches Date.now so
+  // every date-driven visual on the page (the hero countdown's own
+  // setTimeout loop already calls Date.now() fresh each second;
+  // timeline-panel.js listens for 'dev:date-changed' below) reacts as if
+  // the selected day were "now," without needing to actually wait for it.
+  (function () {
+    var select = document.getElementById('dev-date-select');
+    if (!select) return;
+
+    var START = Date.UTC(2026, 5, 24);
+    var END = Date.UTC(2026, 7, 26);
+    var ONE_DAY = 86400000;
+    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    var realNow = Date.now;
+
+    var realOption = document.createElement('option');
+    realOption.value = '';
+    realOption.textContent = '— real time —';
+    select.appendChild(realOption);
+
+    for (var t = START; t <= END; t += ONE_DAY) {
+      var d = new Date(t);
+      var opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = d.getUTCDate() + ' ' + monthNames[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+      select.appendChild(opt);
+    }
+
+    select.addEventListener('change', function () {
+      if (select.value === '') {
+        Date.now = realNow;
+      } else {
+        var offset = Number(select.value) - realNow();
+        Date.now = function () { return realNow() + offset; };
+      }
+      window.dispatchEvent(new Event('dev:date-changed'));
+    });
+  })();
   </script>
 
   <script type="module" src="src/main.js"></script>

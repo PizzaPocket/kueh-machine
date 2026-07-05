@@ -6,8 +6,16 @@
   /* Matches .hero, which the nav sits directly above at the top of the
      page — both read var(--color-primary-strong), so they retheme
      together with the day's kueh (src/organisms/kueh-of-day.js) instead
-     of drifting apart. */
-  background: var(--color-primary-strong);
+     of drifting apart. Same noise-grain texture as .matte-metal-surface
+     (styles/atoms.css)/.hero (index.html) layered on top too, for the
+     same reason — the exact feTurbulence recipe, tiled and blended via
+     multiply, over the flat theme color rather than that panel's own
+     metal-tinted gradient underneath. */
+  background-color: var(--color-primary-strong);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  background-blend-mode: multiply;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
@@ -17,7 +25,7 @@
    differs between desktop and the 640px mobile layout below); the 64px
    fallback only matters for the instant before that JS runs. */
 #brief,
-#schedule,
+#timeline,
 #guide {
   scroll-margin-top: calc(var(--site-nav-height, 64px) + 12px);
 }

@@ -16,16 +16,24 @@ export function createTab({ id, label, selected = false }) {
   btn.tabIndex = selected ? 0 : -1;
   btn.dataset.tabId = id;
 
-  // Label lives in its own child span, not directly on the button: the
-  // button itself still needs a real, unclipped background-color for its
-  // :hover state (the selected-tab highlight itself is a separate sliding
-  // element behind the button now — see .tab-highlight,
-  // src/molecules/tab-group.js — but hover applies directly to .tab), and
-  // .text-sheen's background-clip: text clips *every* background layer on
-  // the box it's applied to — color included, not just its own gradient
-  // image. Putting .text-sheen on a separate child keeps hover's
-  // background-color on the button's own box, untouched by the child's
-  // clip.
+  // .tab-fill: the hover-state background, split into its own decorative
+  // layer instead of living directly on .tab — see .tab-fill's own comment
+  // (styles/atoms.css) for why: it needs to stack *below* .tab-highlight
+  // (src/molecules/tab-group.js's sliding selection indicator) while the
+  // label below stacks *above* it, and a single element's background and
+  // content can't independently take two different stacking positions
+  // relative to a sibling.
+  const fill = document.createElement('span');
+  fill.className = 'tab-fill';
+  fill.setAttribute('aria-hidden', 'true');
+  btn.appendChild(fill);
+
+  // Label lives in its own child span, not directly on the button: same
+  // "separate box from the hover background" reasoning as .tab-fill above,
+  // plus .text-sheen's background-clip: text clips *every* background
+  // layer on the box it's applied to — color included, not just its own
+  // gradient image — so it can't share a box with .tab-fill's own
+  // background either.
   const labelEl = document.createElement('span');
   labelEl.className = 'text-sheen';
   labelEl.textContent = label;

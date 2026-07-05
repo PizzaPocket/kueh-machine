@@ -1,0 +1,971 @@
+// Organism: renders the redesigned Timeline section — a chrome control
+// panel (.matte-metal-surface) holding two inset retro-rectangle windows:
+// today's date + the spring (top), and a day-ruler "radio tuner" dial
+// (bottom). Both are driven by the same elapsedFraction() value: the
+// spring grows out from the track's left edge (anchored there, like a
+// real spring fixed to a wall) to exactly the day-chip's position, and
+// the dial's today-band sits at that same fraction along its own ruler —
+// same color, same "material," reading as one marker seen at two
+// heights.
+//
+// Stage 2 (buildRig, below): a pulley + procedural-batik-tendril string +
+// hanging glass. The chip's own free end feeds a horizontal string to a
+// fixed pulley, which redirects it down to a convergence node that sinks
+// further below the panel as `f` grows (same value, no separate physics)
+// — the glass fills AND sinks as days tick on, two readouts of one
+// number. Three strands fork off the node, each running rim→base down
+// the tapered cup like a real basket sling, slowly twisting (winding one
+// way, decelerating through zero, unwinding the other way) via their own
+// requestAnimationFrame loop — see buildRig's own comments for the angle
+// math and the front/back layering that gives each strand real
+// in-front-of/behind-the-glass depth. Mobile has no pulley (the string
+// already pulls straight down there, since the chip only ever moves
+// vertically) — see setPositions's own `mobile` flag.
+//
+// Stage 3: src/organisms/drop-chute.js's rolling ball dispatches
+// 'chute:ball-landed' once it reaches the end of the chute — init()
+// listens for that and runs a short bounce (glass down-and-back, chip in
+// whichever direction the string currently pulls it) as an offset on top
+// of whatever tick()/redraw() already computed, not a replacement for it.
+
+import { createRetroShape, attachRetroShapeClip, observeRetroShape, SMALL_RETRO_SHAPE_OPTS } from '../atoms/retro-shape.js';
+import { wrapWithInnerMatteRim, wrapWithOuterMatteRim } from '../atoms/matte-rim.js';
+import { buildGearPath, buildGearPoints } from '../tokens/gear-shape.js';
+import { buildRivetRow } from '../atoms/rivets.js';
+import { createSpringGraphic, updateSpringGraphic } from '../atoms/spring-graphic.js';
+import { renderCecekLayer, TENDRIL_STROKE } from '../atoms/batik-pattern.js';
+import { createSegment, renderSegment } from '../atoms/batik-segment.js';
+import { buildFlourish, renderFlourish } from '../atoms/batik-flourish.js';
+import { OUTER_RIM, OUTER_BASE } from '../tokens/glass-shape.js';
+import { createGlassGraphic } from '../atoms/glass-graphic.js';
+import { computeConicChromeLayers, applyLayeredConicChrome } from '../tokens/chrome-metal.js';
+
+// Same color approach as the hero wordmark's own themed rims
+// (KUEH_RIM_DARK/LIGHT, chrome-accents.js) — the day's theme color mixed
+// toward black/white rather than the neutral metal-base/metal-highlight
+// pair computeConicChromeLayers defaults to — so the chip's own outline
+// reads as the same "material" as the rest of the hero's chrome, not a
+// one-off. Redeclared here rather than imported: chrome-accents.js only
+// wires up static elements that aren't owned by another organism (see its
+// own top comment) — .tl-day-chip is built and positioned entirely by
+// this module, so its rim is wired up here too, same precedent
+// tab-group.js/site-nav.js already set for their own conic rims.
+const CHIP_RIM_DARK = 'color-mix(in srgb, var(--color-primary-strong) 90%, black)';
+const CHIP_RIM_LIGHT = 'color-mix(in srgb, var(--color-primary-strong) 93%, white)';
+const CHIP_RIM_PEAKS = [40, 165, 250];
+
+// Same project window the hero countdown uses (index.html's inline
+// script) — redeclared independently here rather than shared across the
+// classic-script/ES-module boundary, the same precedent kueh-of-day.js's
+// own getDayIndexSGT already sets for recomputing one small date
+// calculation rather than reaching across that boundary.
+const PROJECT_START_UTC = Date.UTC(2026, 5, 24); // 24 June 2026 kickoff
+const CHECKIN_UTC = Date.UTC(2026, 6, 29); // 29 July 2026 check-in
+const TARGET_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // 26 August 2026 showcase
+
+const DAY_MS = 86400000;
+const SG_OFFSET_MS = 8 * 60 * 60 * 1000;
+const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+// The dial's own tick grid is necessarily quantized to whole days (63 of
+// them between the start and end dates, which fall 63.25 days apart —
+// TARGET_UTC carries a 06:00 UTC time-of-day, PROJECT_START_UTC doesn't).
+// Any *other* marker on the dial (the 29 July check-in tick, the spring's
+// own day chip) needs to snap to this same whole-day grid too, rather
+// than a continuous date-based fraction of the true 63.25-day span — the
+// two fractions are close enough (35/63 vs 35/63.25) to look almost but
+// not quite aligned, which reads as a bug ("why isn't the check-in mark
+// sitting right on a tick?") rather than a deliberate offset.
+const DAY_COUNT = Math.max(1, Math.round((TARGET_UTC - PROJECT_START_UTC) / DAY_MS));
+
+// The 3 "major" days (kickoff/check-in/showcase) already get their own full-
+// height/width marker (.tl-dial-meeting-*) and their own label underneath
+// the panel (.tl-labels) — a regular short tick + day-number at that same
+// day would just double up on both, so buildDialTicks skips these indices.
+const CHECKIN_DAY_INDEX = Math.min(DAY_COUNT, Math.max(0, Math.round((CHECKIN_UTC - PROJECT_START_UTC) / DAY_MS)));
+const MAJOR_DAY_INDICES = new Set([0, CHECKIN_DAY_INDEX, DAY_COUNT]);
+
+// Inset from each edge before the day-0/day-N tick, on both the spring
+// track (chip's own start/end position, computed in px below) and the dial
+// (--tl-day-inset, styles/organisms/timeline-panel.css's own .tl-dial-ticks)
+// — one constant driving both, so the first/last day reads as inset by the
+// same amount on the two windows rather than two independently-tuned values.
+const DAY_AXIS_INSET = 14;
+
+// Today's own whole-day tick index (0..DAY_COUNT) — shared by
+// elapsedFraction below (the spring/today-band position) and tick()'s own
+// milestone check (is today's index one of MAJOR_DAY_INDICES), so both
+// agree on exactly which tick "today" is without quantizing twice.
+function currentDayIndex() {
+  return Math.min(DAY_COUNT, Math.max(0, Math.round((Date.now() - PROJECT_START_UTC) / DAY_MS)));
+}
+
+// Elapsed/total, quantized to the same whole-day grid the ticks use (see
+// DAY_COUNT above) — drives both the spring's own length and the dial's
+// today-band position, so today's band always sits exactly on a tick
+// rather than drifting slightly ahead of/behind one. The hero countdown's
+// own liquid-fill (index.html's updateLiquidFill) is the *continuous*
+// version of this same elapsed/total ratio, deliberately not quantized —
+// that funnel's water level has no "one tick per day" grid to snap to.
+function elapsedFraction() {
+  return currentDayIndex() / DAY_COUNT;
+}
+
+// Same whole-day quantization as elapsedFraction, for a fixed date (the
+// 29 July check-in mark) rather than "now".
+function fractionOf(ms) {
+  const days = Math.min(DAY_COUNT, Math.max(0, Math.round((ms - PROJECT_START_UTC) / DAY_MS)));
+  return days / DAY_COUNT;
+}
+
+// The vertical center of `el`'s own glyph ink (in px, relative to el's own
+// top edge) — used to line up .tl-label-date with its matching dial tick
+// on mobile (see tick()'s own comment). A Range over the actual text
+// content hugs the true glyph ink, top and bottom; centering on *that*
+// (rather than el.offsetHeight/2, which centers the whole line box) is
+// what keeps the label in step with the tick regardless of how much
+// leading the font's line-height adds above/below the glyphs.
+function getGlyphCenterOffset(el) {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const rect = range.getBoundingClientRect();
+  const elTop = el.getBoundingClientRect().top;
+  return (rect.top + rect.bottom) / 2 - elTop;
+}
+
+// Singapore date order (day before month) — split into two parts (day
+// number, month abbreviation) rather than one "3 JUL" string, so the chip
+// can stack them on two lines and read as a small square calendar-day
+// badge instead of a wide pill.
+function formatDayParts(ms) {
+  const sgt = new Date(ms + SG_OFFSET_MS);
+  return { day: sgt.getUTCDate(), month: MONTH_ABBR[sgt.getUTCMonth()] };
+}
+
+// Wraps `fillContent` in a white retro-rectangle window + matte rim, same
+// pattern as kueh-of-day.js's buildContentWindow — a plain rectangular
+// window (default buildSuperellipsePath), untinted rim (this panel's own
+// .matte-metal-surface is a light neutral surface, the same situation
+// Kueh of Day's own windows are in, not the hero countdown's "sits on a
+// solid theme-colored background" case that motivated the tinted rim).
+//
+// n: 8 (fixed, not auto-solved) — these windows are much shorter/wider
+// than a typical retro-rectangle consumer (the spring window especially),
+// and solveClearingExponent's content-clearance solve pushes the corner
+// exponent toward its rectangular ceiling to "clear" real content against
+// such a short box relative to its own padding, reading as square corners
+// instead of the intended retro-rectangle swell. A fixed, deliberately
+// round exponent sidesteps that the same way SMALL_RETRO_SHAPE_OPTS
+// already does for small controls.
+// shadow: createRetroShape's default inner-shadow blur (stdDeviation 14/3)
+// is tuned for a normal, much-taller window — on these two windows
+// (~26-46px tall) that wide a blur overlaps itself between the top and
+// bottom edges, washing out into one faint uniform tint that only reads
+// as a real shadow at the rounded end caps (where the ring concentrates
+// regardless of box size), not along the long flat top/bottom edges. A
+// tighter blur keeps the ring resolvable against a flat edge that close
+// to its opposite one, so it reads as hugging all four sides instead of
+// just the two ends (see filterMarkup's own comment, retro-shape.js).
+const THIN_WINDOW_SHADOW = { wideBlur: 12, wideOpacity: 0.55, tightBlur: 2.5, tightOpacity: 0.4 };
+
+function buildWindow(fillContent) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tl-window-fill';
+  // --color-highlight-soft — same fill as --countdown-bg-color (index.html),
+  // the countdown clock's own background layer sitting behind its liquid —
+  // so these two windows read as the same "glass" material as that clock
+  // rather than the plain white/cream .tl-window-fill previously used.
+  const { svg, clipUrl, ...refs } = createRetroShape({ fill: 'var(--color-highlight-soft)', shadow: THIN_WINDOW_SHADOW });
+  wrap.appendChild(svg);
+  wrap.style.clipPath = clipUrl;
+  wrap.appendChild(fillContent);
+  return wrapWithInnerMatteRim(wrap, { gutter: 0, n: 8, fillRefs: refs });
+}
+
+// Same fill/shape build as buildWindow above, but rimmed with the dynamic
+// cursor/scroll-reactive "liquid chrome" rim (applyLayeredConicChrome,
+// tokens/chrome-metal.js — same treatment .btn-rim/.tab-group-rim use)
+// instead of the static matte rim, for the dial window specifically — the
+// spring window above keeps the plain matte rim. Same shared-n reasoning
+// as buildWindow: n: 8 is fixed (not solved), so wrap/rim/glint can each
+// size independently off that same fixed value rather than needing a
+// solved exponent shared via fillRefs.
+function buildInteractiveWindow(fillContent) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tl-window-fill';
+  const { svg, clipUrl, ...refs } = createRetroShape({ fill: 'var(--color-highlight-soft)', shadow: THIN_WINDOW_SHADOW });
+  wrap.appendChild(svg);
+  wrap.style.clipPath = clipUrl;
+  wrap.appendChild(fillContent);
+  observeRetroShape(wrap, refs, { gutter: 0, n: 8 });
+
+  const rim = document.createElement('div');
+  rim.className = 'tl-dial-window-rim';
+  const glintBand = applyLayeredConicChrome(rim, wrap, { peaks: [60, 180, 300] });
+  attachRetroShapeClip(rim, { gutter: 0, n: 8 });
+  attachRetroShapeClip(glintBand, { gutter: 0, n: 8 });
+
+  return { el: rim };
+}
+
+// The spring is anchored to the track's left edge (top edge on the mobile
+// vertical layout) and grows to exactly the day-chip's own position — not
+// a fixed-width spring with only its coil openness varying. The chip
+// itself is a small retro-rectangle badge (attachRetroShapeClip,
+// SMALL_RETRO_SHAPE_OPTS — the same small-badge shape tab-group/button
+// small controls use), not a CSS pill, tinted to --color-primary-strong
+// to visually match the dial's own today-band below (buildBottomWindowContent)
+// — same color reading as "the same marker, seen at two heights."
+//
+// The chip is built here (it conceptually belongs to the top track) but
+// deliberately NOT appended into `track` — it's returned separately and
+// appended by init() as a sibling of both rim-wrapped windows instead, for
+// two reasons: (1) it needs to visually overlap the track's own window
+// rather than being confined inside it (the track is much shorter than
+// the chip), and (2) `track` needs `overflow: hidden` to anchor the
+// spring flush against its own edge without teaching spring.js a
+// second axis, and empirically, a descendant's own `clip-path` doesn't
+// render correctly inside an `overflow: hidden` ancestor combined with a
+// `transform` (confirmed directly: the exact same chip, moved outside
+// that ancestor, renders its retro-rectangle correctly) — rather than
+// fight that, the chip just lives outside it entirely.
+function buildTopWindowContent() {
+  const content = document.createElement('div');
+  content.className = 'tl-top-window-fill';
+
+  const track = document.createElement('div');
+  track.className = 'tl-spring-track';
+
+  const springRefs = createSpringGraphic();
+  track.appendChild(springRefs.svg);
+
+  content.appendChild(track);
+
+  // A single centered label rather than a day-number/month badge — plain
+  // "Today" instead of spelling out the actual date, which the dial's own
+  // tick position already carries. Wider than the old square badge (see
+  // .tl-day-chip's own width) so the word has room without shrinking the
+  // font down too far. A dedicated child (not chip.textContent directly)
+  // — setting text that way would wipe out attachRetroShapeClip's own
+  // defs-only <svg> child, leaving the clip-path pointing at a
+  // now-detached shape.
+  //
+  // `chip` (the element every position/left/top/bounce calculation below
+  // targets) is now the outer rim band, same rim/fill nesting
+  // .step-card/.step-card-fill and .file-card/.file-card-fill use — its
+  // own 2px padding (.tl-day-chip, timeline-panel.css) is the rim's
+  // thickness, showing through as a thin themed-chrome ring in the gap
+  // between its clip-path and the inner .tl-day-chip-fill's (attached
+  // separately, below, so it gets its own correctly-fitted shape at the
+  // smaller, padded-in size rather than sharing the outer clip-path).
+  const chip = document.createElement('div');
+  chip.className = 'tl-day-chip';
+  const chipFill = document.createElement('div');
+  chipFill.className = 'tl-day-chip-fill';
+  const chipLabel = document.createElement('span');
+  chipLabel.className = 'tl-day-chip-label';
+  chipLabel.textContent = 'Today';
+  chipFill.appendChild(chipLabel);
+  chip.appendChild(chipFill);
+  attachRetroShapeClip(chip, SMALL_RETRO_SHAPE_OPTS);
+  attachRetroShapeClip(chipFill, SMALL_RETRO_SHAPE_OPTS);
+  // A single themed rim (not the hero wordmark's double inner+outer
+  // stack) — one real conic-gradient layer is enough definition for a
+  // small 2px-thick badge outline; a second offset layer would be too
+  // fine to read at this size. Static (default 0deg --chrome-angle, not
+  // registered for cursor rotation) for the same reason the wordmark
+  // rims are: it sits directly behind the fill at an exact padded
+  // alignment, so a moving rim would read as a glitch rather than a
+  // reflection.
+  const { metal: chipRimMetal } = computeConicChromeLayers(CHIP_RIM_PEAKS, { darkVar: CHIP_RIM_DARK, lightVar: CHIP_RIM_LIGHT });
+  chip.style.backgroundImage = chipRimMetal;
+
+  return { content, track, springRefs, chip };
+}
+
+// One real element per day (not a repeating-gradient illusion) — needed
+// now that each tick can carry its own day-number label and the major days
+// need to skip theirs. Position is a plain 0-100% custom property, same
+// trick --today-position/--mid-position already use, so left (desktop) vs
+// top (mobile) can read the same value — see styles/organisms/
+// timeline-panel.css's own @media block for the axis swap. Built once (the
+// fraction and label text are both fixed for the life of the page), inside
+// .tl-dial-ticks, which is itself inset from .tl-dial's true edges (see
+// that class's own CSS comment) — nesting here, rather than computing an
+// inset offset per tick, is what keeps every tick, the meeting markers, and
+// the today-band all agreeing on the same "day 0/day N" positions for free.
+function buildDialTicks() {
+  const wrap = document.createElement('div');
+  wrap.className = 'tl-dial-ticks';
+
+  const meetingStart = document.createElement('div');
+  meetingStart.className = 'tl-dial-meeting tl-dial-meeting-start';
+  const meetingMid = document.createElement('div');
+  meetingMid.className = 'tl-dial-meeting tl-dial-meeting-mid';
+  const meetingEnd = document.createElement('div');
+  meetingEnd.className = 'tl-dial-meeting tl-dial-meeting-end';
+  const today = document.createElement('div');
+  today.className = 'tl-dial-today';
+  wrap.append(meetingStart, meetingMid, meetingEnd, today);
+
+  for (let i = 0; i <= DAY_COUNT; i++) {
+    if (MAJOR_DAY_INDICES.has(i)) continue;
+    const tick = document.createElement('div');
+    tick.className = 'tl-dial-tick';
+    tick.style.setProperty('--tl-tick-pos', `${(i / DAY_COUNT) * 100}%`);
+    const num = document.createElement('span');
+    num.className = 'tl-dial-tick-num';
+    num.textContent = String(formatDayParts(PROJECT_START_UTC + i * DAY_MS).day).padStart(2, '0');
+    tick.appendChild(num);
+    wrap.appendChild(tick);
+  }
+
+  return wrap;
+}
+
+function buildBottomWindowContent() {
+  const content = document.createElement('div');
+  content.className = 'tl-bottom-window-fill';
+
+  const dial = document.createElement('div');
+  dial.className = 'tl-dial';
+  dial.appendChild(buildDialTicks());
+  content.appendChild(dial);
+
+  return { content, dial };
+}
+
+// === Stage 2/3: pulley, string, hanging glass, landing bounce — desktop
+// and mobile (mobile has no pulley: setPositions's own `mobile` flag runs
+// the string straight from the chip to the node instead). ===
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const PULLEY_GAP = 90; // px past the spring track's own right edge
+const BASE_DROP = 40; // px from pulley down to the convergence node, at f=0
+const MAX_ADDITIONAL_DROP = 160; // extra px of sink by f=1 — same f as the spring/dial
+// Mobile has no pulley, so none of the above applies there the same way:
+// on desktop, the glass sinks further as `f` grows because more string
+// pays out through the *fixed* pulley as the chip approaches it (a real
+// conservation-of-string-length mechanism) — the chip's own horizontal
+// travel and the string's own lengthening are two separate effects. On
+// mobile there's no pulley to thread through; the chip *is* the string's
+// only anchor, and it already travels down the track to show progress —
+// making the string *also* lengthen with `f` would double up on that same
+// signal for no physical reason. So the chip->node distance here is one
+// fixed constant, not BASE_DROP + f*MAX_ADDITIONAL_DROP — the glass just
+// hangs a constant distance below wherever the chip currently is.
+const MOBILE_NODE_DROP = 120;
+const NODE_TO_RIM_GAP = 44; // px of open air between the node (where the string forks) and the glass's own rim — per the mockup, the cup hangs a visible distance below where the three strands diverge, not flush against it
+const BASE_STRAND_OVERSHOOT_PX = 2; // each strand's own base attachment point is nudged this far past the base ellipse (not the flourish anchor, just the drawn segment) so the line visibly covers the bottom rim rather than stopping exactly at its edge
+const TWIST_PERIOD_S = 36; // one full wind-unwind-wind cycle
+const MAX_TWIST_RAD = (30 * Math.PI) / 180;
+// 90°/210°/330° (not the "natural" 0°/120°/240°) — chosen so, at rest, the
+// center strand sits dead center-back (depth -1, tucked behind the glass)
+// and the other two sit symmetric left/right, slightly toward the viewer
+// (depth +0.5). The glass is viewed from slightly above — we're looking
+// down toward the opening facing us — so the NEAR/front half of both the
+// rim and base ellipses is their own LOWER arc (larger y), not the upper
+// one; depth below is defined so depth > 0 <=> the lower arc, matching
+// that.
+const STRAND_PHASE_OFFSETS = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
+const CECEK_DOT_SPACING = 9;
+// Neither of batik-pattern.js's own two cecek options is quite right here:
+// 'plain' (--color-primary-strong) is locked to a fixed, always-moderately
+// -dark lightness across every theme — only its hue rotates per kueh, so
+// the dots would never read as light no matter the day. 'tinted'
+// (--color-surface) IS genuinely light, but it's near-white and reads as
+// almost invisible against this panel's own light neutral metal. --color-
+// highlight is both light (unlike primary-strong) AND still hue-varying
+// per theme, while staying visually distinct from the stroke's own
+// --color-accent.
+const CECEK_FILL = 'var(--color-highlight)';
+
+const prefersReducedMotion =
+  typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+
+const PULLEY_FACE_SIZE = 18; // px diameter of the gear itself, before the outer rim's own outset grows it
+const PULLEY_TEETH = 8;
+// buildGearPoints's own default (0.62) reads as too long/spiky at this
+// small a size — 0.8 keeps the root much closer to the outer radius, for
+// short, stubby teeth instead. Passed to both the gear path below and the
+// outer rim's own pointsBuilder call, so the rim frame grows around the
+// same shorter silhouette rather than the default's longer one.
+const PULLEY_GEAR_ROOT_RATIO = 0.8;
+
+// Real pulleys turn on a fixed axle — the string runs tangent to the
+// wheel, not through its center — so the visible knob sits offset
+// down-and-left of the point the string actually bends around
+// (setPositions's own `pulley` point, unchanged): the string wraps around
+// the knob's top-right quarter instead of appearing to pass through its
+// middle.
+const PULLEY_KNOB_OFFSET_X = -7;
+const PULLEY_KNOB_OFFSET_Y = 7;
+
+function buildPulley() {
+  // A plain HTML div, not an <svg> — CSS conic-gradient() (styles/
+  // organisms/timeline-panel.css's own .tl-pulley-gear) is what gives the
+  // gear's own metallic sweep its rotating light/dark bands; SVG has no
+  // native conic-gradient paint server, so the gear's own silhouette is
+  // applied as a CSS clip-path instead of an SVG fill, painted with a real
+  // conic-gradient background underneath. wrapWithOuterMatteRim works the
+  // same either way (it just reads fillEl's own getBoundingClientRect()).
+  const face = document.createElement('div');
+  face.classList.add('tl-pulley-face');
+
+  const gear = document.createElement('div');
+  gear.classList.add('tl-pulley-gear');
+  gear.style.clipPath = `path('${buildGearPath({
+    width: PULLEY_FACE_SIZE,
+    height: PULLEY_FACE_SIZE,
+    teeth: PULLEY_TEETH,
+    rootRatio: PULLEY_GEAR_ROOT_RATIO,
+  })}')`;
+  face.appendChild(gear);
+
+  // A raised collar/boss around the hub — real gears usually have one
+  // between the center bore and where the teeth actually start. Same
+  // linear-gradient recipe as the gear's own outer rim (.rim-matte-outer,
+  // styles/atoms.css — reused directly in .tl-pulley-inner-rim, styles/
+  // organisms/timeline-panel.css) but with no drop-shadow of its own
+  // (.tl-pulley's filter is what shadows the *outer* rim; this one sits
+  // flush on the gear's own face, not lifted off it).
+  const innerRim = document.createElement('div');
+  innerRim.classList.add('tl-pulley-inner-rim');
+  face.appendChild(innerRim);
+
+  // Every real spur gear turns on a center hub/axle — a small rivet-like
+  // dot (.tl-pulley-hub's own radial-gradient, styles/organisms/
+  // timeline-panel.css — the exact same recipe as .metal-rivet elsewhere
+  // on this panel), not the gear's own conic sweep, so it reads as a
+  // separate raised bolt rather than just a smaller slice of the gear's
+  // own material.
+  const hub = document.createElement('div');
+  hub.classList.add('tl-pulley-hub');
+  face.appendChild(hub);
+
+  // Traces the gear's own tooth silhouette (buildGearPoints), not a plain
+  // circle. outset: 2 — tried 3 first for more margin at the valleys
+  // between teeth (a flat per-point outset, per buildGearPath's own
+  // comment, isn't a true constant-width offset on a concave/spiky shape,
+  // so it runs thinner there than at the tips already), but that read as
+  // too thick overall; 2 is the better balance of the two.
+  const { el } = wrapWithOuterMatteRim(face, {
+    pointsBuilder: buildGearPoints,
+    teeth: PULLEY_TEETH,
+    rootRatio: PULLEY_GEAR_ROOT_RATIO,
+    outset: 2,
+  });
+  el.classList.add('tl-pulley');
+  return el;
+}
+
+// The 6 rim/base strand segments need per-frame opacity + stroke-width
+// (the "swinging behind/in front of the glass" depth cue) — a thin custom
+// wrapper around the same tendril/cecek visual language rather than a new
+// one, since renderTendril itself hardcodes a fixed stroke-width.
+function renderStrandSegment({ d, dots }, opacity, strokeWidth) {
+  return (
+    `<g style="opacity:${opacity.toFixed(2)}">` +
+    `<path class="batik-tendril" d="${d}" fill="none" stroke="${TENDRIL_STROKE}" stroke-width="${strokeWidth.toFixed(2)}" stroke-linecap="round"/>` +
+    renderCecekLayer(dots, CECEK_FILL) +
+    `</g>`
+  );
+}
+
+function buildRig() {
+  const pulleyEl = buildPulley();
+
+  const backSvg = document.createElementNS(SVG_NS, 'svg');
+  backSvg.classList.add('tl-rig-strings', 'tl-rig-strings-back');
+  const frontSvg = document.createElementNS(SVG_NS, 'svg');
+  frontSvg.classList.add('tl-rig-strings', 'tl-rig-strings-front');
+
+  const glassGraphic = createGlassGraphic();
+  glassGraphic.el.classList.add('tl-glass');
+
+  // 0 — every segment here is under tension (a real string pulled taut by
+  // the chip/pulley/hanging glass, not a loose decorative vine), so a
+  // dead-straight line rather than tendrilSegment's own curled default.
+  const chipToPulley = createSegment(0);
+  const pulleyToNode = createSegment(0);
+  const strands = [0, 1, 2].map(() => ({
+    nodeToRim: createSegment(0),
+    rimToBase: createSegment(0),
+  }));
+
+  // 3-6 batik motifs sprouting off the string, scattered randomly across
+  // *every* segment — the two fixed ones (chip->pulley, pulley->node) and
+  // all three diverging strands wrapping the glass (node->rim, rim->base
+  // each) — picked once here, not re-rolled per tick, so they don't jump
+  // to a different spot/shape every resize. No segment is excluded: the
+  // cup-wrap strands are just as fair game as the rest of the string.
+  const chipToPulleyFlourishes = [];
+  const pulleyToNodeFlourishes = [];
+  const strandFlourishes = [0, 1, 2].map(() => ({ nodeToRim: [], rimToBase: [] }));
+  const flourishSlots = [
+    chipToPulleyFlourishes,
+    pulleyToNodeFlourishes,
+    ...strandFlourishes.flatMap((s) => [s.nodeToRim, s.rimToBase]),
+  ];
+  const flourishCount = 3 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < flourishCount; i++) {
+    flourishSlots[Math.floor(Math.random() * flourishSlots.length)].push(buildFlourish());
+  }
+
+  // Scaled from the artwork's own real rim/base ellipses (src/tokens/
+  // glass-shape.js — derived directly from the back-layer SVG's own path
+  // data, not guessed) — glassGraphic renders at a fixed pixel size, so a
+  // constant native-viewBox-to-rendered-pixels scale factor is all that's
+  // needed, computed once here rather than every frame.
+  const scaleX = glassGraphic.width / 200;
+  const scaleY = glassGraphic.height / 141;
+  const rim = {
+    cx: OUTER_RIM.cx * scaleX,
+    cy: OUTER_RIM.cy * scaleY,
+    rx: OUTER_RIM.rx * scaleX,
+    ry: OUTER_RIM.ry * scaleY,
+  };
+  const base = {
+    cx: OUTER_BASE.cx * scaleX,
+    cy: OUTER_BASE.cy * scaleY,
+    rx: OUTER_BASE.rx * scaleX,
+    ry: OUTER_BASE.ry * scaleY,
+  };
+
+  let chipPoint = null;
+  let pulleyPoint = null;
+  let nodePoint = null;
+  let isMobileMode = false;
+  let bounceOffsetY = 0; // px, see setBounceOffset — the landing bounce's own glass offset
+  const twistStart = performance.now();
+
+  function setBounceOffset(px) {
+    bounceOffsetY = px;
+  }
+
+  // `mobile`: no pulley — the string already pulls straight down on
+  // mobile (the chip only ever moves vertically there), so there's
+  // nothing to redirect. `pulley` is ignored when mobile; the segment
+  // that would normally run pulley→node instead runs chip→node directly
+  // (reusing `pulleyToNode`/`pulleyToNodeFlourishes` as-is — see redraw()
+  // below — rather than a third, mostly-duplicate segment/flourish set).
+  function setPositions(mobile, chip, pulley, node) {
+    isMobileMode = mobile;
+    chipPoint = chip;
+    pulleyPoint = mobile ? chip : pulley;
+    nodePoint = node;
+    pulleyEl.style.display = mobile ? 'none' : '';
+    if (!mobile) {
+      // Offset the visible knob only — pulleyPoint (the string's actual
+      // bend point) stays at the true axle position set above.
+      pulleyEl.style.left = `${pulley[0] + PULLEY_KNOB_OFFSET_X}px`;
+      pulleyEl.style.top = `${pulley[1] + PULLEY_KNOB_OFFSET_Y}px`;
+    }
+  }
+
+  function redraw() {
+    if (!chipPoint) return;
+
+    let fixedMarkup = '';
+    if (!isMobileMode) {
+      const seg1 = chipToPulley.compute(chipPoint, pulleyPoint);
+      fixedMarkup +=
+        renderSegment(seg1, CECEK_FILL) +
+        chipToPulleyFlourishes.map((f) => renderFlourish(chipPoint, pulleyPoint, f, CECEK_FILL)).join('');
+    }
+    const seg2 = pulleyToNode.compute(pulleyPoint, nodePoint);
+    fixedMarkup +=
+      renderSegment(seg2, CECEK_FILL) +
+      pulleyToNodeFlourishes.map((f) => renderFlourish(pulleyPoint, nodePoint, f, CECEK_FILL)).join('');
+
+    let frontMarkup = fixedMarkup;
+    let backMarkup = '';
+
+    const t = (performance.now() - twistStart) / 1000;
+    const twist = MAX_TWIST_RAD * Math.sin((2 * Math.PI * t) / TWIST_PERIOD_S);
+
+    // NODE_TO_RIM_GAP holds the glass a fixed distance below the node —
+    // without it, the glass's own rim sits exactly at the node's height,
+    // and the three strands would fork with zero visible travel before
+    // reaching it (not what the mockup shows: a clear gap of open string
+    // between where the single strand forks and where the cup actually
+    // hangs, the string visibly under tension from the cup's own weight).
+    // bounceOffsetY folds in here (not just on the glass's own transform
+    // below) so the rim/base world points the strands actually attach to
+    // move with the bounce too — the whole rig (all three diverging
+    // strands, not just the cup) reacts together, per the user. The node
+    // itself (higher up, where the string forks) stays put — only the
+    // glass end of the string bounces, which is what makes it read as the
+    // string stretching down and recoiling, not the whole rig jumping.
+    const glassOriginX = nodePoint[0] - rim.cx;
+    const glassOriginY = nodePoint[1] + NODE_TO_RIM_GAP - rim.cy + bounceOffsetY;
+
+    strands.forEach((strand, i) => {
+      const theta = STRAND_PHASE_OFFSETS[i] + twist;
+      // y = cy - ry*sin(theta) below, so sin(theta) < 0 <=> the lower arc
+      // (larger y) <=> the near/front side, since we're looking down at
+      // the opening facing us. depth is defined as the negation so
+      // depth > 0 consistently means "near" for the opacity/strokeWidth/
+      // front-vs-back split right below.
+      const depth = -Math.sin(theta);
+      const rimWorld = [glassOriginX + rim.cx + rim.rx * Math.cos(theta), glassOriginY + rim.cy - rim.ry * Math.sin(theta)];
+      const baseWorld = [glassOriginX + base.cx + base.rx * Math.cos(theta), glassOriginY + base.cy - base.ry * Math.sin(theta)];
+      // Segment-only endpoint, extended a couple px past baseWorld — the
+      // flourishes still anchor to the true baseWorld point (their bloom
+      // should sit right at the rim, not float below it).
+      const baseSegmentWorld = [baseWorld[0], baseWorld[1] + BASE_STRAND_OVERSHOOT_PX];
+
+      // Floor raised again, now to 0.75 at full "back" — still reads as
+      // farther away without washing the back strand out.
+      const opacity = 0.875 + 0.125 * depth;
+      const strokeWidth = 2 * (0.85 + 0.15 * depth);
+
+      const fl = strandFlourishes[i];
+      const flourishMarkup =
+        fl.nodeToRim.map((f) => renderFlourish(nodePoint, rimWorld, f, CECEK_FILL)).join('') +
+        fl.rimToBase.map((f) => renderFlourish(rimWorld, baseWorld, f, CECEK_FILL)).join('');
+
+      const markup =
+        renderStrandSegment(strand.nodeToRim.compute(nodePoint, rimWorld), opacity, strokeWidth) +
+        renderStrandSegment(strand.rimToBase.compute(rimWorld, baseSegmentWorld), opacity, strokeWidth) +
+        (flourishMarkup ? `<g style="opacity:${opacity.toFixed(2)}">${flourishMarkup}</g>` : '');
+
+      if (depth >= 0) frontMarkup += markup;
+      else backMarkup += markup;
+    });
+
+    frontSvg.innerHTML = frontMarkup;
+    backSvg.innerHTML = backMarkup;
+    glassGraphic.el.style.transform = `translate(${glassOriginX}px, ${glassOriginY}px)`;
+  }
+
+  let rafId = null;
+  function startLoop() {
+    if (rafId || prefersReducedMotion) return;
+    const frame = () => {
+      redraw();
+      rafId = requestAnimationFrame(frame);
+    };
+    rafId = requestAnimationFrame(frame);
+  }
+  function stopLoop() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+
+  return {
+    pulleyEl,
+    backSvg,
+    frontSvg,
+    glassEl: glassGraphic.el,
+    setFill: glassGraphic.setFill,
+    dropIntoLiquid: glassGraphic.dropIntoLiquid,
+    setPositions,
+    setBounceOffset,
+    redraw,
+    startLoop,
+    stopLoop,
+  };
+}
+
+export function init() {
+  const section = document.getElementById('timeline');
+  const mount = section && section.querySelector('.tl-mount');
+  if (!section || !mount) return;
+
+  const labelsCol = section.querySelector('.tl-labels');
+  const labelLeft = section.querySelector('.tl-label-left');
+  const labelMid = section.querySelector('.tl-label-mid');
+  const labelRight = section.querySelector('.tl-label-right');
+
+  section.style.setProperty('--mid-position', `${(fractionOf(CHECKIN_UTC) * 100).toFixed(3)}%`);
+  section.style.setProperty('--tl-day-inset', `${DAY_AXIS_INSET}px`);
+
+  const layout = document.createElement('div');
+  layout.className = 'tl-panel-layout';
+
+  const top = buildTopWindowContent();
+  const { el: topRim } = buildWindow(top.content);
+  layout.appendChild(topRim);
+
+  const bottom = buildBottomWindowContent();
+  const { el: bottomRim } = buildInteractiveWindow(bottom.content);
+  layout.appendChild(bottomRim);
+
+  // Appended directly to `layout`, not into the top window — see
+  // buildTopWindowContent's own comment for why the chip needs to live
+  // outside both the window's clip-path and the track's overflow:hidden.
+  // `layout` is `position: relative` (styles/organisms/timeline-panel.css)
+  // so the chip's own absolute left/top (set in tick(), below) resolves
+  // against it.
+  layout.appendChild(top.chip);
+
+  // Stage 2 rig (pulley/string/glass) — same reasoning as the chip: lives
+  // at `layout` level, positioned every tick() via getBoundingClientRect
+  // math. Renders on both desktop and mobile now (Stage 3) — mobile has
+  // no pulley (rig.setPositions's own `mobile` flag hides it and skips
+  // straight to a chip→node segment). z-index (styles/organisms/
+  // timeline-panel.css) — not DOM order — is what actually layers the
+  // glass between the string's near/far-side copies.
+  const rig = buildRig();
+  layout.append(rig.backSvg, rig.glassEl, rig.frontSvg, rig.pulleyEl);
+
+  mount.innerHTML = '';
+  mount.appendChild(layout);
+
+  const topRivets = buildRivetRow();
+  topRivets.classList.add('metal-rivet-row-top');
+  const bottomRivets = buildRivetRow();
+  bottomRivets.classList.add('metal-rivet-row-bottom');
+  section.append(topRivets, bottomRivets);
+
+  // Landing bounce (Stage 3) — triggered by drop-chute.js's own
+  // 'chute:ball-landed' once the rolling ball reaches the end of the
+  // chute. A short damped bounce applied as an *offset* on top of
+  // whatever position tick()/rig.redraw() already computed, not a
+  // replacement for it — lastChipX/Y/IsMobile below cache tick()'s own
+  // last-computed *base* chip position so each bounce frame can add its
+  // own offset to that same base repeatedly, rather than compounding
+  // onto an already-bounced value.
+  const BOUNCE_DURATION_MS = 500;
+  const BOUNCE_GLASS_PX = 6; // glass: straight down and back
+  const BOUNCE_CHIP_PX = 5; // chip: whatever direction the string currently pulls it
+  // Impact, not a smooth oscillation — a plain sin(t*pi) has zero velocity
+  // right at t=0 (it eases in), which reads as the glass drifting into
+  // the dip rather than getting hit. Split into two eased-out halves
+  // instead: DOWN_PORTION of the duration snaps down with maximum
+  // velocity right at the moment of impact and decelerates into the
+  // bottom of the dip (a real impact drives in fast, then slows as
+  // whatever's being compressed pushes back); the remaining, longer
+  // portion recoils back out to rest the same way — fast off the bottom,
+  // settling in gradually — rather than easing gently in from a stop.
+  const BOUNCE_DOWN_PORTION = 0.18;
+  let bounceStart = null;
+  let lastChipX = 0;
+  let lastChipY = 0;
+  let lastIsMobile = false;
+  let lastTodayPercent = 0;
+
+  function easeOutQuad(t) {
+    return 1 - (1 - t) * (1 - t);
+  }
+
+  function bounceFactor() {
+    if (bounceStart === null) return 0;
+    const elapsed = performance.now() - bounceStart;
+    if (elapsed >= BOUNCE_DURATION_MS) {
+      bounceStart = null;
+      return 0;
+    }
+    const t = elapsed / BOUNCE_DURATION_MS;
+    if (t < BOUNCE_DOWN_PORTION) {
+      return easeOutQuad(t / BOUNCE_DOWN_PORTION); // 0 -> 1, fast start
+    }
+    const recoverT = (t - BOUNCE_DOWN_PORTION) / (1 - BOUNCE_DOWN_PORTION);
+    return 1 - easeOutQuad(recoverT); // 1 -> 0, fast off the bottom
+  }
+
+  function applyBounce() {
+    const factor = bounceFactor();
+    rig.setBounceOffset(factor * BOUNCE_GLASS_PX);
+    rig.redraw();
+    if (lastIsMobile) {
+      top.chip.style.top = `${lastChipY + factor * BOUNCE_CHIP_PX}px`;
+    } else {
+      top.chip.style.left = `${lastChipX + factor * BOUNCE_CHIP_PX}px`;
+    }
+    // The dial's today-band is "the same marker as the chip, seen at
+    // another height" (see .tl-dial-today's own CSS comment) — it should
+    // bounce right along with the chip, same offset/timing, rather than
+    // sitting still while its own other half hops. calc() lets the same
+    // px offset land on top of the base percentage without converting
+    // that percentage to px by hand.
+    const bouncePx = (factor * BOUNCE_CHIP_PX).toFixed(2);
+    section.style.setProperty('--today-position', `calc(${lastTodayPercent.toFixed(3)}% + ${bouncePx}px)`);
+    if (bounceStart !== null) requestAnimationFrame(applyBounce);
+  }
+
+  function triggerBounce() {
+    if (prefersReducedMotion) return;
+    bounceStart = performance.now();
+    requestAnimationFrame(applyBounce);
+  }
+
+  // drop-chute.js's own long fall ends right at this glass's own top edge
+  // (see its spawnFall) — dropIntoLiquid takes the ball the rest of the
+  // way (behind the front accents, down to the current liquid surface) at
+  // that same terminal speed (event.detail.terminalSpeed, px/ms — absent
+  // under prefers-reduced-motion, dropIntoLiquid falls back to a plain
+  // default duration then), then triggerBounce runs once that finishes,
+  // not immediately.
+  window.addEventListener('chute:ball-landed', (event) => {
+    rig.dropIntoLiquid(event.detail && event.detail.terminalSpeed, triggerBounce);
+  });
+
+  function tick() {
+    const f = elapsedFraction();
+    const isMobile = window.innerWidth <= 640;
+
+    // The spring is always generated in its own logical "long x thin"
+    // orientation (matching src/tokens/spring.js's own horizontal
+    // formulas) — on mobile the *track* is tall and narrow, but the
+    // generated SVG itself stays long-and-thin and gets visually rotated
+    // 90deg on top, rather than teaching spring.js a second axis.
+    // Anchored flush against the track's own start (left edge desktop,
+    // top edge mobile) and grown to exactly `f` of the track's own length
+    // — not a fixed-length spring with only its coil openness varying —
+    // so the chip sitting at that same length reads as "the spring's own
+    // free end," not a separately-positioned label.
+    // Read directly from the track's own cross-axis size (not a separate
+    // hardcoded constant) so the rendered coil height always matches
+    // .tl-spring-track's actual CSS height (width on mobile) exactly,
+    // with nothing to keep in sync by hand.
+    const thickness = isMobile ? top.track.clientWidth : top.track.clientHeight;
+    const trackLength = isMobile ? top.track.clientHeight : top.track.clientWidth;
+    // Anchored DAY_AXIS_INSET px in from the track's own start, and grown
+    // over the remaining (trackLength - 2*inset) — not the track's full raw
+    // length — so day 0 sits inset from the edge same as the dial's own
+    // first tick, and day DAY_COUNT (f=1) lands inset from the far edge
+    // rather than flush against it.
+    const growthLength = Math.max(1, trackLength - 2 * DAY_AXIS_INSET);
+    const springLength = Math.max(1, growthLength * f);
+    updateSpringGraphic(top.springRefs, { stretchFraction: f, width: springLength, height: thickness });
+
+    const svgStyle = top.springRefs.svg.style;
+    if (isMobile) {
+      svgStyle.left = `calc(50% + ${thickness / 2}px)`;
+      svgStyle.top = `${DAY_AXIS_INSET}px`;
+      svgStyle.transformOrigin = '0 0';
+      svgStyle.transform = 'rotate(90deg)';
+    } else {
+      svgStyle.left = `${DAY_AXIS_INSET}px`;
+      svgStyle.top = '50%';
+      svgStyle.transformOrigin = '';
+      svgStyle.transform = 'translateY(-50%)';
+    }
+
+    // Real getBoundingClientRect() math (not a percentage) rather than
+    // reading track's own clientWidth/left — the chip lives outside the
+    // track now (see above), so its position has to be computed relative
+    // to `layout`, the nearest ancestor it shares with the track. This is
+    // also what makes the chip line up with the dial's own today-band
+    // exactly IF (and only if) the two windows share the same left/right
+    // padding (styles/organisms/timeline-panel.css) — same math, same
+    // reference width, on both.
+    const layoutRect = layout.getBoundingClientRect();
+    const trackRect = top.track.getBoundingClientRect();
+    if (isMobile) {
+      const chipX = trackRect.left + trackRect.width / 2 - layoutRect.left;
+      const chipY = trackRect.top + DAY_AXIS_INSET + springLength - layoutRect.top;
+      top.chip.style.left = `${chipX}px`;
+      top.chip.style.top = `${chipY}px`;
+      lastChipX = chipX;
+      lastChipY = chipY;
+      lastIsMobile = true;
+
+      // Mobile rig — no pulley: the string already pulls straight down,
+      // since the mobile chip only ever moves vertically (down the
+      // spring track). A fixed length (MOBILE_NODE_DROP), not desktop's
+      // own BASE_DROP + f*MAX_ADDITIONAL_DROP growth — see that
+      // constant's own comment for why the two aren't the same thing
+      // here (no pulley means no conservation-of-string-length effect to
+      // account for; the chip's own travel down the track is already the
+      // whole story).
+      const nodeX = chipX;
+      const nodeY = chipY + MOBILE_NODE_DROP;
+      rig.setPositions(true, [chipX, chipY], null, [nodeX, nodeY]);
+      rig.setFill(f);
+      rig.redraw();
+      rig.startLoop();
+    } else {
+      const chipX = trackRect.left + DAY_AXIS_INSET + springLength - layoutRect.left;
+      const chipY = trackRect.top + trackRect.height / 2 - layoutRect.top;
+      top.chip.style.left = `${chipX}px`;
+      top.chip.style.top = `${chipY}px`;
+      lastChipX = chipX;
+      lastChipY = chipY;
+      lastIsMobile = false;
+
+      // Stage 2 rig — pulley sits a fixed gap past the track's own right
+      // edge, at the chip's same y (a clean horizontal string); the
+      // convergence node sinks further below it as `f` grows (same value
+      // stretching the spring above), which is what sinks the glass
+      // further below the panel as days tick on.
+      const pulleyX = trackRect.right - layoutRect.left + PULLEY_GAP;
+      const pulleyY = chipY;
+      const nodeY = pulleyY + BASE_DROP + f * MAX_ADDITIONAL_DROP;
+      rig.setPositions(false, [chipX, chipY], [pulleyX, pulleyY], [pulleyX, nodeY]);
+      rig.setFill(f);
+      rig.redraw();
+      rig.startLoop();
+    }
+
+    lastTodayPercent = f * 100;
+    section.style.setProperty('--today-position', `${lastTodayPercent.toFixed(3)}%`);
+
+    // Mobile only: desktop positions labels horizontally (left/right +
+    // --mid-position, styles/organisms/timeline-panel.css), untouched
+    // here. On mobile the labels column runs parallel to the dial, and
+    // each label's own *date* line (its primary text) needs to line up
+    // with the matching tick — not the label block's own vertical
+    // center, which is what a plain top:X% + translateY(-50%) gives you,
+    // and visibly drifts from the tick once the date has two more lines
+    // of text stacked under it pulling that center down.
+    if (isMobile && labelsCol) {
+      const colHeight = labelsCol.clientHeight;
+      // Same DAY_AXIS_INSET the dial's own ticks are inset by (see
+      // .tl-dial-ticks) — day 0/day DAY_COUNT's ticks sit inset from
+      // colHeight's true top/bottom now, not at the raw 0%/100%, so the
+      // matching label's target has to move in by the same amount or it
+      // drifts back out of alignment with its own tick.
+      const insetSpan = Math.max(1, colHeight - 2 * DAY_AXIS_INSET);
+      [
+        [labelLeft, 0],
+        [labelMid, fractionOf(CHECKIN_UTC)],
+        [labelRight, 1],
+      ].forEach(([label, fraction]) => {
+        const dateEl = label && label.querySelector('.tl-label-date');
+        if (!dateEl) return;
+        const targetY = DAY_AXIS_INSET + insetSpan * fraction;
+        // The label's own glyph-ink vertical center, not its box's — see
+        // feedback memory. offsetHeight/2 (the old approach) centers the
+        // whole line box, which sits visibly off the tick whenever the
+        // font's line-height adds leading above/below the glyphs;
+        // getGlyphCenterOffset centers on the actual text instead.
+        const centerOffset = dateEl.offsetTop + getGlyphCenterOffset(dateEl);
+        label.style.top = `${targetY - centerOffset}px`;
+        label.style.transform = 'none';
+      });
+    } else {
+      [labelLeft, labelMid, labelRight].forEach((label) => {
+        if (!label) return;
+        label.style.top = '';
+        label.style.transform = '';
+      });
+    }
+  }
+
+  new ResizeObserver(tick).observe(top.track);
+  if (labelsCol) new ResizeObserver(tick).observe(labelsCol);
+
+  // Pauses the twist loop while the panel is scrolled off-screen — cheap
+  // to add, not required for correctness (tick()'s own isMobile branch
+  // already starts/stops it on layout changes; this covers the desktop,
+  // still-in-viewport-size-but-scrolled-away case that wouldn't touch
+  // isMobile at all).
+  new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) rig.startLoop();
+    else rig.stopLoop();
+  }).observe(section);
+
+  tick();
+  window.addEventListener('resize', tick);
+  // TEMP: dev date override (index.html's #dev-date-override) dispatches
+  // this after monkey-patching Date.now, so every date-driven element
+  // here refreshes immediately instead of waiting for the next resize.
+  // Remove along with that control before launch.
+  window.addEventListener('dev:date-changed', tick);
+}

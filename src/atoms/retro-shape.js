@@ -49,23 +49,34 @@ export const SMALL_RETRO_SHAPE_OPTS = { gutter: 0, n: 6 };
 // interior -> 0, transparent exterior -> 1) before blurring, so the blur
 // spreads *inward* from the boundary into a ring. Compositing a flood
 // straight against SourceAlpha (without the inversion) just tints the
-// entire fill uniformly instead of hugging the edge. Blur values carry
-// over from .hero-title's own two-layer drop-shadow (index.html) — a wide
-// soft pass plus a tighter crisp pass.
-function filterMarkup(id) {
+// entire fill uniformly instead of hugging the edge. Default blur values
+// carry over from .hero-title's own two-layer drop-shadow (index.html) — a
+// wide soft pass plus a tighter crisp pass — tuned for a normal window
+// (200px+ tall). `shadow` lets a caller scale that down for a much
+// shorter box: at a curved corner (a retro-rectangle's swelled ends) the
+// blur's ring concentrates into a visible band regardless of box size,
+// but along a long *flat* edge the same wide stdDeviation spreads across
+// most/all of a short box's own thickness before it can fade back to
+// zero, so opposite edges' rings overlap into one faint, near-uniform
+// tint instead of two distinct edge shadows — reads as "shadow only at
+// the rounded ends, invisible along the top/bottom" (confirmed against
+// timeline-panel.js's own spring/dial windows, ~26-46px tall). A smaller
+// stdDeviation there keeps the ring tight enough to actually resolve
+// against a flat edge that close to its opposite one.
+function filterMarkup(id, { wideBlur = 14, wideOpacity = 0.28, tightBlur = 3, tightOpacity = 0.18 } = {}) {
   return `
     <filter id="${id}" x="-20%" y="-20%" width="140%" height="140%">
       <feComponentTransfer in="SourceAlpha" result="inverted-alpha">
         <feFuncA type="table" tableValues="1 0"/>
       </feComponentTransfer>
 
-      <feGaussianBlur in="inverted-alpha" stdDeviation="14" result="blur-wide"/>
-      <feFlood flood-color="#000" flood-opacity="0.28" result="flood-wide"/>
+      <feGaussianBlur in="inverted-alpha" stdDeviation="${wideBlur}" result="blur-wide"/>
+      <feFlood flood-color="#000" flood-opacity="${wideOpacity}" result="flood-wide"/>
       <feComposite in="flood-wide" in2="blur-wide" operator="in" result="tinted-wide"/>
       <feComposite in="tinted-wide" in2="SourceAlpha" operator="in" result="ring-wide"/>
 
-      <feGaussianBlur in="inverted-alpha" stdDeviation="3" result="blur-tight"/>
-      <feFlood flood-color="#000" flood-opacity="0.18" result="flood-tight"/>
+      <feGaussianBlur in="inverted-alpha" stdDeviation="${tightBlur}" result="blur-tight"/>
+      <feFlood flood-color="#000" flood-opacity="${tightOpacity}" result="flood-tight"/>
       <feComposite in="flood-tight" in2="blur-tight" operator="in" result="tinted-tight"/>
       <feComposite in="tinted-tight" in2="SourceAlpha" operator="in" result="ring-tight"/>
 
@@ -93,10 +104,12 @@ function filterMarkup(id) {
  *
  * Either way, both paths' `d` start empty — call updateRetroShape (or
  * observeRetroShape) once the target element is laid out to size them.
+ * `shadow`: forwarded to filterMarkup — pass tighter blur values for a
+ * much-shorter-than-usual window (see filterMarkup's own comment).
  * Returns { svg, clipUrl, clipPathEl, shadowPathEl } (shadowPathEl is
  * null in clip-only mode).
  */
-export function createRetroShape({ fill } = {}) {
+export function createRetroShape({ fill, shadow } = {}) {
   const id = `retro-shape-${uid++}`;
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('aria-hidden', 'true');
@@ -106,7 +119,7 @@ export function createRetroShape({ fill } = {}) {
     svg.innerHTML = `
       <defs>
         <clipPath id="${id}-clip" clipPathUnits="userSpaceOnUse"><path d=""/></clipPath>
-        ${filterMarkup(`${id}-shadow`)}
+        ${filterMarkup(`${id}-shadow`, shadow)}
       </defs>
       <path fill="${fill}" filter="url(#${id}-shadow)" d=""/>
     `;
@@ -161,8 +174,16 @@ function resolveN(el, width, height, gutter, n) {
  * actually used, so a caller wrapping this element (matte-rim.js) can
  * reuse the same value for its own bands rather than each solving
  * independently.
+ *
+ * `pathBuilder` swaps in a different shape formula sharing this same
+ * gutter/exponent-solving/resize machinery — e.g. buildFunnelPath
+ * (tokens/superellipse.js) for the countdown clock's water-clock viewport,
+ * which needs the identical DOM/clip wiring but a different silhouette.
+ * Defaults to buildSuperellipsePath, so every existing caller (which never
+ * passes it) is unaffected. Any extra options are passed straight through
+ * to the builder (e.g. buildFunnelPath's funnelDepthRatio).
  */
-export function updateRetroShape(el, { clipPathEl, shadowPathEl }, { gutter = 16, n } = {}) {
+export function updateRetroShape(el, { clipPathEl, shadowPathEl }, { gutter = 16, n, pathBuilder = buildSuperellipsePath, ...pathOpts } = {}) {
   const boxWidth = el.clientWidth;
   const boxHeight = el.clientHeight;
   if (!boxWidth || !boxHeight) return n;
@@ -172,7 +193,7 @@ export function updateRetroShape(el, { clipPathEl, shadowPathEl }, { gutter = 16
   const height = boxHeight - g * 2;
   const resolvedN = resolveN(el, width, height, g, n);
 
-  const d = buildSuperellipsePath({ width, height, n: resolvedN, originX: g + width / 2, originY: g + height / 2 });
+  const d = pathBuilder({ width, height, n: resolvedN, originX: g + width / 2, originY: g + height / 2, ...pathOpts });
 
   clipPathEl.setAttribute('d', d);
   if (shadowPathEl) shadowPathEl.setAttribute('d', d);

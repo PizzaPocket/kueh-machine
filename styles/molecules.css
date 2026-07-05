@@ -35,13 +35,15 @@
 /* Slides/resizes to sit behind whichever .tab is selected (see
    positionHighlight, src/molecules/tab-group.js) instead of each button
    toggling its own background — that's what makes the switch a motion
-   instead of an instant swap. z-index: -1 (against .tab-group's
-   position: relative) is what keeps it behind the buttons regardless of
-   DOM order — see .retro-shape-fill's comment for why position:absolute
-   alone doesn't guarantee that. top/left: 0 is just the coordinate origin
-   translate() measures from — positionHighlight sets width/height/
-   transform every time, all measured from the selected button itself, so
-   the HIGHLIGHT_INSET gap reads identical on every side. */
+   instead of an instant swap. z-index: -1 lands it *between* a tab's own
+   two independently-escaped layers (styles/atoms.css): below .tab-fill's
+   -2 (so a hovered, unselected tab's tint never fights the sliding
+   indicator for the top layer while it transits past) and below
+   .text-sheen's 0 (so a label always reads on top of it). top/left: 0 is
+   just the coordinate origin translate() measures from — positionHighlight
+   sets width/height/transform every time, all measured from the selected
+   button itself, so the HIGHLIGHT_INSET gap reads identical on every
+   side. */
 .tab-highlight {
   position: absolute;
   z-index: -1;

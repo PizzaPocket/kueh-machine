@@ -62,7 +62,7 @@ function petalSegments(length, width) {
   ];
 }
 
-function petalPath(length, width) {
+export function petalPath(length, width) {
   const segments = petalSegments(length, width);
   return { d: segmentsToPath(segments), segments };
 }
@@ -81,7 +81,7 @@ function leafSegments(length, width) {
   ];
 }
 
-function leafPath(length, width) {
+export function leafPath(length, width) {
   const segments = leafSegments(length, width);
   const tip = segments[0][3];
   const midribD = `M 0,0 Q ${fmt(tip[0] * 0.5)},${fmt(-length * 0.5)} ${fmt(tip[0])},${fmt(tip[1])}`;
@@ -107,7 +107,7 @@ function bellSegments(length, width) {
   ];
 }
 
-function bellPath(length, width) {
+export function bellPath(length, width) {
   const segments = bellSegments(length, width);
   const spread = width * 0.12;
   const stamenLen = length * 0.22;
@@ -136,7 +136,7 @@ function paisleySegments(length, width) {
   ];
 }
 
-function paisleyPath(length, width) {
+export function paisleyPath(length, width) {
   const segments = paisleySegments(length, width);
   const tip = segments[0][3];
   const tail = spiralTail(tip, -Math.PI / 2, width * 0.45, 8, 1.1);
@@ -160,7 +160,17 @@ function spiralTail(origin, dirAngle, startRadius, steps = 10, turns = 1.4) {
 // Curls between two anchors rather than connecting them straight: the
 // midpoint is bowed out perpendicular to the connecting line by a jittered
 // amount, which is what reads as a vine rather than a wire.
-function tendrilSegment(from, to) {
+//
+// bowSign/bowFraction default to random (every existing caller below gets
+// a freshly-jittered curl each time, same as before) but can be pinned
+// explicitly — src/organisms/timeline-panel.js's string rig freezes both
+// once per segment (so a segment redrawn every animation frame flexes
+// smoothly as its endpoints move, rather than re-jittering into a
+// different curl shape on every frame) and just passes the current,
+// possibly-moving `from`/`to` back in on each recompute. Since `bow` is
+// still a fraction of the *live* distance between endpoints, the curve
+// naturally scales as they move.
+export function tendrilSegment(from, to, { bowSign, bowFraction } = {}) {
   const [x0, y0] = from;
   const [x1, y1] = to;
   const dx = x1 - x0;
@@ -168,15 +178,16 @@ function tendrilSegment(from, to) {
   const dist = Math.hypot(dx, dy) || 1;
   const nx = -dy / dist;
   const ny = dx / dist;
-  const bowSign = Math.random() < 0.5 ? -1 : 1;
-  const bow = dist * (0.12 + Math.random() * 0.18) * bowSign;
+  const sign = bowSign ?? (Math.random() < 0.5 ? -1 : 1);
+  const fraction = bowFraction ?? (0.12 + Math.random() * 0.18);
+  const bow = dist * fraction * sign;
   const mx = (x0 + x1) / 2 + nx * bow;
   const my = (y0 + y1) / 2 + ny * bow;
   const c1 = [x0 + (mx - x0) * 0.6, y0 + (my - y0) * 0.6];
   const c2 = [x1 + (mx - x1) * 0.6, y1 + (my - y1) * 0.6];
   const points = [[x0, y0], c1, c2, [x1, y1]];
   const d = `M ${fmt(x0)},${fmt(y0)} C ${fmt(c1[0])},${fmt(c1[1])} ${fmt(c2[0])},${fmt(c2[1])} ${fmt(x1)},${fmt(y1)}`;
-  return { d, points };
+  return { d, points, bowSign: sign, bowFraction: fraction };
 }
 
 // String-returning wrapper for callers that just want a connector to
@@ -211,7 +222,7 @@ function cubicPointAt(p0, p1, p2, p3, t) {
   ];
 }
 
-function flattenCubic(p0, p1, p2, p3, steps = 24) {
+export function flattenCubic(p0, p1, p2, p3, steps = 24) {
   const pts = [];
   for (let i = 0; i <= steps; i++) pts.push(cubicPointAt(p0, p1, p2, p3, i / steps));
   return pts;
@@ -236,7 +247,7 @@ function insetSegments(segments, factor) {
   return segments.map((seg) => seg.map(([x, y]) => [cx + (x - cx) * factor, cy + (y - cy) * factor]));
 }
 
-function pointsAtArcLength(polyline, spacing) {
+export function pointsAtArcLength(polyline, spacing) {
   const points = [];
   let accumulated = 0;
   let nextTarget = spacing / 2; // offset so dots don't bunch at the seam
@@ -255,7 +266,7 @@ function pointsAtArcLength(polyline, spacing) {
 }
 
 // Returns dot centers in the motif's own local (pre-transform) space.
-function cecekPoints(segments, insetFactor, spacing) {
+export function cecekPoints(segments, insetFactor, spacing) {
   const inset = insetSegments(segments, insetFactor);
   const polyline = [];
   inset.forEach((seg, i) => {
@@ -265,7 +276,7 @@ function cecekPoints(segments, insetFactor, spacing) {
   return pointsAtArcLength(polyline, spacing);
 }
 
-function toWorld([lx, ly], originX, originY, angleDeg) {
+export function toWorld([lx, ly], originX, originY, angleDeg) {
   const rad = (angleDeg * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);

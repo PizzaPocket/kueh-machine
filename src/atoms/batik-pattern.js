@@ -27,7 +27,7 @@
 
 import { buildBatikComposition } from '../tokens/batik-motifs.js';
 
-const CECEK_FILL_BY_SURFACE = {
+export const CECEK_FILL_BY_SURFACE = {
   tinted: 'var(--color-surface)', // light dot, for colored/saturated section backgrounds
   plain: 'var(--color-primary-strong)', // dark dot, for white/cream (--color-surface family) backgrounds
 };
@@ -35,7 +35,7 @@ const CECEK_FILL_BY_SURFACE = {
 const PETAL_FILLS = ['var(--color-primary)', 'var(--color-highlight-soft)', 'var(--color-highlight)'];
 const LEAF_FILL = 'var(--color-primary-strong)';
 const OUTLINE_STROKE = 'var(--color-accent)';
-const TENDRIL_STROKE = 'var(--color-accent)';
+export const TENDRIL_STROKE = 'var(--color-accent)';
 const DOT_RADIUS = 2;
 
 // dot.radius/dot.fill let a variant override the default cecek stitch
@@ -43,7 +43,7 @@ const DOT_RADIUS = 2;
 // always use accent fills regardless of surface, but still ride the same
 // rendering/animation path as an ordinary dot. `defaultFill` is the
 // surface-resolved cecek color, used whenever an item doesn't override it.
-function renderCecekLayer(dots, defaultFill) {
+export function renderCecekLayer(dots, defaultFill) {
   return dots
     .map((dot) => {
       const r = dot.radius ?? DOT_RADIUS;
@@ -57,7 +57,7 @@ function renderCecekLayer(dots, defaultFill) {
 // stamens, a paisley's curled tail — rendered/animated the same way a
 // leaf's midrib already was; unified under one .batik-detail class rather
 // than keeping that a leaf-only concept.
-function renderPetal(petal) {
+export function renderPetal(petal) {
   const fill = PETAL_FILLS[petal.petalIndexInCluster % PETAL_FILLS.length];
   const extra = petal.extraD
     ? `<path class="batik-detail" d="${petal.extraD}" fill="none" stroke="${OUTLINE_STROKE}" stroke-width="1" opacity="0.5"/>`
@@ -68,14 +68,14 @@ function renderPetal(petal) {
   </g>`;
 }
 
-function renderLeaf(leaf) {
+export function renderLeaf(leaf) {
   return `<g class="batik-motif" data-cluster="${leaf.clusterIndex}" transform="translate(${leaf.x.toFixed(1)},${leaf.y.toFixed(1)}) rotate(${leaf.angle.toFixed(1)})">
     <path class="batik-outline" d="${leaf.d}" fill="${LEAF_FILL}" stroke="${OUTLINE_STROKE}" stroke-width="1.5" stroke-linejoin="round"/>
     <path class="batik-detail" d="${leaf.midribD}" fill="none" stroke="${OUTLINE_STROKE}" stroke-width="1" opacity="0.5"/>
   </g>`;
 }
 
-function renderTendril(tendril) {
+export function renderTendril(tendril) {
   return `<path class="batik-tendril" d="${tendril.d}" fill="none" stroke="${TENDRIL_STROKE}" stroke-width="2" stroke-linecap="round"/>`;
 }
 

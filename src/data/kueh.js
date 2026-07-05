@@ -5,40 +5,39 @@
 // is the maintained/extended copy the live page actually reads.
 //
 // flavor_profile / origin_sentence / recipe are new content, authored for
-// this feature (not present in the original export) and currently only
-// written for the 14 photographed kueh. Same caveat as the original
-// dataset's own note: worth a human read-through for accuracy before this
-// goes live.
+// this feature (not present in the original export). Same caveat as the
+// original dataset's own note: worth a human read-through for accuracy
+// before this goes live.
 //
-// Order matters: photographed kueh are listed first, so the day-index
-// rotation (src/organisms/kueh-of-day.js, dayOfYear % KUEH_DATA.length)
-// cycles through real photos before reaching the SVG-fallback kueh at the
-// end of the list.
+// All 17 kueh currently here are photographed (each has a `photo`); the
+// SVG fallback in src/atoms/kueh-icon.js still exists for whenever a new
+// kueh is added ahead of its photo, but nothing in this list currently
+// relies on it.
 
 export const KUEH_DATA = [
   {
-    id: 'ang-ku-kueh',
-    name: 'Ang Ku Kueh',
+    id: 'kueh-ku',
+    name: 'Kueh Ku',
     origin: 'Hokkien Chinese (Fujian), adopted into Peranakan cuisine',
     category: 'sweet',
     texture: 'steamed',
     occasion: 'festive/ritual',
-    description: 'Oval, tortoise-shell-shaped glutinous rice cake with a soft chewy skin, traditionally dyed red and filled with sweet mung bean paste. Used in birthdays and religious offerings.',
-    photo: 'images/kueh/ang-ku-kueh.png',
+    description: "Oval, tortoise-shell-shaped glutinous rice cake with a soft chewy skin, pressed in a mold and filled with sweet mung bean paste. Traditionally dyed red ('ang ku kueh' literally means red tortoise cake) for birthdays and religious offerings, though softer-skinned versions in other colors are just as common.",
+    photo: 'images/kueh/kueh-ku.png',
     flavor_profile: ['Sweet', 'Chewy', 'Mung Bean', 'Glutinous'],
-    origin_sentence: 'A Hokkien Chinese tradition brought into Peranakan kitchens, its red tortoise-shell shape symbolizes longevity at birthdays and temple offerings.',
+    origin_sentence: 'A Hokkien Chinese tradition brought into Peranakan kitchens: pressed into a tortoise mold and traditionally dyed red, its shape symbolizing longevity at birthdays and temple offerings.',
     recipe: {
       ingredients: [
         '200g glutinous rice flour',
         '150g mung bean paste (store-bought or home-cooked)',
         '1 tbsp sugar',
         '1 tbsp oil, plus extra for greasing',
-        'Red food coloring',
+        'Food coloring, traditionally red',
         '150ml warm water',
         'Banana leaf squares, greased',
       ],
       steps: [
-        'Knead glutinous rice flour, sugar, oil, red coloring, and warm water into a smooth, pliable dough.',
+        'Knead glutinous rice flour, sugar, oil, coloring, and warm water into a smooth, pliable dough.',
         'Divide the dough and flatten each piece into a small disc.',
         'Wrap a spoonful of mung bean paste inside each disc and seal into a ball.',
         'Press the ball into a greased tortoise mold to shape, then unmold onto a piece of banana leaf.',
@@ -432,15 +431,6 @@ export const KUEH_DATA = [
     },
   },
   {
-    id: 'kueh-ku',
-    name: 'Kueh Ku',
-    origin: 'Chinese/Peranakan',
-    category: 'sweet',
-    texture: 'steamed',
-    occasion: 'festive/ritual',
-    description: 'Similar to ang ku kueh but often smaller, softer-skinned, and made in varied colors, pressed with a wooden or plastic mold.',
-  },
-  {
     id: 'kueh-kosui',
     name: 'Kueh Kosui',
     origin: 'Malay/Peranakan',
@@ -448,6 +438,26 @@ export const KUEH_DATA = [
     texture: 'steamed',
     occasion: 'everyday',
     description: 'Translucent, jelly-like steamed cake made with palm sugar, served in small cups topped with grated coconut.',
+    photo: 'images/kueh/kueh-kosui.png',
+    flavor_profile: ['Sweet', 'Jelly-like', 'Gula Melaka', 'Coconut'],
+    origin_sentence: 'A Malay and Peranakan steamed cake, its translucent palm-sugar body set in small cups and finished with a scoop of fresh grated coconut.',
+    recipe: {
+      ingredients: [
+        '100g rice flour',
+        '30g tapioca flour',
+        '100g gula melaka (palm sugar), chopped',
+        '500ml water',
+        'Pinch of lye water (kansui), optional, for a firmer jelly set',
+        '1 cup grated coconut, steamed with a pinch of salt',
+      ],
+      steps: [
+        'Dissolve the gula melaka in the water over low heat, then strain and cool slightly.',
+        'Whisk the rice flour and tapioca flour into the sweetened liquid until completely smooth.',
+        'Pour the batter into small greased cups or a shallow tin.',
+        'Steam over medium heat for about 20 minutes, until the centre turns from cloudy to translucent and set.',
+        'Cool until just warm, unmold, and serve topped with fresh grated coconut.',
+      ],
+    },
   },
   {
     id: 'kueh-ubi-kayu',
@@ -457,6 +467,26 @@ export const KUEH_DATA = [
     texture: 'steamed',
     occasion: 'everyday',
     description: 'Soft, moist steamed cassava cake, mildly sweet, often topped with grated coconut.',
+    photo: 'images/kueh/kueh-ubi-kayu.png',
+    flavor_profile: ['Sweet', 'Moist', 'Coconut', 'Earthy'],
+    origin_sentence: 'A Malay kampung staple built around cassava root, grated and steamed into a soft, moist cake mildly sweetened rather than dressed up.',
+    recipe: {
+      ingredients: [
+        '500g cassava, peeled and grated',
+        '200ml coconut milk',
+        '120g sugar',
+        '1/2 tsp salt',
+        '1 pandan leaf, knotted',
+        '1 cup grated coconut, steamed with a pinch of salt, to serve',
+      ],
+      steps: [
+        'Squeeze excess liquid from the grated cassava, reserving the starch that settles at the bottom.',
+        'Mix the cassava, reserved starch, coconut milk, sugar, and salt into a thick, even batter.',
+        'Pour into a greased tin lined with the pandan leaf.',
+        'Steam over medium heat for about 30-40 minutes, until the centre turns firm and slightly glossy.',
+        'Cool before slicing, then serve with grated coconut on top.',
+      ],
+    },
   },
   {
     id: 'kueh-lopez',
@@ -466,47 +496,31 @@ export const KUEH_DATA = [
     texture: 'boiled',
     occasion: 'everyday',
     description: 'Diamond-shaped glutinous rice cake, boiled wrapped in leaves, rolled in coconut, and drizzled with palm sugar syrup.',
-  },
-  {
-    id: 'curry-puff',
-    name: 'Curry Puff',
-    origin: 'Malay, Indian/Portuguese-influenced',
-    category: 'savory',
-    texture: 'fried or baked',
-    occasion: 'everyday',
-    description: 'Crescent-shaped pastry filled with spiced curried potato and sometimes egg or chicken, a beloved teatime snack.',
-  },
-  {
-    id: 'otak-otak',
-    name: 'Otak-Otak',
-    origin: 'Malay/Peranakan/Indonesian',
-    category: 'savory',
-    texture: 'grilled',
-    occasion: 'everyday',
-    description: 'Spiced fish paste wrapped in banana leaf and grilled over charcoal; often grouped with kueh in hawker contexts even though savory.',
-  },
-  {
-    id: 'kueh-kochi-hijau',
-    name: 'Pulut Inti',
-    origin: 'Malay',
-    category: 'sweet',
-    texture: 'steamed',
-    occasion: 'festive',
-    description: 'Compressed glutinous rice (sometimes dyed blue with bunga telang) topped with sweet caramelized coconut.',
-  },
-  {
-    id: 'kueh-cucur',
-    name: 'Kueh Cucur',
-    origin: 'Malay',
-    category: 'sweet',
-    texture: 'fried',
-    occasion: 'everyday',
-    description: 'Deep-fried disc of sweetened batter with a crisp edge and soft, spongy, caramel-colored center.',
+    photo: 'images/kueh/kueh-lopez.png',
+    flavor_profile: ['Sweet', 'Chewy', 'Coconut', 'Gula Melaka'],
+    origin_sentence: 'A Malay and Betawi kueh boiled to a chewy set inside its own leaf wrapper, then rolled in coconut and finished with palm sugar syrup.',
+    recipe: {
+      ingredients: [
+        '300g glutinous rice, soaked overnight',
+        '200ml coconut milk',
+        '1/2 tsp salt',
+        'Banana leaf, cut into squares, for wrapping',
+        '100g gula melaka (palm sugar), simmered with a splash of water into a syrup',
+        '1 cup grated coconut, steamed with a pinch of salt',
+      ],
+      steps: [
+        'Drain the soaked glutinous rice and mix with coconut milk and salt.',
+        'Spoon the rice onto a banana leaf square and fold into a tight diamond-shaped parcel, securing with a toothpick or string.',
+        'Boil the parcels in water for about 1-1.5 hours, topping up water as needed, until the rice is fully cooked and firm.',
+        'Drain and cool the parcels, then unwrap and roll each cake in grated coconut.',
+        'Drizzle with warm gula melaka syrup just before serving.',
+      ],
+    },
   },
 ];
 
 // Hand-authored, not parsed from the free-text `color` field — at this
-// scale (22 entries) direct authoring is more reliable than trying to
+// scale (17 entries) direct authoring is more reliable than trying to
 // distinguish "golden brown" from "golden yellow" from "brown, layered"
 // programmatically.
 //
@@ -536,7 +550,7 @@ export const KUEH_DATA = [
 //                 multicolor rainbow-layer kueh already *is* this site's
 //                 own palette
 export const KUEH_SEED_TABLE = {
-  'ang-ku-kueh': {
+  'kueh-ku': {
     mode: 'chromatic',
     primary:   { h: 12,  c: 0.16 }, // red tortoise skin
     accent:    { h: 50,  c: 0.10 }, // banana leaf / cream underside
@@ -572,12 +586,6 @@ export const KUEH_SEED_TABLE = {
     primary:   { h: 136, c: 0.10 }, // pandan/mung bean base
     accent:    { h: 65,  c: 0.04 }, // coconut milk top
     highlight: { h: 155, c: 0.08 }, // deeper green
-  },
-  'kueh-ku': {
-    mode: 'chromatic',
-    primary:   { h: 40,  c: 0.14 }, // orange mold dye
-    accent:    { h: 340, c: 0.10 }, // pink mold variant (it genuinely comes in this)
-    highlight: { h: 85,  c: 0.12 }, // yellow mold variant
   },
   'kueh-pie-tee': {
     mode: 'chromatic',
@@ -639,36 +647,11 @@ export const KUEH_SEED_TABLE = {
     accent:    { h: 38,  c: 0.12 }, // gula melaka syrup
     highlight: { h: 55,  c: 0.04 }, // coconut coating
   },
-  'curry-puff': {
-    mode: 'chromatic',
-    primary:   { h: 50, c: 0.13 }, // golden-brown pastry
-    accent:    { h: 70, c: 0.14 }, // curried potato filling, turmeric yellow
-    highlight: { h: 30, c: 0.11 }, // deep pastry-brown
-  },
-  'otak-otak': {
-    mode: 'chromatic',
-    primary:   { h: 22, c: 0.15 }, // spiced fish paste, orange-red
-    accent:    { h: 75, c: 0.08 }, // banana leaf wrap
-    highlight: { h: 10, c: 0.12 }, // deeper charred red-brown
-  },
-  'kueh-kochi-hijau': {
-    mode: 'chromatic',
-    primary:   { h: 235, c: 0.10 }, // bunga telang blue
-    accent:    { h: 40,  c: 0.12 }, // caramelized coconut topping
-    highlight: { h: 220, c: 0.05 }, // soft white-blue rice
-  },
-  'kueh-cucur': {
-    mode: 'chromatic',
-    primary:   { h: 35, c: 0.13 }, // dark fried brown
-    accent:    { h: 48, c: 0.11 }, // lighter caramel edge
-    highlight: { h: 22, c: 0.10 }, // deep toasted brown center
-  },
 };
 
 // Hand-authored shape-template mapping — same reliability reasoning as the
 // seed table above. Falls back to 'disc' if an id is ever missing.
 export const KUEH_SHAPE_TABLE = {
-  'ang-ku-kueh':       'dome',
   'ondeh-ondeh':       'dome',
   'kueh-lapis':        'layered-bars',
   'kueh-salat':        'layered-bars',
@@ -686,8 +669,4 @@ export const KUEH_SHAPE_TABLE = {
   'kueh-kosui':        'dome',
   'kueh-ubi-kayu':     'disc',
   'kueh-lopez':        'pyramid',
-  'curry-puff':        'crescent',
-  'otak-otak':         'disc',
-  'kueh-kochi-hijau':  'dome',
-  'kueh-cucur':        'disc',
 };

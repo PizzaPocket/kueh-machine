@@ -1,0 +1,44 @@
+/* .drop-chute — the page-spanning batik chute (src/organisms/drop-chute.js)
+   the hero countdown's drop rolls down. Document-positioned (scrolls with
+   the page), not viewport-fixed — built once on load, not re-measured on
+   resize/scroll. z-index is a modest starting value (tune by eye against
+   whatever page content it happens to cross). */
+.drop-chute {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.drop-chute-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The rolling ball — same radial-gradient "bead of liquid" recipe as the
+   hero's own .countdown-drop (index.html), so the ball reads as literally
+   the same drop that left the funnel, not a new element. offset-path
+   (set inline, src/organisms/drop-chute.js) needs position: absolute.
+   z-index: 10 — during the long fall (spawnFall), this is appended
+   directly to <body>, a *sibling* of .timeline-section, which has its own
+   z-index: 1 (styles/organisms/timeline-panel.css, so the sinking glass
+   can paint above the following section). Without a z-index higher than
+   that here, the ball would vanish behind the Timeline section's own
+   background for the entire stretch it falls past it, only reappearing
+   once it reaches the glass itself — exactly the "only shows up right
+   where the cup starts" bug this fixes. */
+.drop-chute-ball {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
+    var(--countdown-liquid-color);
+}

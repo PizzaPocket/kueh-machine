@@ -8,6 +8,7 @@
 import { generatePalette, applyPalette, DEFAULT_THEME } from '../tokens/colors.js';
 import { createRetroShape } from '../atoms/retro-shape.js';
 import { wrapWithInnerMatteRim } from '../atoms/matte-rim.js';
+import { buildMetalSeam } from '../atoms/metal-seam.js';
 import { buildRivetRow } from '../atoms/rivets.js';
 import { createSmallButton } from '../atoms/button.js';
 import { KUEH_DATA, KUEH_SEED_TABLE, KUEH_SHAPE_TABLE } from '../data/kueh.js';
@@ -15,11 +16,10 @@ import { renderKuehSvg } from '../atoms/kueh-icon.js';
 import { createTabGroup } from '../molecules/tab-group.js';
 
 // Rotation is anchored to a fixed start date rather than Jan 1, so day 0
-// lands on today (when this shipped) — and KUEH_DATA lists the 7
-// photographed kueh first, so the first week of real-world days cycles
-// through actual photos before reaching the SVG-fallback kueh. Once more
-// photos are added, just update KUEH_DATA's `photo` field; no need to
-// touch this anchor.
+// lands on today (when this shipped). All 17 kueh in KUEH_DATA currently
+// have a photo; if an unphotographed kueh is ever added, list it last so
+// the rotation favors real photos over the SVG fallback. No need to touch
+// this anchor when photos are added later.
 const ROTATION_ANCHOR_UTC = Date.UTC(2026, 6, 2); // 2026-07-02 = day 0
 
 // Guards against piling up duplicate observers if renderKuehOfDay() is
@@ -27,9 +27,10 @@ const ROTATION_ANCHOR_UTC = Date.UTC(2026, 6, 2); // 2026-07-02 = day 0
 // exactly once), but the disconnect-before-recreate is cheap insurance.
 let windowObservers = [];
 
-// Same SGT day math _tlData already uses in index.html's inline script,
-// recomputed independently here rather than shared across the classic
-// script / ES module boundary for one small calculation.
+// Same SGT day math index.html's own inline countdown script and
+// timeline-panel.js both separately recompute — each one small
+// calculation, not worth sharing a module for across otherwise-unrelated
+// features.
 function getDayIndexSGT(length) {
   const sgOffsetMs = 8 * 60 * 60 * 1000;
   const nowSGT = new Date(Date.now() + sgOffsetMs);
@@ -231,6 +232,31 @@ function buildContentWindow(overviewPanel, recipePanel) {
   return { el: wrap, refs };
 }
 
+// The vertical "seam" between the two columns: a pair of thin metal
+// lines (.metal-seam, src/atoms/metal-seam.js) that run full-bleed the
+// section's entire height (.kod-seam-line's own negative top/bottom
+// offsets, kueh-of-day.css), reading as the butted edges of the two
+// panels meeting rather than a bezel around either of them, plus a
+// short, sparse column of rivets running alongside it — the vertical
+// counterpart to the section's own top/bottom rivet rows (buildRivetRow,
+// init() below). Returns a plain element (no observer to track), since
+// nothing here is shape- or resize-driven.
+function buildSeam() {
+  const wrap = document.createElement('div');
+  wrap.className = 'kod-seam-wrap';
+  wrap.setAttribute('aria-hidden', 'true');
+
+  const line = buildMetalSeam();
+  line.classList.add('kod-seam-line');
+  wrap.appendChild(line);
+
+  const rivets = buildRivetRow(3, { vertical: true });
+  rivets.classList.add('kod-seam-rivets');
+  wrap.appendChild(rivets);
+
+  return wrap;
+}
+
 function buildContentColumn(kueh) {
   const column = document.createElement('div');
   column.className = 'kod-content-column';
@@ -397,6 +423,7 @@ function renderKuehOfDay(section, index) {
   const media = buildMediaColumn(kueh);
   const content = buildContentColumn(kueh);
   layout.appendChild(media.el);
+  layout.appendChild(buildSeam());
   layout.appendChild(content.el);
 
   mount.innerHTML = '';
@@ -406,12 +433,24 @@ function renderKuehOfDay(section, index) {
   windowObservers = [media.observer, content.observer];
 }
 
-export function init() {
+// Re-runs just the day-lookup + render step — safe to call repeatedly
+// (renderKuehOfDay already clears its own mount and disconnects its old
+// observers). Used by init()'s first render and by the dev date-override
+// (see index.html, "dev:date-changed") to re-pick the kueh/palette for a
+// simulated date without touching the rivet rows added below.
+export function refresh() {
   const section = document.getElementById('kueh-of-day');
   if (!section) return;
 
   const index = getDayIndexSGT(KUEH_DATA.length);
   renderKuehOfDay(section, index);
+}
+
+export function init() {
+  const section = document.getElementById('kueh-of-day');
+  if (!section) return;
+
+  refresh();
 
   // Decorates the section's own .matte-metal-surface panel, not the
   // rotating kueh content — built once here rather than inside
@@ -421,4 +460,8 @@ export function init() {
   const bottomRivets = buildRivetRow();
   bottomRivets.classList.add('metal-rivet-row-bottom');
   section.append(topRivets, bottomRivets);
+
+  // TEMP: dev date-override hookup (see index.html, "dev:date-changed") —
+  // remove alongside that control before launch.
+  window.addEventListener('dev:date-changed', refresh);
 }

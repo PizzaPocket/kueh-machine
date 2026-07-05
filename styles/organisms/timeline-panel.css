@@ -1,0 +1,746 @@
+/* .timeline-section — the redesigned Timeline (formerly "Schedule")
+   section: a .matte-metal-surface chrome panel (styles/atoms.css) holding
+   two inset retro-rectangle windows (src/organisms/timeline-panel.js) —
+   top: the spring (anchored to the track's start, grown to today's own
+   position) with the day-chip overlapping its free end; bottom: the
+   day-ruler dial — plus the three static meeting-date labels. Rivets
+   top/bottom mirror .kueh-of-day-section's own treatment exactly
+   (buildRivetRow, src/atoms/rivets.js). The glass isn't part of this
+   panel — Stage 2 rigs it to a string-and-pulley elsewhere on the page. */
+/* color here (not --color-text-on-surface, which is calibrated for the
+   warmer --color-surface-tint background this section no longer has) is
+   the panel's *default* text color — --metal-shadow, the same dark
+   charcoal .rim-matte-inner's own gradient uses at its dark end — so
+   every descendant (the meeting-date labels' smaller/muted text
+   included) reads consistently dark-on-metal unless it explicitly
+   overrides it (.tl-day-chip does, since it sits on its own
+   --color-primary-strong fill, not the panel's own metal). */
+.timeline-section {
+  position: relative;
+  /* Lets the hanging glass sink into #guide (the next section) without
+     getting painted over by it. .reveal.visible (index.html) sets
+     transform: translateY(0) once revealed — a non-none transform, even
+     at 0, still creates a stacking context, which traps every z-indexed
+     descendant here (including .tl-glass) inside .timeline-section's own
+     layer. Without this, that whole trapped layer would still paint in
+     plain DOM order against .guide-section (also position: relative, no
+     z-index of its own) — i.e. behind it, since #guide comes later in the
+     markup — cutting the glass off right at this section's own bottom
+     edge. z-index here lifts the *entire* .timeline-section layer above
+     that plain "auto" level instead. */
+  z-index: 1;
+  padding: 64px 32px 56px;
+  color: var(--metal-shadow);
+}
+
+/* Still needed even with the inherited default above: .section-label/
+   .section-title's own color rules live in index.html's inline <style>,
+   which loads *after* this stylesheet, so plain inheritance would lose
+   to their own explicit (later-loaded, equal-specificity) rule — the
+   extra .timeline-section ancestor here is what actually wins, same
+   reasoning .kod-media-column .kod-tag (styles/organisms/kueh-of-day.css)
+   already documents for the identical situation. */
+.timeline-section .section-label,
+.timeline-section .section-title {
+  color: var(--metal-shadow);
+}
+
+.timeline-section .metal-rivet-row-top,
+.timeline-section .metal-rivet-row-bottom {
+  position: absolute;
+  left: 32px;
+  right: 32px;
+}
+.timeline-section .metal-rivet-row-top { top: 14px; }
+.timeline-section .metal-rivet-row-bottom { bottom: 14px; }
+
+/* Groups the two windows (.tl-mount) with the meeting-date labels — a
+   plain block stack on desktop (unchanged from before), but on mobile
+   (below) becomes a row: tracks on the left, labels lined up against
+   them on the right, instead of stacked underneath. */
+.tl-body {
+  margin-top: 40px;
+}
+
+/* position: relative anchors .tl-day-chip's own absolute left/top
+   (timeline-panel.js's tick(), computed via getBoundingClientRect against
+   this element) — the chip is appended here as a sibling of both rim-
+   wrapped windows, not nested inside the top window, so it can overlap
+   the (much shorter) spring window instead of being confined inside it. */
+.tl-panel-layout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Both inset windows share this: the retro-shape fill (createRetroShape,
+   --color-highlight-soft — same fill as the countdown clock's own
+   background-behind-the-liquid layer, see timeline-panel.js's buildWindow)
+   — .tl-window-fill is the element createRetroShape's fill/
+   clip-path actually apply to (see timeline-panel.js), matching
+   .kod-content-window's own role. No padding of its own — each window's
+   own content div below owns 100% of the padding instead, so the two
+   windows' left/right insets can be kept identical (needed for the chip
+   to align exactly with the dial's today-band, both computed against
+   that same width) without also having to account for a shared value
+   here on top of it. */
+.tl-window-fill {
+  position: relative;
+}
+
+/* .tl-dial-window-rim — the dial window's own rim, dynamic instead of the
+   spring window's static .rim-matte-inner: same width/height/padding
+   footprint (1.5px, matching .rim-matte-inner's own thickness) but no
+   background of its own — applyLayeredConicChrome (src/tokens/chrome-metal.js)
+   paints its conic-gradient directly via JS and registers it for cursor/
+   scroll rotation, same as .btn-rim/.tab-group-rim. The nested glint band
+   is .chrome-rim-glint (styles/atoms.css), shared with every other liquid-
+   chrome rim, so it needs no rule here. */
+.tl-dial-window-rim {
+  width: 100%;
+  height: 100%;
+  padding: 1.5px;
+}
+
+/* Much shallower than the dial window below, and shorter than the day
+   chip that overlaps it — the spring is a thin mechanical detail, not a
+   content area. Left/right is 0 (not a value matching
+   .tl-bottom-window-fill's own) so the spring can run flush to the
+   window's own true edge — .tl-bottom-window-fill is set to match at 0
+   too, both for visual consistency (the dial's own ticks bleed to the
+   same edges) and because the chip/today-band alignment depends on both
+   windows sharing the same left/right inset (see .tl-window-fill's own
+   comment). */
+.tl-top-window-fill {
+  padding: 4px 0;
+}
+
+.tl-spring-track {
+  position: relative;
+  /* Clips the spring flush at its own start — buildSpringCoilPaths
+     already sizes the spring to exactly this box's own live width, so
+     this is just a safety edge, not load-bearing the way it would be if
+     the spring were rendered wider than its slot. Split into -x/-y
+     (rather than the shorthand) so only the growth axis clips: the other
+     axis needs to stay visible or .spring-graphic's own drop-shadow
+     (below) gets cropped by this same box, since the coil is drawn to
+     fill this box's cross-axis thickness exactly, leaving the shadow no
+     room to spill past that edge otherwise. Desktop's growth axis is
+     horizontal; the mobile block below swaps which axis clips, since the
+     rotated layout swaps which axis is "growth" too. */
+  overflow-x: hidden;
+  overflow-y: visible;
+  width: 100%;
+  /* Matches the reference assets' own proportions (wip/Spring *.svg, all
+     viewBox height 12) more closely than a thinner track would — thin
+     enough to still read as narrower than the day chip that overlaps it,
+     but not so thin the coils flatten into an illegible zigzag.
+     timeline-panel.js reads this box's own clientHeight/Width directly
+     for the spring's rendered thickness, so this is the only place that
+     value lives. */
+  height: 18px;
+}
+
+.spring-graphic {
+  display: block;
+  overflow: visible;
+  position: absolute;
+  /* Same two-layer drop-shadow recipe as .tl-day-chip/.tl-dial-today —
+     reads as sitting slightly proud of the track rather than flat/printed
+     on it, matching the rest of the panel's "lifted metal parts" language. */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.14));
+}
+
+/* A small retro-rectangle badge (attachRetroShapeClip + SMALL_RETRO_SHAPE_OPTS,
+   timeline-panel.js — the same small-badge shape tab-group/button small
+   controls already use), not a CSS pill — a single centered "Today" label
+   rather than spelling out the actual date, which the dial's own tick
+   position already carries. Wider than tall (56x40, not the old 40x40
+   square) — "Today" needs more horizontal room than a single glyph did to
+   stay legible without shrinking the font down too far.
+   --color-primary-strong (the hero's own background) + --color-text-on-
+   primary — same color as .tl-dial-today below, so the two read as one
+   marker at two heights. Appended as a sibling of the windows
+   (timeline-panel.js's init()), not inside the spring track, so it can
+   visually overlap that (much shorter) window's own edge rather than
+   being clipped inside it — position/left/top (centered via the
+   transform below) are computed and set every tick.
+
+   .tl-day-chip is now the outer rim band — same rim/fill nesting
+   .step-card/.step-card-fill and .file-card/.file-card-fill use, just a
+   real conic-gradient (timeline-panel.js sets background-image; same
+   themed-chrome color approach as the hero wordmark's own rims,
+   chrome-accents.js) instead of a flat color. Its 2px padding is the
+   rim's thickness — .tl-day-chip-fill (below) nests inside, at its own
+   independently-fitted clip-path, and shows through the gap. */
+.tl-day-chip {
+  position: absolute;
+  /* Above the Stage 2 rig's own layers (pulley z-index 4, front-string
+     copies z-index 3) — it's the spring's own free end, the string's
+     literal anchor point, so it should always read as sitting in front of
+     the string reaching for it, not the other way around. */
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 40px;
+  padding: 2px;
+  /* drop-shadow, not box-shadow — this is clip-path'd to the
+     retro-rectangle silhouette (attachRetroShapeClip, timeline-panel.js);
+     box-shadow draws around the full rectangular border-box regardless
+     of clip-path, while drop-shadow follows the actual clipped shape.
+     Same two-layer recipe as the site's other floating retro-rectangle
+     windows (.kod-media-column .rim-matte-inner, styles/organisms/
+     kueh-of-day.css) — a wide soft pass plus a tighter crisp pass — so it
+     reads as lifted off the panel the same way those do. Lives on the
+     outer rim, not .tl-day-chip-fill, so the whole badge (rim + fill)
+     reads as one lifted piece. */
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.18)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.14));
+}
+
+.tl-day-chip-fill {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-on-primary);
+  background: var(--color-primary-strong);
+}
+
+.tl-day-chip-label {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.tl-bottom-window-fill {
+  padding: 10px 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* The "radio tuner dial": one real short tick + day-number per day
+   (.tl-dial-ticks, timeline-panel.js's buildDialTicks — real DOM elements
+   now, not a repeating-gradient illusion, so each can carry its own label
+   and the 3 major days can skip theirs) plus a highlighted band at today's
+   own position (--today-position) and three full-height markers at the
+   meeting dates (--mid-position is the only one needing its own custom
+   property — start/end are always 0%/100%). */
+.tl-dial {
+  position: relative;
+  width: 100%;
+  height: 28px;
+}
+
+/* Inset from .tl-dial's own true left/right edge (top/bottom on mobile,
+   below) by --tl-day-inset (timeline-panel.js) — the box every day-based
+   position (ticks, meeting markers, today-band) is positioned against, so
+   day 0 and day DAY_COUNT land inset from the window's real edge rather
+   than flush against it, and the spring track's own chip position (same
+   --tl-day-inset, computed in px there since that track has no percentage-
+   based children) stays in step with it. Not overflow:hidden — .tl-dial-
+   today/-meeting still bleed past this box's own edges the same way they
+   bled past .tl-dial directly before this wrapper existed. */
+.tl-dial-ticks {
+  position: absolute;
+  inset: 0 var(--tl-day-inset, 14px);
+}
+
+/* Flush to .tl-dial-ticks's own top edge (left edge on mobile, below) —
+   the day-number sits below it, so together they read as a ruler tick with
+   its label, rather than a tick centered mid-height with nothing under it. */
+.tl-dial-tick {
+  position: absolute;
+  top: 0;
+  left: var(--tl-tick-pos, 0%);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tl-dial-tick::before {
+  content: '';
+  width: 1px;
+  height: 8px;
+  /* --color-text-on-surface-muted (not --color-surface-border) — that
+     border color sits too close in lightness to the dial window's pink
+     fill (--color-highlight-soft, timeline-panel.js's buildWindow) to read
+     as a tick at all; the palette's "on light, subtle" text token
+     contrasts properly instead. */
+  background: var(--color-text-on-surface-muted);
+}
+
+.tl-dial-tick-num {
+  margin-top: 2px;
+  font-size: 0.5rem;
+  line-height: 1;
+  color: var(--color-text-on-surface-muted);
+  white-space: nowrap;
+}
+
+/* Both bleed the full height of the *window* (not just this tick row) —
+   a large top/bottom overflow (not a value matched to .tl-bottom-window-
+   fill's own padding) lets .tl-window-fill's own clip-path do the precise
+   cropping, rather than this needing to track that padding by hand. Major
+   (meeting) days get this treatment too, same as the today-band — per the
+   "major days have no date but a full-height tick" brief, the tick that
+   marks them needs to actually reach the window's real top/bottom, not
+   just this tick row's own short height. */
+.tl-dial-today,
+.tl-dial-meeting {
+  position: absolute;
+  top: -200px;
+  bottom: -200px;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.tl-dial-meeting {
+  background: var(--color-text-on-surface-muted);
+}
+
+/* Same color as .tl-day-chip above — "the same marker, seen at two
+   heights." */
+.tl-dial-today {
+  width: 8px;
+  background: var(--color-primary-strong);
+  left: var(--today-position, 0%);
+  /* Same drop-shadow idea as .tl-day-chip — the bar reads as sitting
+     slightly proud of the dial's own surface, matching that "same
+     marker, same material" connection between the two. box-shadow would
+     work equally well here (this bar isn't clip-path'd, unlike the chip),
+     but drop-shadow keeps the recipe identical between the two rather
+     than switching techniques for what's meant to look like one object. */
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.25));
+}
+
+.tl-dial-meeting-mid { left: var(--mid-position, 50%); }
+.tl-dial-meeting-start { left: 0%; }
+.tl-dial-meeting-end { left: 100%; }
+
+/* Labels below the panel — same structural role as the old
+   .timeline-wrapper's own .tl-labels, just no longer tied to an
+   absolutely-positioned track (the panel above now carries that job). */
+.tl-labels {
+  position: relative;
+  margin-top: 16px;
+  height: 76px;
+}
+
+.tl-label { position: absolute; }
+.tl-label-left  { left: 0;                          text-align: left; }
+.tl-label-mid   { left: var(--mid-position, 50%);   transform: translateX(-50%); text-align: center; }
+.tl-label-right { right: 0;                         text-align: right; }
+
+/* No color of their own — all three inherit .timeline-section's own
+   default (--metal-shadow) now, including .tl-label-time, which used to
+   be a separate muted token calibrated for a background this section no
+   longer has. */
+.tl-label-date {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.tl-label-name {
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+}
+
+.tl-label-time {
+  font-size: 0.8rem;
+}
+
+/* === Stage 2: pulley, string, hanging glass (src/organisms/timeline-panel.js) ===
+   All four pieces below are appended as siblings on .tl-panel-layout,
+   same as .tl-day-chip above — desktop only (hidden on mobile, see the
+   media query below), since the mobile chip moves top-to-bottom rather
+   than left-to-right, which this whole rig's geometry assumes. z-index
+   here is what actually makes each of the three near-side string copies
+   pass in front of the glass and the three far-side copies disappear
+   behind it — not just DOM order, since append order isn't guaranteed to
+   stay in this stacking order as the rig evolves. */
+.tl-pulley {
+  position: absolute;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+}
+
+/* margin: 2px, matching buildPulley's own outset passed to
+   wrapWithOuterMatteRim, is what centers the gear within .tl-pulley's
+   auto-shrink-wrapped box (.rim-matte-outer-wrap, styles/atoms.css) —
+   the absolutely-positioned .rim-matte-outer band itself doesn't
+   contribute to that shrink-to-fit sizing, only this in-flow margin box
+   does, so without it the gear would sit flush at the wrap's top-left
+   corner instead of centered, throwing .tl-pulley's own
+   translate(-50%, -50%) off by exactly the outset. */
+.tl-pulley-face {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 2px;
+}
+
+/* Same 3 tones as .metal-rivet's own radial-gradient (styles/atoms.css),
+   just swept conically instead of radially — 3 evenly-spaced highlight
+   glints around the disc (repeating every 120deg, 0%/100% matching so the
+   sweep wraps seamlessly), reading as light catching the turned facets of
+   a real spun-metal gear rather than one flat directional highlight.
+   Clipped to the tooth silhouette in JS (buildPulley's own
+   clip-path: path(...)). */
+.tl-pulley-gear {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--metal-base) 40%, white) 0%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 6%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 16%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 33.3%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 39.3%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 49.3%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 66.6%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 72.6%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 82.6%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 100%
+  );
+}
+
+/* The gear's own center hub/axle — the exact same radial-gradient (and
+   box-shadow edge) recipe as .metal-rivet (styles/atoms.css), not the
+   gear's conic sweep, so it reads as a separate rivet-like bolt set into
+   the gear's own face rather than a smaller slice of the same material. */
+.tl-pulley-hub {
+  position: absolute;
+  top: 28%;
+  left: 28%;
+  right: 28%;
+  bottom: 28%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 0%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 55%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 100%
+  );
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.18);
+}
+
+/* A raised collar/boss sitting on the gear's own body, just outside the
+   hub above (22% inset — between the hub's own 28% and the ~10% inset
+   where the teeth roots start, per PULLEY_GEAR_ROOT_RATIO) — real spur
+   gears usually have one between the center bore and where the teeth
+   begin. The exact same linear-gradient recipe as .rim-matte-outer
+   (styles/atoms.css, the gear's own outer rim) — reads as the same metal
+   bezel, just circular here and with no drop-shadow of its own (that
+   rim's shadow lives on .tl-pulley's own filter, lifting the *outer* edge
+   off the panel; this inner one sits flush on the gear's face, not lifted). */
+.tl-pulley-inner-rim {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--metal-base) 45%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 30%, white) 20%,
+    color-mix(in srgb, var(--metal-highlight) 88%, var(--metal-base)) 45%,
+    color-mix(in srgb, var(--metal-base) 30%, white) 65%,
+    color-mix(in srgb, var(--metal-base) 45%, white) 100%
+  );
+}
+
+.tl-rig-strings {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tl-rig-strings-back { z-index: 1; }
+.tl-rig-strings-front { z-index: 3; }
+
+.tl-glass {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+/* The chute's own ball, for its final "into the liquid" leg — inserted
+   between .tl-glass-liquid and .tl-glass-front (src/atoms/glass-graphic.js's
+   own dropIntoLiquid), so DOM order alone puts it behind the front
+   accents, no z-index needed. Same "bead of liquid" recipe as the hero's
+   own .countdown-drop/.drop-chute-ball, so it reads as literally the same
+   drop throughout its whole journey. */
+.tl-glass-drop {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
+    var(--color-primary-soft);
+}
+
+.tl-glass-back,
+.tl-glass-frost,
+.tl-glass-liquid,
+.tl-glass-front {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* .tl-glass-back is now an inlined SVG (fetched + injected, src/atoms/
+   glass-graphic.js), not an <img> — its own <svg> child needs the same
+   fill treatment an <img> would otherwise get from the rule above. */
+.tl-glass-back svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The whole back layer read too opaque/solid — simpler to turn down as
+   one piece than to keep singling out individual internal layers. */
+.tl-glass-back {
+  opacity: 0.5;
+}
+
+/* Blurs whatever sits behind the panel — clip-path (a real SVG <clipPath>
+   built from the artwork's own exact outer silhouette, set in JS —
+   src/atoms/glass-graphic.js) is what actually confines that blur to the
+   cup's shape rather than its full rectangular layer. */
+.tl-glass-frost {
+  backdrop-filter: blur(6px);
+  opacity: 0.5;
+}
+
+/* Real ellipse-based liquid (src/tokens/glass-shape.js), not a flat
+   mask-image edge — createGlassGraphic's setFill() rebuilds the body path
+   and surface ellipse's own attributes every time the fill fraction
+   changes, rather than animating a CSS custom property. */
+.tl-glass-liquid-body {
+  fill: var(--color-primary-soft);
+}
+
+/* Just slightly darker than the body — wip/Glass/Example - Liquid.svg's
+   own top ellipse reads only subtly darker than its body/floor, not a
+   full ramp step down. --color-primary (the next step down from
+   --color-primary-soft) was tried directly and read as far too dark — a
+   light color-mix toward it keeps this in the same --color-primary-soft
+   ramp without jumping all the way to that step. Without some darkening
+   here, the surface ellipse is the exact same fill as the body underneath
+   it and reads as invisible. */
+.tl-glass-liquid-surface {
+  fill: color-mix(in srgb, var(--color-primary-soft) 80%, var(--color-primary) 20%);
+}
+
+/* Just slightly lighter than the body — same two-tone read wip/Glass/
+   Example - Liquid.svg itself uses for its own fixed floor ellipse
+   (suggesting light passing through less liquid at the very bottom), but
+   subtle rather than a heavy 65/35 whiteout — same restraint as the
+   surface ellipse's own color-mix just above. Stays in the same
+   --color-primary-soft ramp (a tint of it, not an unrelated token), so
+   the whole liquid still re-themes together as one piece. */
+.tl-glass-liquid-floor {
+  fill: color-mix(in srgb, var(--color-primary-soft) 85%, white 15%);
+}
+
+/* The drop's own "lands in the liquid" reaction (src/atoms/liquid-ripple.js)
+   — flash/ring/splashlet, each a lighter tint of the same --color-primary-soft
+   ramp the rules above use, ordered by relative brightness (flash brightest,
+   splashlet closest to the body) the same way wip/drop-ripple-demo.html's
+   own palette reads lighter than its liquid body. */
+.tl-glass-liquid-meniscus {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-primary-soft) 60%, white 40%);
+}
+
+.tl-glass-liquid-ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-primary-soft) 70%, white 30%);
+}
+
+.tl-glass-liquid-flash {
+  fill: color-mix(in srgb, var(--color-primary-soft) 55%, white 45%);
+}
+
+.tl-glass-liquid-splashlet {
+  fill: color-mix(in srgb, var(--color-primary-soft) 75%, white 25%);
+}
+
+@media (max-width: 640px) {
+  /* Bottom padding is much larger than the top here (unlike desktop's
+     roughly-even 48/40) — .tl-label-right's baseline is aligned to sit
+     exactly at the dial's own 100% tick (timeline-panel.js's tick()), so
+     that label's .tl-label-name/-time lines spill out *below* .tl-labels'
+     own 480px box. This just gives them room to breathe before the
+     section's own bottom rivet row / next section starts. */
+  .timeline-section { padding: 48px 10px 240px; }
+
+  /* Tracks on the left, labels lined up against them on the right —
+     instead of .tl-body's default desktop stack. margin-left shifts the
+     whole composition right, off the section's own edge, by an extra
+     40px beyond .timeline-section's own 10px side padding. */
+  .tl-body {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+    margin-left: 40px;
+  }
+
+  .tl-mount { flex-shrink: 0; }
+
+  /* Parallel vertical tracks side by side (not stacked) — the narrow
+     spring track, then the (slightly wider) dial track just to its
+     right. Both windows fixed to the same height so they read as two
+     parallel strips. */
+  .tl-panel-layout {
+    flex-direction: row;
+    align-items: stretch;
+    /* Wider than the base 16px column-gap — on mobile the hanging glass
+       (Stage 2 rig, positioned off the spring track's own chip) swings
+       into the space just past the spring track, and 16px alone put it
+       too close to the dial/date track right next to it. Bumped a
+       further 16px (32 -> 48) for even more breathing room. */
+    gap: 48px;
+  }
+
+  /* Taller than a plain 1:1 rotation of the desktop panel would need —
+     the day axis is now this column's own height, and 63 daily ticks need
+     real room to each carry a 2-digit day-number without the rows
+     colliding vertically (480px, tried first, packed them ~7.6px apart;
+     this gives ~9.7px). */
+  .tl-window-fill { height: 640px; }
+
+  /* Width = the spring track's own desktop *height* (18px) plus the same
+     4px padding its desktop rule uses either side of it — mirroring the
+     desktop window's own thickness exactly, just rotated, rather than
+     an independently-chosen mobile value. This is why the dial window
+     below reads visibly thicker than this one on desktop (14px track +
+     16px padding vs. this one's 18px + 4px) and needs to keep reading
+     that way here too. */
+  .tl-top-window-fill {
+    width: 26px;
+    height: 100%;
+    padding: 0 4px;
+  }
+
+  .tl-spring-track {
+    width: 100%;
+    height: 100%;
+    /* Swaps which axis clips vs. stays open for the shadow — the rotated
+       mobile layout makes height the growth axis and width the (now
+       narrow) cross-axis, the opposite of desktop (see the base rule's
+       own comment above). */
+    overflow-x: visible;
+    overflow-y: hidden;
+  }
+
+  /* Same idea as .tl-top-window-fill above: width = the dial's own
+     desktop *height* (28px, tick row + day-number) plus the same 16px
+     padding its desktop rule uses either side of it, not an independently-
+     chosen mobile value — this is what actually makes this window read
+     thicker than the spring one, matching their desktop relationship. */
+  .tl-bottom-window-fill {
+    width: 60px;
+    height: 100%;
+    padding: 0 16px;
+    min-height: 0;
+  }
+
+  .tl-dial {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Swaps which edge the tick grid insets from — top/bottom (day 0 inset
+     from the window's top, day DAY_COUNT from its bottom) rather than
+     desktop's left/right, matching the rotated vertical layout. */
+  .tl-dial-ticks {
+    inset: var(--tl-day-inset, 14px) 0;
+  }
+
+  /* Flush to .tl-dial-ticks's own right edge (row-reverse — the tick line
+     is the ::before, so reversing puts it last in visual order, right
+     against the anchored edge, with the day-number just inside it to the
+     left) — the rotated-layout equivalent of the desktop rule's top-flush
+     arrangement. */
+  .tl-dial-tick {
+    top: var(--tl-tick-pos, 0%);
+    left: auto;
+    right: 0;
+    transform: translateY(-50%);
+    flex-direction: row-reverse;
+    align-items: center;
+  }
+
+  .tl-dial-tick::before {
+    width: 8px;
+    height: 1px;
+  }
+
+  .tl-dial-tick-num {
+    margin-top: 0;
+    margin-right: 2px;
+  }
+
+  .tl-dial-today,
+  .tl-dial-meeting {
+    top: auto;
+    bottom: auto;
+    left: -200px;
+    right: -200px;
+    width: auto;
+    height: 2px;
+    transform: translateY(-50%);
+  }
+
+  .tl-dial-today {
+    height: 8px;
+    top: var(--today-position, 0%);
+  }
+  .tl-dial-meeting-mid  { top: var(--mid-position, 50%); }
+  .tl-dial-meeting-start { top: 0%; }
+  .tl-dial-meeting-end   { top: 100%; }
+
+  /* Same height as .tl-window-fill above, so the 0%/mid/100% fallback
+     positions below land in the same coordinate space as the dial's own
+     ticks. The real positioning is JS-driven, though (timeline-panel.js's
+     tick()) — it overrides top/transform on each label directly, once it
+     can measure where that label's own .tl-label-date child sits, so the
+     date's own baseline lines up with its tick exactly rather than the
+     whole 3-line label block's center (which drifts from the tick once
+     .tl-label-name/-time add more lines below the date). These
+     percentage values only apply for the brief instant before that JS
+     runs. */
+  .tl-labels {
+    flex: 1 1 auto;
+    height: 640px;
+    margin-top: 0;
+  }
+  .tl-label {
+    left: 0;
+    right: 0;
+    text-align: left;
+    transform: translateY(-50%);
+  }
+  .tl-label-mid { left: 0; }
+  .tl-label-left  { top: 0%; }
+  .tl-label-mid   { top: var(--mid-position, 50%); }
+  .tl-label-right { top: 100%; bottom: auto; right: auto; }
+}

@@ -104,13 +104,12 @@
    shadow (see .kod-media-column .rim-matte-inner, styles/organisms/
    kueh-of-day.css, for where that shadow actually lives) — the rim reads
    as this object's own material, not a separate frame. That's distinct
-   from an "outer" rim (not yet built, but the system should grow one): a
-   metal bezel wrapping something that's already a complete, self-
+   from the "outer" rim (.rim-matte-outer / wrapWithOuterMatteRim, below):
+   a metal bezel wrapping something that's already a complete, self-
    contained visual unit with its own bounds — e.g. framing a small icon,
    or adding a bezel around a control that might already carry its own
    shadow — where the frame and the thing it frames read as two separate
-   layers, not one fused object. Name any future outer variant
-   .rim-matte-outer / wrapWithOuterMatteRim to keep the pair unambiguous.
+   layers, not one fused object.
 
    border-radius: inherit is the shape fallback for plain rectangular/
    pill consumers; a clip-path'd consumer (retro-rectangle shapes) needs its
@@ -143,12 +142,166 @@
   border-radius: inherit;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--metal-base) 45%, white) 0%,
-    color-mix(in srgb, var(--metal-base) 30%, white) 20%,
-    color-mix(in srgb, var(--metal-highlight) 88%, var(--metal-base)) 45%,
-    color-mix(in srgb, var(--metal-base) 30%, white) 65%,
-    color-mix(in srgb, var(--metal-base) 45%, white) 100%
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 45%, white) 0%,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 30%, white) 20%,
+    color-mix(in srgb, var(--metal-highlight) 88%, var(--rim-base, var(--metal-base))) 45%,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 30%, white) 65%,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 45%, white) 100%
   );
+}
+
+/* .metal-seam / .metal-seam-line (src/atoms/metal-seam.js) — two thin
+   flush lines sitting side by side, touching with no gap between them
+   (.metal-seam's own gap: 0): not a scored groove cut into one sheet,
+   but the butted edges of two separate sheets of metal meeting — one
+   edge catching the light (:first-child, the glint side), the other
+   sitting just behind it in that glint's shadow (:last-child). No
+   border-radius on either — flush square ends are what let the line's
+   own top/bottom edges land exactly on the section's top/bottom edges
+   (see .kod-seam-line's negative-offset bleed, kueh-of-day.css) rather
+   than reading as a rounded rod capped short of it.
+
+   Both stops are mixed toward *white*, not toward --metal-base/-shadow
+   directly — the same move .rim-matte-inner's own comment above
+   explains (its darkest stop is "45% metal-base, 55% white", never raw
+   metal-base), and for the same reason: .matte-metal-surface's own panel
+   is itself mostly white (background-color: 24% metal-base into white,
+   below), so anything anchored at metal-base's/-shadow's own darkness
+   reads as heavily dark by comparison regardless of how it's then tuned.
+
+   Each line holds a flat baseline for most of its length, with only a
+   short window right around the vertical midpoint (42%-58%) actually
+   shifting toward its highlight/shadow extreme — a brief glint/shadow
+   moment, not a value sustained the full height (an earlier pass ramped
+   from each end straight to the midpoint, so nearly the whole line sat
+   partway toward the extreme instead of holding a calm baseline). The
+   glint edge's baseline (28% metal-base into white) reads close to the
+   panel's own tone; its brief peak (10% metal-base into white) lifts
+   only a little above that — not pure white, which read as blown-out
+   against this panel. The shadow edge's baseline/peak (52%/70% metal-base
+   into white — darkened from an earlier 40%/55%, which didn't read as
+   clearly darker than the glint edge) sit a shade darker throughout,
+   without crushing toward raw --metal-base or --metal-shadow. */
+.metal-seam {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.metal-seam-line {
+  width: 1px;
+  height: 100%;
+}
+
+.metal-seam-line:first-child {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--metal-base) 28%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 28%, white) 42%,
+    color-mix(in srgb, var(--metal-base) 10%, white) 50%,
+    color-mix(in srgb, var(--metal-base) 28%, white) 58%,
+    color-mix(in srgb, var(--metal-base) 28%, white) 100%
+  );
+}
+
+.metal-seam-line:last-child {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--metal-base) 52%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 52%, white) 42%,
+    color-mix(in srgb, var(--metal-base) 70%, white) 50%,
+    color-mix(in srgb, var(--metal-base) 52%, white) 58%,
+    color-mix(in srgb, var(--metal-base) 52%, white) 100%
+  );
+}
+
+/* .rim-matte-inner-tinted — recolors the rim from the neutral --metal-base
+   to the current theme's primary-strong color (--rim-base, which
+   .rim-matte-inner/-glint's gradients above already fall back from) —
+   same color-mix ratios, so the light/dark rhythm is identical, just built
+   from a different base hue. For a matte rim sitting inside a solid
+   theme-colored area (the countdown clock's water-clock window, on the
+   dark hero background) rather than the light, neutral surfaces
+   .rim-matte-inner was built for — a plain gray/silver bezel there would
+   read as a mismatched material dropped onto the green, not a rim that
+   belongs to the same object. --rim-base is a custom property, so setting
+   it here on the outer rim reaches the nested .rim-matte-inner-glint band
+   too without that band needing its own modifier class.
+   display/width/height: also switches from "stretch to fill an
+   already-sized ambient layout" (kueh-of-day's own grid/flex column,
+   which .rim-matte-inner's width/height: 100% assume) to "shrink-wrap
+   around the fillEl it wraps" — the countdown viewport's size is driven
+   bottom-up by its own digit content instead. */
+.rim-matte-inner-tinted {
+  --rim-base: var(--color-primary-strong);
+  display: inline-block;
+  width: auto;
+  height: auto;
+}
+
+.rim-matte-inner-tinted .rim-matte-inner-glint {
+  display: inline-block;
+  width: auto;
+  height: auto;
+}
+
+/* .housing-frame-wrap / .housing-frame (src/atoms/housing-frame.js) — a
+   thick decorative material housing drawn OUTSIDE an element's own edge:
+   a plain div clipped to a shape (clip-path: path(...), set in JS) with
+   a static conic-gradient background (the same "wrap dark/light bands
+   around the shape's contour, from one shared center" math the site's
+   interactive liquid-chrome rims use — chrome-metal.js's
+   computeConicChromeLayers — just with no rotation registered, so it
+   stays fixed rather than tracking the cursor/scroll). Originated for
+   the hero countdown's own water-clock window (src/organisms/
+   countdown-clock.js) — reusable for any other shape/button/UI element
+   that wants the same treatment.
+
+   .housing-frame-wrap: a plain shrink-wrapped positioning box around
+   both the wrapped element and the frame — needed because a clip-path'd
+   fillEl (a retro-shape window, .rim-matte-inner, etc.) would otherwise
+   clip the frame's own outward bleed away if the frame were nested
+   inside it instead of being a sibling (clip-path clips *all* of an
+   element's descendants, not just its own background).
+
+   left/top/width/height on .housing-frame are set directly in JS
+   (wrapWithHousingFrame's own update()), not a fixed inset/100% here —
+   the div's own box has to actually extend past fillEl's edge by the
+   current outset amount (not just be clipped to a shape that does),
+   since background painting stops at the border-box regardless of what
+   clip-path reveals beyond it. */
+.housing-frame-wrap {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: auto;
+}
+
+/* Noise layer + --housing-metal (the conic-gradient, set via
+   outline.style.setProperty in housing-frame.js) painted together in one
+   background-image list — JS sets a custom property here instead of
+   background-image directly, since assigning el.style.backgroundImage
+   would replace this whole property (including the CSS-defined noise
+   layer below it) rather than adding to it; a custom property, unlike
+   other style properties, still gets read by this rule's own var()
+   regardless of whether it's set inline or here in the stylesheet.
+
+   The noise texture itself is the exact same feTurbulence recipe
+   .matte-metal-surface uses below (tiled 200x200, desaturated, multiply-
+   blended at 0.25 opacity) — same brushed-steel grain, so the housing
+   reads as that same material rather than a flat gradient. Duplicated
+   literally rather than factored into a shared custom property, so
+   retuning one doesn't risk silently changing the other. */
+.housing-frame {
+  position: absolute;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E"),
+    var(--housing-metal);
+  background-repeat: repeat, no-repeat;
+  background-size: 200px 200px, 100% 100%;
+  background-blend-mode: multiply, normal;
 }
 
 /* width/height: 100% (not just relying on a block element's default
@@ -170,8 +323,48 @@
   background: linear-gradient(
     135deg,
     transparent 0%,
-    color-mix(in srgb, var(--metal-highlight) 94%, var(--metal-base)) 45%,
+    color-mix(in srgb, var(--metal-highlight) 94%, var(--rim-base, var(--metal-base))) 45%,
     transparent 60%
+  );
+}
+
+/* .rim-matte-outer-wrap / .rim-matte-outer (src/atoms/matte-rim.js's
+   wrapWithOuterMatteRim) — the "outer" counterpart .rim-matte-inner's own
+   comment above describes: a thin metal bezel framing an already-complete
+   element from *outside* its edge, rather than rim+glint+fill sharing one
+   edge as a single fused object. Structurally this is wrapWithHousingFrame's
+   own "grow the wrapped shape's silhouette outward by a flat outset"
+   technique (.housing-frame-wrap/.housing-frame, below) — a div sized/
+   positioned in JS to extend past fillEl on every side, clipped to a path
+   grown outward by that same amount — just carrying .rim-matte-inner's
+   own thin static gradient instead of housing's thick conic "liquid
+   chrome" + noise texture. One band, not two (no separate glint layer):
+   at the thin 1-2px scale this rim is meant for, a nested glint band
+   would be imperceptibly thin on top of it, unlike .rim-matte-inner-glint
+   which has real reachable padding to work with.
+
+   Positioning is a mirror of .housing-frame-wrap/.housing-frame:
+   left/top/width/height/clip-path are all set directly in JS (the
+   wrapper needs a size other than fillEl's own to stay unclipped by any
+   clip-path fillEl itself carries), display: inline-block/width: auto so
+   the wrap shrink-wraps to fillEl rather than stretching. */
+.rim-matte-outer-wrap {
+  position: relative;
+  display: inline-block;
+  width: auto;
+  height: auto;
+}
+
+.rim-matte-outer {
+  position: absolute;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 45%, white) 0%,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 30%, white) 20%,
+    color-mix(in srgb, var(--metal-highlight) 88%, var(--rim-base, var(--metal-base))) 45%,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 30%, white) 65%,
+    color-mix(in srgb, var(--rim-base, var(--metal-base)) 45%, white) 100%
   );
 }
 
@@ -271,6 +464,23 @@
   justify-content: space-between;
   gap: 85px;
   pointer-events: none;
+}
+
+/* Runs the row top-to-bottom instead of left-to-right — the Kueh of the
+   Day seam (.kod-seam-rivets, kueh-of-day.css) running alongside the
+   vertical line between its two columns, rather than a panel's flat
+   top/bottom edge. width/height: 100% (not the base rule's implicit
+   shrink-to-content) is what lets space-between distribute dots across
+   the seam's own actual rendered height, the same reasoning the base
+   row's width: 100% container (.metal-rivet-row-top/-bottom) relies on.
+   gap: 40px is a much lower floor than the horizontal row's 85px — the
+   seam is a section-height line, not a section-width one, so fewer
+   pixels are available to spread a handful of dots across. */
+.metal-rivet-row-vertical {
+  flex-direction: column;
+  gap: 40px;
+  width: auto;
+  height: 100%;
 }
 
 /* radial-gradient (not a flat fill) is what reads as a small embossed
@@ -376,30 +586,28 @@
   pointer-events: none;
 }
 
-/* .tab — sits on top of the tab group's sliding .tab-highlight
-   (src/molecules/tab-group.js), which now paints the selected-tab
-   background, so .tab itself stays transparent except for its own
-   :hover state. Text color still switches per aria-selected here (needs
-   to read against the highlight once it slides underneath), just not the
-   background. Its own hover background is shaped by a per-button
-   retro-rectangle clip-path (set inline by tab-group.js's shapeElement), not
-   border-radius — border-radius here is only a fallback for :focus-visible
-   in browsers that don't clip an element's own outline to its clip-path
-   (outline, like box-shadow, generally paints outside the clipped
-   region), using --radius-interactive rather than the old --radius-pill
-   so that fallback at least approximates the new shape's character
-   instead of a leftover pill. */
+/* .tab — the tab group's sliding .tab-highlight (src/molecules/
+   tab-group.js) paints the selected-tab background, so .tab itself has no
+   background of its own; that now lives on the .tab-fill child below,
+   split out specifically so it can stack *below* the highlight while the
+   label stacks *above* it (see .tab-fill's own comment). position:
+   relative with no z-index here is deliberate: it anchors .tab-fill's
+   inset:0 without giving .tab itself a stacking context of its own, which
+   is what lets .tab-fill and .text-sheen (children) escape past it and
+   stack independently against the highlight sibling instead of moving as
+   one fused unit with .tab. Text color still switches per aria-selected
+   here (needs to read against the highlight once it slides underneath).
+   border-radius is only a fallback for :focus-visible in browsers that
+   don't clip an element's own outline to its clip-path (outline, like
+   box-shadow, generally paints outside the clipped region), using
+   --radius-interactive rather than the old --radius-pill so that fallback
+   at least approximates the retro-rectangle's character instead of a
+   leftover pill. */
 .tab {
+  position: relative;
   appearance: none;
   border: none;
-  /* background-color, not the `background` shorthand: .text-sheen (above)
-     sets background-image via the shorthand too, and since both rules have
-     equal specificity, whichever comes later in source order would win the
-     *entire* shorthand and silently wipe the other's background-image —
-     that's exactly what made tab labels go invisible. Sticking to the
-     background-color longhand here means these rules only ever touch their
-     own layer. */
-  background-color: transparent;
+  background: none;
   font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
@@ -407,11 +615,34 @@
   border-radius: var(--radius-interactive);
   cursor: pointer;
   --sheen-base: var(--color-text-on-surface-muted);
+}
+
+/* .tab-fill — the actual hover-tint layer (see .tab's own comment above
+   for why this isn't just .tab's own background). z-index: -2 puts it one
+   step below .tab-highlight's own -1 (molecules.css) once both escape
+   .tab's non-stacking-context box to compare directly against each other
+   — so a hovered, not-currently-selected tab's tint always sits *behind*
+   the sliding indicator rather than fighting it for the top layer while
+   it transits past. clip-path: inherit copies .tab's own retro-rectangle
+   shape (set inline by tab-group.js's shapeElement) so the tint fills the
+   identical silhouette without its own separate clip-path wiring.
+   aria-hidden/pointer-events: none — purely decorative, never a click or
+   hover target of its own (the real button underneath still is). */
+.tab-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: inherit;
+  clip-path: inherit;
+  pointer-events: none;
   transition: background-color 0.15s ease;
 }
 
-.tab:hover:not([aria-selected="true"]) {
+.tab:hover:not([aria-selected="true"]) .tab-fill {
   background-color: var(--color-surface-tint);
+}
+
+.tab:hover:not([aria-selected="true"]) {
   --sheen-base: var(--color-text-on-surface);
 }
 
@@ -422,6 +653,18 @@
 .tab:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* Escapes .tab's own (non-)stacking context the same way .tab-fill does
+   above, but lands *above* .tab-highlight (z-index: -1, molecules.css) —
+   so the label always reads on top of the sliding indicator, whichever
+   tab it's currently under mid-transition. Scoped to .tab specifically,
+   not the shared .text-sheen rule itself, since other .text-sheen
+   consumers (e.g. .btn-label, src/atoms/button.js) have no such sibling
+   to escape past and don't need this. */
+.tab .text-sheen {
+  position: relative;
+  z-index: 0;
 }
 
 /* .kueh-icon — small inline SVG wrapper, sits next to the kueh name */
