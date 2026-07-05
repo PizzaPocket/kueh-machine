@@ -1564,10 +1564,14 @@
 
     function log(msg) {
       var t = ((performance.now() - startTime) / 1000).toFixed(2);
-      lines.push('+' + t + 's ' + msg);
+      var line = '+' + t + 's ' + msg;
+      lines.push(line);
       if (lines.length > 60) lines.shift();
       logEl.textContent = lines.join('\n');
       logEl.scrollTop = logEl.scrollHeight;
+      // Also to the real console — once a real Web Inspector is attached,
+      // copy-pasteable text beats reading a cramped on-page overlay.
+      console.log('[debug]', line);
     }
 
     window.addEventListener('chute:ball-released', function () { log('=== RELEASE ==='); });
@@ -1589,7 +1593,8 @@
       var svgStyle = getComputedStyle(chuteSvg);
       return {
         housingCount: housings.length,
-        housingMetal0: (h0.getPropertyValue('--housing-metal') || '').slice(0, 50),
+        housingMetal0: h0.getPropertyValue('--housing-metal') || '',
+        housingBackgroundImage: h0.backgroundImage,
         housingOpacity: h0.opacity,
         housingFilter: h0.filter,
         housingVisibility: h0.visibility,
@@ -1606,20 +1611,32 @@
     }
 
     var last = null;
+    var warnedMissing = false;
     setInterval(function () {
       var snap = snapshot();
-      if (!snap) return;
+      if (!snap) {
+        if (!warnedMissing) {
+          warnedMissing = true;
+          log('WARN: housing/chute elements not found yet — selectors: .hero .housing-frame=' +
+            document.querySelectorAll('.hero .housing-frame').length + ', .drop-chute-path=' +
+            !!document.querySelector('.drop-chute-path') + ', .drop-chute-svg=' + !!document.querySelector('.drop-chute-svg'));
+        }
+        return;
+      }
+      warnedMissing = false;
       if (last) {
         var changed = [];
         for (var k in snap) {
           if (String(snap[k]) !== String(last[k])) changed.push(k + ': "' + last[k] + '" -> "' + snap[k] + '"');
         }
         if (changed.length) log('CHANGE -- ' + changed.join(' | '));
+      } else {
+        log('baseline snapshot: ' + JSON.stringify(snap));
       }
       last = snap;
     }, 250);
 
-    log('debug instrumentation active');
+    log('debug instrumentation active, UA=' + navigator.userAgent);
   })();
   </script>
 
