@@ -382,25 +382,12 @@
   margin-top: 0;
 }
 
-/* list-style-position: inside, not the default outside — .kod-recipe-
-   collapse (below) clips overflow for its collapse/expand animation, and
-   its own left clip edge sits flush against this list's left edge with
-   zero buffer. An outside marker hangs in the padding gutter as its own
-   separate box rather than the normal inline flow, and its rendered
-   width isn't guaranteed to fit inside that gutter exactly (WebKit's
-   outside-marker layout in particular runs the number closer to the
-   content edge than Chromium's) — with zero clearance from the clip
-   boundary, that's what was slicing off the left edge of each number on
-   mobile Safari. `inside` folds the marker into the normal text flow, so
-   it can never render outside the list's own padding box in the first
-   place. */
 .kod-ingredient-list,
 .kod-method-list {
   color: var(--color-text-on-surface);
   font-size: 0.9rem;
   line-height: 1.7;
   padding-left: 1.25em;
-  list-style-position: inside;
 }
 
 .kod-recipe-empty {
@@ -411,11 +398,26 @@
 /* max-height's expanded target is set inline by JS (buildContentColumn,
    kueh-of-day.js) as collapse.scrollHeight — a real measured pixel value,
    not max-height: none, which can't transition smoothly (there's no
-   interpolatable path from a fixed px value to the "none" keyword). */
+   interpolatable path from a fixed px value to the "none" keyword).
+   overflow: hidden here is what makes that collapse/expand actually clip
+   instead of just growing the panel underneath it.
+
+   padding-left/right: this element's own left edge used to sit exactly
+   flush with .kod-ingredient-list/.kod-method-list's own left edge (zero
+   buffer) — an outside list marker (the default; keeping it, rather than
+   list-style-position: inside, is what keeps the numbers and the text
+   both in their own clean, consistently-aligned column, wrapped lines
+   included) hangs into its padding-left gutter as its own box, and
+   mobile Safari's outside-marker layout runs that box close enough to
+   the edge that it could poke past a zero-buffer clip boundary, slicing
+   off the left stroke of each number. A few px of real breathing room
+   between this clip edge and the list's own box is what actually fixes
+   that, rather than changing how the list marks itself up. */
 .kod-recipe-collapse {
   position: relative;
   max-height: 180px;
   overflow: hidden;
+  padding: 0 8px;
   transition: max-height 0.3s ease;
 }
 
