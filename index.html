@@ -1038,6 +1038,16 @@
 </head>
 <body>
 
+  <!-- TEMP DEBUG INSTRUMENTATION — remove before launch (search
+       "debug-instrumentation" for this div and its script counterpart near
+       the bottom of the page). Read-only: samples computed styles of the
+       chute/housing elements and logs ball lifecycle events to this
+       visible overlay, so the mobile-only darkening bug can be diagnosed
+       from a screenshot without needing Safari's remote Web Inspector.
+       Fixed to the bottom of the viewport so it doesn't cover the hero
+       content it's watching. -->
+  <div id="debug-instrumentation" style="position:fixed; bottom:0; left:0; right:0; z-index:99999; background:rgba(0,0,0,0.88); color:#0f0; font:9px/1.4 monospace; max-height:35vh; overflow-y:auto; padding:6px; white-space:pre-wrap; pointer-events:none;"></div>
+
   <!-- SITE NAV -->
   <nav class="site-nav" aria-label="Section navigation">
     <div class="site-nav-inner">
@@ -1538,6 +1548,78 @@
       }
       window.dispatchEvent(new Event('dev:date-changed'));
     });
+  })();
+  </script>
+
+  <!-- TEMP: debug instrumentation (see #debug-instrumentation above) —
+       remove this whole block before launch. Plain classic script (not
+       type="module") so it runs immediately and can observe main.js's own
+       module-driven elements once they exist, without an import cycle. -->
+  <script>
+  (function () {
+    var logEl = document.getElementById('debug-instrumentation');
+    if (!logEl) return;
+    var startTime = performance.now();
+    var lines = [];
+
+    function log(msg) {
+      var t = ((performance.now() - startTime) / 1000).toFixed(2);
+      lines.push('+' + t + 's ' + msg);
+      if (lines.length > 60) lines.shift();
+      logEl.textContent = lines.join('\n');
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    window.addEventListener('chute:ball-released', function () { log('=== RELEASE ==='); });
+    window.addEventListener('chute:ball-landed', function () { log('=== LANDED ==='); });
+    window.addEventListener('error', function (e) {
+      log('JS ERROR: ' + e.message + ' @ ' + (e.filename || '?') + ':' + e.lineno);
+    });
+
+    // Every property here is something our own code sets deliberately —
+    // any change this log shows that ISN'T explained by a RELEASE/LANDED
+    // line right next to it is the bug, caught in the act.
+    function snapshot() {
+      var housings = document.querySelectorAll('.hero .housing-frame');
+      var chutePath = document.querySelector('.drop-chute-path');
+      var chuteSvg = document.querySelector('.drop-chute-svg');
+      if (!housings.length || !chutePath || !chuteSvg) return null;
+      var h0 = getComputedStyle(housings[0]);
+      var cs = getComputedStyle(chutePath);
+      var svgStyle = getComputedStyle(chuteSvg);
+      return {
+        housingCount: housings.length,
+        housingMetal0: (h0.getPropertyValue('--housing-metal') || '').slice(0, 50),
+        housingOpacity: h0.opacity,
+        housingFilter: h0.filter,
+        housingVisibility: h0.visibility,
+        housingDisplay: h0.display,
+        chuteStroke: cs.stroke,
+        chuteOpacity: cs.opacity,
+        chuteSvgOpacity: svgStyle.opacity,
+        chuteSvgFilter: svgStyle.filter,
+        chuteSvgVisibility: svgStyle.visibility,
+        ballCount: document.querySelectorAll('.drop-chute-ball').length,
+        cecekCount: document.querySelectorAll('.drop-chute-svg .batik-cecek').length,
+        motifCount: document.querySelectorAll('.drop-chute-svg .batik-motif').length,
+      };
+    }
+
+    var last = null;
+    setInterval(function () {
+      var snap = snapshot();
+      if (!snap) return;
+      if (last) {
+        var changed = [];
+        for (var k in snap) {
+          if (String(snap[k]) !== String(last[k])) changed.push(k + ': "' + last[k] + '" -> "' + snap[k] + '"');
+        }
+        if (changed.length) log('CHANGE -- ' + changed.join(' | '));
+      }
+      last = snap;
+    }, 250);
+
+    log('debug instrumentation active');
   })();
   </script>
 
