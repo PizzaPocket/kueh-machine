@@ -259,9 +259,20 @@
    (molecules.css) uses for its own drop-shadow. Scoped to these two
    columns rather than baked into the shared .rim-matte-inner class
    (styles/atoms.css), since not every future .rim-matte-inner consumer
-   necessarily wants to read as a floating card. */
-.kod-media-column .rim-matte-inner,
-.kod-content-column .rim-matte-inner {
+   necessarily wants to read as a floating card.
+
+   Direct-child combinator (>), not a plain descendant selector — each
+   column's own window rim is a direct child (buildMediaColumn/
+   buildContentColumn, kueh-of-day.js), but .kod-tag's own icon badge
+   (buildMediaTag) is *also* a .rim-matte-inner, nested a couple levels
+   deeper inside .kod-tag. A plain descendant selector caught that badge
+   too, stacking this filter on top of its own ancestor .kod-tag's
+   separate drop-shadow (below) — two nested filter contexts on a small
+   circular element, which is exactly the shape WebKit mobile Safari
+   renders incorrectly (a square drop-shadow bounding box bleeding
+   through the circular clip, instead of hugging the circle). */
+.kod-media-column > .rim-matte-inner,
+.kod-content-column > .rim-matte-inner {
   filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.09)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.06));
 }
 

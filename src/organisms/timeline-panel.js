@@ -548,34 +548,21 @@ function buildRig() {
   let pulleyPoint = null;
   let nodePoint = null;
   let isMobileMode = false;
-  let bounceOffsetY = 0; // px, see setBounceOffset — the landing bounce's own glass offset
+  let bounceOffsetY = 0; // px, see setBounceOffset — the landing bounce's own node/glass offset
+  let chipBounceOffset = 0; // px, see setChipBounceOffset — the chip's own (smaller, separate) bounce offset
   const twistStart = performance.now();
-
-  // The chip->pulley->node run only moves when setPositions() is called
-  // (a resize/day-tick/mobile-breakpoint change) — unlike the 3 strands
-  // below, it has nothing to do with the twist, so redraw()'s own 60fps
-  // loop was recomputing and re-serializing it every frame for no reason.
-  // Cached here and only rebuilt in setPositions, not in the per-frame
-  // twist loop.
-  let fixedMarkup = '';
-
-  function updateFixedMarkup() {
-    let markup = '';
-    if (!isMobileMode) {
-      const seg1 = chipToPulley.compute(chipPoint, pulleyPoint);
-      markup +=
-        renderSegment(seg1, CECEK_FILL) +
-        chipToPulleyFlourishes.map((f) => renderFlourish(chipPoint, pulleyPoint, f, CECEK_FILL)).join('');
-    }
-    const seg2 = pulleyToNode.compute(pulleyPoint, nodePoint);
-    markup +=
-      renderSegment(seg2, CECEK_FILL) +
-      pulleyToNodeFlourishes.map((f) => renderFlourish(pulleyPoint, nodePoint, f, CECEK_FILL)).join('');
-    fixedMarkup = markup;
-  }
 
   function setBounceOffset(px) {
     bounceOffsetY = px;
+  }
+
+  // A taut string pulled by a bouncing weight doesn't just move past
+  // wherever it's pinned — the whole run reacts, chip end included (the
+  // string is what's tugging the chip in the first place). isMobileMode
+  // decides the axis (mobile's chip bounces vertically; desktop's
+  // horizontally) — same convention as init()'s own chip-position code.
+  function setChipBounceOffset(px) {
+    chipBounceOffset = px;
   }
 
   // `mobile`: no pulley — the string already pulls straight down on
@@ -596,17 +583,41 @@ function buildRig() {
       pulleyEl.style.left = `${pulley[0] + PULLEY_KNOB_OFFSET_X}px`;
       pulleyEl.style.top = `${pulley[1] + PULLEY_KNOB_OFFSET_Y}px`;
     }
-    updateFixedMarkup();
   }
 
   function redraw() {
     if (!chipPoint) return;
 
-    let frontMarkup = fixedMarkup;
+    let frontMarkup = '';
     let backMarkup = '';
 
     const t = (performance.now() - twistStart) / 1000;
     const twist = MAX_TWIST_RAD * Math.sin((2 * Math.PI * t) / TWIST_PERIOD_S);
+
+    // Every run below is built off these two bounced world points, not
+    // the raw chipPoint/nodePoint — the whole taut string (chip all the
+    // way through to the node) moves together during the landing bounce,
+    // not just the node/glass end of it (see setChipBounceOffset above).
+    const chipWorld = isMobileMode
+      ? [chipPoint[0], chipPoint[1] + chipBounceOffset]
+      : [chipPoint[0] + chipBounceOffset, chipPoint[1]];
+    const nodeWorld = [nodePoint[0], nodePoint[1] + bounceOffsetY];
+
+    if (!isMobileMode) {
+      const seg1 = chipToPulley.compute(chipWorld, pulleyPoint);
+      frontMarkup +=
+        renderSegment(seg1, CECEK_FILL) +
+        chipToPulleyFlourishes.map((f) => renderFlourish(chipWorld, pulleyPoint, f, CECEK_FILL)).join('');
+    }
+    // pulleyPoint is chipWorld's own un-bounced alias on mobile (see
+    // setPositions) — swapped in for chipWorld here so this run starts
+    // from the bounced chip on mobile, same as the real pulley (fixed,
+    // untouched) does on desktop.
+    const runStart = isMobileMode ? chipWorld : pulleyPoint;
+    const seg2 = pulleyToNode.compute(runStart, nodeWorld);
+    frontMarkup +=
+      renderSegment(seg2, CECEK_FILL) +
+      pulleyToNodeFlourishes.map((f) => renderFlourish(runStart, nodeWorld, f, CECEK_FILL)).join('');
 
     // NODE_TO_RIM_GAP holds the glass a fixed distance below the node —
     // without it, the glass's own rim sits exactly at the node's height,
@@ -614,15 +625,10 @@ function buildRig() {
     // reaching it (not what the mockup shows: a clear gap of open string
     // between where the single strand forks and where the cup actually
     // hangs, the string visibly under tension from the cup's own weight).
-    // bounceOffsetY folds in here (not just on the glass's own transform
-    // below) so the rim/base world points the strands actually attach to
-    // move with the bounce too — the whole rig (all three diverging
-    // strands, not just the cup) reacts together, per the user. The node
-    // itself (higher up, where the string forks) stays put — only the
-    // glass end of the string bounces, which is what makes it read as the
-    // string stretching down and recoiling, not the whole rig jumping.
-    const glassOriginX = nodePoint[0] - rim.cx;
-    const glassOriginY = nodePoint[1] + NODE_TO_RIM_GAP - rim.cy + bounceOffsetY;
+    // Built off nodeWorld (already bounced above), so the glass and the
+    // node it hangs from move together as one unit during the bounce.
+    const glassOriginX = nodeWorld[0] - rim.cx;
+    const glassOriginY = nodeWorld[1] + NODE_TO_RIM_GAP - rim.cy;
 
     strands.forEach((strand, i) => {
       const theta = STRAND_PHASE_OFFSETS[i] + twist;
@@ -646,11 +652,11 @@ function buildRig() {
 
       const fl = strandFlourishes[i];
       const flourishMarkup =
-        fl.nodeToRim.map((f) => renderFlourish(nodePoint, rimWorld, f, CECEK_FILL)).join('') +
+        fl.nodeToRim.map((f) => renderFlourish(nodeWorld, rimWorld, f, CECEK_FILL)).join('') +
         fl.rimToBase.map((f) => renderFlourish(rimWorld, baseWorld, f, CECEK_FILL)).join('');
 
       const markup =
-        renderStrandSegment(strand.nodeToRim.compute(nodePoint, rimWorld), opacity, strokeWidth) +
+        renderStrandSegment(strand.nodeToRim.compute(nodeWorld, rimWorld), opacity, strokeWidth) +
         renderStrandSegment(strand.rimToBase.compute(rimWorld, baseSegmentWorld), opacity, strokeWidth) +
         (flourishMarkup ? `<g style="opacity:${opacity.toFixed(2)}">${flourishMarkup}</g>` : '');
 
@@ -695,6 +701,7 @@ function buildRig() {
     dropIntoLiquid: glassGraphic.dropIntoLiquid,
     setPositions,
     setBounceOffset,
+    setChipBounceOffset,
     redraw,
     startLoop,
     stopLoop,
@@ -808,6 +815,11 @@ export function init() {
   function applyBounce() {
     const factor = bounceFactor();
     rig.setBounceOffset(factor * BOUNCE_GLASS_PX);
+    // Same offset the chip's own DOM position gets below — the taut
+    // string is what's tugging the chip, so the chip->pulley->node run
+    // has to move with it too, not just the node/glass end (see
+    // buildRig's own setChipBounceOffset).
+    rig.setChipBounceOffset(factor * BOUNCE_CHIP_PX);
     rig.redraw();
     if (lastIsMobile) {
       top.chip.style.top = `${lastChipY + factor * BOUNCE_CHIP_PX}px`;
