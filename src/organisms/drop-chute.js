@@ -684,10 +684,24 @@ export function init() {
   // plus a translation, no regeneration) runs on every resize event so
   // the chute tracks the layout while dragging, rather than sticking at
   // its old position until the debounced rebuild finally fires.
+  //
+  // The full rebuild itself only fires on a genuine width change, though
+  // — mobile Safari (and other mobile browsers) fire a real `resize`
+  // event whenever the URL bar/toolbar collapses or expands on scroll,
+  // which changes window.innerHeight with no actual layout change to
+  // account for. Rebuilding on that too meant the flourishes re-rolled
+  // to a new random arrangement on ordinary scrolling — nothing about
+  // the chute's own geometry depends on viewport height, only width
+  // (findAnchors/buildWaypoints), so height-only resizes just resync
+  // position like every other resize and skip the regeneration.
   let resizeTimer = null;
+  let lastWidth = window.innerWidth;
   window.addEventListener('resize', () => {
     const anchors = findAnchors();
     if (anchors) resyncPosition(anchors.spout[0] - state.spout[0], anchors.spout[1] - state.spout[1]);
+    const width = window.innerWidth;
+    if (width === lastWidth) return;
+    lastWidth = width;
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(buildChute, RESIZE_DEBOUNCE_MS);
   });
