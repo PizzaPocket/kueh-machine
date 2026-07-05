@@ -18,7 +18,7 @@
 import { leafPath, bellPath, petalPath, paisleyPath, cecekPoints, toWorld } from '../tokens/batik-motifs.js';
 import { renderLeaf, renderPetal, renderCecekLayer } from './batik-pattern.js';
 
-export function jitterDeg(range) {
+function jitterDeg(range) {
   return (Math.random() * 2 - 1) * range;
 }
 

@@ -34,75 +34,55 @@ const DEFAULT_PEAKS = [40, 165, 250];
 
 /**
  * @param {HTMLElement} fillEl - the element the housing frame wraps
- *   (already shaped/sized however the caller wants — this only adds the
- *   frame *around* it, doesn't touch fillEl itself). Ends up nested
- *   inside a new wrapper, in fillEl's original place in the DOM — same
- *   convention as wrapWithInnerMatteRim (matte-rim.js): this doesn't
- *   insert the wrapper into the document itself, so the caller still
- *   owns placement (`el.appendChild(fillEl)` works whether or not fillEl
- *   is already attached anywhere).
+ *   (already shaped/sized by the caller — this only adds the frame
+ *   *around* it). Ends up nested inside a new wrapper, in fillEl's
+ *   original place in the DOM (same convention as wrapWithInnerMatteRim,
+ *   matte-rim.js) — the caller still owns placement.
  * @param {object} [opts]
- *   `outsetDesktop`/`outsetMobile`/`mobileWidth`/`desktopWidth`: the
- *   frame's thickness interpolates by viewport width between these two
- *   values/breakpoints (default 14/7px, 640/900px — the site's own
- *   mobile breakpoint, timeline-panel.js's isMobile/index.html's
- *   @media) rather than a single fixed thickness — a housing that reads
- *   right on desktop is usually too heavy-handed on a much narrower
- *   mobile layout.
- *   `darkVar`/`lightVar`: the conic-gradient's two color stops (default:
- *   a neutral metal-base pair) — pass color-mix()'d toward a theme color
- *   (e.g. --color-primary-strong) for a housing tinted to its
- *   surroundings, same idea as .rim-matte-inner-tinted (styles/atoms.css).
+ *   `outsetDesktop`/`outsetMobile`/`mobileWidth`/`desktopWidth`: frame
+ *   thickness interpolates by viewport width between these two
+ *   values/breakpoints (default 14/7px, 640/900px) rather than one fixed
+ *   thickness — a housing that reads right on desktop is usually too
+ *   heavy-handed on a narrower mobile layout.
+ *   `darkVar`/`lightVar`: the conic-gradient's two color stops (default a
+ *   neutral metal-base pair) — pass color-mix()'d toward a theme color
+ *   for a housing tinted to its surroundings.
  *   `peaks`: conic-gradient peak angles (default an irregular spread).
  *   `metal`: a raw CSS background-image string, used as-is instead of
- *   computing a conic-gradient from peaks/darkVar/lightVar — for a ring
- *   that wants a completely different material, e.g. a linear-gradient
- *   matching .rim-matte-inner-tinted's own static recipe (styles/
- *   atoms.css) rather than the conic "liquid chrome" look. peaks/darkVar/
- *   lightVar are ignored when this is set.
+ *   computing a conic-gradient from peaks/darkVar/lightVar, for a
+ *   completely different material (e.g. a flat linear-gradient). Ignores
+ *   peaks/darkVar/lightVar when set.
  *   `n`/`samples`/other pathOpts: forwarded to framePathBuilder.
  *   `pointsBuilder`: picks the shape family framePathBuilder outlines
- *   (default buildSuperellipsePoints — a plain retro-rectangle/pill/
- *   button outline).
+ *   (default buildSuperellipsePoints).
  *   `framePathBuilder`: swaps in a different frame-geometry function
- *   sharing this same DOM/resize wiring — e.g. buildFunnelOutsetOutlinePath
- *   for a shape that needs a gap left open somewhere in the frame (the
- *   water clock's own spout), instead of the default buildOutsetFramePath
- *   (a plain closed ring, no gap).
- *   `accentRatio`: adds a second, thinner ring on top of the main one —
- *   its own thickness is this fraction of the main outset (default 0.3).
- *   Its *inner* edge is flush with fillEl's own outline (same as the
- *   main ring's inner edge), extending outward from there by just that
- *   fraction of the full outset, rather than reaching all the way to the
- *   main ring's own outer edge. Pass 0 (or null) to skip it entirely.
- *   `accentAngle`: the accent ring's own fixed --chrome-angle, in
- *   degrees (default 55) — deliberately different from the main ring's
- *   0deg default so the two conic-gradients visibly disagree with each
- *   other rather than lining up into what would just read as one thicker
- *   band. A CSS transform: rotate() on the accent div itself was the
- *   other option, but that would rotate its *clip-path* too, throwing
- *   its ring out of alignment with the (non-circular) shape underneath —
- *   rotating just the gradient's own start angle keeps the ring's shape
- *   identical to the main one while still visibly reading as rotated.
- *   `accentDarkVar`/`accentLightVar`/`accentPeaks`: default to the same
- *   values as the main ring's own darkVar/lightVar/peaks — override for
- *   an accent that's tinted or peaked differently, not just rotated.
- *   `accentMetal`: same idea as `metal` above, but for the accent ring —
- *   a raw background-image string used as-is; accentAngle/accentPeaks/
- *   accentDarkVar/accentLightVar are ignored when this is set.
+ *   sharing this same DOM/resize wiring — e.g.
+ *   buildFunnelOutsetOutlinePath for a frame that needs a gap left open
+ *   somewhere (the water clock's spout), instead of the default
+ *   buildOutsetFramePath (a plain closed ring).
+ *   `accentRatio`: adds a second, thinner ring on top of the main one,
+ *   its thickness this fraction of the main outset (default 0.3), inner
+ *   edge flush with fillEl's own outline. Pass 0/null to skip it.
+ *   `accentAngle`: the accent ring's fixed --chrome-angle (default 55,
+ *   deliberately different from the main ring's 0deg) so the two
+ *   conic-gradients visibly disagree rather than reading as one thicker
+ *   band — rotating just the gradient's start angle (not a CSS
+ *   transform: rotate()) keeps the ring's clip-path shape identical to
+ *   the main one while still reading as rotated.
+ *   `accentDarkVar`/`accentLightVar`/`accentPeaks`: default to the main
+ *   ring's own values — override for an accent tinted/peaked
+ *   differently, not just rotated.
+ *   `accentMetal`: same idea as `metal`, for the accent ring.
  *   `wrapClassName`: an *additional* class on the wrapper, alongside the
- *   always-present 'housing-frame-wrap' (whose position/display/sizing
- *   rules, styles/atoms.css, this still needs) — set this when nesting
- *   one wrapWithHousingFrame call inside another (e.g. a thin inner rim
- *   inside a thick outer housing) and something needs to target just one
- *   of them in CSS.
+ *   always-present 'housing-frame-wrap' — set this when nesting one
+ *   wrapWithHousingFrame call inside another and something needs to
+ *   target just one of them in CSS.
  * @returns {{ el: HTMLElement, outline: HTMLElement, accent: HTMLElement | null, observer: ResizeObserver }}
  *   el: the new wrapper (fillEl's new parent) — append this wherever
- *   fillEl itself would otherwise have gone. outline: the main frame div
- *   itself, in case a caller needs to restyle/inspect it directly.
+ *   fillEl itself would otherwise have gone. outline: the main frame div.
  *   accent: the thinner second-layer div, or null if accentRatio was 0.
- *   observer: the ResizeObserver, in case the caller ever tears this
- *   down and needs to disconnect it.
+ *   observer: the ResizeObserver, for the caller to disconnect if this
+ *   is ever torn down.
  */
 export function wrapWithHousingFrame(fillEl, {
   outsetDesktop = 14,
@@ -168,29 +148,15 @@ export function wrapWithHousingFrame(fillEl, {
   }
 
   // The div's own box has to actually extend `outset` px past fillEl on
-  // every side, not just be clipped to a shape that does — clip-path can
-  // reveal area beyond an element's own border-box, but background
-  // painting (background-clip: border-box, the default) stops exactly at
-  // that border-box regardless, so the outward-bled part of the shape
-  // would have no painted background under it otherwise. originX/Y shift
-  // by the current outset so framePathBuilder's own coordinates (still
-  // computed against fillEl's own w/h) land correctly within this
-  // now-bigger box's own local origin (its top-left is fillEl's own
-  // -outset,-outset, MEASURED relative to `wrap` — not assumed to be
-  // exactly (0,0) the way a naive `left: -outset` would. `wrap` is
-  // display: inline-block; width: auto (styles/atoms.css), meant to
-  // shrink-wrap tightly to fillEl, but a fillEl whose own width is a
-  // percentage (e.g. .countdown-rim-wrap's mobile `calc(100% - 16px)`,
-  // index.html) can end up not exactly filling that shrink-wrapped box —
-  // confirmed directly on a 390px-wide mobile viewport: `wrap` measured
-  // ~410px, fillEl only ~395px, an 8px gap on *each* side. A naive
-  // `left: -outset` (anchored to wrap's own edge) would then be off by
-  // that same gap, and unevenly — the gap adds to the outset on one side
-  // while partly canceling it on the other, reading as the whole frame
-  // shifted sideways rather than evenly framing fillEl. Measuring
-  // fillEl's real position within wrap keeps this correct regardless of
-  // whether that gap exists, without needing to fix (or explain) why it
-  // exists in the first place.
+  // every side, not just be clipped to a shape that does — background
+  // painting stops at the border-box regardless of clip-path, so the
+  // outward-bled part would have no painted background under it
+  // otherwise. Left/top are measured from fillEl's real position within
+  // `wrap`, not assumed to be exactly (-outset, -outset) — `wrap` is
+  // meant to shrink-wrap tightly to fillEl, but a fillEl with a
+  // percentage width can end up not exactly filling that box (confirmed
+  // on a 390px mobile viewport: an 8px gap per side), which would throw a
+  // naive `left: -outset` off unevenly on each side.
   function update() {
     const w = fillEl.clientWidth;
     const h = fillEl.clientHeight;

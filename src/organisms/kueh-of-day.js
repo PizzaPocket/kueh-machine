@@ -268,48 +268,33 @@ function buildContentColumn(kueh) {
   const { el: rim, observer } = wrapWithInnerMatteRim(windowEl, { gutter: 0, fillRefs: refs });
 
   // windowEl's height otherwise jumps instantly whenever its content does
-  // — a tab switch (toggling a panel's `hidden` attribute has no
-  // transitionable state of its own) or the recipe collapse expanding/
-  // collapsing. Locking the current rendered height right before the
-  // change, then animating to the new content's natural height right
-  // after, is what turns both into a smooth resize instead of a snap —
-  // and since windowEl's own retro-rectangle clip-path is already driven by
-  // a ResizeObserver (wrapWithInnerMatteRim's fillRefs), that shape
-  // morphs in sync with the height transition for free, the same way the
-  // tab group's own sliding highlight rides along with its width/
-  // transform transition.
+  // (a tab switch, or the recipe collapse expanding/collapsing) — locking
+  // the current rendered height right before the change, then animating
+  // to the new content's natural height right after, turns both into a
+  // smooth resize. windowEl's clip-path is already driven by a
+  // ResizeObserver (wrapWithInnerMatteRim's fillRefs), so its shape morphs
+  // in sync with the height transition for free.
   function lockWindowHeight() {
     windowEl.style.height = `${windowEl.offsetHeight}px`;
     void windowEl.offsetHeight; // force layout to commit the start height before the mutation that follows
   }
 
-  // scrollHeight can't be used directly here the way it first looks like
-  // it should: scrollHeight is defined as max(content's natural height,
-  // the element's own current clientHeight) — so it only ever reports a
-  // number >= windowEl's height *right now*. That's harmless while
-  // content is growing (the natural height is the bigger number anyway),
-  // but switching to a *shorter* panel (e.g. Recipe, expanded, back to
-  // Overview) reads scrollHeight while windowEl is still at its old,
-  // taller locked height — scrollHeight then reports that old height
-  // right back, since the real (smaller) content height loses the max()
-  // comparison, and the window never shrinks. height: auto removes that
-  // artificial floor so offsetHeight reflects the visible panel's true
-  // natural height instead.
+  // scrollHeight can't be used directly here: it's defined as max(content's
+  // natural height, the element's current clientHeight), so switching to a
+  // *shorter* panel (e.g. Recipe, expanded, back to Overview) reads
+  // scrollHeight while windowEl is still at its old, taller locked height —
+  // the real (smaller) content height loses that max() comparison and the
+  // window never shrinks. Setting height: auto removes that floor so
+  // offsetHeight reflects the true natural height instead.
   //
-  // That measurement can't happen directly on windowEl while its
-  // transition is live, though: switching height to auto and then
-  // immediately back to a px value, with no render in between, still
-  // makes the browser treat `auto` as the "before" state it's
-  // transitioning from — auto has no interpolatable numeric value, so the
-  // transition engine just gives up and snaps straight to the target
-  // instead of animating (confirmed empirically: without the transition:
-  // none below, this shrank correctly but with no visible animation).
-  // Turning the transition off for the measure-then-restore round trip,
-  // forcing that restore to commit via the same void-offsetHeight trick
-  // lockWindowHeight uses, and only turning it back on right before
-  // setting the real target keeps `auto` from ever being the "before"
-  // value the transition actually sees — the animation still runs from
-  // the real locked px height to the real target px height.
+  // That measurement can't happen while the transition is live, though:
+  // flipping height to auto and back to a px value with no render in
+  // between still makes the browser treat `auto` as the transition's
+  // "before" state, which has no interpolatable value, so it just snaps
+  // instead of animating (confirmed empirically). Turning the transition
+  // off for the measure-then-restore round trip, and only re-enabling it
+  // right before setting the real target, keeps `auto` from ever being
+  // the value the transition actually sees.
   function settleWindowHeight() {
     const startHeight = windowEl.style.height;
     windowEl.style.transition = 'none';
@@ -329,17 +314,13 @@ function buildContentColumn(kueh) {
     {
       onBeforeChange: lockWindowHeight,
       onChange(index) {
-        // Was toggleRim.hidden = index !== 1 — display: none can't
-        // transition, so the button (and the space it occupies) used to
-        // snap in/out instantly, yanking the section's overall height
-        // with it even though windowEl's own resize right below is
-        // smoothly animated. .kod-see-more-rim-collapsed (styles/
-        // organisms/kueh-of-day.css) transitions max-height/opacity/
-        // margin instead, so this now animates in step with windowEl.
-        // `hidden` used to also pull the button out of the tab order and
-        // the accessibility tree for free; a CSS-only collapse (still in
-        // the DOM, just visually clipped) doesn't, so aria-hidden/
-        // tabIndex are set by hand here to keep that same behavior.
+        // display: none can't transition, so the button used to snap
+        // in/out instantly instead of animating with windowEl's resize —
+        // .kod-see-more-rim-collapsed (kueh-of-day.css) transitions
+        // max-height/opacity/margin instead. That CSS-only collapse
+        // doesn't pull the button out of the tab order/accessibility tree
+        // the way `hidden` did, so aria-hidden/tabIndex are set by hand
+        // here to keep the same behavior.
         if (toggleRim) {
           const collapsed = index !== 1;
           toggleRim.classList.toggle('kod-see-more-rim-collapsed', collapsed);
@@ -360,25 +341,17 @@ function buildContentColumn(kueh) {
     toggle.addEventListener('click', () => {
       const willExpand = !collapse.classList.contains('expanded');
 
-      // windowEl.scrollHeight can't be used to find *its* target height
-      // here the way settleWindowHeight does for a tab switch — collapse
-      // has its own transition: max-height, so reading scrollHeight
-      // synchronously right after changing collapse's max-height still
-      // reflects collapse's *current* rendered height, not its target:
-      // the transition hasn't progressed at all yet (no frame has
-      // rendered), so windowEl's height would end up one click behind
-      // collapse's actual state. Computing the delta collapse's own
-      // height is about to change by, and adding that straight onto
-      // windowEl's current height, sidesteps needing collapse's
-      // transition to finish first — both animations start together and
-      // reach their real targets over the same 0.3s, driven by two
-      // independent CSS transitions rather than one waiting on the other.
+      // Reading scrollHeight synchronously right after changing collapse's
+      // max-height still reflects its *current* height, not the target —
+      // the transition hasn't progressed yet. Computing the delta
+      // collapse's height is about to change by, and adding that onto
+      // windowEl's current height, sidesteps needing collapse's own
+      // transition to finish first — both animate together over the same
+      // 0.3s instead of one waiting on the other.
       const collapseCurrentHeight = collapse.offsetHeight;
       // 180 matches .kod-recipe-collapse's own default max-height
-      // (kueh-of-day.css) — collapse.scrollHeight always reflects the
-      // full content height regardless of state, but there's no
-      // equivalent transition-independent way to ask "what's the
-      // *collapsed* height," so this one value has to stay in sync with
+      // (kueh-of-day.css) — there's no transition-independent way to ask
+      // "what's the collapsed height," so this has to stay in sync with
       // that CSS rule by hand.
       const collapseTargetHeight = willExpand ? collapse.scrollHeight : 180;
       const heightDelta = collapseTargetHeight - collapseCurrentHeight;
@@ -438,7 +411,7 @@ function renderKuehOfDay(section, index) {
 // observers). Used by init()'s first render and by the dev date-override
 // (see index.html, "dev:date-changed") to re-pick the kueh/palette for a
 // simulated date without touching the rivet rows added below.
-export function refresh() {
+function refresh() {
   const section = document.getElementById('kueh-of-day');
   if (!section) return;
 

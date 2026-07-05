@@ -2,33 +2,29 @@
 // panel (.matte-metal-surface) holding two inset retro-rectangle windows:
 // today's date + the spring (top), and a day-ruler "radio tuner" dial
 // (bottom). Both are driven by the same elapsedFraction() value: the
-// spring grows out from the track's left edge (anchored there, like a
-// real spring fixed to a wall) to exactly the day-chip's position, and
-// the dial's today-band sits at that same fraction along its own ruler —
-// same color, same "material," reading as one marker seen at two
-// heights.
+// spring grows from a fixed anchor hidden behind the track's own edge to
+// exactly the day-chip's position, and the dial's today-band sits at that
+// same fraction along its own ruler — one marker seen at two heights.
 //
 // Stage 2 (buildRig, below): a pulley + procedural-batik-tendril string +
-// hanging glass. The chip's own free end feeds a horizontal string to a
-// fixed pulley, which redirects it down to a convergence node that sinks
-// further below the panel as `f` grows (same value, no separate physics)
-// — the glass fills AND sinks as days tick on, two readouts of one
-// number. Three strands fork off the node, each running rim→base down
-// the tapered cup like a real basket sling, slowly twisting (winding one
-// way, decelerating through zero, unwinding the other way) via their own
-// requestAnimationFrame loop — see buildRig's own comments for the angle
-// math and the front/back layering that gives each strand real
-// in-front-of/behind-the-glass depth. Mobile has no pulley (the string
-// already pulls straight down there, since the chip only ever moves
-// vertically) — see setPositions's own `mobile` flag.
+// hanging glass. The chip's free end feeds a horizontal string to a fixed
+// pulley, which redirects it down to a convergence node that sinks
+// further below the panel as `f` grows — the glass fills AND sinks as
+// days tick on, two readouts of one number. Three strands fork off the
+// node, each running rim→base down the tapered cup like a real basket
+// sling, slowly twisting via their own requestAnimationFrame loop — see
+// buildRig's own comments for the angle math and front/back layering.
+// Mobile has no pulley (the string pulls straight down, since the chip
+// only ever moves vertically there) — see setPositions's `mobile` flag.
 //
-// Stage 3: src/organisms/drop-chute.js's rolling ball dispatches
-// 'chute:ball-landed' once it reaches the end of the chute — init()
-// listens for that and runs a short bounce (glass down-and-back, chip in
-// whichever direction the string currently pulls it) as an offset on top
-// of whatever tick()/redraw() already computed, not a replacement for it.
+// Stage 3: drop-chute.js's rolling ball dispatches 'chute:ball-landed'
+// once it reaches the end of the chute — init() listens for that and
+// runs a short bounce (glass down-and-back, chip in whichever direction
+// the string currently pulls it) as an offset on top of whatever
+// tick()/redraw() already computed, not a replacement for it.
 
-import { createRetroShape, attachRetroShapeClip, observeRetroShape, SMALL_RETRO_SHAPE_OPTS } from '../atoms/retro-shape.js';
+import { createRetroShape, attachRetroShapeClip, updateRetroShape, observeRetroShape, SMALL_RETRO_SHAPE_OPTS } from '../atoms/retro-shape.js';
+import { buildTailedRectPath } from '../tokens/superellipse.js';
 import { wrapWithInnerMatteRim, wrapWithOuterMatteRim } from '../atoms/matte-rim.js';
 import { buildGearPath, buildGearPoints } from '../tokens/gear-shape.js';
 import { buildRivetRow } from '../atoms/rivets.js';
@@ -40,25 +36,30 @@ import { OUTER_RIM, OUTER_BASE } from '../tokens/glass-shape.js';
 import { createGlassGraphic } from '../atoms/glass-graphic.js';
 import { computeConicChromeLayers, applyLayeredConicChrome } from '../tokens/chrome-metal.js';
 
-// Same color approach as the hero wordmark's own themed rims
-// (KUEH_RIM_DARK/LIGHT, chrome-accents.js) — the day's theme color mixed
-// toward black/white rather than the neutral metal-base/metal-highlight
-// pair computeConicChromeLayers defaults to — so the chip's own outline
-// reads as the same "material" as the rest of the hero's chrome, not a
-// one-off. Redeclared here rather than imported: chrome-accents.js only
-// wires up static elements that aren't owned by another organism (see its
-// own top comment) — .tl-day-chip is built and positioned entirely by
-// this module, so its rim is wired up here too, same precedent
-// tab-group.js/site-nav.js already set for their own conic rims.
+// Same color approach as the hero wordmark's themed rims (KUEH_RIM_DARK/
+// LIGHT, chrome-accents.js) — the day's theme color mixed toward
+// black/white rather than the neutral metal-base/metal-highlight pair
+// computeConicChromeLayers defaults to, so the chip's outline reads as
+// the same "material" as the rest of the hero's chrome. Redeclared here
+// rather than imported since .tl-day-chip is built and positioned
+// entirely by this module, same precedent tab-group.js/site-nav.js set
+// for their own conic rims.
 const CHIP_RIM_DARK = 'color-mix(in srgb, var(--color-primary-strong) 90%, black)';
 const CHIP_RIM_LIGHT = 'color-mix(in srgb, var(--color-primary-strong) 93%, white)';
 const CHIP_RIM_PEAKS = [40, 165, 250];
 
+// How far the chip's own box grows beyond its 56x40 rect to make room for
+// the point (buildTailedRectPath) — shared with styles/organisms/
+// timeline-panel.css's own --tl-chip-tail-length (set once in init()) so
+// the geometry (this constant) and the CSS box-growth/centering math it
+// has to match stay in sync from one source rather than two independently
+// tuned numbers.
+const CHIP_TAIL_LENGTH = 7;
+
 // Same project window the hero countdown uses (index.html's inline
-// script) — redeclared independently here rather than shared across the
-// classic-script/ES-module boundary, the same precedent kueh-of-day.js's
-// own getDayIndexSGT already sets for recomputing one small date
-// calculation rather than reaching across that boundary.
+// script), redeclared independently here rather than shared across the
+// classic-script/ES-module boundary — same precedent kueh-of-day.js's own
+// getDayIndexSGT sets for recomputing one small date calculation.
 const PROJECT_START_UTC = Date.UTC(2026, 5, 24); // 24 June 2026 kickoff
 const CHECKIN_UTC = Date.UTC(2026, 6, 29); // 29 July 2026 check-in
 const TARGET_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // 26 August 2026 showcase
@@ -67,15 +68,13 @@ const DAY_MS = 86400000;
 const SG_OFFSET_MS = 8 * 60 * 60 * 1000;
 const MONTH_ABBR = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-// The dial's own tick grid is necessarily quantized to whole days (63 of
-// them between the start and end dates, which fall 63.25 days apart —
-// TARGET_UTC carries a 06:00 UTC time-of-day, PROJECT_START_UTC doesn't).
-// Any *other* marker on the dial (the 29 July check-in tick, the spring's
-// own day chip) needs to snap to this same whole-day grid too, rather
-// than a continuous date-based fraction of the true 63.25-day span — the
-// two fractions are close enough (35/63 vs 35/63.25) to look almost but
-// not quite aligned, which reads as a bug ("why isn't the check-in mark
-// sitting right on a tick?") rather than a deliberate offset.
+// The dial's tick grid is quantized to whole days (TARGET_UTC carries a
+// 06:00 UTC time-of-day, PROJECT_START_UTC doesn't, so the true span is
+// 63.25 days). Any other marker on the dial (the check-in tick, the
+// spring's day chip) has to snap to this same whole-day grid too, rather
+// than a continuous date-based fraction — the two fractions are close
+// enough to look almost-but-not-quite aligned, which reads as a bug
+// rather than a deliberate offset.
 const DAY_COUNT = Math.max(1, Math.round((TARGET_UTC - PROJECT_START_UTC) / DAY_MS));
 
 // The 3 "major" days (kickoff/check-in/showcase) already get their own full-
@@ -91,6 +90,17 @@ const MAJOR_DAY_INDICES = new Set([0, CHECKIN_DAY_INDEX, DAY_COUNT]);
 // — one constant driving both, so the first/last day reads as inset by the
 // same amount on the two windows rather than two independently-tuned values.
 const DAY_AXIS_INSET = 14;
+
+// A real spring is anchored to a fixed wall point, not to the first day's
+// own tick — this is how far behind the track's own overflow-hidden edge
+// (past the left edge on desktop, above the top edge on mobile) that
+// anchor sits, permanently hidden, so the coil visibly emerges from
+// outside the visible window rather than starting clean at the day-0
+// mark like a floating decal. Only the anchor moves; the spring's free
+// (moving) end keeps landing exactly at DAY_AXIS_INSET + the elapsed-
+// fraction growth, same position the day-chip and dial ticks already
+// agree on.
+const SPRING_ANCHOR_OFFSET = 24;
 
 // Today's own whole-day tick index (0..DAY_COUNT) — shared by
 // elapsedFraction below (the spring/today-band position) and tick()'s own
@@ -143,29 +153,23 @@ function formatDayParts(ms) {
 }
 
 // Wraps `fillContent` in a white retro-rectangle window + matte rim, same
-// pattern as kueh-of-day.js's buildContentWindow — a plain rectangular
-// window (default buildSuperellipsePath), untinted rim (this panel's own
-// .matte-metal-surface is a light neutral surface, the same situation
-// Kueh of Day's own windows are in, not the hero countdown's "sits on a
-// solid theme-colored background" case that motivated the tinted rim).
+// pattern as kueh-of-day.js's buildContentWindow — untinted rim, since
+// this panel's own .matte-metal-surface is a light neutral surface (not
+// the hero countdown's solid theme-colored background, which motivated a
+// tinted rim there).
 //
 // n: 8 (fixed, not auto-solved) — these windows are much shorter/wider
-// than a typical retro-rectangle consumer (the spring window especially),
-// and solveClearingExponent's content-clearance solve pushes the corner
-// exponent toward its rectangular ceiling to "clear" real content against
-// such a short box relative to its own padding, reading as square corners
-// instead of the intended retro-rectangle swell. A fixed, deliberately
-// round exponent sidesteps that the same way SMALL_RETRO_SHAPE_OPTS
-// already does for small controls.
-// shadow: createRetroShape's default inner-shadow blur (stdDeviation 14/3)
-// is tuned for a normal, much-taller window — on these two windows
-// (~26-46px tall) that wide a blur overlaps itself between the top and
-// bottom edges, washing out into one faint uniform tint that only reads
-// as a real shadow at the rounded end caps (where the ring concentrates
-// regardless of box size), not along the long flat top/bottom edges. A
-// tighter blur keeps the ring resolvable against a flat edge that close
-// to its opposite one, so it reads as hugging all four sides instead of
-// just the two ends (see filterMarkup's own comment, retro-shape.js).
+// than a typical retro-rectangle consumer, and solveClearingExponent's
+// content-clearance solve would push the corner exponent toward its
+// rectangular ceiling on a box this shape, reading as square corners
+// instead of the intended swell — same fix SMALL_RETRO_SHAPE_OPTS uses
+// for small controls.
+// shadow: createRetroShape's default inner-shadow blur is tuned for a
+// much taller window — on these ~26-46px-tall windows that wide a blur
+// overlaps between the top and bottom edges, washing out into a faint
+// uniform tint instead of a resolvable ring on the flat edges. A tighter
+// blur keeps the ring visible on all four sides (see filterMarkup's own
+// comment, retro-shape.js).
 const THIN_WINDOW_SHADOW = { wideBlur: 12, wideOpacity: 0.55, tightBlur: 2.5, tightOpacity: 0.4 };
 
 function buildWindow(fillContent) {
@@ -184,12 +188,11 @@ function buildWindow(fillContent) {
 
 // Same fill/shape build as buildWindow above, but rimmed with the dynamic
 // cursor/scroll-reactive "liquid chrome" rim (applyLayeredConicChrome,
-// tokens/chrome-metal.js — same treatment .btn-rim/.tab-group-rim use)
-// instead of the static matte rim, for the dial window specifically — the
-// spring window above keeps the plain matte rim. Same shared-n reasoning
-// as buildWindow: n: 8 is fixed (not solved), so wrap/rim/glint can each
-// size independently off that same fixed value rather than needing a
-// solved exponent shared via fillRefs.
+// tokens/chrome-metal.js) instead of the static matte rim, for the dial
+// window specifically — the spring window keeps the plain matte rim.
+// Same fixed n: 8 as buildWindow, so wrap/rim/glint each size
+// independently off that value without needing a solved exponent shared
+// via fillRefs.
 function buildInteractiveWindow(fillContent) {
   const wrap = document.createElement('div');
   wrap.className = 'tl-window-fill';
@@ -208,27 +211,24 @@ function buildInteractiveWindow(fillContent) {
   return { el: rim };
 }
 
-// The spring is anchored to the track's left edge (top edge on the mobile
-// vertical layout) and grows to exactly the day-chip's own position — not
-// a fixed-width spring with only its coil openness varying. The chip
-// itself is a small retro-rectangle badge (attachRetroShapeClip,
-// SMALL_RETRO_SHAPE_OPTS — the same small-badge shape tab-group/button
-// small controls use), not a CSS pill, tinted to --color-primary-strong
-// to visually match the dial's own today-band below (buildBottomWindowContent)
-// — same color reading as "the same marker, seen at two heights."
+// The spring is anchored to a fixed point hidden behind the track's own
+// overflow-hidden edge (SPRING_ANCHOR_OFFSET, tick()) and grows to
+// exactly the day-chip's position — not a fixed-width spring with only
+// its coil openness varying. The chip is a small retro-rectangle badge
+// (SMALL_RETRO_SHAPE_OPTS's own n/gutter, with a point spliced into one
+// edge via buildTailedRectPath — see updateChipTail below), not a CSS
+// pill, tinted to --color-primary-strong to match the dial's own
+// today-band below — same color reading as "the same marker, seen at two
+// heights."
 //
-// The chip is built here (it conceptually belongs to the top track) but
-// deliberately NOT appended into `track` — it's returned separately and
-// appended by init() as a sibling of both rim-wrapped windows instead, for
-// two reasons: (1) it needs to visually overlap the track's own window
-// rather than being confined inside it (the track is much shorter than
-// the chip), and (2) `track` needs `overflow: hidden` to anchor the
-// spring flush against its own edge without teaching spring.js a
-// second axis, and empirically, a descendant's own `clip-path` doesn't
-// render correctly inside an `overflow: hidden` ancestor combined with a
-// `transform` (confirmed directly: the exact same chip, moved outside
-// that ancestor, renders its retro-rectangle correctly) — rather than
-// fight that, the chip just lives outside it entirely.
+// Built here but deliberately NOT appended into `track` — returned
+// separately and appended by init() as a sibling of both rim-wrapped
+// windows, for two reasons: it needs to visually overlap the track's
+// window rather than being confined inside it (the track is much shorter
+// than the chip), and `track` needs overflow: hidden to anchor the spring
+// flush against its own edge — a descendant's clip-path doesn't render
+// correctly inside an overflow: hidden ancestor combined with a
+// transform (confirmed directly), so the chip just lives outside it.
 function buildTopWindowContent() {
   const content = document.createElement('div');
   content.className = 'tl-top-window-fill';
@@ -241,23 +241,18 @@ function buildTopWindowContent() {
 
   content.appendChild(track);
 
-  // A single centered label rather than a day-number/month badge — plain
-  // "Today" instead of spelling out the actual date, which the dial's own
-  // tick position already carries. Wider than the old square badge (see
-  // .tl-day-chip's own width) so the word has room without shrinking the
-  // font down too far. A dedicated child (not chip.textContent directly)
+  // A dedicated child span for the label (not chip.textContent directly)
   // — setting text that way would wipe out attachRetroShapeClip's own
   // defs-only <svg> child, leaving the clip-path pointing at a
   // now-detached shape.
   //
   // `chip` (the element every position/left/top/bounce calculation below
-  // targets) is now the outer rim band, same rim/fill nesting
-  // .step-card/.step-card-fill and .file-card/.file-card-fill use — its
-  // own 2px padding (.tl-day-chip, timeline-panel.css) is the rim's
-  // thickness, showing through as a thin themed-chrome ring in the gap
-  // between its clip-path and the inner .tl-day-chip-fill's (attached
-  // separately, below, so it gets its own correctly-fitted shape at the
-  // smaller, padded-in size rather than sharing the outer clip-path).
+  // targets) is the outer rim band, same rim/fill nesting
+  // .step-card/.step-card-fill uses — its 2px padding (.tl-day-chip,
+  // timeline-panel.css) is the rim's thickness, showing through as a thin
+  // themed-chrome ring between its clip-path and the inner
+  // .tl-day-chip-fill's (attached separately, so it gets its own
+  // correctly-fitted shape at the smaller, padded-in size).
   const chip = document.createElement('div');
   chip.className = 'tl-day-chip';
   const chipFill = document.createElement('div');
@@ -267,20 +262,38 @@ function buildTopWindowContent() {
   chipLabel.textContent = 'Today';
   chipFill.appendChild(chipLabel);
   chip.appendChild(chipFill);
-  attachRetroShapeClip(chip, SMALL_RETRO_SHAPE_OPTS);
-  attachRetroShapeClip(chipFill, SMALL_RETRO_SHAPE_OPTS);
-  // A single themed rim (not the hero wordmark's double inner+outer
-  // stack) — one real conic-gradient layer is enough definition for a
-  // small 2px-thick badge outline; a second offset layer would be too
-  // fine to read at this size. Static (default 0deg --chrome-angle, not
-  // registered for cursor rotation) for the same reason the wordmark
-  // rims are: it sits directly behind the fill at an exact padded
-  // alignment, so a moving rim would read as a glitch rather than a
-  // reflection.
+
+  // Not attachRetroShapeClip (which wires a fixed set of shape opts once
+  // and never revisits them): the chip's own shape needs to flip which
+  // edge carries its point when the layout crosses the mobile breakpoint
+  // (tick()'s own isMobile check), and the chip's box size never actually
+  // changes between the two (see .tl-day-chip's own CSS — no mobile
+  // override), so there's no resize for a ResizeObserver to react to.
+  // updateChipTail (below) is what tick() calls instead, each time it
+  // knows the current isMobile state.
+  const chipShapeRefs = createRetroShape();
+  chip.appendChild(chipShapeRefs.svg);
+  chip.style.clipPath = chipShapeRefs.clipUrl;
+  const chipFillShapeRefs = createRetroShape();
+  chipFill.appendChild(chipFillShapeRefs.svg);
+  chipFill.style.clipPath = chipFillShapeRefs.clipUrl;
+
+  function updateChipTail(tailSide) {
+    const opts = { ...SMALL_RETRO_SHAPE_OPTS, pathBuilder: buildTailedRectPath, tailSide, tailLength: CHIP_TAIL_LENGTH };
+    updateRetroShape(chip, chipShapeRefs, opts);
+    updateRetroShape(chipFill, chipFillShapeRefs, opts);
+  }
+
+  // A single themed rim, not the hero wordmark's double inner+outer stack
+  // — one conic-gradient layer is enough for a small 2px-thick badge
+  // outline. Static (not registered for cursor rotation), same reason as
+  // the wordmark rims: it sits directly behind the fill at an exact
+  // padded alignment, so a moving rim would read as a glitch rather than
+  // a reflection.
   const { metal: chipRimMetal } = computeConicChromeLayers(CHIP_RIM_PEAKS, { darkVar: CHIP_RIM_DARK, lightVar: CHIP_RIM_LIGHT });
   chip.style.backgroundImage = chipRimMetal;
 
-  return { content, track, springRefs, chip };
+  return { content, track, springRefs, chip, updateChipTail };
 }
 
 // One real element per day (not a repeating-gradient illusion) — needed
@@ -360,25 +373,21 @@ const NODE_TO_RIM_GAP = 44; // px of open air between the node (where the string
 const BASE_STRAND_OVERSHOOT_PX = 2; // each strand's own base attachment point is nudged this far past the base ellipse (not the flourish anchor, just the drawn segment) so the line visibly covers the bottom rim rather than stopping exactly at its edge
 const TWIST_PERIOD_S = 36; // one full wind-unwind-wind cycle
 const MAX_TWIST_RAD = (30 * Math.PI) / 180;
-// 90°/210°/330° (not the "natural" 0°/120°/240°) — chosen so, at rest, the
-// center strand sits dead center-back (depth -1, tucked behind the glass)
-// and the other two sit symmetric left/right, slightly toward the viewer
-// (depth +0.5). The glass is viewed from slightly above — we're looking
-// down toward the opening facing us — so the NEAR/front half of both the
-// rim and base ellipses is their own LOWER arc (larger y), not the upper
-// one; depth below is defined so depth > 0 <=> the lower arc, matching
-// that.
+// 90°/210°/330° (not the "natural" 0°/120°/240°) so, at rest, the center
+// strand sits dead center-back (tucked behind the glass) and the other
+// two sit symmetric left/right, slightly toward the viewer. The glass is
+// viewed from slightly above, so the near/front half of both the rim and
+// base ellipses is their lower arc (larger y) — depth below is defined so
+// depth > 0 matches that lower arc.
 const STRAND_PHASE_OFFSETS = [Math.PI / 2, (7 * Math.PI) / 6, (11 * Math.PI) / 6];
 const CECEK_DOT_SPACING = 9;
-// Neither of batik-pattern.js's own two cecek options is quite right here:
-// 'plain' (--color-primary-strong) is locked to a fixed, always-moderately
-// -dark lightness across every theme — only its hue rotates per kueh, so
-// the dots would never read as light no matter the day. 'tinted'
-// (--color-surface) IS genuinely light, but it's near-white and reads as
-// almost invisible against this panel's own light neutral metal. --color-
-// highlight is both light (unlike primary-strong) AND still hue-varying
-// per theme, while staying visually distinct from the stroke's own
-// --color-accent.
+// Neither of batik-pattern.js's two cecek options is quite right here:
+// 'plain' (--color-primary-strong) stays a fixed, moderately-dark
+// lightness across every theme — only hue rotates, so the dots would
+// never read as light. 'tinted' (--color-surface) is genuinely light but
+// near-white, almost invisible against this panel's light neutral metal.
+// --color-highlight is light AND still hue-varying per theme, while
+// staying visually distinct from the stroke's own --color-accent.
 const CECEK_FILL = 'var(--color-highlight)';
 
 const prefersReducedMotion =
@@ -542,6 +551,29 @@ function buildRig() {
   let bounceOffsetY = 0; // px, see setBounceOffset — the landing bounce's own glass offset
   const twistStart = performance.now();
 
+  // The chip->pulley->node run only moves when setPositions() is called
+  // (a resize/day-tick/mobile-breakpoint change) — unlike the 3 strands
+  // below, it has nothing to do with the twist, so redraw()'s own 60fps
+  // loop was recomputing and re-serializing it every frame for no reason.
+  // Cached here and only rebuilt in setPositions, not in the per-frame
+  // twist loop.
+  let fixedMarkup = '';
+
+  function updateFixedMarkup() {
+    let markup = '';
+    if (!isMobileMode) {
+      const seg1 = chipToPulley.compute(chipPoint, pulleyPoint);
+      markup +=
+        renderSegment(seg1, CECEK_FILL) +
+        chipToPulleyFlourishes.map((f) => renderFlourish(chipPoint, pulleyPoint, f, CECEK_FILL)).join('');
+    }
+    const seg2 = pulleyToNode.compute(pulleyPoint, nodePoint);
+    markup +=
+      renderSegment(seg2, CECEK_FILL) +
+      pulleyToNodeFlourishes.map((f) => renderFlourish(pulleyPoint, nodePoint, f, CECEK_FILL)).join('');
+    fixedMarkup = markup;
+  }
+
   function setBounceOffset(px) {
     bounceOffsetY = px;
   }
@@ -564,22 +596,11 @@ function buildRig() {
       pulleyEl.style.left = `${pulley[0] + PULLEY_KNOB_OFFSET_X}px`;
       pulleyEl.style.top = `${pulley[1] + PULLEY_KNOB_OFFSET_Y}px`;
     }
+    updateFixedMarkup();
   }
 
   function redraw() {
     if (!chipPoint) return;
-
-    let fixedMarkup = '';
-    if (!isMobileMode) {
-      const seg1 = chipToPulley.compute(chipPoint, pulleyPoint);
-      fixedMarkup +=
-        renderSegment(seg1, CECEK_FILL) +
-        chipToPulleyFlourishes.map((f) => renderFlourish(chipPoint, pulleyPoint, f, CECEK_FILL)).join('');
-    }
-    const seg2 = pulleyToNode.compute(pulleyPoint, nodePoint);
-    fixedMarkup +=
-      renderSegment(seg2, CECEK_FILL) +
-      pulleyToNodeFlourishes.map((f) => renderFlourish(pulleyPoint, nodePoint, f, CECEK_FILL)).join('');
 
     let frontMarkup = fixedMarkup;
     let backMarkup = '';
@@ -642,11 +663,20 @@ function buildRig() {
     glassGraphic.el.style.transform = `translate(${glassOriginX}px, ${glassOriginY}px)`;
   }
 
+  // The twist itself is slow (TWIST_PERIOD_S, ±MAX_TWIST_RAD) — redrawing
+  // the string/glass at every display refresh is far more often than that
+  // motion needs to read as smooth, and each redraw rebuilds/re-parses two
+  // SVGs' worth of markup, the most expensive per-frame work in this
+  // module. Skipping to every 3rd rAF tick (~20fps on a 60Hz display)
+  // cuts that cost by 3x with no visible difference at this speed.
+  const REDRAW_FRAME_SKIP = 3;
   let rafId = null;
   function startLoop() {
     if (rafId || prefersReducedMotion) return;
+    let frameCount = 0;
     const frame = () => {
-      redraw();
+      frameCount++;
+      if (frameCount % REDRAW_FRAME_SKIP === 0) redraw();
       rafId = requestAnimationFrame(frame);
     };
     rafId = requestAnimationFrame(frame);
@@ -683,6 +713,7 @@ export function init() {
 
   section.style.setProperty('--mid-position', `${(fractionOf(CHECKIN_UTC) * 100).toFixed(3)}%`);
   section.style.setProperty('--tl-day-inset', `${DAY_AXIS_INSET}px`);
+  section.style.setProperty('--tl-chip-tail-length', `${CHIP_TAIL_LENGTH}px`);
 
   const layout = document.createElement('div');
   layout.className = 'tl-panel-layout';
@@ -722,32 +753,38 @@ export function init() {
   bottomRivets.classList.add('metal-rivet-row-bottom');
   section.append(topRivets, bottomRivets);
 
-  // Landing bounce (Stage 3) — triggered by drop-chute.js's own
+  // Landing bounce (Stage 3) — triggered by drop-chute.js's
   // 'chute:ball-landed' once the rolling ball reaches the end of the
   // chute. A short damped bounce applied as an *offset* on top of
-  // whatever position tick()/rig.redraw() already computed, not a
-  // replacement for it — lastChipX/Y/IsMobile below cache tick()'s own
-  // last-computed *base* chip position so each bounce frame can add its
-  // own offset to that same base repeatedly, rather than compounding
-  // onto an already-bounced value.
+  // whatever position tick()/rig.redraw() already computed — lastChipX/
+  // Y/IsMobile below cache tick()'s last-computed base chip position so
+  // each bounce frame adds its offset to that same base, rather than
+  // compounding onto an already-bounced value.
   const BOUNCE_DURATION_MS = 500;
   const BOUNCE_GLASS_PX = 6; // glass: straight down and back
   const BOUNCE_CHIP_PX = 5; // chip: whatever direction the string currently pulls it
-  // Impact, not a smooth oscillation — a plain sin(t*pi) has zero velocity
-  // right at t=0 (it eases in), which reads as the glass drifting into
-  // the dip rather than getting hit. Split into two eased-out halves
-  // instead: DOWN_PORTION of the duration snaps down with maximum
-  // velocity right at the moment of impact and decelerates into the
-  // bottom of the dip (a real impact drives in fast, then slows as
-  // whatever's being compressed pushes back); the remaining, longer
-  // portion recoils back out to rest the same way — fast off the bottom,
-  // settling in gradually — rather than easing gently in from a stop.
+  // Impact, not a smooth oscillation — a plain sin(t*pi) eases in from
+  // zero velocity, which reads as the glass drifting into the dip rather
+  // than getting hit. Split into two eased-out halves instead:
+  // DOWN_PORTION snaps down with maximum velocity at the moment of
+  // impact and decelerates into the bottom of the dip, then the longer
+  // remaining portion recoils back out the same way — fast off the
+  // bottom, settling in gradually.
   const BOUNCE_DOWN_PORTION = 0.18;
   let bounceStart = null;
   let lastChipX = 0;
   let lastChipY = 0;
   let lastIsMobile = false;
   let lastTodayPercent = 0;
+  // tick()'s own last-computed base spring width/stretch/thickness — the
+  // rig isn't the only thing that should bounce: the spring is the
+  // string's actual physical source, so it needs to stretch by that same
+  // BOUNCE_CHIP_PX offset in step with the chip each bounce frame (see
+  // applyBounce below), not stay frozen at its pre-bounce length while
+  // the chip it's supposedly attached to jumps away from it.
+  let lastSpringLength = 0;
+  let lastStretchFraction = 0;
+  let lastThickness = 0;
 
   function easeOutQuad(t) {
     return 1 - (1 - t) * (1 - t);
@@ -777,12 +814,20 @@ export function init() {
     } else {
       top.chip.style.left = `${lastChipX + factor * BOUNCE_CHIP_PX}px`;
     }
-    // The dial's today-band is "the same marker as the chip, seen at
-    // another height" (see .tl-dial-today's own CSS comment) — it should
-    // bounce right along with the chip, same offset/timing, rather than
-    // sitting still while its own other half hops. calc() lets the same
-    // px offset land on top of the base percentage without converting
-    // that percentage to px by hand.
+    // The spring's own free end is the chip, so it stretches by the same
+    // px offset the chip just moved by, same momentum, same timing — the
+    // anchor end (SPRING_ANCHOR_OFFSET behind the track's own edge) never
+    // moves, only the rendered length does.
+    updateSpringGraphic(top.springRefs, {
+      stretchFraction: lastStretchFraction,
+      width: Math.max(1, lastSpringLength + factor * BOUNCE_CHIP_PX),
+      height: lastThickness,
+    });
+    // The dial's today-band is the same marker as the chip, seen at
+    // another height (see .tl-dial-today's own CSS comment), so it should
+    // bounce along with it at the same offset/timing. calc() lets the
+    // same px offset land on top of the base percentage without
+    // converting that percentage to px by hand.
     const bouncePx = (factor * BOUNCE_CHIP_PX).toFixed(2);
     section.style.setProperty('--today-position', `calc(${lastTodayPercent.toFixed(3)}% + ${bouncePx}px)`);
     if (bounceStart !== null) requestAnimationFrame(applyBounce);
@@ -809,16 +854,25 @@ export function init() {
     const f = elapsedFraction();
     const isMobile = window.innerWidth <= 640;
 
+    // Bottom-pointing on desktop (down at the dial's own today-band,
+    // directly below), right-pointing on mobile (at the day track,
+    // parallel to the right of this one) — see buildTailedRectPath's own
+    // comment. The chip element itself never rotates (only repositioned
+    // along a different axis, per the mobile branches below), so its
+    // shape has to flip which edge carries the point instead.
+    top.updateChipTail(isMobile ? 'right' : 'bottom');
+
     // The spring is always generated in its own logical "long x thin"
     // orientation (matching src/tokens/spring.js's own horizontal
     // formulas) — on mobile the *track* is tall and narrow, but the
     // generated SVG itself stays long-and-thin and gets visually rotated
     // 90deg on top, rather than teaching spring.js a second axis.
-    // Anchored flush against the track's own start (left edge desktop,
-    // top edge mobile) and grown to exactly `f` of the track's own length
-    // — not a fixed-length spring with only its coil openness varying —
-    // so the chip sitting at that same length reads as "the spring's own
-    // free end," not a separately-positioned label.
+    // Anchored SPRING_ANCHOR_OFFSET px behind the track's own start (left
+    // edge desktop, top edge mobile — hidden by its overflow-hidden clip)
+    // and grown to reach exactly the day-chip's position — not a
+    // fixed-length spring with only its coil openness varying — so the
+    // chip sitting at that same length reads as "the spring's own free
+    // end," not a separately-positioned label.
     // Read directly from the track's own cross-axis size (not a separate
     // hardcoded constant) so the rendered coil height always matches
     // .tl-spring-track's actual CSS height (width on mobile) exactly,
@@ -831,17 +885,29 @@ export function init() {
     // first tick, and day DAY_COUNT (f=1) lands inset from the far edge
     // rather than flush against it.
     const growthLength = Math.max(1, trackLength - 2 * DAY_AXIS_INSET);
-    const springLength = Math.max(1, growthLength * f);
+    // The free end's own position along the track, in px from the
+    // track's start — this is the same value the day-chip/dial ticks
+    // already agree on (DAY_AXIS_INSET-inset, growing over growthLength),
+    // untouched by the anchor move below.
+    const freeEndOffset = DAY_AXIS_INSET + growthLength * f;
+    // The rendered coil spans from the hidden anchor (SPRING_ANCHOR_OFFSET
+    // behind the track's own start) to that free end, so it's longer than
+    // freeEndOffset alone by that fixed anchor offset — see
+    // SPRING_ANCHOR_OFFSET's own comment.
+    const springLength = Math.max(1, freeEndOffset + SPRING_ANCHOR_OFFSET);
     updateSpringGraphic(top.springRefs, { stretchFraction: f, width: springLength, height: thickness });
+    lastSpringLength = springLength;
+    lastStretchFraction = f;
+    lastThickness = thickness;
 
     const svgStyle = top.springRefs.svg.style;
     if (isMobile) {
       svgStyle.left = `calc(50% + ${thickness / 2}px)`;
-      svgStyle.top = `${DAY_AXIS_INSET}px`;
+      svgStyle.top = `${-SPRING_ANCHOR_OFFSET}px`;
       svgStyle.transformOrigin = '0 0';
       svgStyle.transform = 'rotate(90deg)';
     } else {
-      svgStyle.left = `${DAY_AXIS_INSET}px`;
+      svgStyle.left = `${-SPRING_ANCHOR_OFFSET}px`;
       svgStyle.top = '50%';
       svgStyle.transformOrigin = '';
       svgStyle.transform = 'translateY(-50%)';
@@ -859,7 +925,7 @@ export function init() {
     const trackRect = top.track.getBoundingClientRect();
     if (isMobile) {
       const chipX = trackRect.left + trackRect.width / 2 - layoutRect.left;
-      const chipY = trackRect.top + DAY_AXIS_INSET + springLength - layoutRect.top;
+      const chipY = trackRect.top + freeEndOffset - layoutRect.top;
       top.chip.style.left = `${chipX}px`;
       top.chip.style.top = `${chipY}px`;
       lastChipX = chipX;
@@ -881,7 +947,7 @@ export function init() {
       rig.redraw();
       rig.startLoop();
     } else {
-      const chipX = trackRect.left + DAY_AXIS_INSET + springLength - layoutRect.left;
+      const chipX = trackRect.left + freeEndOffset - layoutRect.left;
       const chipY = trackRect.top + trackRect.height / 2 - layoutRect.top;
       top.chip.style.left = `${chipX}px`;
       top.chip.style.top = `${chipY}px`;

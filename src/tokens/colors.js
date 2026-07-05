@@ -117,7 +117,7 @@ function relativeLuminance(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-export function contrastRatio(hexA, hexB) {
+function contrastRatio(hexA, hexB) {
   const l1 = relativeLuminance(hexA);
   const l2 = relativeLuminance(hexB);
   const lighter = Math.max(l1, l2);
@@ -130,7 +130,7 @@ export function contrastRatio(hexA, hexB) {
 // a hex string. Caps at 20 steps; warns (does not throw) if it can't clear
 // the target, since a seed at the very edge of gamut can make 4.5 physically
 // unreachable at a fixed hue/chroma.
-export function resolveTextToken(candidate, backgroundHexes, targetRatio = 4.5) {
+function resolveTextToken(candidate, backgroundHexes, targetRatio = 4.5) {
   const backgrounds = Array.isArray(backgroundHexes) ? backgroundHexes : [backgroundHexes];
   const bgLum = Math.max(...backgrounds.map(relativeLuminance));
   const dir = bgLum > 0.5 ? -1 : 1; // darken text on light bg, lighten on dark bg

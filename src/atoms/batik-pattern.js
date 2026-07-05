@@ -1,7 +1,7 @@
 // Renders the procedural batik motif field (src/tokens/batik-motifs.js)
 // into SVG markup, and owns the draw-in reveal animation for it — same
 // split chrome-metal.js uses between its pure gradient-string builders and
-// its DOM-effect functions (registerForRotation, applyIconFillSheen), kept
+// its DOM-effect functions (registerForSheen, applyIconFillSheen), kept
 // together here rather than in a separate organism since the animation is
 // intrinsic to how this atom renders, not page-specific wiring.
 //
@@ -27,7 +27,7 @@
 
 import { buildBatikComposition } from '../tokens/batik-motifs.js';
 
-export const CECEK_FILL_BY_SURFACE = {
+const CECEK_FILL_BY_SURFACE = {
   tinted: 'var(--color-surface)', // light dot, for colored/saturated section backgrounds
   plain: 'var(--color-primary-strong)', // dark dot, for white/cream (--color-surface family) backgrounds
 };
@@ -102,7 +102,7 @@ export function renderTendril(tendril) {
  * see CECEK_FILL_BY_SURFACE above for why this can't be figured out from
  * the palette alone.
  */
-export function renderBatikPattern({
+function renderBatikPattern({
   clusterCount = 6,
   width = 400,
   height = 400,

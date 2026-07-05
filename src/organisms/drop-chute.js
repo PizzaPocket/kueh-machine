@@ -1,148 +1,95 @@
-// Organism: the "chute" the hero countdown's own falling drop rolls
-// down — a short, smooth winding curve living entirely within the hero
-// section (its own bottom padding was grown a bit in index.html to make
-// room). The chute doesn't need to *start* under the funnel spout — it
-// just needs to pass underneath it somewhere along its own length, the
-// same way a real chute positioned off to one side still catches
-// something dropped from directly above it. The ball's full journey
-// (see spawnFallToChute/spawnRoll/spawnFall below) is: grow at the spout
-// (index.html) -> fall straight down until it meets the chute at whatever
-// point the chute's own curve happens to cross that x -> roll the
-// remainder of the chute's curve from that meeting point onward -> drop
-// off the end and fall the rest of the way (a real, longer fall, since
-// the glass is much further down the page than this chute reaches) ->
-// arrive at the glass, where timeline-panel.js takes over for the final
-// "into the liquid, behind the front accents" bit and the landing bounce.
+// Organism: the "chute" the hero countdown's falling drop rolls down — a
+// short, smooth winding curve living inside the hero section (its bottom
+// padding was grown in index.html to make room). It doesn't need to start
+// under the funnel spout, only to pass underneath it somewhere along its
+// length. Ball journey (spawnFallToChute/spawnRoll/spawnFall below): grows
+// at the spout (index.html) -> falls straight down to wherever the
+// chute's curve crosses that x -> rolls the rest of the curve -> drops
+// off the end and falls the remaining distance to the glass, where
+// timeline-panel.js takes over for the liquid entry and landing bounce.
 //
-// The curve itself is deliberately NOT built from chained
-// atoms/batik-segment.js tendril segments (each independently bowed, so
-// consecutive segments don't share a tangent direction at the joins,
-// reading as visibly segmented/kinked) — a real chute needs one
-// continuous, smoothly winding curve. Built instead via a Catmull-Rom
-// spline through several jittered waypoints, converted to one chain of
-// cubic beziers that all share matching tangents at every join
-// (buildSmoothPathD below) — still decorated with the same cecek-dot
-// trace and occasional leaf/bell/petal/paisley flourish
-// (atoms/batik-flourish.js) as the rest of the site's batik language,
-// just on a smooth spline instead of a segmented tendril chain.
+// The curve is a Catmull-Rom spline through jittered waypoints, converted
+// to a chain of cubic beziers sharing tangents at every join
+// (buildSmoothPathD) — not chained atoms/batik-segment.js tendrils, which
+// bow independently and read as kinked at the joins rather than one
+// continuous wind. Decorated with the same cecek-dot trace and
+// leaf/bell/petal/paisley flourishes (atoms/batik-flourish.js) as the
+// rest of the site's batik language.
 //
-// Draws itself in on first load (stroke-dasharray/dashoffset, the same
-// technique src/atoms/batik-pattern.js's own revealBatikPattern already
-// uses) rather than simply appearing fully-drawn. Rebuilds (geometry
-// only, no re-animated reveal) on resize — including across the mobile/
-// desktop breakpoint, where the glass bucket's own position changes
-// layout entirely (src/organisms/timeline-panel.js) — debounced, since a
-// live drag-resize fires far more often than this needs to actually
-// recompute.
+// Draws itself in on first load (stroke-dasharray/dashoffset, same
+// technique as batik-pattern.js's revealBatikPattern) and rebuilds
+// (geometry only, no re-animated reveal) on resize — debounced, since a
+// live drag-resize fires far more often than this needs to recompute.
 //
-// Cross-module handoff with index.html (classic script) and
-// timeline-panel.js (the glass-entry + bounce reaction) goes through
-// window custom events, the same pattern index.html's own
-// #dev-date-override already established with 'dev:date-changed':
-//   'chute:ball-released' (dispatched by index.html) → this module falls
-//     the drop to the chute, rolls it, then falls it the rest of the way
-//     down to the glass.
-//   'chute:ball-landed' (dispatched by this module, once that long fall
-//     finishes) → timeline-panel.js takes the ball the rest of the way
-//     into the liquid and triggers the bounce.
+// Cross-module handoff via window custom events:
+//   'chute:ball-released' (dispatched by index.html) → falls the drop to
+//     the chute, rolls it, then falls it the rest of the way to the glass.
+//   'chute:ball-landed' (dispatched by this module once that fall
+//     finishes) → timeline-panel.js takes it into the liquid and
+//     triggers the bounce.
 
 import { flattenCubic, pointsAtArcLength } from '../tokens/batik-motifs.js';
 import { renderCecekLayer, TENDRIL_STROKE } from '../atoms/batik-pattern.js';
 import { buildFlourish, renderFlourish } from '../atoms/batik-flourish.js';
 
 const CECEK_FILL = 'var(--color-highlight)'; // same choice timeline-panel.js's own string already made
-// ARCH_COUNT: the number of deliberate alternating bends between the
-// start and end anchors — NOT a sample-density knob. Every waypoint fed
-// to the Catmull-Rom spline (buildWaypoints) is one of these bend apexes
-// (or the start/end anchor); there's no such thing as an "extra" waypoint
-// that merely traces a formula more finely. Per the user: a point that
-// isn't doing the work of making a real, dramatic arch is just noise on
-// the line, not interest — so raising this number means "one more real
-// bend," never "smoother sampling of the same bend." 2 was tried at
-// higher sample density (8-16 evenly-spaced points reading off a sine
-// wave) and read as a cluster of small kinks on wide (desktop) spans; the
-// fix wasn't more points, it was making every point count.
+// Number of deliberate alternating bends between the start/end anchors —
+// not a sample-density knob (every waypoint fed to the Catmull-Rom spline
+// in buildWaypoints is a real bend apex, never just a finer sample of the
+// same curve). Higher sample density at the same bend count (tried at
+// 8-16 points) read as a cluster of small kinks on wide desktop spans;
+// fewer, more deliberate bends read as real arches instead.
 const ARCH_COUNT = 2;
-// Desktop's own fixed height — desktop doesn't need the mobile-only
-// compression below (hero always had comfortable room there), but it's
-// trimmed down a bit from an earlier 190: the more dramatic arches now
-// (buildWaypoints's own ARCH_SWING_RATIO) read as visually heavier, so
-// the chute's own bottom edge is raised slightly to leave more clearance
-// above Kueh of the Day. Some overlap into that section is still fine on
-// desktop (more than mobile ever gets — see the hard clamp below) — this
-// is a "back off a little," not "never overlap."
+// Desktop's fixed height, trimmed down from an earlier 190 to leave more
+// clearance above Kueh of the Day now that ARCH_SWING_RATIO's more
+// dramatic arches read heavier.
 const CHUTE_HEIGHT_MAX = 150;
-// Mobile's own fixed height — a flat constant now, not derived from
-// however much room happens to be left between the spout and the hero's
-// own live bottom edge. That live measurement used to mean any unrelated
-// change to the hero's bottom padding (e.g. trimming dead space) directly
-// squashed the chute shorter, even though the chute itself hadn't
-// changed — the two were coupled for no real reason. This value is just
-// the height that measurement used to settle on with the hero's own
-// padding at a comfortable size, kept as a plain tuned constant instead.
+// Mobile's fixed height — deliberately not derived from the hero's live
+// bottom edge, so an unrelated change to the hero's own padding can't
+// silently squash or stretch this.
 const CHUTE_HEIGHT_MOBILE = 80;
 const MOBILE_BREAKPOINT = 640; // matches timeline-panel.js's own isMobile cutoff
-const CONTAINER_PAD = 60; // clearance around the waypoint bounding box for stroke width/flourishes — the *rendered* container extends this far past the last waypoint, so findAnchors' own room calculation has to account for it too, not just the path's own logical height
+const CONTAINER_PAD = 60; // clearance around the waypoint bounding box for stroke width/flourishes — findAnchors' own room calculation has to account for this too, not just the path's logical height
 const X_JITTER = 200; // wide side-to-side swing — runs mostly horizontally, not a near-vertical drop
-// Each arch's swing is this fraction of the start->end horizontal span
-// (floored by ARCH_MIN_SWING_PX for narrow spans) — proportional, not a
-// flat pixel amount, so an arch is always a real, visible departure from
-// the direct line regardless of how wide or narrow that line happens to
-// be. A flat X_JITTER-based amplitude (the old approach) could be nearly
-// swallowed by a wide span's own linear drift, undercutting the very
-// drama an arch is supposed to add.
+// Each arch's swing as a fraction of the start->end horizontal span
+// (floored by ARCH_MIN_SWING_PX) rather than a flat pixel amount, so an
+// arch stays a visible departure from the direct line regardless of span
+// width — a flat amplitude could get swallowed by a wide span's own drift.
 const ARCH_SWING_RATIO = 0.42;
 const ARCH_MIN_SWING_PX = 70;
-// The closing hook (buildWaypoints) — a dedicated point pinned directly
-// above bucketX, right before the final anchor, so the chute's very last
-// stretch is a true vertical drop (an exact 90-degree tangent right at
-// the dropoff — see buildWaypoints's own comment for why). GAP is the
-// share of the total vertical run reserved for it, kept clear of the
-// regular arches so it isn't fighting wherever the last one landed.
+// The closing hook (buildWaypoints): a dedicated point pinned above
+// bucketX right before the final anchor, so the chute's last stretch is a
+// true vertical drop. This is the share of the vertical run reserved for
+// it, kept clear of the regular arches.
 const END_HOOK_GAP_T = 0.28;
 const FLOURISH_COUNT = 2;
 const CECEK_DOT_SPACING = 9;
 const REVEAL_DURATION_MS = 1100; // draw-in, first build only
 const FALL_TO_CHUTE_DURATION_MS = 260; // spout -> wherever the chute crosses under it
 const CHUTE_RIDE_LIFT_PX = 3; // rides a touch above the path's own centerline, rather than dead-center on it
-// px/ms along the *actual* curve — not a flat total duration divided by
-// however much of the path is left. The chute snakes (buildWaypoints's
-// arches), so its real arc length varies a lot by viewport/build (~1140px
-// measured on one desktop width, ~375px on one mobile width) — a fixed
-// total-duration assumption would make the ball travel at a wildly
-// different px/ms depending on how long that particular build's curve
-// happened to be, rather than rolling at one consistent speed. Duration
-// is derived per-roll from the real remaining arc length (spawnRoll,
-// using state.totalLength — the same measurement buildChute already does
-// for crossingFraction, just also kept around instead of discarded).
+// px/ms along the *actual* curve, not a flat total duration — the chute's
+// real arc length varies a lot by viewport/build, so duration is derived
+// per-roll from the real remaining arc length (spawnRoll) rather than
+// assuming a fixed travel time regardless of curve length.
 const ROLL_SPEED_PX_PER_MS = 0.35;
-// Stretch & squash: the ball elongates along its direction of travel
-// while falling (a visual read of speed, classic animation-principle
-// stuff), and relaxes back to round while rolling (rolling doesn't
-// accelerate the same way, so there's nothing for the elongation to keep
-// expressing). Two stretch stages for the long fall (spawnFall) — modest
-// while still accelerating, fuller once it settles into terminal
-// velocity — vs. one flat stretch for the short spout->chute hop
-// (spawnFallToChute), which is too brief to bother easing between two
-// stretch amounts. FALL_STRETCH_X is always the reciprocal-ish
-// counterpart to *_Y (volume-preserving squash-stretch), not an
-// independent tune.
+// Stretch & squash: the ball elongates along its direction of travel while
+// falling (a speed cue) and relaxes back to round while rolling. Two
+// stretch stages for the long fall (spawnFall) — modest while
+// accelerating, fuller at terminal velocity — vs. one flat stretch for
+// the brief spout->chute hop (spawnFallToChute). Each STRETCH_X is the
+// volume-preserving reciprocal of its own STRETCH_Y, not an independent tune.
 const FALL_STRETCH_Y_MID = 1.15;
 const FALL_STRETCH_X_MID = 0.9;
 const FALL_STRETCH_Y_MAX = 1.35;
 const FALL_STRETCH_X_MAX = 0.8;
 const HOP_STRETCH_Y = 1.25;
 const HOP_STRETCH_X = 0.87;
-// The moment the ball meets the chute (spawnRoll's very first instant): a
-// quick squash-then-spring-back, like real impact absorption, before
-// settling into the round shape it keeps for the rest of the roll. Timed
-// in real ms (not a fraction of the roll's own variable total), so it
-// neither lengthens nor shortens depending on how long that particular
-// roll happens to be. Runs as its own independent `transform`-only
-// animation (see spawnRoll), so it can't affect the movement animation's
-// own easing/timing — and, since the roll ball's own margin double-shift
-// bug is now fixed (that was the real cause of an earlier "backtrack"
-// misattributed to this squash), it should render cleanly now.
+// The moment the ball meets the chute (spawnRoll's first instant): a
+// quick squash-then-spring-back impact absorption before settling into
+// the round shape it keeps for the rest of the roll. Timed in real ms
+// (not a fraction of the roll's own variable total) and run as its own
+// independent `transform`-only animation, so it can't affect the movement
+// animation's easing/timing.
 const LANDING_SQUASH_MS = 110;
 const LANDING_SQUASH_Y = 0.85;
 const LANDING_SQUASH_X = 1.15;
@@ -163,22 +110,10 @@ function documentPoint(rect) {
 }
 
 // Start: right under the funnel spout. End: directly over the glass
-// bucket (.tl-glass's own current x-center — the same target spawnFall
-// itself measures later, so both stay consistent) — still only a little
-// way down the page, per the user: the chute itself stays near the top,
-// it doesn't reach anywhere near the Timeline panel; the long fall
-// (spawnFall, below) covers the real remaining distance down to the
+// bucket's current x-center (the same target spawnFall measures later, so
+// both stay consistent) — the chute itself stays near the top of the
+// page; the long fall (spawnFall) covers the remaining distance to the
 // glass.
-//
-// chuteHeight: a flat constant either way — CHUTE_HEIGHT_MAX on desktop,
-// CHUTE_HEIGHT_MOBILE on mobile (mobile's hero is shorter relative to its
-// own content, so it gets its own smaller flat value rather than sharing
-// desktop's). Deliberately NOT derived from the hero's own live bottom
-// edge anymore — that used to mean any unrelated change to the hero's
-// bottom padding (trimming empty space, say) would silently squash or
-// stretch the chute along with it, since the two had nothing to do with
-// each other conceptually. A plain constant, tuned by eye like everything
-// else in this file, means the two can be changed independently.
 function findAnchors() {
   const viewport = document.querySelector('.countdown-viewport');
   const glass = document.querySelector('.tl-glass');
@@ -193,22 +128,19 @@ function findAnchors() {
   return { spout, chuteTop, bucketX, chuteHeight };
 }
 
-// The chute's own waypoints — a short, wide S-wind sitting just below the
-// spout. `bucketX` is a *hard rule* (see findAnchors) — the last waypoint
-// is pinned there exactly, so the long fall off the end is a straight
-// vertical drop into the glass rather than a diagonal one.
+// The chute's waypoints — a short, wide S-wind sitting just below the
+// spout. `bucketX` is a hard rule (see findAnchors): the last waypoint is
+// pinned there exactly, so the long fall off the end drops straight down
+// into the glass rather than diagonally.
 //
-// The starting waypoint is placed on the *opposite side* of spoutX from
-// bucketX — not just offset to one fixed side — which guarantees (by the
-// intermediate value theorem: a continuous line from one side of spoutX
-// to the other must cross it somewhere) that the curve actually passes
-// underneath the spout at least once, regardless of which side the
-// bucket happens to be on. Getting this wrong (a fixed offset regardless
-// of bucketX's side) was the mobile bug: the mobile bucket sits well to
-// the *left*, and a start point *also* offset left of the spout meant the
-// whole path skewed away from spoutX with nothing guaranteeing a
-// crossing — the drop had to visibly jump sideways to reach the chute's
-// own literal start instead of falling straight onto it.
+// The starting waypoint sits on the *opposite side* of spoutX from
+// bucketX, not just offset to one fixed side — a continuous line from one
+// side of spoutX to the other is guaranteed to cross it somewhere, so the
+// curve always passes under the spout regardless of which side the
+// bucket is on. A fixed offset regardless of bucketX's side was the
+// mobile bug: the mobile bucket sits well to the left, so a start point
+// also offset left meant nothing guaranteed a crossing, and the drop had
+// to visibly jump sideways to reach the chute.
 function buildWaypoints(spoutX, chuteTop, bucketX, chuteHeight) {
   const minX = EDGE_MARGIN;
   const maxX = Math.max(minX + 1, document.documentElement.clientWidth - EDGE_MARGIN);
@@ -219,29 +151,16 @@ function buildWaypoints(spoutX, chuteTop, bucketX, chuteHeight) {
   const span = bucketX - startX;
   const swing = Math.max(ARCH_MIN_SWING_PX, Math.abs(span) * ARCH_SWING_RATIO);
 
-  // Start and end are anchors (start passes under the spout, end is
-  // pinned to the bucket — both hard rules, see comment above), not
-  // arches themselves. Every point in between is a deliberate apex,
-  // alternating which side it bulges toward, pushed a real, proportional
-  // `swing` off the direct start->end line — never a point sitting
-  // quietly on the interpolated line just to add sampling density.
-  //
-  // The first arch's side is chosen to match the overall travel
-  // direction (Math.sign(span)), not a fixed left-or-right guess — it
-  // must *compound* with the line's own drift, not fight it. Picking a
-  // fixed side regardless of which way the bucket sits meant that on
-  // some layouts (bucket left of the spout, span negative) the first
-  // arch's push partly cancelled the line's own drift instead of adding
-  // to it, landing barely off the straight line — a point doing
-  // essentially no work, which is exactly what this whole approach is
-  // meant to avoid.
+  // The first arch's side matches the overall travel direction
+  // (Math.sign(span)), not a fixed left-or-right guess, so it compounds
+  // with the line's own drift instead of fighting it — a fixed side could
+  // land on some layouts (bucket left of spout) partly cancelling the
+  // drift instead of adding to it.
   const firstSide = span >= 0 ? 1 : -1;
 
   // The regular arches only get the first `archSpan` share of the
-  // vertical run — the closing hook below (per the user: the very end
-  // should arch downward, close to the dropoff) gets a dedicated final
-  // stretch of its own, so it isn't competing with wherever the last
-  // regular arch happened to land.
+  // vertical run — the closing hook below gets a dedicated final stretch
+  // so it isn't competing with wherever the last regular arch landed.
   const archSpan = 1 - END_HOOK_GAP_T;
   const waypoints = [[startX, chuteTop]];
   for (let i = 1; i <= ARCH_COUNT; i++) {
@@ -253,23 +172,18 @@ function buildWaypoints(spoutX, chuteTop, bucketX, chuteHeight) {
     waypoints.push([x, y]);
   }
 
-  // The closing hook: *two* points, both pinned to bucketX exactly (same
-  // x as the final anchor, only differing in y) — one point isn't
-  // enough. A single hook point only forces the tangent to be vertical at
-  // the infinitesimal final instant; the segment leading into it is still
-  // a cubic Bezier whose *incoming* control point is pulled sideways by
-  // whatever the last regular arch's off-center position was, so the
-  // curve visibly bulges out and snaps back right at the end instead of
-  // genuinely running straight down (this was tried first — the tangent
-  // was technically vertical right at the tip, but the curve leading up
-  // to it still hooked past vertical and back). With two colinear points,
-  // the *final* segment's four Bezier control points (both endpoints, and
-  // both Catmull-Rom-derived control points, which each depend only on
-  // this pair and its own duplicate padding) all land on the same
-  // vertical line — that whole last stretch is a genuinely straight
-  // vertical drop, not just tangent-matched at one point. Any bulge from
-  // the last arch's off-center position is confined to the segment
-  // *before* hook1, which is exactly where the "arch downward" bend
+  // The closing hook: *two* points pinned to bucketX exactly (same x,
+  // differing only in y) — one point isn't enough. A single hook point
+  // only forces the tangent vertical at the infinitesimal final instant;
+  // the segment leading into it is still a cubic Bezier whose incoming
+  // control point gets pulled sideways by the last arch's off-center
+  // position, so the curve visibly bulges and snaps back at the end
+  // instead of running straight down. With two colinear points, the final
+  // segment's four control points (both endpoints plus both
+  // Catmull-Rom-derived controls, which depend only on this pair) all
+  // land on the same vertical line, making that whole last stretch a
+  // genuinely straight drop — any bulge from the last arch stays confined
+  // to the segment before hook1, which is where the "arch downward" bend
   // should read anyway.
   const hook1T = archSpan + END_HOOK_GAP_T * 0.4;
   const hook2T = archSpan + END_HOOK_GAP_T * 0.75;
@@ -317,24 +231,18 @@ function polylineLength(polyline) {
 }
 
 // Where a vertical line through `targetX` first crosses the curve — the
-// point the falling drop actually lands on, and the arc-length fraction
-// the roll should start from (everything before this point is "upstream"
-// of where the drop meets the chute, and never gets rolled over).
+// point the falling drop lands on, and the arc-length fraction the roll
+// should start from (everything before this is "upstream" of the meeting
+// point and never gets rolled over).
 //
-// Queried against the *real, rendered* <path> element (getPointAtLength),
-// not our own flattened-polyline approximation of it — the polyline is
-// only ~16 samples per bezier segment, a fine approximation for
-// scattering dots/flourishes, but not pixel-exact. offset-path/
-// offset-distance (the roll animation, spawnRoll) positions the ball
-// using the browser's own precise path geometry, so if the crossing point
-// used to end the *fall* (spawnFallToChute) came from our own slightly
-// different polyline estimate, the roll's starting position wouldn't
-// necessarily land at the exact same pixel — the ball would visibly
-// snap a few px to correct itself right as the roll took over, reading
-// as a small backtrack. Using the same getPointAtLength the path element
-// itself is built from removes that discrepancy by construction: both
-// the fall's landing point and the roll's start now come from the exact
-// same source.
+// Queried against the real, rendered <path> element (getPointAtLength),
+// not the flattened-polyline approximation used for dot/flourish
+// placement (~16 samples per segment — fine there, not pixel-exact). The
+// roll animation (spawnRoll) also positions the ball via offset-path
+// using the browser's own path geometry, so using the same
+// getPointAtLength for the fall's landing point keeps both stages exactly
+// aligned instead of the ball visibly snapping a few px when the roll
+// takes over.
 function findCrossingOnPath(pathEl, totalLength, targetX) {
   const STEPS = 200;
   let prevLen = 0;
@@ -404,17 +312,15 @@ export function init() {
 
     const bezierSegments = catmullRomBezierSegments(waypoints);
     const pathD = buildSmoothPathD(bezierSegments);
-    // A second path, offset straight up by CHUTE_RIDE_LIFT_PX, used only as
-    // the roll's offset-path (see spawnRoll) so the ball rides a touch
-    // above the drawn line instead of dead-center on it. A rigid vertical
-    // translation leaves every tangent angle identical to the original
-    // curve's — unlike shifting via offset-anchor/transform, which get
-    // rotated along with offset-rotate's default 'auto' tangent-following
-    // rotation and so flip from "above" to "below" whenever the chute
-    // curves back the other way. Because it's a pure translation (not a
-    // reshape), arc length is unchanged too, so the roll's existing
-    // crossingFraction/offsetDistance percentages — computed against the
-    // un-lifted pathD — still land on the exact corresponding point.
+    // A second path, offset straight up by CHUTE_RIDE_LIFT_PX, used only
+    // as the roll's offset-path (spawnRoll) so the ball rides a touch
+    // above the drawn line. A rigid vertical translation keeps every
+    // tangent angle identical to the original curve's — offset-anchor/
+    // transform would rotate along with offset-rotate's tangent-following
+    // default and flip from "above" to "below" wherever the chute curves
+    // back the other way. Being a pure translation also leaves arc length
+    // unchanged, so the roll's crossingFraction/offsetDistance percentages
+    // (computed against the un-lifted pathD) still land on the same point.
     const liftedSegments = bezierSegments.map(([p0, cp1, cp2, p1]) => [
       [p0[0], p0[1] - CHUTE_RIDE_LIFT_PX],
       [cp1[0], cp1[1] - CHUTE_RIDE_LIFT_PX],
@@ -439,13 +345,11 @@ export function init() {
     let markup =
       `<path class="batik-tendril drop-chute-path" d="${pathD}" fill="none" stroke="${TENDRIL_STROKE}" stroke-width="2.5" stroke-linecap="round"/>` +
       renderCecekLayer(dots, CECEK_FILL);
-    // Segment picked weighted by its *real* arc length, not a uniform
-    // pick by index — the closing hook (buildWaypoints) packs several
-    // short segments into the last stretch of the chute (getting there
-    // from the last regular arch, then the two hook points, then the
-    // end), so an index-uniform pick way overrepresented that small
-    // bottom region relative to how little of the curve it actually is,
-    // reading as flourishes always landing near the bottom.
+    // Segment picked weighted by its real arc length, not a uniform pick
+    // by index — the closing hook packs several short segments into the
+    // last stretch of the chute, so an index-uniform pick overrepresented
+    // that small bottom region, reading as flourishes always landing near
+    // the bottom.
     const segLengths = bezierSegments.map(([p0, cp1, cp2, p1]) => polylineLength(flattenCubic(p0, cp1, cp2, p1, 16)));
     const totalSegLength = segLengths.reduce((a, b) => a + b, 0);
     for (let i = 0; i < FLOURISH_COUNT; i++) {
@@ -472,21 +376,14 @@ export function init() {
     // where an approximation is perfectly fine).
     const tendrilPathEl = svg.querySelector('.drop-chute-path');
     const totalLength = tendrilPathEl.getTotalLength();
-    // One single point serves both the fall's landing target and the
-    // roll's own starting position — not two separate ones. The fall has
-    // to stay purely vertical (a real drop falls straight down), so it
-    // can only ever land exactly on the curve's own crossing of the
-    // spout's x; anything else demands either a diagonal fall (breaks the
-    // physics) or a small jump at the handoff (breaks continuity) to
-    // reach a *different* point for the roll to start from. Perfect
-    // continuity and a straight-down fall together only leave one choice:
-    // both use this same literal crossing point — lifted by
-    // CHUTE_RIDE_LIFT_PX below (state.crossingDoc), to land on the same
-    // raised line the roll itself rides (ballPathD), not the drawn
-    // centerline. A plain y-subtraction is exact, not an approximation:
-    // ballPathD is centerline translated by -CHUTE_RIDE_LIFT_PX, and
-    // translating every control point shifts every point on the curve by
-    // that exact same amount for any t.
+    // One point serves both the fall's landing target and the roll's own
+    // start — the fall must stay purely vertical, so it can only land on
+    // the curve's crossing of the spout's x; anything else means either a
+    // diagonal fall or a discontinuous jump at the handoff. Lifted by
+    // CHUTE_RIDE_LIFT_PX (state.crossingDoc) to land on the same raised
+    // line the roll rides (ballPathD) rather than the drawn centerline —
+    // exact, not approximate, since ballPathD is just the centerline
+    // translated by -CHUTE_RIDE_LIFT_PX.
     const crossing = findCrossingOnPath(tendrilPathEl, totalLength, spoutLocalX);
     const crossingFraction = crossing ? crossing.travelled / totalLength : 0;
 
@@ -533,14 +430,11 @@ export function init() {
     return true;
   }
 
-  // The long fall from the chute's end down to wherever the glass
-  // currently sits — measured fresh right when it starts (not
-  // precomputed), so it correctly lands wherever the glass has sunk to
-  // *today*, even though the chute itself doesn't track that. Document-
-  // positioned, not viewport-fixed — a real, possibly off-screen (if the
-  // visitor has scrolled to look at the Timeline section already) journey
-  // down the page, not something that needs to stay in view the whole
-  // time.
+  // The long fall from the chute's end to wherever the glass currently
+  // sits — measured fresh when it starts (not precomputed), so it lands
+  // correctly wherever the glass has sunk to today. Document-positioned,
+  // not viewport-fixed, since this can be a real off-screen journey down
+  // the page.
   function spawnFall() {
     const glass = document.querySelector('.tl-glass');
     if (!glass || prefersReducedMotion) {
@@ -564,21 +458,14 @@ export function init() {
     // distance) rather than one fixed value regardless of how far down
     // the page the glass actually is.
     const fallDuration = Math.min(2800, Math.max(600, Math.sqrt(Math.abs(dy)) * 45));
-    // Accelerates for the first ~22% of the fall's own duration (ease-in,
-    // covering ~12% of the distance in that time — still speeding up),
-    // then holds a *constant* speed — terminal velocity — for the
-    // remainder (a plain linear segment), rather than continuing to
-    // accelerate (or, worse, decelerate) all the way to the glass. The
-    // final glass-entry leg (dropIntoLiquid, src/atoms/glass-graphic.js)
-    // picks up at that same linear rate rather than restarting from a
-    // slow ease-in of its own, so there's no perceived slowdown right at
-    // the handoff into the cup.
-    // Stretch grows alongside speed: round when it leaves the chute
-    // (still carrying the roll's own settled shape), a modest elongation
-    // by the time it's accelerated through the first 22%, holding at its
-    // fullest stretch through the rest of the fall (constant terminal
-    // velocity = constant stretch, no reason to ease it further once the
-    // speed itself stops changing).
+    // Accelerates for the first ~22% of the duration (ease-in), then
+    // holds a constant terminal-velocity speed for the rest, rather than
+    // continuing to accelerate or decelerate all the way down — the
+    // glass-entry leg (dropIntoLiquid, glass-graphic.js) picks up at that
+    // same linear rate, so there's no perceived slowdown at the handoff.
+    // Stretch grows alongside speed the same way: round leaving the
+    // chute, a modest elongation through the accelerating phase, holding
+    // at its fullest once speed stops changing.
     const anim = fallEl.animate(
       [
         { transform: 'translate(0, 0) scale(1, 1)', offset: 0, easing: 'ease-in' },
@@ -591,13 +478,10 @@ export function init() {
       ],
       { duration: fallDuration }
     );
-    // The terminal velocity actually reached during that final linear
-    // 78%-of-time/88%-of-distance stretch (px/ms) — passed along so the
-    // glass-local final leg (dropIntoLiquid, src/atoms/glass-graphic.js,
-    // wired up in timeline-panel.js) can keep moving at this *exact* same
-    // speed the rest of the way into the liquid, rather than an
-    // independently-chosen fixed duration of its own that likely wouldn't
-    // match.
+    // The terminal velocity actually reached (px/ms), passed along so
+    // dropIntoLiquid (glass-graphic.js, wired up in timeline-panel.js) can
+    // keep moving at this exact speed into the liquid, rather than an
+    // independently-chosen duration that likely wouldn't match.
     const totalDist = Math.hypot(dx, dy);
     const terminalSpeed = (totalDist * 0.88) / (fallDuration * 0.78);
     anim.onfinish = () => {
@@ -620,59 +504,39 @@ export function init() {
     const startPct = `${(crossingFraction * 100).toFixed(2)}%`;
     const ball = document.createElement('div');
     ball.className = 'drop-chute-ball';
-    // .drop-chute-ball's own margin: -6px centers the plain-translated
+    // .drop-chute-ball's own margin:-6px centers the plain-translated
     // fall/hop balls on an explicit left/top point — but offset-path
-    // already centers *this* element on the path point itself via its own
-    // anchor mechanism (default: box center), so that same margin doubly
-    // shifts it a further 6px off-target. Verified directly: with the
-    // shared margin left in place, this ball rendered ~6px away from the
-    // exact point getPointAtLength itself reports for the same
-    // offsetDistance; zeroing margin here lines the two up almost
-    // exactly. This was the real cause of the "lands, then backtracks a
-    // few px" bug — not the crossing-point math (already verified exact),
-    // not the squash (removed anyway, but never the actual culprit).
+    // already centers this element on the path point via its own anchor
+    // mechanism, so the shared margin doubly shifts it another 6px
+    // off-target. Zeroing it here is what actually fixed the "lands, then
+    // backtracks a few px" bug.
     ball.style.margin = '0';
-    // Rides ballPathD (state's own lifted copy of pathD, built above),
-    // not pathD itself, so the ball sits CHUTE_RIDE_LIFT_PX above the
-    // drawn line rather than dead-center on it — see ballPathD's own
-    // comment for why this has to be a shifted path rather than an
-    // offset-anchor/transform nudge (those rotate with offset-rotate's
-    // tangent-following default and flip sides on the chute's own curves).
+    // Rides ballPathD (the lifted copy of pathD built above), not pathD
+    // itself, so the ball sits CHUTE_RIDE_LIFT_PX above the drawn line —
+    // see ballPathD's own comment for why this has to be a shifted path
+    // rather than an offset-anchor/transform nudge.
     ball.style.offsetPath = `path('${ballPathD}')`;
     ball.style.offsetDistance = startPct;
     container.appendChild(ball);
-    // Landing on the chute cuts the fall's own (fast, terminal-velocity)
-    // speed down a lot, since the roll animation starts fresh at its own
-    // t=0 — but not a dead stop, the ball still carries a faint amount of
-    // momentum from the fall. Both ends are deliberately gentle — the
-    // curve's steepest stretch is through the middle, easing in from a
-    // slow start and back down to a slow-ish finish rather than either
-    // end feeling rushed.
-    //
-    // Duration comes from the real remaining arc length (not just "the
-    // remaining fraction of some flat total") divided by a target px/ms
-    // — the curve's actual length varies by viewport, so a fixed total
-    // duration would silently change the ball's real speed from build to
-    // build.
+    // Landing cuts the fall's fast terminal-velocity speed down a lot
+    // (the roll animation starts fresh at its own t=0), but not to a dead
+    // stop — both ends ease gently, with the steepest stretch through the
+    // middle. Duration comes from the real remaining arc length divided
+    // by a target px/ms, not a flat total, since the curve's actual
+    // length varies by viewport.
     const remaining = 1 - crossingFraction;
     const remainingLength = totalLength * remaining;
     const movementDuration = Math.max(250, remainingLength / ROLL_SPEED_PX_PER_MS);
-    // Movement and squash are two *separate* concurrent animations on the
+    // Movement and squash are two separate concurrent animations on the
     // same element (WAAPI allows this as long as they don't touch the
-    // same property) — a single animation covering both offsetDistance
-    // and transform together let the squash's own ease-out-into-ease-in
-    // stall the ball's forward progress right at that shared keyframe (a
-    // real bug, since fixed). The squash was then also blamed for a
-    // separate "lands, backtracks a few px" issue, which turned out to be
-    // this ball's own margin double-shift (see where `ball.style.margin`
-    // is zeroed, above) — unrelated to the squash, and now fixed at the
-    // source.
+    // same property) — combining them into one animation covering both
+    // offsetDistance and transform let the squash's own easing stall the
+    // ball's forward progress at that shared keyframe.
     const crossingPct = crossingFraction * 100;
 
     // Same accelerate-then-hold-terminal-velocity shape as the long fall
-    // (spawnFall) — ease in for the first 22% of the duration (covering
-    // ~12% of the distance, still speeding up), then a flat *linear*
-    // stretch for the rest, so the ball actually reaches and holds one
+    // (spawnFall) — ease in for the first 22% of the duration, then a
+    // flat linear stretch for the rest, so the ball reaches and holds one
     // constant top speed along the chute.
     const postCrossingPctRange = 100 - crossingPct;
     const accelEndOffset = 0.22;
@@ -740,34 +604,19 @@ export function init() {
 
   if (!buildChute()) return;
 
-  // The page loads a Google Font (--font-display: "Syne", ...) with
-  // `display=swap` — text first renders in the fallback font, then
-  // reflows once Syne downloads and swaps in. Since Syne's own metrics
-  // differ from the fallback, that reflow can shift .hero-title's own
-  // height, pushing the funnel below it up or down after this first
-  // build already ran — silently baking a stale spout y-coordinate into
-  // everything downstream (the straight fall, the chute's own geometry).
-  // (.hero itself used to also carry a `reveal` class with its own
-  // translateY(20px)->0 entrance transition, another possible source of
-  // the same staleness — removed instead, since .hero is always already
-  // in view at load and didn't need a reveal-on-scroll effect at all.)
+  // The page loads a Google Font (--font-display: "Syne") with
+  // display=swap — text first renders in the fallback font, then reflows
+  // once Syne downloads, which can shift .hero-title's height and push
+  // the funnel (and spout) up or down after this first build already ran,
+  // silently baking a stale spout y-coordinate into the chute's geometry.
   //
-  // Corrected via a rigid vertical nudge of the *existing* container/
-  // state — not a full buildChute() rebuild (tried that first; it
-  // regenerates the path/dots/flourishes with fresh randomness every
-  // time, visibly swapping in a different-looking chute on top of
-  // whatever position correction was needed). A text reflow only ever
-  // adds vertical height, never shifts things horizontally — chuteHeight
-  // and bucketX (from .tl-glass, outside .hero entirely) are unaffected
-  // — so a plain delta on spout's own y, applied to the container and to
-  // state.spout/crossingDoc/endDoc, corrects it exactly while leaving the
-  // already-drawn path/dots/flourishes completely untouched.
-  // A rigid nudge of the *existing* container/state by (deltaX, deltaY) —
-  // moves the whole already-drawn chute without touching its path/dots/
-  // flourishes. Shared by the font-swap resync below (deltaX always 0
-  // there — a text reflow only ever adds vertical height) and the resize
-  // listener further down (both axes, since a resize can shift the
-  // layout horizontally too).
+  // Corrected via a rigid nudge of the *existing* container/state by
+  // (deltaX, deltaY) — not a full buildChute() rebuild, which would
+  // regenerate the path/dots/flourishes with fresh randomness and swap in
+  // a visibly different-looking chute. A text reflow only ever adds
+  // vertical height, so the font-swap resync below always passes
+  // deltaX=0; the resize listener further down passes both axes, since a
+  // resize can shift layout horizontally too.
   function resyncPosition(deltaX, deltaY) {
     if (!state.container) return;
     if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) return;
@@ -790,22 +639,15 @@ export function init() {
 
   window.addEventListener('chute:ball-released', spawnFallToChute);
 
-  // Rebuilds on resize — including across the mobile/desktop breakpoint,
-  // where the glass bucket's own position changes layout entirely
-  // (src/organisms/timeline-panel.js) — debounced, since a live drag-
-  // resize fires far more often than actually needs a full rebuild (it
-  // regenerates the path/dots/flourishes from scratch, rerolling the
-  // random flourishes each time).
+  // Rebuilds on resize (including across the mobile/desktop breakpoint,
+  // where the glass bucket's position changes layout entirely) —
+  // debounced, since a live drag-resize fires far more often than
+  // actually needs a full regeneration of path/dots/flourishes.
   //
-  // But leaving the chute frozen at its *old* screen position for that
-  // entire debounce window — every resize event until the drag finally
-  // settles — read as the chute (and anything anchored to it) sticking
-  // in place rather than tracking the resize at all, only snapping once
-  // the debounced rebuild finally fires. resyncPosition is cheap (one
-  // findAnchors() call plus a translation, no regeneration), so it runs
-  // on *every* resize event directly, keeping the chute roughly in step
-  // with the layout while dragging — the full rebuild still settles in
-  // afterward with the actually-correct geometry.
+  // Between debounce ticks, resyncPosition (cheap: one findAnchors() call
+  // plus a translation, no regeneration) runs on every resize event so
+  // the chute tracks the layout while dragging, rather than sticking at
+  // its old position until the debounced rebuild finally fires.
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     const anchors = findAnchors();

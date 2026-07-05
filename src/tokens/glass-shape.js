@@ -48,7 +48,7 @@ const FLUTE_Y = 44;
 const FLUTE_HALF = 85;
 
 /** Half-width of the glass's own OUTER wall at a given y (native space). */
-export function outerHalfWidthAt(y) {
+function outerHalfWidthAt(y) {
   if (y <= OUTER_RIM.cy) return OUTER_RIM.rx;
   if (y <= FLUTE_Y) {
     const t = (y - OUTER_RIM.cy) / (FLUTE_Y - OUTER_RIM.cy);
@@ -67,7 +67,7 @@ export function outerHalfWidthAt(y) {
 /** The ellipse "flatness" (ry) of a horizontal slice at a given y. Doesn't
  * flute as sharply as the half-width does — a plain taper between the
  * rim's and base's own ry is a close enough read of the art. */
-export function outerRyAt(y) {
+function outerRyAt(y) {
   const t = Math.max(0, Math.min(1, (y - OUTER_RIM.cy) / (OUTER_BASE.cy - OUTER_RIM.cy)));
   return OUTER_RIM.ry + (OUTER_BASE.ry - OUTER_RIM.ry) * t;
 }
@@ -129,7 +129,7 @@ function fmt(n) {
  * straight line would cut across the fluted band instead of following it,
  * visibly wrong whenever the current fill level sits at or near that
  * flared region. */
-export function innerHalfWidthAt(y) {
+function innerHalfWidthAt(y) {
   return outerHalfWidthAt(y) - WALL_INSET;
 }
 

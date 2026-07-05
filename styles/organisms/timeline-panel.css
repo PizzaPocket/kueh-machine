@@ -181,9 +181,17 @@
      literal anchor point, so it should always read as sitting in front of
      the string reaching for it, not the other way around. */
   z-index: 5;
-  transform: translate(-50%, -50%);
+  /* The rect portion stays 56x40 (unchanged from before the chip grew a
+     point) — the box itself grows taller by --tl-chip-tail-length to give
+     the point room to exist at all (a clip-path can only reveal paint
+     that's already there), so the translate has to shift by half that
+     extra height on top of the usual -50% or the *box's* own center
+     (which sits partway down into the point) would land at chipY, not the
+     rect's own center the way it did before. Mobile (below) grows width
+     instead and needs the equivalent horizontal correction. */
+  transform: translate(-50%, calc(-50% + (var(--tl-chip-tail-length, 12px) / 2)));
   width: 56px;
-  height: 40px;
+  height: calc(40px + var(--tl-chip-tail-length, 12px));
   padding: 2px;
   /* drop-shadow, not box-shadow — this is clip-path'd to the
      retro-rectangle silhouette (attachRetroShapeClip, timeline-panel.js);
@@ -204,6 +212,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Reserves the point's own extra height from the flex-centering area,
+     so "Today" still centers on the rect portion's own mass, not the
+     grown box's (which would pull it down toward the point). Mobile
+     (below) swaps this for padding-right, matching that axis's own
+     growth instead. */
+  padding-bottom: var(--tl-chip-tail-length, 12px);
   color: var(--color-text-on-primary);
   background: var(--color-primary-strong);
 }
@@ -280,6 +294,28 @@
   line-height: 1;
   color: var(--color-text-on-surface-muted);
   white-space: nowrap;
+  /* Digits are always 2 characters (buildDialTicks's own padStart), but
+     without a reserved width each one still renders at its own glyph's
+     natural (proportional) advance — "11" narrower than "88" — so this
+     box's own width shifts slightly from tick to tick. On desktop that's
+     harmless (align-items: center, styles above, centers this whole box
+     under the tick regardless of its width), but on mobile (below) the
+     tick itself sits right before this box in a row anchored at the
+     dial's own right edge, so a shifting box width here directly nudges
+     the tick mark's own position sideways — reads as a jittery, not a
+     straight, tick column. font-variant-numeric here (matched with a
+     min-width reserve, same fix .cd-unit, index.html, already uses for
+     the countdown digits, for whichever font this inherits doesn't
+     implement the 'tnum' OpenType feature) pins every digit pair to the
+     same rendered width so the tick column stays put regardless of which
+     day is showing. text-align: center keeps a narrower pair visually
+     centered in that reserved width on desktop; the mobile override below
+     switches this to left, so the digits hug the tick's own side instead
+     (the reserved slack then sits on the far side, away from the tick,
+     where it's invisible). */
+  font-variant-numeric: tabular-nums;
+  min-width: 2.4ch;
+  text-align: center;
 }
 
 /* Both bleed the full height of the *window* (not just this tick row) —
@@ -675,17 +711,18 @@
     inset: var(--tl-day-inset, 14px) 0;
   }
 
-  /* Flush to .tl-dial-ticks's own right edge (row-reverse — the tick line
-     is the ::before, so reversing puts it last in visual order, right
-     against the anchored edge, with the day-number just inside it to the
-     left) — the rotated-layout equivalent of the desktop rule's top-flush
-     arrangement. */
+  /* Flush to .tl-dial-ticks's own right edge — plain row (not reversed),
+     so the tick line (the ::before, first in source order) reads first,
+     with the day-number after it, closer to the anchored edge — the same
+     "tick, then its label" reading order the desktop rule's top-flush
+     arrangement already has (tick above, number below), just laid out
+     horizontally here instead of vertically. */
   .tl-dial-tick {
     top: var(--tl-tick-pos, 0%);
     left: auto;
     right: 0;
     transform: translateY(-50%);
-    flex-direction: row-reverse;
+    flex-direction: row;
     align-items: center;
   }
 
@@ -696,7 +733,27 @@
 
   .tl-dial-tick-num {
     margin-top: 0;
-    margin-right: 2px;
+    margin-left: 5px;
+    /* Hugs the tick's own side of its reserved width (see the base rule's
+       own comment) instead of centering — the slack from a narrower digit
+       pair then sits on the far side, away from the tick, where it can't
+       nudge the tick column's own position. */
+    text-align: left;
+  }
+
+  /* Mirrors the desktop rule's own reasoning (.tl-day-chip above), just
+     swapped to the horizontal axis — the chip points right at the day
+     track here, not down, so the box grows wider instead of taller, and
+     the translate/padding corrections move to the opposite axis too. */
+  .tl-day-chip {
+    width: calc(56px + var(--tl-chip-tail-length, 12px));
+    height: 40px;
+    transform: translate(calc(-50% + (var(--tl-chip-tail-length, 12px) / 2)), -50%);
+  }
+
+  .tl-day-chip-fill {
+    padding-bottom: 0;
+    padding-right: var(--tl-chip-tail-length, 12px);
   }
 
   .tl-dial-today,

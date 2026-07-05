@@ -127,12 +127,11 @@ export function init() {
   });
 
   // Wordmark rims: two text-clipped conic sweeps per word (see the
-  // constants above) rather than applyConicChrome's combined
-  // metal+glints output — just the metal layer, matching
-  // housing-frame.js's own outer housing (which skips glints too, for the
-  // same flat/static-material look, not the sparkly interactive rim
-  // treatment buttons/tabs get). Whether a given rim is the thin inner
-  // layer or the thick outer one — and therefore whether it gets
+  // constants above), using computeConicChromeLayers's metal output only
+  // — no glints — matching housing-frame.js's own outer housing (same
+  // flat/static-material look, not the sparkly interactive rim treatment
+  // buttons/tabs get). Whether a given rim is the thin inner layer or the
+  // thick outer one — and therefore whether it gets
   // WORDMARK_RIM_OUTER_ANGLE on top of --chrome-angle's own 0deg initial
   // value (styles/tokens.css) — comes from whether it also carries
   // .chrome-text-rim--outer; color source comes from which of --themed/

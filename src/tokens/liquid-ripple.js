@@ -19,7 +19,7 @@
 // doesn't scale those against its own fixed scene either.
 
 export const RING_COUNT = 10;
-export const RING_VISIBLE_COUNT = 5;
+const RING_VISIBLE_COUNT = 5;
 export const ringDelayMs = (i) => i * 140 + i * i * 8;
 export const ringDurationMs = (i) => 800 + i * 90;
 export const ringOpacityAt = (i, visibleCount = RING_VISIBLE_COUNT) =>
@@ -53,8 +53,8 @@ export const FLASH_START_R_FRACTION = 1.6 / 92;
 export const FLASH_GROWTH_FRACTION = 13 / 92;
 
 export const WOBBLE_DURATION_MS = 520;
-export const WOBBLE_FREQ_HZ = 6.5;
-export const WOBBLE_TAU_MS = 150;
+const WOBBLE_FREQ_HZ = 6.5;
+const WOBBLE_TAU_MS = 150;
 export const WOBBLE_ANTICIPATION_MS = 55; // fires slightly before the ring's own calculated wall-contact time
 
 export const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);

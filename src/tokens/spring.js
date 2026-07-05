@@ -30,7 +30,7 @@ function fmt(n) {
 
 // Coil-to-coil pitch (px, at the reference's own 12px-tall scale) at a
 // given stretch fraction (0 = fully coiled, 1 = fully stretched).
-export function pitchAt(f) {
+function pitchAt(f) {
   return 14 * f * f - f + 2;
 }
 
@@ -62,7 +62,7 @@ function coilPointsAt(f) {
  * coordinate space by `scale` (pass `height / 12` for a target coil
  * height of `height`).
  */
-export function coilPathAt(f, originX, originY, scale) {
+function coilPathAt(f, originX, originY, scale) {
   const pts = coilPointsAt(f).map(([x, y]) => [fmt(x * scale + originX), fmt(y * scale + originY)]);
   const [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12] = pts;
   const p0x = fmt(originX);

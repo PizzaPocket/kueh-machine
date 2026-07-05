@@ -121,7 +121,7 @@ function cubicBezierPoint(p0, p1, p2, p3, t) {
  * tip -> left tip), and the mirrored wall (left tip -> left shoulder)
  * replace the sampled arc there, then normal sampling resumes.
  */
-export function buildFunnelPoints({
+function buildFunnelPoints({
   width,
   height,
   n = 10,
@@ -205,6 +205,120 @@ export function buildFunnelPath({
   let d = '';
   points.forEach(([x, y], i) => {
     const px = fmt(x + originX);
+    const py = fmt(y + oy);
+    d += i === 0 ? `M ${px},${py}` : ` L ${px},${py}`;
+  });
+  return `${d} Z`;
+}
+
+/**
+ * Same superellipse body as buildSuperellipsePoints, with a sharp point
+ * spliced into the center of one edge instead of a flat corner — the
+ * Timeline panel's "Today" chip (src/organisms/timeline-panel.js), which
+ * needs to visually point at the marker it's naming: down at the dial's
+ * own today-band on desktop, right at the day track on mobile (the
+ * rotated mobile layout there repositions the chip along a different
+ * axis but never rotates the element itself, so the point has to move to
+ * a different edge, not spin with a transform).
+ *
+ * `width`/`height` here are the *grown* box (the chip's own CSS box,
+ * already sized bigger on the tail's axis — see timeline-panel.css's own
+ * --tl-chip-tail-length) — the rect body is NOT shrunk to fit inside the
+ * caller's original footprint (unlike buildFunnelPoints' spout, which
+ * carves its depth out of a fixed-size box): the whole point of the tail
+ * here is that the rect reads as unchanged from before it grew one, with
+ * the point purely additive beyond its edge. `tailLength` is therefore an
+ * absolute px depth, not a ratio of the (now-variable) box size — the
+ * rect's own dimension on that axis is simply `width/height - tailLength`,
+ * with the point occupying the freed-up remainder out to the box's own
+ * far edge (a clip-path can only reveal paint that's already there, so
+ * the box has to actually be this big for the point to be visible at
+ * all, rather than getting clipped off).
+ *
+ * Sampling starts at the angle directly opposite the tail (not t=0) so
+ * the notch always falls in the middle of the sampled ring rather than
+ * straddling the array's own start/end seam — matters for 'right', whose
+ * natural t=0 start sits exactly at the tail's own center.
+ */
+function buildTailedRectPoints({
+  width,
+  height,
+  n = 10,
+  samples = 96,
+  tailSide = 'bottom',
+  tailLength = 12,
+  tailBaseHalfWidth = 7,
+} = {}) {
+  const points = [];
+  let inNotch = false;
+
+  if (tailSide === 'right') {
+    const a = (width - tailLength) / 2;
+    const b = height / 2;
+    const baseHalf = Math.min(tailBaseHalfWidth, b * 0.9);
+    const shoulderX = a * (1 - Math.abs(baseHalf / b) ** n) ** (1 / n);
+    for (let i = 0; i < samples; i++) {
+      const t = Math.PI + (i / samples) * Math.PI * 2; // opposite the tail (left point)
+      const [x, y] = superellipsePointAt(t, a, b, n);
+      const notch = x > 0 && Math.abs(y) < baseHalf;
+      if (notch && !inNotch) {
+        points.push([shoulderX, -baseHalf], [shoulderX + tailLength, 0], [shoulderX, baseHalf]);
+        inNotch = true;
+        continue;
+      }
+      if (notch) continue;
+      inNotch = false;
+      points.push([x, y]);
+    }
+    return points;
+  }
+
+  // 'bottom' (default)
+  const a = width / 2;
+  const b = (height - tailLength) / 2;
+  const baseHalf = Math.min(tailBaseHalfWidth, a * 0.9);
+  const shoulderY = b * (1 - Math.abs(baseHalf / a) ** n) ** (1 / n);
+  for (let i = 0; i < samples; i++) {
+    const t = (3 * Math.PI) / 2 + (i / samples) * Math.PI * 2; // opposite the tail (top point)
+    const [x, y] = superellipsePointAt(t, a, b, n);
+    const notch = y > 0 && Math.abs(x) < baseHalf;
+    if (notch && !inNotch) {
+      points.push([baseHalf, shoulderY], [0, shoulderY + tailLength], [-baseHalf, shoulderY]);
+      inNotch = true;
+      continue;
+    }
+    if (notch) continue;
+    inNotch = false;
+    points.push([x, y]);
+  }
+  return points;
+}
+
+/**
+ * Same shape as buildTailedRectPoints, rendered as an SVG path `d` string
+ * — see buildFunnelPath for the same originX/Y-recentering convention
+ * (here shifted along whichever axis carries the tail, by half of
+ * `tailLength`, so the rect portion's own center — not the grown box's —
+ * lands at the default originX/Y, matching where it sat before the box
+ * grew a point).
+ */
+export function buildTailedRectPath({
+  width,
+  height,
+  n = 10,
+  samples = 96,
+  originX = width / 2,
+  originY = height / 2,
+  tailSide = 'bottom',
+  tailLength = 12,
+  tailBaseHalfWidth = 7,
+} = {}) {
+  const points = buildTailedRectPoints({ width, height, n, samples, tailSide, tailLength, tailBaseHalfWidth });
+  const ox = tailSide === 'right' ? originX - tailLength / 2 : originX;
+  const oy = tailSide === 'right' ? originY : originY - tailLength / 2;
+  let d = '';
+  points.forEach(([x, y], i) => {
+    const px = fmt(x + ox);
     const py = fmt(y + oy);
     d += i === 0 ? `M ${px},${py}` : ` L ${px},${py}`;
   });

@@ -253,8 +253,7 @@
        rotation) since each rim sits directly behind a separate solid-
        color fill layer at an exact pixel alignment — a moving rim would
        read as a rendering glitch rather than a reflection, the two layers
-       visibly drifting apart as one rotates and the other doesn't (same
-       reasoning applyConicChrome's own `interactive: false` documents).
+       visibly drifting apart as one rotates and the other doesn't.
 
        Text can't take a literal border, and -webkit-text-stroke only
        accepts a solid color (no gradient) — there's no native way to give
@@ -1105,12 +1104,12 @@
 
   <!-- TIMELINE -->
   <section id="timeline" class="timeline-section matte-metal-surface reveal">
-    <!-- TEMP TESTING CONTROL — remove this whole div (and its script
-         block near the bottom of the page, search "dev-date-override")
-         before launch. To hide without deleting: add style="display:none"
-         here. Lets you simulate any date in the project's own range so
-         the spring/dial/chip can be checked at every day in the cycle
-         without waiting for real time to pass. -->
+    <!-- TEMP TESTING CONTROL — hidden (display:none) rather than removed,
+         so it's a one-line toggle for more testing later (and its script
+         block near the bottom of the page, search "dev-date-override").
+         Remove both for real before launch. Lets you simulate any date in
+         the project's own range so the spring/dial/chip can be checked at
+         every day in the cycle without waiting for real time to pass. -->
     <div id="dev-date-override" style="display:none; position:relative; z-index:1; align-items:center; gap:10px; padding:8px 16px; background:#1a1a1a; color:#fff; font:12px/1.4 monospace;">
       <label for="dev-date-select">Simulate date:</label>
       <select id="dev-date-select" style="font:inherit;"></select>
@@ -1499,12 +1498,13 @@
   document.getElementById('footer-year').textContent = new Date().getFullYear();
 
   // === TEMP: dev date override (see #dev-date-override above) ===
-  // Remove this whole block (and the #dev-date-override div near the top
-  // of the Timeline section) before launch. Monkey-patches Date.now so
-  // every date-driven visual on the page (the hero countdown's own
-  // setTimeout loop already calls Date.now() fresh each second;
-  // timeline-panel.js listens for 'dev:date-changed' below) reacts as if
-  // the selected day were "now," without needing to actually wait for it.
+  // Hidden (display:none) rather than removed — remove this whole block
+  // (and the #dev-date-override div near the top of the Timeline section)
+  // for real before launch. Monkey-patches Date.now so every date-driven
+  // visual on the page (the hero countdown's own setTimeout loop already
+  // calls Date.now() fresh each second; timeline-panel.js/kueh-of-day.js
+  // listen for 'dev:date-changed' below) reacts as if the selected day
+  // were "now," without needing to actually wait for it.
   (function () {
     var select = document.getElementById('dev-date-select');
     if (!select) return;
