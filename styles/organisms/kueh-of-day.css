@@ -382,12 +382,25 @@
   margin-top: 0;
 }
 
+/* list-style-position: inside, not the default outside — .kod-recipe-
+   collapse (below) clips overflow for its collapse/expand animation, and
+   its own left clip edge sits flush against this list's left edge with
+   zero buffer. An outside marker hangs in the padding gutter as its own
+   separate box rather than the normal inline flow, and its rendered
+   width isn't guaranteed to fit inside that gutter exactly (WebKit's
+   outside-marker layout in particular runs the number closer to the
+   content edge than Chromium's) — with zero clearance from the clip
+   boundary, that's what was slicing off the left edge of each number on
+   mobile Safari. `inside` folds the marker into the normal text flow, so
+   it can never render outside the list's own padding box in the first
+   place. */
 .kod-ingredient-list,
 .kod-method-list {
   color: var(--color-text-on-surface);
   font-size: 0.9rem;
   line-height: 1.7;
   padding-left: 1.25em;
+  list-style-position: inside;
 }
 
 .kod-recipe-empty {

@@ -277,7 +277,7 @@ export function init() {
   // it (re)runs, and read by spawnFallToChute/spawnRoll/spawnFall via
   // closure, so those three always act on the latest geometry without
   // needing their own resize handling or re-registering event listeners.
-  const state = { container: null, pathD: '', ballPathD: '', crossingFraction: 0, totalLength: 0, endDoc: [0, 0], crossingDoc: [0, 0], spout: [0, 0] };
+  const state = { container: null, pathD: '', ballPathD: '', crossingFraction: 0, totalLength: 0, endDoc: [0, 0], crossingDoc: [0, 0], spout: [0, 0], ball: null };
   let builtOnce = false;
 
   function buildChute() {
@@ -438,6 +438,10 @@ export function init() {
   function spawnFall() {
     const glass = document.querySelector('.tl-glass');
     if (!glass || prefersReducedMotion) {
+      if (state.ball) {
+        state.ball.remove();
+        state.ball = null;
+      }
       window.dispatchEvent(new CustomEvent('chute:ball-landed'));
       return;
     }
@@ -445,8 +449,19 @@ export function init() {
     const targetDoc = documentPoint({ left: glassRect.left + glassRect.width / 2, top: glassRect.top });
     const { endDoc } = state;
 
-    const fallEl = document.createElement('div');
-    fallEl.className = 'drop-chute-ball';
+    // Reuses the same ball spawnFallToChute created and spawnRoll rode,
+    // rather than creating a third fresh element for this last leg — see
+    // spawnFallToChute's own comment for why. Switching back from the
+    // roll's offset-path positioning to plain left/top + transform means
+    // clearing offset-path/offset-distance first (otherwise it would keep
+    // fighting for the ball's position) and restoring the plain-ball
+    // margin (offset-path centers on the path point itself, so the roll
+    // zeroed the CSS class's own -6px centering margin; that fix doesn't
+    // apply here).
+    const fallEl = state.ball;
+    fallEl.style.offsetPath = '';
+    fallEl.style.offsetDistance = '';
+    fallEl.style.margin = '';
     fallEl.style.left = `${endDoc[0]}px`;
     fallEl.style.top = `${endDoc[1]}px`;
     document.body.appendChild(fallEl);
@@ -486,6 +501,7 @@ export function init() {
     const terminalSpeed = (totalDist * 0.88) / (fallDuration * 0.78);
     anim.onfinish = () => {
       fallEl.remove();
+      state.ball = null;
       window.dispatchEvent(new CustomEvent('chute:ball-landed', { detail: { terminalSpeed } }));
     };
   }
@@ -502,8 +518,16 @@ export function init() {
     }
     const { container, ballPathD, crossingFraction, totalLength } = state;
     const startPct = `${(crossingFraction * 100).toFixed(2)}%`;
-    const ball = document.createElement('div');
-    ball.className = 'drop-chute-ball';
+    // Reuses the same element spawnFallToChute created, rather than
+    // creating a second fresh one — see spawnFallToChute's own comment.
+    const ball = state.ball;
+    // Clears the fall-to-chute leg's own left/top/transform positioning
+    // before switching this element over to offset-path — that anim's
+    // fill defaults to 'none' so its transform is already unset by the
+    // time onfinish runs, but left/top (set once, plainly, not through
+    // the animation) still need clearing by hand.
+    ball.style.left = '';
+    ball.style.top = '';
     // .drop-chute-ball's own margin:-6px centers the plain-translated
     // fall/hop balls on an explicit left/top point — but offset-path
     // already centers this element on the path point via its own anchor
@@ -563,7 +587,6 @@ export function init() {
     );
 
     movementAnim.onfinish = () => {
-      ball.remove();
       spawnFall();
     };
   }
@@ -571,6 +594,19 @@ export function init() {
   // The drop falls straight down from the spout until it meets the chute
   // at the crossing point found above, *then* starts rolling — not a
   // roll starting from the chute's own literal first waypoint.
+  //
+  // One ball element is created here and carried through all three legs
+  // (this fall, the roll, and the final long fall) by spawnRoll/spawnFall
+  // reusing state.ball instead of each leg creating and destroying its
+  // own — repeatedly removing and recreating an element on this same
+  // patch of page, every release cycle, was implicated in a mobile
+  // Safari-only rendering glitch where nearby filtered/clipped elements
+  // (the chute's own SVG, the water clock housing) would render
+  // incorrectly for a few seconds right around the roll-to-fall handoff,
+  // until the next release's fresh element forced a repaint. One element
+  // reused start-to-finish, reparented and reconfigured in place at each
+  // leg instead of replaced, means far less DOM churn for WebKit's
+  // renderer to trip over.
   function spawnFallToChute() {
     if (prefersReducedMotion) {
       spawnRoll();
@@ -582,6 +618,7 @@ export function init() {
     fallEl.style.left = `${spout[0]}px`;
     fallEl.style.top = `${spout[1]}px`;
     document.body.appendChild(fallEl);
+    state.ball = fallEl;
 
     // Purely vertical — a real drop falls straight down, not at a
     // diagonal. `crossingDoc` is the literal point where the chute
@@ -597,7 +634,6 @@ export function init() {
       { duration: FALL_TO_CHUTE_DURATION_MS, easing: 'ease-in' }
     );
     anim.onfinish = () => {
-      fallEl.remove();
       spawnRoll();
     };
   }
