@@ -2,11 +2,21 @@
    the hero countdown's drop rolls down. Document-positioned (scrolls with
    the page), not viewport-fixed — built once on load, not re-measured on
    resize/scroll. z-index is a modest starting value (tune by eye against
-   whatever page content it happens to cross). */
+   whatever page content it happens to cross).
+
+   will-change: transform pins this to its own stable compositing layer —
+   mobile Safari only, this and the water-clock housing (styles/atoms.css'
+   .housing-frame) were observed briefly rendering dark/blank a few
+   seconds into each release cycle and correcting a moment later, with no
+   underlying style/DOM change at all (confirmed via computed-style
+   polling) — a stale-tile/layer-eviction repaint bug, not a real state
+   change. Forcing a dedicated layer here is the standard workaround for
+   that class of WebKit bug. */
 .drop-chute {
   position: absolute;
   pointer-events: none;
   z-index: 1;
+  will-change: transform;
 }
 
 .drop-chute-svg {

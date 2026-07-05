@@ -293,9 +293,19 @@
    reads as that same material rather than a flat gradient. Duplicated
    literally rather than factored into a shared custom property, so
    retuning one doesn't risk silently changing the other. */
+/* will-change: transform pins this to its own stable compositing layer —
+   mobile Safari only, this was observed briefly rendering dark/blank a
+   few seconds into each drop-chute release cycle (src/organisms/
+   drop-chute.js) and correcting a moment later, with no underlying
+   style/DOM change at all (confirmed via computed-style polling) — a
+   stale-tile/layer-eviction repaint bug, not a real state change. Forcing
+   a dedicated layer here is the standard workaround for that class of
+   WebKit bug — same reasoning as .drop-chute's own will-change (styles/
+   organisms/drop-chute.css), which was showing the identical symptom. */
 .housing-frame {
   position: absolute;
   pointer-events: none;
+  will-change: transform;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E"),
     var(--housing-metal);
