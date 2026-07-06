@@ -167,13 +167,22 @@
    being clipped inside it — position/left/top (centered via the
    transform below) are computed and set every tick.
 
-   .tl-day-chip is now the outer rim band — same rim/fill nesting
-   .step-card/.step-card-fill and .file-card/.file-card-fill use, just a
-   real conic-gradient (timeline-panel.js sets background-image; same
+   .tl-day-chip is a plain, unclipped positioning wrapper now — no
+   padding/background/clip-path of its own, just position/transform/
+   z-index and the drop-shadow filter (below). .tl-day-chip-rim (its own
+   child, filling it at 100%/100%) is the actual rim band — same rim/fill
+   nesting .step-card/.step-card-fill and .file-card/.file-card-fill use,
+   a real conic-gradient (timeline-panel.js sets background-image; same
    themed-chrome color approach as the hero wordmark's own rims,
    chrome-accents.js) instead of a flat color. Its 2px padding is the
-   rim's thickness — .tl-day-chip-fill (below) nests inside, at its own
-   independently-fitted clip-path, and shows through the gap. */
+   rim's thickness — .tl-day-chip-fill (below) nests inside that, at its
+   own independently-fitted clip-path, and shows through the gap. Split
+   across two elements (rather than one, as it used to be) because an
+   element carrying BOTH its own clip-path AND a filter: drop-shadow
+   doesn't reliably paint that shadow in Chrome (confirmed directly — the
+   filter computes fine per getComputedStyle, but paints nothing, even
+   for a wildly exaggerated test shadow); the filter needs an unclipped
+   ancestor to actually render. */
 .tl-day-chip {
   position: absolute;
   /* Above the Stage 2 rig's own layers (pulley z-index 4, front-string
@@ -192,18 +201,24 @@
   transform: translate(-50%, calc(-50% + (var(--tl-chip-tail-length, 12px) / 2)));
   width: 56px;
   height: calc(40px + var(--tl-chip-tail-length, 12px));
+  /* drop-shadow, not box-shadow — .tl-day-chip-rim (below) is clip-path'd
+     to the retro-rectangle silhouette (attachRetroShapeClip,
+     timeline-panel.js); box-shadow draws around the full rectangular
+     border-box regardless of clip-path, while drop-shadow follows the
+     actual clipped shape (rendered here, one level up, per this rule's
+     own comment above). Same two-layer idea as the site's other floating
+     retro-rectangle windows (.kod-media-column .rim-matte-inner, styles/
+     organisms/kueh-of-day.css) — a wide soft pass plus a tighter crisp
+     pass — but stronger than that recipe: this badge sits on the busier,
+     grayish .matte-metal-surface texture (not a plain white/cream
+     window), where their same opacities read as barely-there. */
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.32)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+}
+
+.tl-day-chip-rim {
+  width: 100%;
+  height: 100%;
   padding: 2px;
-  /* drop-shadow, not box-shadow — this is clip-path'd to the
-     retro-rectangle silhouette (attachRetroShapeClip, timeline-panel.js);
-     box-shadow draws around the full rectangular border-box regardless
-     of clip-path, while drop-shadow follows the actual clipped shape.
-     Same two-layer recipe as the site's other floating retro-rectangle
-     windows (.kod-media-column .rim-matte-inner, styles/organisms/
-     kueh-of-day.css) — a wide soft pass plus a tighter crisp pass — so it
-     reads as lifted off the panel the same way those do. Lives on the
-     outer rim, not .tl-day-chip-fill, so the whole badge (rim + fill)
-     reads as one lifted piece. */
-  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.18)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.14));
 }
 
 .tl-day-chip-fill {
