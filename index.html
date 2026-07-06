@@ -262,10 +262,8 @@
        (organic, layered, .layered-k) and "Machine" (brushed chrome,
        .chrome-text-fill) share the same double-metal outline even though
        their own fills — and their rims' own color source — differ.
-       .chrome-text-rim--themed pulls from the day's --color-primary-strong
-       (same approach as the water clock's outer housing,
-       HOUSING_DARK/HOUSING_LIGHT in countdown-clock.js); .chrome-text-rim--
-       metal pulls from the neutral --metal-base every other rim on the
+       .chrome-text-rim--themed pulls from the day's --color-primary-strong;
+       .chrome-text-rim--metal pulls from the neutral --metal-base every other rim on the
        site defaults to. "Kueh" is --themed on both its rims; "Machine"
        splits the two — its outer (thicker) rim is --themed too, its inner
        one stays --metal — so "Machine" reads as brushed chrome with a
@@ -423,14 +421,9 @@
        tick by the countdown script below). Both layers' visible fill +
        inner shadow are painted by a createRetroShape SVG child
        (countdown-clock.js), same recipe the Kueh of the Day windows use —
-       no CSS background needed here. Wrapped in a tinted rim
-       (.countdown-rim-wrap, src/atoms/housing-frame.js — a gap-aware ring
-       so the funnel's own spout reads as genuinely open, not
-       wrapWithInnerMatteRim's plain closed shape) and, outside that, the
-       thicker decorative housing (.housing-frame-wrap); its own
-       margin-bottom (trailing space before the hero's own bottom padding)
-       is set below, since .countdown-viewport is no longer the outermost
-       element once wrapped.
+       no CSS background needed here. No rim or outer housing frame around
+       it (both dropped) — the funnel window sits directly on the hero
+       background.
 
        --countdown-bg-color/--countdown-liquid-color are the single place
        to retune either color — countdown-clock.js's createRetroShape fills
@@ -455,18 +448,7 @@
       position: relative;
       display: inline-block;
       padding: 16px 48px 28px;
-    }
-
-    /* .housing-frame-wrap (styles/atoms.css — src/atoms/housing-frame.js),
-       not .rim-matte-inner-tinted itself (which used to be the outermost
-       element here, before countdown-clock.js wrapped it in a housing
-       frame) — margin-bottom on a plain block collapses out through its
-       container, but .housing-frame-wrap is inline-block, which blocks
-       that collapsing, so the margin would otherwise get trapped *inside*
-       the wrapper (inflating its own auto-height) instead of adding space
-       below it. */
-    .hero .housing-frame-wrap {
-      margin-bottom: 12px;
+      margin-bottom: 12px; /* trailing space before the hero's own bottom padding */
     }
 
     .countdown-window-bg,
@@ -1011,42 +993,12 @@
       .container { padding: 0 10px; }
       .hero { padding: 48px 10px 150px; } /* trimmed back down 40px — no longer coupled to the chute's own height (drop-chute.js's mobile chute height is now a fixed constant, not derived from this element's live bottom edge), so this is free to change without squashing the chute */
       /* Stretched wide (most of the screen, just a little side margin)
-         rather than shrink-wrapped to the digit content like desktop —
-         .housing-frame-wrap's own width/height: auto (styles/atoms.css)
-         is what shrink-wraps it there, so this overrides just the width
-         half of that for narrow viewports. Targets .countdown-rim-wrap
-         specifically (housing-frame.js's own wrapClassName for the
-         countdown's inner rim), not every .housing-frame-wrap — the
-         outer housing (an unnamed wrapWithHousingFrame call) should keep
-         shrink-wrapping to whatever this inner rim resolves to, not get
-         its own independent override.
-
-         `100vw`-based, not `calc(100% - 16px)` (tried first, and the
-         original form here) — that percentage resolves against
-         .housing-frame-wrap, which per the paragraph above is left as
-         plain `auto`/shrink-wrap specifically so it hugs this rim
-         snugly. But a child sized as "100% of a parent that's sized by
-         shrink-wrapping to that same child" is a genuine circular
-         reference, and the practical fallback browsers use for it
-         quietly drops this element's own intended width down to
-         whatever its own content (ultimately .countdown-grid) demands —
-         which is how .countdown-viewport's own padding (below) ended up
-         silently ignored: the whole chain was actually being sized
-         bottom-up from the digits' own content, not top-down from the
-         viewport width the comments below assumed. Anchoring to `100vw`
-         (always a genuine, definite value, never dependent on any
-         shrink-wrapped ancestor) breaks that cycle at its source — once
-         *this* element has a real resolved width, .housing-frame-wrap
-         can correctly shrink-wrap to it (no longer circular), and
-         .countdown-viewport's own `width: 100%` below (of *this*,
-         now-definite, element) finally resolves the normal, intended
-         way, padding included. */
-      /* max-width caps how far the clock stretches as this zone's viewport
+         rather than shrink-wrapped to the digit content like desktop.
+         max-width caps how far the clock stretches as this zone's viewport
          approaches 640px (calc(100vw - 36px) alone would let it grow to
          ~600px there) — 432px (360px, +20%: read too narrow at that
          original value) still kicks in before ~600px, just later. */
-      .countdown-rim-wrap { width: calc(100vw - 36px); max-width: 432px; }
-      .countdown-viewport { width: 100%; padding: 10px 8px 20px; }
+      .countdown-viewport { width: calc(100vw - 36px); max-width: 432px; padding: 10px 8px 20px; }
       .countdown-grid { gap: 0 6px; }
       /* Fixed per breakpoint, same 3-breakpoint scheme as .hero-title/
          .cd-number/.cd-sep's own comments (further above) explain — base
