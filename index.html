@@ -1602,29 +1602,78 @@
       return 'left=' + r.left.toFixed(1) + ' right=' + r.right.toFixed(1) + ' width=' + r.width.toFixed(1);
     }
 
-    // Recomputes ONE ring's outline geometry from today's live
-    // measurements (same formula housing-frame.js's own update() uses)
-    // and reapplies it directly, bypassing whatever's supposed to trigger
-    // that update() normally. Runs on a continuous interval (not once)
-    // and reports whether applying the fix actually CHANGED anything —
-    // if the forced-correct values match what was already there, the DOM
-    // was already right and any remaining visual brokenness has to be a
-    // paint/compositing problem, not a geometry one.
+    // Every previous check here measured the .housing-frame <div>'s own
+    // BOX (getBoundingClientRect) — which has consistently come back
+    // correct. But the visible metal ring isn't the div's box, it's a
+    // clip-path cut into it (built by buildFunnelOutsetOutlinePath and
+    // applied as its own path string) — never independently checked
+    // until now. This hidden <svg><path> lets us read that clip-path's
+    // OWN geometry back out via getBBox(), the same trick already used
+    // to catch the funnel fill's stale-shape bug earlier in this session.
+    var SVG_NS = 'http://www.w3.org/2000/svg';
+    var measureSvg = document.createElementNS(SVG_NS, 'svg');
+    measureSvg.setAttribute('width', '0');
+    measureSvg.setAttribute('height', '0');
+    measureSvg.style.position = 'absolute';
+    var measurePath = document.createElementNS(SVG_NS, 'path');
+    measureSvg.appendChild(measurePath);
+    document.body.appendChild(measureSvg);
+    function clipPathBBox(el) {
+      var cp = getComputedStyle(el).clipPath;
+      var match = cp.match(/^path\(["'](.+)["']\)$/);
+      if (!match) return null;
+      measurePath.setAttribute('d', match[1]);
+      return measurePath.getBBox();
+    }
+
+    // Dynamic import of the site's own real path-building code, so the
+    // clip-path recompute below isn't an approximation of the formula —
+    // it's the exact function housing-frame.js itself calls.
+    var superellipseMod = null;
+    import('./src/tokens/superellipse.js').then(function (mod) { superellipseMod = mod; });
+
+    // Recomputes ONE ring's outline BOX and its clip-path from today's
+    // live measurements and reapplies both directly, bypassing whatever's
+    // supposed to trigger housing-frame.js's own update() normally.
     function fixRing(label, wrapSel, fillEl, outset) {
       var wrap = document.querySelector(wrapSel);
       if (!wrap) return label + ': wrap not found (' + wrapSel + ')';
       var outline = wrap.querySelector(':scope > .housing-frame:not(.housing-frame-accent)');
       if (!outline) return label + ': outline not found';
-      var before = outline.getBoundingClientRect();
+
+      var clipBefore = clipPathBBox(outline);
+
       var fillRect = fillEl.getBoundingClientRect();
       var wrapRect = wrap.getBoundingClientRect();
       var fillLeft = fillRect.left - wrapRect.left;
+      var fillTop = fillRect.top - wrapRect.top;
       var w = fillEl.clientWidth;
+      var h = fillEl.clientHeight;
+      var boxBefore = outline.getBoundingClientRect();
       outline.style.left = (fillLeft - outset) + 'px';
+      outline.style.top = (fillTop - outset) + 'px';
       outline.style.width = (w + outset * 2) + 'px';
-      var after = outline.getBoundingClientRect();
-      var changed = Math.abs(before.left - after.left) > 0.5 || Math.abs(before.width - after.width) > 0.5;
-      return label + ' now=' + rectStr(after) + (changed ? '  [WAS WRONG, JUST FORCED CORRECT]' : '  [already matched this]');
+      outline.style.height = (h + outset * 2) + 'px';
+      var boxAfter = outline.getBoundingClientRect();
+      var boxChanged = Math.abs(boxBefore.left - boxAfter.left) > 0.5 || Math.abs(boxBefore.width - boxAfter.width) > 0.5;
+
+      var clipMsg = 'superellipse module still loading';
+      if (superellipseMod) {
+        var d = superellipseMod.buildFunnelOutsetOutlinePath({
+          width: w, height: h, n: 10, outset: outset,
+          originX: w / 2 + outset, originY: h / 2 + outset,
+        });
+        outline.style.clipPath = 'path("' + d + '")';
+        var clipAfter = clipPathBBox(outline);
+        var expectedW = w + outset * 2;
+        clipMsg = 'clip bbox before=' + (clipBefore ? clipBefore.width.toFixed(1) : 'n/a') +
+          ' after=' + (clipAfter ? clipAfter.width.toFixed(1) : 'n/a') +
+          ' (box width=' + expectedW.toFixed(1) + ')' +
+          (clipBefore && Math.abs(clipBefore.width - expectedW) > 1 ? '  [CLIP WAS STALE]' : '  [clip already matched]');
+      }
+
+      return label + ' box now=' + rectStr(boxAfter) + (boxChanged ? ' [BOX WAS WRONG]' : ' [box already matched]') + '\n' +
+        label + ' ' + clipMsg;
     }
 
     // Rolling history of formatted blocks, newest first — capped so the
