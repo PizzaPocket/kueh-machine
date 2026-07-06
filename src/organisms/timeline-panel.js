@@ -657,7 +657,17 @@ function buildRig() {
         renderSegment(seg1, CECEK_FILL) +
         chipToPulleyFlourishes.map((f) => renderFlourish(chipWorld, pulley1Point, f, CECEK_FILL)).join('');
 
-      const seg2 = pulley1ToPulley2.compute(pulley1Point, pulley2Point);
+      // This span's own endpoints are the two fixed pulley axles — they
+      // never move, landing bounce or not, so unlike seg1/seg3 there's no
+      // endpoint shift for its dots to react to. But it isn't a dead length
+      // of string either: it's the middle of one taut line the cup is
+      // tugging against the spring, so as the chip gets pulled toward
+      // pulley1 (chipBounceOffset, same tug feeding seg1's shrink and
+      // seg3's stretch below), the string is physically sliding through
+      // this span too. Feed that same offset in as a dot-pattern phase so
+      // the visible dots slide along with it instead of sitting frozen
+      // while the rest of the string bounces around them.
+      const seg2 = pulley1ToPulley2.compute(pulley1Point, pulley2Point, chipBounceOffset);
       frontMarkup +=
         renderSegment(seg2, CECEK_FILL) +
         pulley1ToPulley2Flourishes.map((f) => renderFlourish(pulley1Point, pulley2Point, f, CECEK_FILL)).join('');

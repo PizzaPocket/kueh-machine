@@ -149,10 +149,17 @@ function documentPoint(rect) {
 // page; the long fall (spawnFall) covers the remaining distance to the
 // glass.
 function findAnchors() {
-  const viewport = document.querySelector('.countdown-viewport');
+  // .countdown-window-bg, not .countdown-viewport itself — the latter's own
+  // getBoundingClientRect() is its *border* box, which now extends past the
+  // actual window fill (countdown-clock.js's chrome border-image is an
+  // outer stroke, box-sizing: content-box, index.html). .countdown-window-bg
+  // is position: absolute; inset: 0 with no border of its own, so its box
+  // is exactly the fill's true edge regardless of how thick the outer
+  // stroke is.
+  const windowBg = document.querySelector('.countdown-window-bg');
   const glass = document.querySelector('.tl-glass');
-  if (!viewport || !glass) return null;
-  const viewportRect = viewport.getBoundingClientRect();
+  if (!windowBg || !glass) return null;
+  const viewportRect = windowBg.getBoundingClientRect();
   const spout = documentPoint({ left: viewportRect.left + viewportRect.width / 2, top: viewportRect.bottom });
   const chuteTop = spout[1] + 36; // a small gap below the spout itself
   const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;

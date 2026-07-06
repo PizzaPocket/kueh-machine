@@ -419,12 +419,14 @@
        tick by the countdown script below). Both paint themselves with a
        plain CSS background-color below — no procedural shape, SVG, or
        clip-path needed for a plain rectangle. No cast shadow off the
-       liquid's own edge (dropped separately). Wrapped in a
-       housing-frame.js chrome rim (src/organisms/countdown-clock.js) — the
-       same double-ring stroke treatment as the "Kueh" wordmark's own rims;
-       see that module's own comment. The drop (.countdown-drop below)
-       grows and releases from the window's own bottom edge, at horizontal
-       center.
+       liquid's own edge (dropped separately). Outlined with a single
+       chrome stroke — a real border-image, its gradient set by
+       src/organisms/countdown-clock.js (computeConicChromeLayers,
+       chrome-metal.js), same tint as the "Kueh" wordmark's own rims; see
+       that module's own comment for why this is a plain border rather
+       than another housing-frame.js wrapper. The drop (.countdown-drop
+       below) grows and releases from the window's own bottom edge, at
+       horizontal center.
 
        --countdown-bg-color/--countdown-liquid-color are the single place
        to retune either color — both layers' background-color below and
@@ -441,23 +443,34 @@
        any font size/breakpoint instead of a fixed height that's oversized
        for some and cramped for others. Top/bottom padding equal (no more
        funnel body below the digits to reserve extra bottom room for) so
-       the content reads centered in the shape. */
+       the content reads centered in the shape.
+
+       border-width/style live here since they're fixed, breakpoint-tiered
+       values like every other measurement on this page — countdown-clock.js
+       sets border-image (the gradient + its border-image-slice: 1, the
+       "wrap this generated gradient around the border area" idiom — see
+       that module's own comment) via the full shorthand, so it's the only
+       part that needs JS. border-color: transparent is the fallback shown
+       before that JS runs (or if it never does) — an invisible border
+       rather than a flash of whatever the default border color would be.
+
+       box-sizing: content-box overrides this file's own global *,
+       *::before, *::after border-box reset, specifically so the stroke
+       reads as an *outer* frame bled outward past the fill — with the
+       reset's own border-box, the border eats inward out of the padding/
+       fill area instead, shrinking the window rather than framing it.
+       Content-box means the mobile media query's width/max-width below
+       (tuned assuming the old border-box math) end up a few px wider in
+       practice (2× the border's own width) — negligible next to the
+       overflow-x: hidden safety net .hero's own comment already relies on
+       for this same zone. */
     .countdown-viewport {
       position: relative;
       display: inline-block;
+      box-sizing: content-box;
       padding: 16px 48px;
-    }
-
-    /* .housing-frame-wrap (styles/atoms.css — src/atoms/housing-frame.js),
-       not .countdown-viewport itself, which is no longer the outermost
-       element now that countdown-clock.js wraps it in the chrome rim —
-       margin-bottom on a plain block collapses out through its container,
-       but .housing-frame-wrap is inline-block, which blocks that
-       collapsing, so the margin would otherwise get trapped *inside* the
-       wrapper (inflating its own auto-height) instead of adding space
-       below it. */
-    .hero .housing-frame-wrap {
-      margin-bottom: 12px;
+      margin-bottom: 12px; /* trailing space before the hero's own bottom padding */
+      border: 8px solid transparent;
     }
 
     .countdown-window-bg,
@@ -980,7 +993,7 @@
          approaches 640px (calc(100vw - 36px) alone would let it grow to
          ~600px there) — 432px (360px, +20%: read too narrow at that
          original value) still kicks in before ~600px, just later. */
-      .countdown-viewport { width: calc(100vw - 36px); max-width: 432px; padding: 10px 8px; }
+      .countdown-viewport { width: calc(100vw - 36px); max-width: 432px; padding: 10px 8px; border-width: 4px; }
       .countdown-grid { gap: 0 6px; }
       /* Fixed per breakpoint, same 3-breakpoint scheme as .hero-title/
          .cd-number/.cd-sep's own comments (further above) explain — base
@@ -1341,11 +1354,19 @@
     var dropEl = null;
 
     function positionDrop(el) {
-      var viewport = document.querySelector('.countdown-viewport');
-      if (!viewport) return;
-      var rect = viewport.getBoundingClientRect();
+      // .countdown-window-bg, not .countdown-viewport itself — the latter's
+      // own getBoundingClientRect() is its *border* box, which now extends
+      // past the actual window fill (countdown-clock.js's chrome
+      // border-image is an outer stroke, box-sizing: content-box, index.html
+      // — see that rule's own comment). .countdown-window-bg is
+      // position: absolute; inset: 0 with no border of its own, so its box
+      // is exactly the fill's true edge regardless of how thick the outer
+      // stroke is.
+      var windowBg = document.querySelector('.countdown-window-bg');
+      if (!windowBg) return;
+      var rect = windowBg.getBoundingClientRect();
       el.style.left = (rect.left + rect.width / 2 + window.scrollX) + 'px';
-      // Nudged up a few px from the viewport's true bottom edge so the
+      // Nudged up a few px from the window's true bottom edge so the
       // drop grows out of just above it rather than hanging right at/
       // below it.
       el.style.top = (rect.bottom - 2 + window.scrollY) + 'px';

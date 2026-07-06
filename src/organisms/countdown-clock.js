@@ -7,16 +7,19 @@
 // any procedural shape — a plain rectangle needs no curve-fitting, so this
 // module no longer touches the retro-shape atom at all.
 //
-// Wrapped in a housing-frame.js chrome rim (src/atoms/housing-frame.js) —
-// the same double-ring "stroke" treatment as the "Kueh" wordmark's own rims
-// (.chrome-text-rim--themed, src/organisms/chrome-accents.js): a thin inner
-// ring plus a thicker outer one 55° offset, both the exact same
-// computeConicChromeLayers material (chrome-metal.js) tinted from
-// --color-primary-strong (RIM_DARK/RIM_LIGHT below match KUEH_RIM_DARK/
-// KUEH_RIM_LIGHT there exactly, for the same "Kueh" look). pointsBuilder:
-// buildRectPoints overrides housing-frame.js's own default (a superellipse
-// ring, swelled corners to match a retro-rectangle window) with a literal
-// 4-corner rectangle, since the window itself now has sharp corners too.
+// Outlined with a single chrome stroke, the same material and tint as the
+// "Kueh" wordmark's own rims (.chrome-text-rim--themed,
+// src/organisms/chrome-accents.js) — computeConicChromeLayers
+// (src/tokens/chrome-metal.js) called directly with the same RIM_DARK/
+// RIM_LIGHT tint and peaks, its `metal` string set straight onto
+// .countdown-viewport's own border-image. A real CSS border, not a
+// wrapWithHousingFrame wrapper div — that atom's ring exists to combine a
+// noise-grain texture *and* an optional second offset ring on top of the
+// conic-gradient (neither of which this window wants: one flat stroke, no
+// grain), and border-image only ever needs the one gradient image, so the
+// plain border property does the whole job with no extra DOM, no
+// clip-path, and no ResizeObserver — the browser repaints a border-image
+// on resize for free, unlike a clip-path'd ring sized in JS.
 //
 // Everything else about the countdown (the digit ticking, the liquid's
 // fill percentage, the drip animation) is plain inline script in
@@ -25,25 +28,16 @@
 // bubble burst that rises from the bottom edge on each drop release
 // (src/atoms/liquid-bubbles.js).
 
-import { wrapWithHousingFrame } from '../atoms/housing-frame.js';
+import { computeConicChromeLayers } from '../tokens/chrome-metal.js';
 import { spawnBubbleBurst } from '../atoms/liquid-bubbles.js';
 
-// Matches KUEH_RIM_DARK/KUEH_RIM_LIGHT (src/organisms/chrome-accents.js)
-// exactly — see that file's own comment for why these exact percentages
-// (90%/93%, not housing-frame.js's neutral metal-base default) read right
-// next to the day's theme color.
+// Matches KUEH_RIM_DARK/KUEH_RIM_LIGHT and WORDMARK_RIM_PEAKS
+// (src/organisms/chrome-accents.js) exactly — see that file's own comment
+// for why these exact percentages (90%/93%, not computeConicChromeLayers'
+// neutral metal-base default) read right next to the day's theme color.
 const RIM_DARK = 'color-mix(in srgb, var(--color-primary-strong) 90%, black)';
 const RIM_LIGHT = 'color-mix(in srgb, var(--color-primary-strong) 93%, white)';
-
-// A literal 4-corner rectangle in local space centered at (0,0) — same
-// interface as buildSuperellipsePoints (tokens/superellipse.js), which is
-// what buildOutsetFramePath's own `pointsBuilder` option expects, so this
-// drops straight in as an override.
-function buildRectPoints({ width, height }) {
-  const w = width / 2;
-  const h = height / 2;
-  return [[-w, -h], [w, -h], [w, h], [-w, h]];
-}
+const RIM_PEAKS = [40, 165, 250];
 
 export function init() {
   const viewport = document.querySelector('.countdown-viewport');
@@ -66,18 +60,12 @@ export function init() {
   // drop-chute.js's own listener for this event.
   window.addEventListener('chute:ball-released', () => spawnBubbleBurst(liquid));
 
-  const parent = viewport.parentNode;
-  const nextSibling = viewport.nextSibling;
-  const { el: rimWrap } = wrapWithHousingFrame(viewport, {
-    darkVar: RIM_DARK,
-    lightVar: RIM_LIGHT,
-    pointsBuilder: buildRectPoints,
-    // Thinner than housing-frame.js's own default (14/7) — that thickness
-    // was tuned for a thick decorative housing (the old funnel's outer
-    // frame); a plain rectangle window reads better with a rim closer to
-    // the wordmark's own stroke weight.
-    outsetDesktop: 8,
-    outsetMobile: 4,
-  });
-  parent.insertBefore(rimWrap, nextSibling);
+  // border/border-width live in CSS (index.html, breakpoint-tiered same as
+  // every other measurement on this page) — only the gradient image itself
+  // needs JS. `1` is border-image-slice: a bare `1` (not a pixel/percent
+  // unit) is the standard "just wrap this generated gradient around the
+  // border area" idiom for a CSS-image source with no intrinsic size,
+  // same as any other gradient-border trick.
+  const { metal } = computeConicChromeLayers(RIM_PEAKS, { darkVar: RIM_DARK, lightVar: RIM_LIGHT });
+  viewport.style.borderImage = `${metal} 1`;
 }

@@ -247,10 +247,16 @@ function insetSegments(segments, factor) {
   return segments.map((seg) => seg.map(([x, y]) => [cx + (x - cx) * factor, cy + (y - cy) * factor]));
 }
 
-export function pointsAtArcLength(polyline, spacing) {
+// `phase`: shifts every dot the same distance along the arc, wrapping at
+// `spacing` so the sequence stays evenly spaced — lets a caller "slide" the
+// dot pattern along a segment whose own endpoints never move (timeline-
+// panel.js's fixed-pulley string span), rather than only being able to
+// react to endpoints that do.
+export function pointsAtArcLength(polyline, spacing, phase = 0) {
   const points = [];
   let accumulated = 0;
-  let nextTarget = spacing / 2; // offset so dots don't bunch at the seam
+  const wrappedPhase = ((phase % spacing) + spacing) % spacing;
+  let nextTarget = spacing / 2 + wrappedPhase; // offset so dots don't bunch at the seam
   for (let i = 1; i < polyline.length; i++) {
     const [x0, y0] = polyline[i - 1];
     const [x1, y1] = polyline[i];

@@ -28,10 +28,13 @@ export function createSegment(bowFraction, bowSign) {
   const fraction = bowFraction ?? 0.12 + Math.random() * 0.18;
   const sign = bowSign ?? (Math.random() < 0.5 ? -1 : 1);
   return {
-    compute(from, to) {
+    // `dotPhase` (px): forwarded to pointsAtArcLength so a segment whose
+    // endpoints are pinned (a fixed-pulley span) can still slide its dot
+    // pattern along its own length — see pointsAtArcLength's own comment.
+    compute(from, to, dotPhase = 0) {
       const { d, points } = tendrilSegment(from, to, { bowSign: sign, bowFraction: fraction });
       const flattened = flattenCubic(points[0], points[1], points[2], points[3], 20);
-      const dots = pointsAtArcLength(flattened, CECEK_DOT_SPACING).map(([x, y]) => ({ x, y }));
+      const dots = pointsAtArcLength(flattened, CECEK_DOT_SPACING, dotPhase).map(([x, y]) => ({ x, y }));
       return { d, dots };
     },
   };
