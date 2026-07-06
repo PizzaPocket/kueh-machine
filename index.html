@@ -1701,6 +1701,21 @@
       var rimWrap = document.querySelector('.countdown-rim-wrap');
       var winCenter = window.innerWidth / 2;
       lines.push('window center=' + winCenter.toFixed(1) + ' innerWidth=' + window.innerWidth + ' docClientWidth=' + document.documentElement.clientWidth);
+      // Checking for duplicate/orphaned housing elements — expect exactly
+      // 2 wraps (inner rim + outer housing) and 4 .housing-frame divs (2
+      // main + 2 accent). More than that means an old copy never got
+      // cleaned up and is sitting behind/near the current one, which
+      // would look exactly like a ghosted echo of the whole housing.
+      var wrapCount = document.querySelectorAll('.housing-frame-wrap').length;
+      var frameCount = document.querySelectorAll('.housing-frame').length;
+      lines.push('housing-frame-wrap count=' + wrapCount + ' (expect 2)   .housing-frame count=' + frameCount + ' (expect 4)' +
+        (wrapCount > 2 || frameCount > 4 ? '  [DUPLICATE ELEMENTS FOUND]' : ''));
+      var allFrames = [].slice.call(document.querySelectorAll('.housing-frame'));
+      allFrames.forEach(function (f, i) {
+        var r = f.getBoundingClientRect();
+        lines.push('  housing-frame[' + i + '] class="' + f.className + '" ' + rectStr(r) +
+          ' display=' + getComputedStyle(f).display + ' opacity=' + getComputedStyle(f).opacity);
+      });
       var hero = document.querySelector('.hero');
       if (hero) {
         var heroRect = hero.getBoundingClientRect();
