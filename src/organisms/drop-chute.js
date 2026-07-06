@@ -636,16 +636,26 @@ export function init() {
     // spawnRoll starts from, so dy alone always reaches it exactly, and
     // the fall hands off into the roll with perfect continuity.
     const dy = crossingDoc[1] - spout[1];
-    const anim = fallEl.animate(
-      [
-        { transform: 'translate(0, 0) scale(1, 1)' },
-        { transform: `translate(0, ${dy}px) scale(${HOP_STRETCH_X}, ${HOP_STRETCH_Y})` },
-      ],
-      { duration: FALL_TO_CHUTE_DURATION_MS, easing: 'ease-in' }
-    );
-    anim.onfinish = () => {
-      spawnRoll();
-    };
+
+    // Driven by rAF, not Element.animate() — see spawnRoll's own comment
+    // for why. At 260ms this hop is short enough that the same stall
+    // likely went unnoticed here, but there's no reason to leave one
+    // WAAPI-driven leg in once the other two needed converting.
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / FALL_TO_CHUTE_DURATION_MS);
+      const u = easeInCubic(t);
+      const y = lerp(0, dy, u);
+      const sx = lerp(1, HOP_STRETCH_X, u);
+      const sy = lerp(1, HOP_STRETCH_Y, u);
+      fallEl.style.transform = `translate(0, ${y}px) scale(${sx}, ${sy})`;
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        spawnRoll();
+      }
+    }
+    requestAnimationFrame(frame);
   }
 
   if (!buildChute()) return;
