@@ -68,6 +68,15 @@
       color: var(--color-text-on-surface);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      /* The drop-chute (src/organisms/drop-chute.js) is a document-
+         positioned, absolutely-placed element built from waypoints with a
+         wide side-to-side swing (X_JITTER) — on some viewport widths its
+         own container can extend past the right edge of the page. Without
+         this, that's real horizontal overflow with nothing guarding
+         against it, which can open up page-wide horizontal scroll purely
+         as a side effect of decorative chute geometry, not any actual
+         content needing to scroll. */
+      overflow-x: hidden;
     }
 
     a { color: inherit; }
