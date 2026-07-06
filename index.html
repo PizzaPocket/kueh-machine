@@ -60,7 +60,17 @@
     /* === RESET === */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { background: var(--color-primary-strong); scroll-behavior: smooth; }
+    /* scrollbar-gutter: stable — reserves the vertical scrollbar's space
+       permanently, whether or not a scrollbar is actually showing at any
+       given moment. Without it, every centered element on the page
+       (the water-clock viewport/rims, its own liquid/background fill, the
+       drop) shifts by half the scrollbar's width whenever the page
+       crosses the threshold of needing one — confirmed directly: the same
+       delta between window.innerWidth and document.documentElement.
+       clientWidth read 0 earlier in a session and 15 later in the same
+       one, and every centered layer shifted by exactly half that each
+       time, in lockstep with each other (never against each other). */
+    html { background: var(--color-primary-strong); scroll-behavior: smooth; scrollbar-gutter: stable; }
 
     body {
       font-family: var(--font-sans);
