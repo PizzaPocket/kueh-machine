@@ -105,6 +105,14 @@ function fmt(n) {
   return Math.round(n * 100) / 100;
 }
 
+// Shared by spawnRoll and spawnFall's own rAF loops (both replicate a
+// WAAPI ease-in-then-linear keyframe curve by hand — see spawnRoll's own
+// comment for why neither trusts Element.animate() for its movement).
+const easeInCubic = (t) => t * t * t;
+function lerp(a, b, u) {
+  return a + (b - a) * u;
+}
+
 function documentPoint(rect) {
   return [rect.left + window.scrollX, rect.top + window.scrollY];
 }
@@ -450,6 +458,19 @@ export function init() {
     // distance) rather than one fixed value regardless of how far down
     // the page the glass actually is.
     const fallDuration = Math.min(2800, Math.max(600, Math.sqrt(Math.abs(dy)) * 45));
+    // The terminal velocity actually reached (px/ms), passed along so
+    // dropIntoLiquid (glass-graphic.js, wired up in timeline-panel.js) can
+    // keep moving at this exact speed into the liquid, rather than an
+    // independently-chosen duration that likely wouldn't match.
+    const totalDist = Math.hypot(dx, dy);
+    const terminalSpeed = (totalDist * 0.88) / (fallDuration * 0.78);
+
+    // Driven by rAF, not Element.animate() — see spawnRoll's own comment
+    // for why. At 600-2800ms this fall is long enough that the same
+    // stall-past-the-first-frame issue is obvious here too, unlike the
+    // brief 260ms hop (spawnFallToChute), which is short enough that the
+    // same underlying WAAPI issue likely goes unnoticed there.
+    //
     // Accelerates for the first ~22% of the duration (ease-in), then
     // holds a constant terminal-velocity speed for the rest, rather than
     // continuing to accelerate or decelerate all the way down — the
@@ -457,30 +478,38 @@ export function init() {
     // same linear rate, so there's no perceived slowdown at the handoff.
     // Stretch grows alongside speed the same way: round leaving the
     // chute, a modest elongation through the accelerating phase, holding
-    // at its fullest once speed stops changing.
-    const anim = fallEl.animate(
-      [
-        { transform: 'translate(0, 0) scale(1, 1)', offset: 0, easing: 'ease-in' },
-        {
-          transform: `translate(${dx * 0.12}px, ${dy * 0.12}px) scale(${FALL_STRETCH_X_MID}, ${FALL_STRETCH_Y_MID})`,
-          offset: 0.22,
-          easing: 'linear',
-        },
-        { transform: `translate(${dx}px, ${dy}px) scale(${FALL_STRETCH_X_MAX}, ${FALL_STRETCH_Y_MAX})`, offset: 1 },
-      ],
-      { duration: fallDuration }
-    );
-    // The terminal velocity actually reached (px/ms), passed along so
-    // dropIntoLiquid (glass-graphic.js, wired up in timeline-panel.js) can
-    // keep moving at this exact speed into the liquid, rather than an
-    // independently-chosen duration that likely wouldn't match.
-    const totalDist = Math.hypot(dx, dy);
-    const terminalSpeed = (totalDist * 0.88) / (fallDuration * 0.78);
-    anim.onfinish = () => {
-      fallEl.remove();
-      state.ball = null;
-      window.dispatchEvent(new CustomEvent('chute:ball-landed', { detail: { terminalSpeed } }));
-    };
+    // at its fullest once speed stops changing. translate/scale are
+    // interpolated independently (not composed into a single matrix and
+    // decomposed back out) — equivalent for this pure translate+scale
+    // case, and far simpler to replicate by hand.
+    const accelEndOffset = 0.22;
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / fallDuration);
+      let u, fromX, fromY, fromSX, fromSY, toX, toY, toSX, toSY;
+      if (t <= accelEndOffset) {
+        u = easeInCubic(t / accelEndOffset);
+        fromX = 0; fromY = 0; fromSX = 1; fromSY = 1;
+        toX = dx * 0.12; toY = dy * 0.12; toSX = FALL_STRETCH_X_MID; toSY = FALL_STRETCH_Y_MID;
+      } else {
+        u = (t - accelEndOffset) / (1 - accelEndOffset);
+        fromX = dx * 0.12; fromY = dy * 0.12; fromSX = FALL_STRETCH_X_MID; fromSY = FALL_STRETCH_Y_MID;
+        toX = dx; toY = dy; toSX = FALL_STRETCH_X_MAX; toSY = FALL_STRETCH_Y_MAX;
+      }
+      const x = lerp(fromX, toX, u);
+      const y = lerp(fromY, toY, u);
+      const sx = lerp(fromSX, toSX, u);
+      const sy = lerp(fromSY, toSY, u);
+      fallEl.style.transform = `translate(${x}px, ${y}px) scale(${sx}, ${sy})`;
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        fallEl.remove();
+        state.ball = null;
+        window.dispatchEvent(new CustomEvent('chute:ball-landed', { detail: { terminalSpeed } }));
+      }
+    }
+    requestAnimationFrame(frame);
   }
 
   // Rolls from the crossing point (not 0%) through to the end — the
@@ -524,7 +553,6 @@ export function init() {
     const postCrossingPctRange = 100 - crossingPct;
     const accelEndOffset = 0.22;
     const accelEndPct = crossingPct + postCrossingPctRange * 0.12;
-    const easeInCubic = (t) => t * t * t;
 
     // Driven by manual requestAnimationFrame + getPointAtLength (same
     // technique atoms/liquid-ripple.js's own rAF loop uses) rather than
