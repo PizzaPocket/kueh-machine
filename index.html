@@ -155,9 +155,9 @@
       text-align: center;
       /* Every vw-driven scaling formula in this section (.hero-title,
          .cd-number, .cd-sep, below) reads viewport width through this
-         instead of a bare 100vw — min() caps it at 1080px, so past that
+         instead of a bare 100vw — min() caps it at 1024px, so past that
          viewport width each formula keeps computing exactly what it would
-         at 1080px instead of continuing to grow. Without this, several
+         at 1024px instead of continuing to grow. Without this, several
          independent clamp()s here each hit their own ceiling at a
          slightly different viewport width (~1090-1120px), so in that band
          some are still growing while others have already capped —
@@ -165,7 +165,7 @@
          Freezing the shared input here means they all stop growing at
          once, at one deliberate width, instead of drifting out of step
          with each other. */
-      --hero-vw: min(100vw, 1080px);
+      --hero-vw: min(100vw, 1024px);
     }
 
     .kueh-slice {
