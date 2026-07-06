@@ -652,6 +652,12 @@ export function init() {
       if (t < 1) {
         requestAnimationFrame(frame);
       } else {
+        // Element.animate()'s default fill: 'none' used to revert this
+        // automatically once the animation finished — a manual rAF loop
+        // has to clear it by hand, or the roll (which only ever sets
+        // left/top, never transform) would inherit this leftover
+        // translate/scale stacked on top of its own positioning.
+        fallEl.style.transform = '';
         spawnRoll();
       }
     }
