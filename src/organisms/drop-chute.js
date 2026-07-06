@@ -57,6 +57,13 @@ const X_JITTER = 200; // wide side-to-side swing — runs mostly horizontally, n
 // width — a flat amplitude could get swallowed by a wide span's own drift.
 const ARCH_SWING_RATIO = 0.42;
 const ARCH_MIN_SWING_PX = 70;
+// Upper counterpart — caps how wide a single arch may swing regardless of
+// how large |span| grows (the cup's own start->end span can be much wider
+// now that it hangs further right/down the page), so a large span still
+// reads as a bounded, screen-safe wind rather than one huge sweep that
+// collapses onto the edge clamp below (buildWaypoints's own room-bounded
+// swing).
+const ARCH_MAX_SWING_PX = 260;
 // The closing hook (buildWaypoints): a dedicated point pinned above
 // bucketX right before the final anchor, so the chute's last stretch is a
 // true vertical drop. This is the share of the vertical run reserved for
@@ -79,6 +86,18 @@ const ROLL_SPEED_PX_PER_MS = 0.35;
 // the same absolute speed as desktop's, reading as an unrealistic speed-up
 // rather than a scaled-down roll.
 const ROLL_SPEED_SCALE_MOBILE = Math.sqrt(CHUTE_HEIGHT_MOBILE / CHUTE_HEIGHT_MAX);
+// Shared by spawnRoll and spawnFall's own ease-in-then-linear movement
+// curves: the first ACCEL_TIME_FRACTION share of the duration eases in
+// (easeInCubic) covering ACCEL_DISTANCE_FRACTION of the distance, then the
+// rest holds a constant linear speed. ACCEL_DISTANCE_FRACTION is not a free
+// tune — it's solved so the cubic's own instantaneous speed right as easing
+// ends exactly matches the linear phase's constant speed (a cubic's speed
+// at the end of its own eased interval is 3x that interval's average, so a
+// naive even split overshoots the "terminal" speed and then visibly snaps
+// down to it). Solving 3*f/(1-a) = (1-f)/a for f given the time split a
+// gives f = a / (3 - 2a).
+const ACCEL_TIME_FRACTION = 0.22;
+const ACCEL_DISTANCE_FRACTION = ACCEL_TIME_FRACTION / (3 - 2 * ACCEL_TIME_FRACTION);
 // Stretch & squash: the ball elongates along its direction of travel while
 // falling (a speed cue) and relaxes back to round while rolling. Two
 // stretch stages for the long fall (spawnFall) — modest while
@@ -158,13 +177,18 @@ function findAnchors() {
 // to visibly jump sideways to reach the chute.
 function buildWaypoints(spoutX, chuteTop, bucketX, chuteHeight) {
   const minX = EDGE_MARGIN;
-  const maxX = Math.max(minX + 1, document.documentElement.clientWidth - EDGE_MARGIN);
+  // window.innerWidth, not just document.documentElement.clientWidth alone
+  // — the smaller of the two is the true safe bound regardless of which
+  // metric's own edge cases (scrollbar gutter, etc.) might otherwise read
+  // wider than what's actually visible.
+  const viewportWidth = Math.min(window.innerWidth, document.documentElement.clientWidth);
+  const maxX = Math.max(minX + 1, viewportWidth - EDGE_MARGIN);
   const offset = X_JITTER * 0.3;
   const startX =
     bucketX >= spoutX ? Math.max(minX, spoutX - offset) : Math.min(maxX, spoutX + offset);
 
   const span = bucketX - startX;
-  const swing = Math.max(ARCH_MIN_SWING_PX, Math.abs(span) * ARCH_SWING_RATIO);
+  const swing = Math.min(ARCH_MAX_SWING_PX, Math.max(ARCH_MIN_SWING_PX, Math.abs(span) * ARCH_SWING_RATIO));
 
   // The first arch's side matches the overall travel direction
   // (Math.sign(span)), not a fixed left-or-right guess, so it compounds
@@ -181,9 +205,17 @@ function buildWaypoints(spoutX, chuteTop, bucketX, chuteHeight) {
   for (let i = 1; i <= ARCH_COUNT; i++) {
     const t = (i / (ARCH_COUNT + 1)) * archSpan;
     const y = chuteTop + chuteHeight * t;
-    const baseX = startX + span * t;
+    const baseX = Math.min(maxX, Math.max(minX, startX + span * t));
     const side = i % 2 === 1 ? firstSide : -firstSide;
-    const x = Math.min(maxX, Math.max(minX, baseX + side * swing));
+    // Bound the swing by the room actually left between this arch's own
+    // base position and the screen edge on its swing side, not just clamp
+    // the final point — clamping only the final point lets a large swing
+    // silently flatten multiple arches onto the same edge value once the
+    // base is already close to it, reading as one degenerate sweep instead
+    // of a bounded one.
+    const room = side > 0 ? maxX - baseX : baseX - minX;
+    const boundedSwing = Math.max(0, Math.min(swing, room));
+    const x = baseX + side * boundedSwing;
     waypoints.push([x, y]);
   }
 
@@ -471,7 +503,8 @@ export function init() {
     // keep moving at this exact speed into the liquid, rather than an
     // independently-chosen duration that likely wouldn't match.
     const totalDist = Math.hypot(dx, dy);
-    const terminalSpeed = (totalDist * 0.88) / (fallDuration * 0.78);
+    const terminalSpeed =
+      (totalDist * (1 - ACCEL_DISTANCE_FRACTION)) / (fallDuration * (1 - ACCEL_TIME_FRACTION));
 
     // Driven by rAF, not Element.animate() — see spawnRoll's own comment
     // for why. At 600-2800ms this fall is long enough that the same
@@ -490,18 +523,17 @@ export function init() {
     // interpolated independently (not composed into a single matrix and
     // decomposed back out) — equivalent for this pure translate+scale
     // case, and far simpler to replicate by hand.
-    const accelEndOffset = 0.22;
     const start = performance.now();
     function frame(now) {
       const t = Math.min(1, (now - start) / fallDuration);
       let u, fromX, fromY, fromSX, fromSY, toX, toY, toSX, toSY;
-      if (t <= accelEndOffset) {
-        u = easeInCubic(t / accelEndOffset);
+      if (t <= ACCEL_TIME_FRACTION) {
+        u = easeInCubic(t / ACCEL_TIME_FRACTION);
         fromX = 0; fromY = 0; fromSX = 1; fromSY = 1;
-        toX = dx * 0.12; toY = dy * 0.12; toSX = FALL_STRETCH_X_MID; toSY = FALL_STRETCH_Y_MID;
+        toX = dx * ACCEL_DISTANCE_FRACTION; toY = dy * ACCEL_DISTANCE_FRACTION; toSX = FALL_STRETCH_X_MID; toSY = FALL_STRETCH_Y_MID;
       } else {
-        u = (t - accelEndOffset) / (1 - accelEndOffset);
-        fromX = dx * 0.12; fromY = dy * 0.12; fromSX = FALL_STRETCH_X_MID; fromSY = FALL_STRETCH_Y_MID;
+        u = (t - ACCEL_TIME_FRACTION) / (1 - ACCEL_TIME_FRACTION);
+        fromX = dx * ACCEL_DISTANCE_FRACTION; fromY = dy * ACCEL_DISTANCE_FRACTION; fromSX = FALL_STRETCH_X_MID; fromSY = FALL_STRETCH_Y_MID;
         toX = dx; toY = dy; toSX = FALL_STRETCH_X_MAX; toSY = FALL_STRETCH_Y_MAX;
       }
       const x = lerp(fromX, toX, u);
@@ -563,8 +595,7 @@ export function init() {
     // flat linear stretch for the rest, so the ball reaches and holds one
     // constant top speed along the chute.
     const postCrossingPctRange = 100 - crossingPct;
-    const accelEndOffset = 0.22;
-    const accelEndPct = crossingPct + postCrossingPctRange * 0.12;
+    const accelEndPct = crossingPct + postCrossingPctRange * ACCEL_DISTANCE_FRACTION;
 
     // Driven by manual requestAnimationFrame + getPointAtLength (same
     // technique atoms/liquid-ripple.js's own rAF loop uses) rather than
@@ -590,9 +621,9 @@ export function init() {
     function frame(now) {
       const t = Math.min(1, (now - start) / movementDuration);
       const pct =
-        t <= accelEndOffset
-          ? crossingPct + (accelEndPct - crossingPct) * easeInCubic(t / accelEndOffset)
-          : accelEndPct + (100 - accelEndPct) * ((t - accelEndOffset) / (1 - accelEndOffset));
+        t <= ACCEL_TIME_FRACTION
+          ? crossingPct + (accelEndPct - crossingPct) * easeInCubic(t / ACCEL_TIME_FRACTION)
+          : accelEndPct + (100 - accelEndPct) * ((t - ACCEL_TIME_FRACTION) / (1 - ACCEL_TIME_FRACTION));
       placeAt(pct);
       if (t < 1) requestAnimationFrame(frame);
       else spawnFall();

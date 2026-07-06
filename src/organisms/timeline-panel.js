@@ -241,46 +241,62 @@ function buildTopWindowContent() {
 
   content.appendChild(track);
 
-  // A dedicated child span for the label (not chip.textContent directly)
-  // — setting text that way would wipe out attachRetroShapeClip's own
-  // defs-only <svg> child, leaving the clip-path pointing at a
-  // now-detached shape.
-  //
   // `chip` (the element every position/left/top/bounce calculation below
-  // targets) is the outer rim band, same rim/fill nesting
-  // .step-card/.step-card-fill uses — its 2px padding (.tl-day-chip,
-  // timeline-panel.css) is the rim's thickness, showing through as a thin
-  // themed-chrome ring between its clip-path and the inner
-  // .tl-day-chip-fill's (attached separately, so it gets its own
-  // correctly-fitted shape at the smaller, padded-in size).
+  // targets) is now a plain unclipped wrapper — position/transform/
+  // z-index and the drop-shadow filter live here, on `chipRim` (its own
+  // child) is where the clip-path/background/padding actually live.
+  // Split across two elements rather than one, because an element
+  // carrying BOTH its own clip-path AND a filter: drop-shadow doesn't
+  // reliably paint that shadow in Chrome (confirmed directly — the
+  // filter computes fine per getComputedStyle, but paints nothing, even
+  // for a wildly exaggerated test shadow) — moving the filter to an
+  // unclipped ancestor sidesteps the bug entirely. chipRim fills `chip`
+  // at 100%/100% (styles/organisms/timeline-panel.css), so its own box
+  // is exactly what `chip`'s used to be — nothing else about the sizing
+  // math changes.
   const chip = document.createElement('div');
   chip.className = 'tl-day-chip';
+  const chipRim = document.createElement('div');
+  chipRim.className = 'tl-day-chip-rim';
+  chip.appendChild(chipRim);
+
+  // A dedicated child span for the label (not chipFill.textContent
+  // directly) — setting text that way would wipe out attachRetroShapeClip's
+  // own defs-only <svg> child, leaving the clip-path pointing at a
+  // now-detached shape.
+  //
+  // chipRim's 2px padding (.tl-day-chip-rim, timeline-panel.css) is the
+  // rim's thickness, showing through as a thin themed-chrome ring between
+  // its own clip-path and the inner .tl-day-chip-fill's (attached
+  // separately, so it gets its own correctly-fitted shape at the smaller,
+  // padded-in size).
   const chipFill = document.createElement('div');
   chipFill.className = 'tl-day-chip-fill';
   const chipLabel = document.createElement('span');
   chipLabel.className = 'tl-day-chip-label';
   chipLabel.textContent = 'Today';
   chipFill.appendChild(chipLabel);
-  chip.appendChild(chipFill);
+  chipRim.appendChild(chipFill);
 
   // Not attachRetroShapeClip (which wires a fixed set of shape opts once
   // and never revisits them): the chip's own shape needs to flip which
   // edge carries its point when the layout crosses the mobile breakpoint
-  // (tick()'s own isMobile check), and the chip's box size never actually
-  // changes between the two (see .tl-day-chip's own CSS — no mobile
-  // override), so there's no resize for a ResizeObserver to react to.
-  // updateChipTail (below) is what tick() calls instead, each time it
-  // knows the current isMobile state.
+  // (tick()'s own isMobile check), and chipRim's box size never actually
+  // changes between the two (it's always 100%/100% of `chip`, whose own
+  // CSS has no mobile override to its underlying pixel size — see
+  // .tl-day-chip's own CSS), so there's no resize for a ResizeObserver to
+  // react to. updateChipTail (below) is what tick() calls instead, each
+  // time it knows the current isMobile state.
   const chipShapeRefs = createRetroShape();
-  chip.appendChild(chipShapeRefs.svg);
-  chip.style.clipPath = chipShapeRefs.clipUrl;
+  chipRim.appendChild(chipShapeRefs.svg);
+  chipRim.style.clipPath = chipShapeRefs.clipUrl;
   const chipFillShapeRefs = createRetroShape();
   chipFill.appendChild(chipFillShapeRefs.svg);
   chipFill.style.clipPath = chipFillShapeRefs.clipUrl;
 
   function updateChipTail(tailSide) {
     const opts = { ...SMALL_RETRO_SHAPE_OPTS, pathBuilder: buildTailedRectPath, tailSide, tailLength: CHIP_TAIL_LENGTH };
-    updateRetroShape(chip, chipShapeRefs, opts);
+    updateRetroShape(chipRim, chipShapeRefs, opts);
     updateRetroShape(chipFill, chipFillShapeRefs, opts);
   }
 
@@ -291,7 +307,7 @@ function buildTopWindowContent() {
   // padded alignment, so a moving rim would read as a glitch rather than
   // a reflection.
   const { metal: chipRimMetal } = computeConicChromeLayers(CHIP_RIM_PEAKS, { darkVar: CHIP_RIM_DARK, lightVar: CHIP_RIM_LIGHT });
-  chip.style.backgroundImage = chipRimMetal;
+  chipRim.style.backgroundImage = chipRimMetal;
 
   return { content, track, springRefs, chip, updateChipTail };
 }
@@ -355,6 +371,17 @@ function buildBottomWindowContent() {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const PULLEY_GAP = 90; // px past the spring track's own right edge
+// How close pulley 1's own rendered edge is ever allowed to sit to the true
+// viewport edge — .container's max-width slack shrinks on ordinary desktop
+// widths, and PULLEY_GAP alone (a flat +90px with no regard for how much
+// room is actually left) can otherwise push the pulley past the visible
+// viewport, where body's own overflow-x:hidden clips it. tick() clamps
+// PULLEY_GAP down to whatever's actually available minus this safety
+// margin, rather than letting pulleyX grow unbounded.
+const PULLEY_EDGE_SAFETY = 24;
+// Vertical counterpart to PULLEY_GAP for pulley 2 (below) — how far below
+// the entire 3-line "26 August" label block (.tl-label-right) it sits.
+const PULLEY2_LABEL_GAP = 28;
 const BASE_DROP = 40; // px from pulley down to the convergence node, at f=0
 const MAX_ADDITIONAL_DROP = 160; // extra px of sink by f=1 — same f as the spring/dial
 // Mobile has no pulley, so none of the above applies there the same way:
@@ -407,11 +434,18 @@ const PULLEY_GEAR_ROOT_RATIO = 0.8;
 // Real pulleys turn on a fixed axle — the string runs tangent to the
 // wheel, not through its center — so the visible knob sits offset
 // down-and-left of the point the string actually bends around
-// (setPositions's own `pulley` point, unchanged): the string wraps around
+// (setPositions's own `pulley1` point, unchanged): the string wraps around
 // the knob's top-right quarter instead of appearing to pass through its
 // middle.
 const PULLEY_KNOB_OFFSET_X = -7;
 const PULLEY_KNOB_OFFSET_Y = 7;
+// Pulley 2's own knob is mirrored horizontally from pulley 1's — the
+// string arrives at pulley 2 from the opposite side (pulley 1 sits up and
+// to the right of it, not up and to the left, the way the chip sits
+// relative to pulley 1), so its axle needs to sit up-and-*left* of the
+// knob instead, wrapping the knob's top-left quarter rather than top-right.
+const PULLEY2_KNOB_OFFSET_X = 7;
+const PULLEY2_KNOB_OFFSET_Y = 7;
 
 function buildPulley() {
   // A plain HTML div, not an <svg> — CSS conic-gradient() (styles/
@@ -485,7 +519,8 @@ function renderStrandSegment({ d, dots }, opacity, strokeWidth) {
 }
 
 function buildRig() {
-  const pulleyEl = buildPulley();
+  const pulley1El = buildPulley();
+  const pulley2El = buildPulley();
 
   const backSvg = document.createElementNS(SVG_NS, 'svg');
   backSvg.classList.add('tl-rig-strings', 'tl-rig-strings-back');
@@ -499,23 +534,29 @@ function buildRig() {
   // the chip/pulley/hanging glass, not a loose decorative vine), so a
   // dead-straight line rather than tendrilSegment's own curled default.
   const chipToPulley = createSegment(0);
-  const pulleyToNode = createSegment(0);
+  // Runs between the two fixed pulleys — desktop only (see redraw()'s own
+  // isMobileMode branch below, same as chipToPulley).
+  const pulley1ToPulley2 = createSegment(0);
+  const pulleyToNode = createSegment(0); // pulley 2 -> node on desktop, chip -> node on mobile
   const strands = [0, 1, 2].map(() => ({
     nodeToRim: createSegment(0),
     rimToBase: createSegment(0),
   }));
 
   // 3-6 batik motifs sprouting off the string, scattered randomly across
-  // *every* segment — the two fixed ones (chip->pulley, pulley->node) and
-  // all three diverging strands wrapping the glass (node->rim, rim->base
-  // each) — picked once here, not re-rolled per tick, so they don't jump
-  // to a different spot/shape every resize. No segment is excluded: the
-  // cup-wrap strands are just as fair game as the rest of the string.
+  // *every* segment — the fixed ones (chip->pulley1, pulley1->pulley2,
+  // pulley->node) and all three diverging strands wrapping the glass
+  // (node->rim, rim->base each) — picked once here, not re-rolled per tick,
+  // so they don't jump to a different spot/shape every resize. No segment
+  // is excluded: the cup-wrap strands are just as fair game as the rest of
+  // the string.
   const chipToPulleyFlourishes = [];
+  const pulley1ToPulley2Flourishes = [];
   const pulleyToNodeFlourishes = [];
   const strandFlourishes = [0, 1, 2].map(() => ({ nodeToRim: [], rimToBase: [] }));
   const flourishSlots = [
     chipToPulleyFlourishes,
+    pulley1ToPulley2Flourishes,
     pulleyToNodeFlourishes,
     ...strandFlourishes.flatMap((s) => [s.nodeToRim, s.rimToBase]),
   ];
@@ -545,7 +586,8 @@ function buildRig() {
   };
 
   let chipPoint = null;
-  let pulleyPoint = null;
+  let pulley1Point = null;
+  let pulley2Point = null;
   let nodePoint = null;
   let isMobileMode = false;
   let bounceOffsetY = 0; // px, see setBounceOffset — the landing bounce's own node/glass offset
@@ -565,23 +607,29 @@ function buildRig() {
     chipBounceOffset = px;
   }
 
-  // `mobile`: no pulley — the string already pulls straight down on
+  // `mobile`: no pulleys — the string already pulls straight down on
   // mobile (the chip only ever moves vertically there), so there's
-  // nothing to redirect. `pulley` is ignored when mobile; the segment
-  // that would normally run pulley→node instead runs chip→node directly
-  // (reusing `pulleyToNode`/`pulleyToNodeFlourishes` as-is — see redraw()
-  // below — rather than a third, mostly-duplicate segment/flourish set).
-  function setPositions(mobile, chip, pulley, node) {
+  // nothing to redirect. `pulley1`/`pulley2` are ignored when mobile; the
+  // segment that would normally run pulley2→node instead runs chip→node
+  // directly (reusing `pulleyToNode`/`pulleyToNodeFlourishes` as-is — see
+  // redraw() below — rather than a third, mostly-duplicate segment/
+  // flourish set).
+  function setPositions(mobile, chip, pulley1, pulley2, node) {
     isMobileMode = mobile;
     chipPoint = chip;
-    pulleyPoint = mobile ? chip : pulley;
+    pulley1Point = mobile ? chip : pulley1;
+    pulley2Point = mobile ? chip : pulley2;
     nodePoint = node;
-    pulleyEl.style.display = mobile ? 'none' : '';
+    pulley1El.style.display = mobile ? 'none' : '';
+    pulley2El.style.display = mobile ? 'none' : '';
     if (!mobile) {
-      // Offset the visible knob only — pulleyPoint (the string's actual
-      // bend point) stays at the true axle position set above.
-      pulleyEl.style.left = `${pulley[0] + PULLEY_KNOB_OFFSET_X}px`;
-      pulleyEl.style.top = `${pulley[1] + PULLEY_KNOB_OFFSET_Y}px`;
+      // Offset the visible knob only — pulley1Point/pulley2Point (the
+      // string's actual bend points) stay at the true axle positions set
+      // above.
+      pulley1El.style.left = `${pulley1[0] + PULLEY_KNOB_OFFSET_X}px`;
+      pulley1El.style.top = `${pulley1[1] + PULLEY_KNOB_OFFSET_Y}px`;
+      pulley2El.style.left = `${pulley2[0] + PULLEY2_KNOB_OFFSET_X}px`;
+      pulley2El.style.top = `${pulley2[1] + PULLEY2_KNOB_OFFSET_Y}px`;
     }
   }
 
@@ -604,19 +652,24 @@ function buildRig() {
     const nodeWorld = [nodePoint[0], nodePoint[1] + bounceOffsetY];
 
     if (!isMobileMode) {
-      const seg1 = chipToPulley.compute(chipWorld, pulleyPoint);
+      const seg1 = chipToPulley.compute(chipWorld, pulley1Point);
       frontMarkup +=
         renderSegment(seg1, CECEK_FILL) +
-        chipToPulleyFlourishes.map((f) => renderFlourish(chipWorld, pulleyPoint, f, CECEK_FILL)).join('');
+        chipToPulleyFlourishes.map((f) => renderFlourish(chipWorld, pulley1Point, f, CECEK_FILL)).join('');
+
+      const seg2 = pulley1ToPulley2.compute(pulley1Point, pulley2Point);
+      frontMarkup +=
+        renderSegment(seg2, CECEK_FILL) +
+        pulley1ToPulley2Flourishes.map((f) => renderFlourish(pulley1Point, pulley2Point, f, CECEK_FILL)).join('');
     }
-    // pulleyPoint is chipWorld's own un-bounced alias on mobile (see
+    // pulley2Point is chipWorld's own un-bounced alias on mobile (see
     // setPositions) — swapped in for chipWorld here so this run starts
-    // from the bounced chip on mobile, same as the real pulley (fixed,
+    // from the bounced chip on mobile, same as the real pulley 2 (fixed,
     // untouched) does on desktop.
-    const runStart = isMobileMode ? chipWorld : pulleyPoint;
-    const seg2 = pulleyToNode.compute(runStart, nodeWorld);
+    const runStart = isMobileMode ? chipWorld : pulley2Point;
+    const seg3 = pulleyToNode.compute(runStart, nodeWorld);
     frontMarkup +=
-      renderSegment(seg2, CECEK_FILL) +
+      renderSegment(seg3, CECEK_FILL) +
       pulleyToNodeFlourishes.map((f) => renderFlourish(runStart, nodeWorld, f, CECEK_FILL)).join('');
 
     // NODE_TO_RIM_GAP holds the glass a fixed distance below the node —
@@ -693,7 +746,8 @@ function buildRig() {
   }
 
   return {
-    pulleyEl,
+    pulley1El,
+    pulley2El,
     backSvg,
     frontSvg,
     glassEl: glassGraphic.el,
@@ -733,6 +787,12 @@ export function init() {
   const { el: bottomRim } = buildInteractiveWindow(bottom.content);
   layout.appendChild(bottomRim);
 
+  // Pulley 2's own x anchor (see tick()'s desktop branch, below) — the
+  // dial's real "26 August" tick mark, not the .tl-label-right text block
+  // (which only supplies pulley 2's y). Queried now since buildDialTicks
+  // has just built it as part of bottom.content, above.
+  const dialMeetingEnd = layout.querySelector('.tl-dial-meeting-end');
+
   // Appended directly to `layout`, not into the top window — see
   // buildTopWindowContent's own comment for why the chip needs to live
   // outside both the window's clip-path and the track's overflow:hidden.
@@ -749,7 +809,7 @@ export function init() {
   // timeline-panel.css) — not DOM order — is what actually layers the
   // glass between the string's near/far-side copies.
   const rig = buildRig();
-  layout.append(rig.backSvg, rig.glassEl, rig.frontSvg, rig.pulleyEl);
+  layout.append(rig.backSvg, rig.glassEl, rig.frontSvg, rig.pulley1El, rig.pulley2El);
 
   mount.innerHTML = '';
   mount.appendChild(layout);
@@ -954,7 +1014,7 @@ export function init() {
       // whole story).
       const nodeX = chipX;
       const nodeY = chipY + MOBILE_NODE_DROP;
-      rig.setPositions(true, [chipX, chipY], null, [nodeX, nodeY]);
+      rig.setPositions(true, [chipX, chipY], null, null, [nodeX, nodeY]);
       rig.setFill(f);
       rig.redraw();
       rig.startLoop();
@@ -967,15 +1027,31 @@ export function init() {
       lastChipY = chipY;
       lastIsMobile = false;
 
-      // Stage 2 rig — pulley sits a fixed gap past the track's own right
-      // edge, at the chip's same y (a clean horizontal string); the
-      // convergence node sinks further below it as `f` grows (same value
-      // stretching the spring above), which is what sinks the glass
-      // further below the panel as days tick on.
-      const pulleyX = trackRect.right - layoutRect.left + PULLEY_GAP;
+      // Stage 2 rig — pulley 1 sits a fixed gap past the track's own right
+      // edge, at the chip's same y (a clean horizontal string), clamped so
+      // it never renders past the true viewport edge (.container's own
+      // max-width slack shrinks on ordinary desktop widths, and PULLEY_GAP
+      // alone had no regard for how much room was actually left).
+      const availableGap = window.innerWidth - trackRect.right - PULLEY_EDGE_SAFETY;
+      const pulleyGap = Math.max(0, Math.min(PULLEY_GAP, availableGap));
+      const pulleyX = trackRect.right - layoutRect.left + pulleyGap;
       const pulleyY = chipY;
-      const nodeY = pulleyY + BASE_DROP + f * MAX_ADDITIONAL_DROP;
-      rig.setPositions(false, [chipX, chipY], [pulleyX, pulleyY], [pulleyX, nodeY]);
+
+      // Pulley 2 hangs the string's redirect under the dial's own "26
+      // August" tick (.tl-dial-meeting-end) — not the .tl-label-right text
+      // block, which only supplies its y (a fixed gap below the entire
+      // 3-line label). The convergence node sinks further below pulley 2 as
+      // `f` grows (same value stretching the spring above — string pays out
+      // through the fixed pulleys), which is what sinks the glass further
+      // below the panel as days tick on.
+      const meetingEndRect = dialMeetingEnd.getBoundingClientRect();
+      const pulley2X = meetingEndRect.left + meetingEndRect.width / 2 - layoutRect.left;
+      const labelRightRect = labelRight.getBoundingClientRect();
+      const pulley2Y = labelRightRect.bottom - layoutRect.top + PULLEY2_LABEL_GAP;
+
+      const nodeX = pulley2X;
+      const nodeY = pulley2Y + BASE_DROP + f * MAX_ADDITIONAL_DROP;
+      rig.setPositions(false, [chipX, chipY], [pulleyX, pulleyY], [pulley2X, pulley2Y], [nodeX, nodeY]);
       rig.setFill(f);
       rig.redraw();
       rig.startLoop();
