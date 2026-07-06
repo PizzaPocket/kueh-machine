@@ -1635,26 +1635,19 @@
     // Recomputes ONE ring's outline BOX and its clip-path from today's
     // live measurements and reapplies both directly, bypassing whatever's
     // supposed to trigger housing-frame.js's own update() normally.
-    function fixRing(label, wrapSel, fillEl, outset) {
-      var wrap = document.querySelector(wrapSel);
-      if (!wrap) return label + ': wrap not found (' + wrapSel + ')';
-      var outline = wrap.querySelector(':scope > .housing-frame:not(.housing-frame-accent)');
-      if (!outline) return label + ': outline not found';
-
-      var clipBefore = clipPathBBox(outline);
-
-      var fillRect = fillEl.getBoundingClientRect();
-      var wrapRect = wrap.getBoundingClientRect();
-      var fillLeft = fillRect.left - wrapRect.left;
-      var fillTop = fillRect.top - wrapRect.top;
-      var w = fillEl.clientWidth;
-      var h = fillEl.clientHeight;
-      var boxBefore = outline.getBoundingClientRect();
-      outline.style.left = (fillLeft - outset) + 'px';
-      outline.style.top = (fillTop - outset) + 'px';
-      outline.style.width = (w + outset * 2) + 'px';
-      outline.style.height = (h + outset * 2) + 'px';
-      var boxAfter = outline.getBoundingClientRect();
+    // Fixes ONE ring layer (either the main .housing-frame or its
+    // .housing-frame-accent sibling) — shared by both below, since accent
+    // uses the exact same box as the main ring (housing-frame.js copies
+    // it once, at update() time) but its OWN, independently-computed
+    // clip-path at a smaller outset.
+    function fixLayer(label, el, fillLeft, fillTop, w, h, outset) {
+      var clipBefore = clipPathBBox(el);
+      var boxBefore = el.getBoundingClientRect();
+      el.style.left = (fillLeft - outset) + 'px';
+      el.style.top = (fillTop - outset) + 'px';
+      el.style.width = (w + outset * 2) + 'px';
+      el.style.height = (h + outset * 2) + 'px';
+      var boxAfter = el.getBoundingClientRect();
       var boxChanged = Math.abs(boxBefore.left - boxAfter.left) > 0.5 || Math.abs(boxBefore.width - boxAfter.width) > 0.5;
 
       var clipMsg = 'superellipse module still loading';
@@ -1663,8 +1656,8 @@
           width: w, height: h, n: 10, outset: outset,
           originX: w / 2 + outset, originY: h / 2 + outset,
         });
-        outline.style.clipPath = 'path("' + d + '")';
-        var clipAfter = clipPathBBox(outline);
+        el.style.clipPath = 'path("' + d + '")';
+        var clipAfter = clipPathBBox(el);
         var expectedW = w + outset * 2;
         clipMsg = 'clip bbox before=' + (clipBefore ? clipBefore.width.toFixed(1) : 'n/a') +
           ' after=' + (clipAfter ? clipAfter.width.toFixed(1) : 'n/a') +
@@ -1674,6 +1667,29 @@
 
       return label + ' box now=' + rectStr(boxAfter) + (boxChanged ? ' [BOX WAS WRONG]' : ' [box already matched]') + '\n' +
         label + ' ' + clipMsg;
+    }
+
+    function fixRing(label, wrapSel, fillEl, outset, accentRatio) {
+      var wrap = document.querySelector(wrapSel);
+      if (!wrap) return label + ': wrap not found (' + wrapSel + ')';
+      var outline = wrap.querySelector(':scope > .housing-frame:not(.housing-frame-accent)');
+      if (!outline) return label + ': outline not found';
+      var accent = wrap.querySelector(':scope > .housing-frame-accent');
+
+      var fillRect = fillEl.getBoundingClientRect();
+      var wrapRect = wrap.getBoundingClientRect();
+      var fillLeft = fillRect.left - wrapRect.left;
+      var fillTop = fillRect.top - wrapRect.top;
+      var w = fillEl.clientWidth;
+      var h = fillEl.clientHeight;
+
+      var out = fixLayer(label + ' MAIN  ', outline, fillLeft, fillTop, w, h, outset);
+      if (accent) {
+        out += '\n' + fixLayer(label + ' ACCENT', accent, fillLeft, fillTop, w, h, outset * accentRatio);
+      } else {
+        out += '\n' + label + ' ACCENT: not found';
+      }
+      return out;
     }
 
     // Rolling history of formatted blocks, newest first — capped so the
@@ -1700,8 +1716,8 @@
       } else {
         var vpRect = viewport.getBoundingClientRect();
         lines.push('viewport ' + rectStr(vpRect) + ' center=' + ((vpRect.left + vpRect.right) / 2).toFixed(1));
-        var innerLine = fixRing('INNER RIM    ', '.countdown-rim-wrap', viewport, 2.25);
-        var outerLine = fixRing('OUTER HOUSING', '.housing-frame-wrap:not(.countdown-rim-wrap)', rimWrap, 14);
+        var innerLine = fixRing('INNER RIM    ', '.countdown-rim-wrap', viewport, 2.25, 0.75 / 2.25);
+        var outerLine = fixRing('OUTER HOUSING', '.housing-frame-wrap:not(.countdown-rim-wrap)', rimWrap, 14, 0.3);
         lines.push(innerLine);
         lines.push(outerLine);
         // Direct answer to "are inner/outer syncing up to the same width"
