@@ -153,6 +153,19 @@
          bottom, where the chute actually needs it. */
       padding: 72px 32px 140px;
       text-align: center;
+      /* Every vw-driven scaling formula in this section (.hero-title,
+         .cd-number, .cd-sep, below) reads viewport width through this
+         instead of a bare 100vw — min() caps it at 1080px, so past that
+         viewport width each formula keeps computing exactly what it would
+         at 1080px instead of continuing to grow. Without this, several
+         independent clamp()s here each hit their own ceiling at a
+         slightly different viewport width (~1090-1120px), so in that band
+         some are still growing while others have already capped —
+         relative proportions wobble until all of them finish saturating.
+         Freezing the shared input here means they all stop growing at
+         once, at one deliberate width, instead of drifting out of step
+         with each other. */
+      --hero-vw: min(100vw, 1080px);
     }
 
     .kueh-slice {
@@ -233,7 +246,7 @@
 
     .hero-title {
       font-family: var(--font-display);
-      font-size: clamp(4.5rem, 10vw, 7rem);
+      font-size: clamp(4.5rem, calc(var(--hero-vw) * 0.1), 7rem);
       font-weight: 600;
       letter-spacing: var(--tracking-display);
       color: var(--color-surface);
@@ -571,7 +584,7 @@
          the numeral's bare rendered width). Floor (3rem) matches where
          the mobile formula above now ends, for a smooth handoff at the
          breakpoint instead of a jarring jump. */
-      font-size: clamp(3rem, calc((100vw - 320px) / 6.9), 7rem);
+      font-size: clamp(3rem, calc((var(--hero-vw) - 320px) / 6.9), 7rem);
       font-weight: 700;
       letter-spacing: var(--tracking-counter);
       color: var(--color-text-on-surface);
@@ -606,7 +619,7 @@
          guessed clamp(2rem, 7vw, 4rem) — that guess didn't track
          .cd-number's own overflow fix at all, so it could no longer be
          trusted to stay proportionate to it. */
-      font-size: clamp(1.8rem, calc((100vw - 320px) / 6.9 * 0.6), 4.2rem);
+      font-size: clamp(1.8rem, calc((var(--hero-vw) - 320px) / 6.9 * 0.6), 4.2rem);
       font-weight: 300;
       color: var(--color-text-on-surface);
       line-height: 1;
