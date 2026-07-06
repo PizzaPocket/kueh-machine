@@ -140,6 +140,24 @@ export function init() {
     updateRetroShape(liquid, liquidRefs, SHAPE_OPTS);
   }).observe(viewport);
 
+  // The page loads a Google Font (--font-display: "Syne") with
+  // display=swap — text first renders in the fallback font, then reflows
+  // once Syne downloads, which can change .countdown-grid's own width
+  // (min-width: 2.2ch is font-relative) after this shape has already been
+  // built against the fallback font's metrics. Same race drop-chute.js's
+  // own spout position already has to correct for (see its own comment)
+  // — re-running the shape update once fonts are confirmed settled closes
+  // it here too, rather than leaving the funnel/liquid silhouette sized
+  // to whatever width the fallback font happened to produce. A no-op if
+  // the ResizeObserver above already caught the resulting reflow and
+  // repainted correctly on its own.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      updateRetroShape(windowBg, bgRefs, SHAPE_OPTS);
+      updateRetroShape(liquid, liquidRefs, SHAPE_OPTS);
+    });
+  }
+
   const parent = viewport.parentNode;
   const nextSibling = viewport.nextSibling;
   const { el: rim } = wrapWithHousingFrame(viewport, {
