@@ -93,28 +93,37 @@ function filterMarkup(id, { wideBlur = 14, wideOpacity = 0.28, tightBlur = 3, ti
 }
 
 /**
- * Builds the shape's SVG layer. With `fill`: a filled <path> carrying the
- * inner-shadow filter, plus a matching <clipPath> — append `svg` as the
- * target element's first child (it must paint behind the target's own
- * content; see .retro-shape-fill, styles/organisms/kueh-of-day.css, for
- * the z-index that actually pins it there — position:absolute alone
- * doesn't respect DOM order for stacking). Without `fill`: just the
- * <clipPath>, no visible content — append `svg` anywhere in the target
- * element (it paints nothing, so placement doesn't matter).
+ * Builds the shape's SVG layer. With `fill`: a filled <path>, plus a
+ * matching <clipPath> — append `svg` as the target element's first child
+ * (it must paint behind the target's own content; see .retro-shape-fill,
+ * styles/organisms/kueh-of-day.css, for the z-index that actually pins it
+ * there — position:absolute alone doesn't respect DOM order for stacking).
+ * Without `fill`: just the <clipPath>, no visible content — append `svg`
+ * anywhere in the target element (it paints nothing, so placement doesn't
+ * matter).
  *
  * Either way, both paths' `d` start empty — call updateRetroShape (or
  * observeRetroShape) once the target element is laid out to size them.
- * `shadow`: forwarded to filterMarkup — pass tighter blur values for a
- * much-shorter-than-usual window (see filterMarkup's own comment).
- * Returns { svg, clipUrl, clipPathEl, shadowPathEl } (shadowPathEl is
- * null in clip-only mode).
+ * `shadow`: pass `false` to skip the inner-shadow filter entirely (a flat
+ * fill with no recessed-glass treatment); otherwise forwarded to
+ * filterMarkup — pass tighter blur values for a much-shorter-than-usual
+ * window (see filterMarkup's own comment). Returns { svg, clipUrl,
+ * clipPathEl, shadowPathEl } (shadowPathEl is null in clip-only mode).
  */
 export function createRetroShape({ fill, shadow } = {}) {
   const id = `retro-shape-${uid++}`;
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('aria-hidden', 'true');
 
-  if (fill) {
+  if (fill && shadow === false) {
+    svg.setAttribute('class', 'retro-shape-fill');
+    svg.innerHTML = `
+      <defs>
+        <clipPath id="${id}-clip" clipPathUnits="userSpaceOnUse"><path d=""/></clipPath>
+      </defs>
+      <path fill="${fill}" d=""/>
+    `;
+  } else if (fill) {
     svg.setAttribute('class', 'retro-shape-fill');
     svg.innerHTML = `
       <defs>

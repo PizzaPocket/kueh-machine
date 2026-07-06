@@ -416,15 +416,16 @@
     /* Countdown "water clock": a plain retro-rectangle window
        (buildSuperellipsePath, src/tokens/superellipse.js — updateRetroShape's
        own default; wired up by src/organisms/countdown-clock.js) built from
-       two stacked fill+shadow layers — .countdown-window-bg and
+       two stacked flat-fill layers — .countdown-window-bg and
        .countdown-liquid (the latter masked to a bottom-up "water level" via
        --liquid-fill, set every tick by the countdown script below). Both
-       layers' visible fill + inner shadow are painted by a createRetroShape
-       SVG child (countdown-clock.js), same recipe the Kueh of the Day
-       windows use — no CSS background needed here. No rim or outer housing
-       frame around it (both dropped) — the window sits directly on the hero
-       background. The drop (.countdown-drop below) grows and releases from
-       the window's own bottom edge, at horizontal center.
+       layers' visible fill is painted by a createRetroShape SVG child
+       (countdown-clock.js, `shadow: false` — no inner-shadow filter, unlike
+       the Kueh of the Day windows' own recipe) — no CSS background needed
+       here. No rim or outer housing frame around it (both dropped) — the
+       window sits directly on the hero background. The drop (.countdown-drop
+       below) grows and releases from the window's own bottom edge, at
+       horizontal center.
 
        --countdown-bg-color/--countdown-liquid-color are the single place
        to retune either color — countdown-clock.js's createRetroShape fills
@@ -453,16 +454,6 @@
     .countdown-liquid {
       position: absolute;
       inset: 0;
-    }
-
-    /* Scoped to just this instance (not the shared .retro-shape-fill class
-       itself, styles/organisms/kueh-of-day.css, which plenty of other
-       windows site-wide use without this issue) — the countdown window's
-       own inner-shadow SVG filter is another live-repainted, filtered
-       layer, same will-change fix as .countdown-liquid-shadow-wrap above
-       for the same mobile Safari stale-layer bug. */
-    .countdown-viewport .retro-shape-fill {
-      will-change: transform;
     }
 
     /* Exists only to host a drop-shadow filter for .countdown-liquid

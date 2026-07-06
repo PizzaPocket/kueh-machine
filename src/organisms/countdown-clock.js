@@ -1,21 +1,21 @@
 // Wires the hero countdown's "water clock" viewport: a plain
 // retro-rectangle window (buildSuperellipsePath, tokens/superellipse.js —
 // updateRetroShape's own default, so it's not even passed explicitly below)
-// built from two stacked fill+shadow layers — .countdown-window-bg and
+// built from two stacked flat-fill layers — .countdown-window-bg and
 // .countdown-liquid (the latter masked to a bottom-up water level by
 // --liquid-fill — see index.html's inline script for that level math and
 // its CSS for the mask-image). Their actual colors come from
 // --countdown-bg-color/--countdown-liquid-color (defined once, right above
 // .countdown-viewport in index.html) rather than hardcoded here, so
 // retuning either is a one-line edit in that one place. Both layers use
-// createRetroShape's `fill` mode, the same recipe the Kueh of the Day
-// windows use for their own inner shadow (src/organisms/kueh-of-day.js's
-// buildMediaWindow/buildContentWindow) — computed independently but from
-// identical inputs, so their silhouettes always align pixel-for-pixel.
+// createRetroShape's `fill` mode with `shadow: false` — no inner-shadow
+// filter (unlike the Kueh of Day windows' own recipe, which does carry
+// one) — computed independently but from identical inputs, so their
+// silhouettes always align pixel-for-pixel.
 //
 // Everything else about the countdown (the digit ticking, the liquid's
 // fill percentage, the drip animation) is plain inline script in
-// index.html, same as it always has been — only the shape/shadow
+// index.html, same as it always has been — only the shape
 // needed this module, to reuse the existing atoms rather than
 // reimplementing them. One exception: the little bubble burst that rises
 // from the bottom edge on each drop release (src/atoms/liquid-bubbles.js) is
@@ -46,7 +46,7 @@ export function init() {
   const liquid = document.querySelector('.countdown-liquid');
   if (!viewport || !windowBg || !liquid) return;
 
-  const bgRefs = createRetroShape({ fill: 'var(--countdown-bg-color)' });
+  const bgRefs = createRetroShape({ fill: 'var(--countdown-bg-color)', shadow: false });
   windowBg.appendChild(bgRefs.svg);
 
   // Wraps .countdown-liquid solely to host a drop-shadow filter, projected
@@ -62,7 +62,7 @@ export function init() {
   liquid.parentNode.insertBefore(shadowWrap, liquid);
   shadowWrap.appendChild(liquid);
 
-  const liquidRefs = createRetroShape({ fill: 'var(--countdown-liquid-color)' });
+  const liquidRefs = createRetroShape({ fill: 'var(--countdown-liquid-color)', shadow: false });
   liquid.appendChild(liquidRefs.svg);
 
   // A thin darker band right at the current water level — pure CSS
