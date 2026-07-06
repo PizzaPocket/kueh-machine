@@ -1587,26 +1587,24 @@
   (function () {
     var logEl = document.getElementById('debug-instrumentation');
     if (!logEl) return;
-    var lines = [];
-    function log(msg) {
-      lines.push(msg);
-      logEl.textContent = lines.join('\n');
-      console.log('[debug]', msg);
-    }
+
     function rectStr(r) {
       return 'left=' + r.left.toFixed(1) + ' right=' + r.right.toFixed(1) + ' width=' + r.width.toFixed(1);
     }
+
     // Recomputes ONE ring's outline geometry from today's live
     // measurements (same formula housing-frame.js's own update() uses)
     // and reapplies it directly, bypassing whatever's supposed to trigger
-    // that update() normally — isolates "would recomputing even produce
-    // the right numbers, and does applying them actually paint" from
-    // whatever's wrong with getting update() itself to re-run.
+    // that update() normally. Runs on a continuous interval (not once)
+    // and reports whether applying the fix actually CHANGED anything —
+    // if the forced-correct values match what was already there, the DOM
+    // was already right and any remaining visual brokenness has to be a
+    // paint/compositing problem, not a geometry one.
     function fixRing(label, wrapSel, fillEl, outset) {
       var wrap = document.querySelector(wrapSel);
-      if (!wrap) { log(label + ': wrap not found (' + wrapSel + ')'); return; }
+      if (!wrap) return label + ': wrap not found (' + wrapSel + ')';
       var outline = wrap.querySelector(':scope > .housing-frame:not(.housing-frame-accent)');
-      if (!outline) { log(label + ': outline not found'); return; }
+      if (!outline) return label + ': outline not found';
       var before = outline.getBoundingClientRect();
       var fillRect = fillEl.getBoundingClientRect();
       var wrapRect = wrap.getBoundingClientRect();
@@ -1615,21 +1613,66 @@
       outline.style.left = (fillLeft - outset) + 'px';
       outline.style.width = (w + outset * 2) + 'px';
       var after = outline.getBoundingClientRect();
-      log(label + ' BEFORE ' + rectStr(before));
-      log(label + ' AFTER  ' + rectStr(after));
+      var changed = Math.abs(before.left - after.left) > 0.5 || Math.abs(before.width - after.width) > 0.5;
+      return label + ' now=' + rectStr(after) + (changed ? '  [WAS WRONG, JUST FORCED CORRECT]' : '  [already matched this]');
     }
-    setTimeout(function () {
+
+    // Rolling history of formatted blocks, newest first — capped so the
+    // overlay stays readable instead of growing forever.
+    var history = [];
+    function tick() {
+      var lines = [];
       var viewport = document.querySelector('.countdown-viewport');
       var rimWrap = document.querySelector('.countdown-rim-wrap');
+      var winCenter = window.innerWidth / 2;
+      lines.push('window center=' + winCenter.toFixed(1));
       if (!viewport || !rimWrap) {
-        log('viewport or rimWrap not found — selectors: .countdown-viewport=' +
-          !!viewport + ', .countdown-rim-wrap=' + !!rimWrap);
-        return;
+        lines.push('viewport or rimWrap not found — .countdown-viewport=' + !!viewport + ', .countdown-rim-wrap=' + !!rimWrap);
+      } else {
+        var vpRect = viewport.getBoundingClientRect();
+        lines.push('viewport ' + rectStr(vpRect) + ' center=' + ((vpRect.left + vpRect.right) / 2).toFixed(1));
+        var innerLine = fixRing('INNER RIM    ', '.countdown-rim-wrap', viewport, 2.25);
+        var outerLine = fixRing('OUTER HOUSING', '.housing-frame-wrap:not(.countdown-rim-wrap)', rimWrap, 14);
+        lines.push(innerLine);
+        lines.push(outerLine);
+        // Direct answer to "are inner/outer syncing up to the same width"
+        // — read the two widths back out of the lines above instead of
+        // re-querying, so this always matches exactly what was just printed.
+        var innerW = parseFloat((innerLine.match(/width=([\d.]+)/) || [])[1]);
+        var outerW = parseFloat((outerLine.match(/width=([\d.]+)/) || [])[1]);
+        lines.push('inner==outer width? ' + (Math.abs(innerW - outerW) < 1 ? 'YES (bug)' : 'no, different (' + innerW + ' vs ' + outerW + ')'));
       }
-      log('viewport ' + rectStr(viewport.getBoundingClientRect()) + ' clientWidth=' + viewport.clientWidth);
-      fixRing('INNER RIM', '.countdown-rim-wrap', viewport, 2.25);
-      fixRing('OUTER HOUSING', '.housing-frame-wrap:not(.countdown-rim-wrap)', rimWrap, 14);
-      log('--- fix applied above; check if the rim/housing now LOOK correct on screen ---');
+      var windowBg = document.querySelector('.countdown-window-bg');
+      var liquid = document.querySelector('.countdown-liquid');
+      if (windowBg) {
+        var bgRect = windowBg.getBoundingClientRect();
+        lines.push('window-bg ' + rectStr(bgRect) + ' center=' + ((bgRect.left + bgRect.right) / 2).toFixed(1));
+      }
+      if (liquid) {
+        var lqRect = liquid.getBoundingClientRect();
+        lines.push('liquid    ' + rectStr(lqRect) + ' center=' + ((lqRect.left + lqRect.right) / 2).toFixed(1));
+      }
+      // .countdown-drop only exists while a drop is actively growing at
+      // the spout (index.html's updateDrop) — reports "not present" the
+      // rest of each ten-second decade rather than treating that as an
+      // error, since its absence there is normal, not a bug.
+      var drop = document.querySelector('.countdown-drop');
+      if (drop) {
+        var dRect = drop.getBoundingClientRect();
+        var dCenter = (dRect.left + dRect.right) / 2;
+        lines.push('drop      ' + rectStr(dRect) + ' center=' + dCenter.toFixed(1) + '  offset from window center=' + (dCenter - winCenter).toFixed(1) + 'px');
+      } else {
+        lines.push('drop      not present right now (only exists mid-decade while forming)');
+      }
+      lines.push('checked ' + new Date().toLocaleTimeString());
+      history.unshift(lines.join('\n'));
+      history = history.slice(0, 6);
+      logEl.textContent = history.join('\n\n-----\n\n');
+    }
+
+    setTimeout(function () {
+      tick();
+      setInterval(tick, 1000);
     }, 1500);
   })();
   </script>
