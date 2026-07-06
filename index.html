@@ -413,17 +413,18 @@
     }
 
 
-    /* Countdown "water clock": a funnel-bottomed retro-rectangle window
-       (buildFunnelPath, src/tokens/superellipse.js; wired up by
-       src/organisms/countdown-clock.js) built from two stacked fill+shadow
-       layers — .countdown-window-bg and .countdown-liquid (the latter
-       masked to a bottom-up "water level" via --liquid-fill, set every
-       tick by the countdown script below). Both layers' visible fill +
-       inner shadow are painted by a createRetroShape SVG child
-       (countdown-clock.js), same recipe the Kueh of the Day windows use —
-       no CSS background needed here. No rim or outer housing frame around
-       it (both dropped) — the funnel window sits directly on the hero
-       background.
+    /* Countdown "water clock": a plain retro-rectangle window
+       (buildSuperellipsePath, src/tokens/superellipse.js — updateRetroShape's
+       own default; wired up by src/organisms/countdown-clock.js) built from
+       two stacked fill+shadow layers — .countdown-window-bg and
+       .countdown-liquid (the latter masked to a bottom-up "water level" via
+       --liquid-fill, set every tick by the countdown script below). Both
+       layers' visible fill + inner shadow are painted by a createRetroShape
+       SVG child (countdown-clock.js), same recipe the Kueh of the Day
+       windows use — no CSS background needed here. No rim or outer housing
+       frame around it (both dropped) — the window sits directly on the hero
+       background. The drop (.countdown-drop below) grows and releases from
+       the window's own bottom edge, at horizontal center.
 
        --countdown-bg-color/--countdown-liquid-color are the single place
        to retune either color — countdown-clock.js's createRetroShape fills
@@ -438,16 +439,13 @@
     /* Height is purely content-driven (no min-height) — the box is exactly
        the digit grid's own height plus this padding, so it stays snug at
        any font size/breakpoint instead of a fixed height that's oversized
-       for some and cramped for others. Top/bottom padding kept close to
-       equal (not the funnel's own fixed reserve) so the content still
-       reads centered in the flat body — the funnel itself is shallow
-       enough now (funnelDepthRatio 0.09) that it doesn't need a much
-       bigger bottom allowance than top the way the earlier, deeper/wider
-       funnel did. */
+       for some and cramped for others. Top/bottom padding equal (no more
+       funnel body below the digits to reserve extra bottom room for) so
+       the content reads centered in the shape. */
     .countdown-viewport {
       position: relative;
       display: inline-block;
-      padding: 16px 48px 28px;
+      padding: 16px 48px;
       margin-bottom: 12px; /* trailing space before the hero's own bottom padding */
     }
 
@@ -590,13 +588,13 @@
       margin-top: 6px;
     }
 
-    /* Grows in place at the funnel's mouth over each ten-second decade
+    /* Grows in place at the window's bottom edge over each ten-second decade
        (--drop-progress set once per second by updateDrop() below, eased
        between those discrete updates by the transition) then falls on the
        exact tick the seconds display reaches a multiple of ten — see
        updateDrop's own comment for why that timing (not a plain 10s
        interval) matters. transform-origin: top so scaling from 0 to 1
-       reads as the droplet emerging from a fixed point at the tip and
+       reads as the droplet emerging from a fixed point at the edge and
        swelling downward, not growing from its own center. */
     .countdown-drop {
       position: absolute;
@@ -617,7 +615,7 @@
       transition: transform 1s linear;
     }
 
-    /* Little air bubbles rising from the spout right as a drop releases
+    /* Little air bubbles rising from the bottom edge right as a drop releases
        (src/atoms/liquid-bubbles.js, spawnBubbleBurst) — appended straight
        into #js-countdown-liquid, so its own bottom-up mask-image
        (--liquid-fill, above) clips each bubble the instant it rises past
@@ -998,7 +996,7 @@
          approaches 640px (calc(100vw - 36px) alone would let it grow to
          ~600px there) — 432px (360px, +20%: read too narrow at that
          original value) still kicks in before ~600px, just later. */
-      .countdown-viewport { width: calc(100vw - 36px); max-width: 432px; padding: 10px 8px 20px; }
+      .countdown-viewport { width: calc(100vw - 36px); max-width: 432px; padding: 10px 8px; }
       .countdown-grid { gap: 0 6px; }
       /* Fixed per breakpoint, same 3-breakpoint scheme as .hero-title/
          .cd-number/.cd-sep's own comments (further above) explain — base
@@ -1333,7 +1331,7 @@
     // with document coordinates (not `fixed` with viewport coordinates,
     // as this used to be) so it scrolls with the page like everything
     // else, rather than staying pinned to a screen position while the
-    // funnel it's supposed to be growing out of scrolls away underneath
+    // window it's supposed to be growing out of scrolls away underneath
     // it.
     var dropEl = null;
 
@@ -1342,9 +1340,9 @@
       if (!viewport) return;
       var rect = viewport.getBoundingClientRect();
       el.style.left = (rect.left + rect.width / 2 + window.scrollX) + 'px';
-      // Nudged up a few px from the viewport's true bottom edge (~the
-      // spout tip) so the drop grows out of just above the funnel's mouth
-      // rather than hanging right at/below it.
+      // Nudged up a few px from the viewport's true bottom edge so the
+      // drop grows out of just above it rather than hanging right at/
+      // below it.
       el.style.top = (rect.bottom - 2 + window.scrollY) + 'px';
     }
 
@@ -1360,7 +1358,7 @@
       if (dropEl) positionDrop(dropEl);
     });
 
-    // Grows in place at the funnel's mouth over each ten-second decade
+    // Grows in place at the window's bottom edge over each ten-second decade
     // (--drop-progress, eased between per-second updates by .countdown-drop's
     // own CSS transition), then falls the instant the displayed seconds
     // value itself reaches a multiple of ten (50, 40, 30...) — tied to the

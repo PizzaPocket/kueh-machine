@@ -1,7 +1,7 @@
 // Organism: the "chute" the hero countdown's falling drop rolls down — a
 // short, smooth winding curve living inside the hero section (its bottom
 // padding was grown in index.html to make room). It doesn't need to start
-// under the funnel spout, only to pass underneath it somewhere along its
+// under the spout, only to pass underneath it somewhere along its
 // length. Ball journey (spawnFallToChute/spawnRoll/spawnFall below): grows
 // at the spout (index.html) -> falls straight down to wherever the
 // chute's curve crosses that x -> rolls the rest of the curve -> drops
@@ -143,7 +143,7 @@ function documentPoint(rect) {
   return [rect.left + window.scrollX, rect.top + window.scrollY];
 }
 
-// Start: right under the funnel spout. End: directly over the glass
+// Start: right under the spout. End: directly over the glass
 // bucket's current x-center (the same target spawnFall measures later, so
 // both stay consistent) — the chute itself stays near the top of the
 // page; the long fall (spawnFall) covers the remaining distance to the
@@ -712,8 +712,9 @@ export function init() {
   // The page loads a Google Font (--font-display: "Syne") with
   // display=swap — text first renders in the fallback font, then reflows
   // once Syne downloads, which can shift .hero-title's height and push
-  // the funnel (and spout) up or down after this first build already ran,
-  // silently baking a stale spout y-coordinate into the chute's geometry.
+  // the countdown window (and spout) up or down after this first build
+  // already ran, silently baking a stale spout y-coordinate into the
+  // chute's geometry.
   //
   // Corrected via a rigid nudge of the *existing* container/state by
   // (deltaX, deltaY) — not a full buildChute() rebuild, which would
