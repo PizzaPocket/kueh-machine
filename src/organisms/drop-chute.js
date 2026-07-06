@@ -277,7 +277,7 @@ export function init() {
   // it (re)runs, and read by spawnFallToChute/spawnRoll/spawnFall via
   // closure, so those three always act on the latest geometry without
   // needing their own resize handling or re-registering event listeners.
-  const state = { container: null, pathD: '', ballPathD: '', crossingFraction: 0, totalLength: 0, endDoc: [0, 0], crossingDoc: [0, 0], spout: [0, 0], ball: null };
+  const state = { container: null, pathD: '', tendrilPathEl: null, crossingFraction: 0, totalLength: 0, endDoc: [0, 0], crossingDoc: [0, 0], spout: [0, 0], ball: null };
   let builtOnce = false;
 
   function buildChute() {
@@ -294,8 +294,8 @@ export function init() {
     const width = Math.max(...xs) + CONTAINER_PAD - minX;
     const height = Math.max(...ys) + CONTAINER_PAD - minY;
 
-    // Local (container-relative) coordinates — the path/offset-path and
-    // every rendered dot/flourish all need to agree on this same space.
+    // Local (container-relative) coordinates — the path and every rendered
+    // dot/flourish all need to agree on this same space.
     const waypoints = waypointsDoc.map(([x, y]) => [x - minX, y - minY]);
     const spoutLocalX = spout[0] - minX;
 
@@ -312,22 +312,6 @@ export function init() {
 
     const bezierSegments = catmullRomBezierSegments(waypoints);
     const pathD = buildSmoothPathD(bezierSegments);
-    // A second path, offset straight up by CHUTE_RIDE_LIFT_PX, used only
-    // as the roll's offset-path (spawnRoll) so the ball rides a touch
-    // above the drawn line. A rigid vertical translation keeps every
-    // tangent angle identical to the original curve's — offset-anchor/
-    // transform would rotate along with offset-rotate's tangent-following
-    // default and flip from "above" to "below" wherever the chute curves
-    // back the other way. Being a pure translation also leaves arc length
-    // unchanged, so the roll's crossingFraction/offsetDistance percentages
-    // (computed against the un-lifted pathD) still land on the same point.
-    const liftedSegments = bezierSegments.map(([p0, cp1, cp2, p1]) => [
-      [p0[0], p0[1] - CHUTE_RIDE_LIFT_PX],
-      [cp1[0], cp1[1] - CHUTE_RIDE_LIFT_PX],
-      [cp2[0], cp2[1] - CHUTE_RIDE_LIFT_PX],
-      [p1[0], p1[1] - CHUTE_RIDE_LIFT_PX],
-    ]);
-    const ballPathD = buildSmoothPathD(liftedSegments);
 
     const polyline = [];
     bezierSegments.forEach(([p0, cp1, cp2, p1], i) => {
@@ -381,9 +365,9 @@ export function init() {
     // the curve's crossing of the spout's x; anything else means either a
     // diagonal fall or a discontinuous jump at the handoff. Lifted by
     // CHUTE_RIDE_LIFT_PX (state.crossingDoc) to land on the same raised
-    // line the roll rides (ballPathD) rather than the drawn centerline —
-    // exact, not approximate, since ballPathD is just the centerline
-    // translated by -CHUTE_RIDE_LIFT_PX.
+    // line the roll rides (spawnRoll's own placeAt, which subtracts the
+    // same constant from every point it reads off the drawn centerline)
+    // rather than the drawn centerline itself.
     const crossing = findCrossingOnPath(tendrilPathEl, totalLength, spoutLocalX);
     const crossingFraction = crossing ? crossing.travelled / totalLength : 0;
 
@@ -418,7 +402,7 @@ export function init() {
     const endLocal = waypoints[waypoints.length - 1];
     state.container = container;
     state.pathD = pathD;
-    state.ballPathD = ballPathD;
+    state.tendrilPathEl = tendrilPathEl;
     state.crossingFraction = crossingFraction;
     state.totalLength = totalLength;
     state.endDoc = [minX + endLocal[0], minY + endLocal[1]];
@@ -451,17 +435,10 @@ export function init() {
 
     // Reuses the same ball spawnFallToChute created and spawnRoll rode,
     // rather than creating a third fresh element for this last leg — see
-    // spawnFallToChute's own comment for why. Switching back from the
-    // roll's offset-path positioning to plain left/top + transform means
-    // clearing offset-path/offset-distance first (otherwise it would keep
-    // fighting for the ball's position) and restoring the plain-ball
-    // margin (offset-path centers on the path point itself, so the roll
-    // zeroed the CSS class's own -6px centering margin; that fix doesn't
-    // apply here).
+    // spawnFallToChute's own comment for why. The roll (spawnRoll) already
+    // leaves it plainly left/top-positioned with the CSS class's own
+    // -6px centering margin untouched, so only left/top need setting here.
     const fallEl = state.ball;
-    fallEl.style.offsetPath = '';
-    fallEl.style.offsetDistance = '';
-    fallEl.style.margin = '';
     fallEl.style.left = `${endDoc[0]}px`;
     fallEl.style.top = `${endDoc[1]}px`;
     document.body.appendChild(fallEl);
@@ -516,31 +493,18 @@ export function init() {
       spawnFall();
       return;
     }
-    const { container, ballPathD, crossingFraction, totalLength } = state;
-    const startPct = `${(crossingFraction * 100).toFixed(2)}%`;
+    const { container, crossingFraction, totalLength, tendrilPathEl } = state;
     // Reuses the same element spawnFallToChute created, rather than
     // creating a second fresh one — see spawnFallToChute's own comment.
     const ball = state.ball;
-    // Clears the fall-to-chute leg's own left/top/transform positioning
-    // before switching this element over to offset-path — that anim's
-    // fill defaults to 'none' so its transform is already unset by the
-    // time onfinish runs, but left/top (set once, plainly, not through
-    // the animation) still need clearing by hand.
+    // Clears the fall-to-chute leg's own left/top positioning — that leg's
+    // own transform anim already defaults to fill: 'none', so it's unset
+    // by the time onfinish runs, but left/top (set once, plainly, not
+    // through the animation) still need clearing by hand. Left at the CSS
+    // class's own margin-left/top: -6px (styles/organisms/drop-chute.css)
+    // for the plain left/top positioning below to center on its point.
     ball.style.left = '';
     ball.style.top = '';
-    // .drop-chute-ball's own margin:-6px centers the plain-translated
-    // fall/hop balls on an explicit left/top point — but offset-path
-    // already centers this element on the path point via its own anchor
-    // mechanism, so the shared margin doubly shifts it another 6px
-    // off-target. Zeroing it here is what actually fixed the "lands, then
-    // backtracks a few px" bug.
-    ball.style.margin = '0';
-    // Rides ballPathD (the lifted copy of pathD built above), not pathD
-    // itself, so the ball sits CHUTE_RIDE_LIFT_PX above the drawn line —
-    // see ballPathD's own comment for why this has to be a shifted path
-    // rather than an offset-anchor/transform nudge.
-    ball.style.offsetPath = `path('${ballPathD}')`;
-    ball.style.offsetDistance = startPct;
     container.appendChild(ball);
     // Landing cuts the fall's fast terminal-velocity speed down a lot
     // (the roll animation starts fresh at its own t=0), but not to a dead
@@ -551,11 +515,6 @@ export function init() {
     const remaining = 1 - crossingFraction;
     const remainingLength = totalLength * remaining;
     const movementDuration = Math.max(250, remainingLength / ROLL_SPEED_PX_PER_MS);
-    // Movement and squash are two separate concurrent animations on the
-    // same element (WAAPI allows this as long as they don't touch the
-    // same property) — combining them into one animation covering both
-    // offsetDistance and transform let the squash's own easing stall the
-    // ball's forward progress at that shared keyframe.
     const crossingPct = crossingFraction * 100;
 
     // Same accelerate-then-hold-terminal-velocity shape as the long fall
@@ -565,19 +524,46 @@ export function init() {
     const postCrossingPctRange = 100 - crossingPct;
     const accelEndOffset = 0.22;
     const accelEndPct = crossingPct + postCrossingPctRange * 0.12;
-    const movementAnim = ball.animate(
-      [
-        { offsetDistance: `${crossingPct.toFixed(2)}%`, easing: 'ease-in' },
-        { offsetDistance: `${accelEndPct.toFixed(2)}%`, offset: accelEndOffset, easing: 'linear' },
-        { offsetDistance: '100%' },
-      ],
-      { duration: movementDuration }
-    );
+    const easeInCubic = (t) => t * t * t;
+
+    // Driven by manual requestAnimationFrame + getPointAtLength (same
+    // technique atoms/liquid-ripple.js's own rAF loop uses) rather than
+    // Element.animate() on offset-path/offsetDistance — confirmed against
+    // a real corporate/locked-down browser environment that an
+    // offset-path-driven WAAPI animation on this element can report a
+    // correct, on-schedule Animation.currentTime (and still fire onfinish
+    // right on time) while never actually repainting past its first
+    // frame or two, leaving the ball visibly frozen the whole way down.
+    // Whatever that environment's exact cause, setting left/top directly
+    // every frame doesn't depend on offset-path at all. Reads points off
+    // the drawn (un-lifted) tendrilPathEl and subtracts CHUTE_RIDE_LIFT_PX
+    // from y itself, rather than querying a separately-built lifted path
+    // — a pure vertical translation, so this is exact, not approximate.
+    function placeAt(pct) {
+      const len = (pct / 100) * totalLength;
+      const p = tendrilPathEl.getPointAtLength(len);
+      ball.style.left = `${p.x}px`;
+      ball.style.top = `${p.y - CHUTE_RIDE_LIFT_PX}px`;
+    }
+
+    const start = performance.now();
+    function frame(now) {
+      const t = Math.min(1, (now - start) / movementDuration);
+      const pct =
+        t <= accelEndOffset
+          ? crossingPct + (accelEndPct - crossingPct) * easeInCubic(t / accelEndOffset)
+          : accelEndPct + (100 - accelEndPct) * ((t - accelEndOffset) / (1 - accelEndOffset));
+      placeAt(pct);
+      if (t < 1) requestAnimationFrame(frame);
+      else spawnFall();
+    }
+    requestAnimationFrame(frame);
 
     // The landing squash: its own fixed real-ms duration (not a fraction
     // of the roll's own highly variable total), so it neither lengthens
     // nor shortens depending on how long that particular roll happens to
-    // be.
+    // be. Plain `transform`, not offset-path, so this one's unaffected by
+    // the environment issue above — stays on Element.animate().
     ball.animate(
       [
         { transform: `scale(${LANDING_SQUASH_X}, ${LANDING_SQUASH_Y})`, easing: 'ease-out' },
@@ -585,10 +571,6 @@ export function init() {
       ],
       { duration: LANDING_SQUASH_MS }
     );
-
-    movementAnim.onfinish = () => {
-      spawnFall();
-    };
   }
 
   // The drop falls straight down from the spout until it meets the chute
