@@ -1625,7 +1625,17 @@
       var viewport = document.querySelector('.countdown-viewport');
       var rimWrap = document.querySelector('.countdown-rim-wrap');
       var winCenter = window.innerWidth / 2;
-      lines.push('window center=' + winCenter.toFixed(1));
+      lines.push('window center=' + winCenter.toFixed(1) + ' innerWidth=' + window.innerWidth + ' docClientWidth=' + document.documentElement.clientWidth);
+      var hero = document.querySelector('.hero');
+      if (hero) {
+        var heroRect = hero.getBoundingClientRect();
+        lines.push('hero ' + rectStr(heroRect) + ' center=' + ((heroRect.left + heroRect.right) / 2).toFixed(1));
+      }
+      var chute = document.querySelector('.drop-chute');
+      if (chute) {
+        var chuteRect = chute.getBoundingClientRect();
+        lines.push('chute ' + rectStr(chuteRect) + ' (page scrollWidth=' + document.documentElement.scrollWidth + ')');
+      }
       if (!viewport || !rimWrap) {
         lines.push('viewport or rimWrap not found — .countdown-viewport=' + !!viewport + ', .countdown-rim-wrap=' + !!rimWrap);
       } else {
