@@ -153,19 +153,6 @@
          bottom, where the chute actually needs it. */
       padding: 72px 32px 140px;
       text-align: center;
-      /* Every vw-driven scaling formula in this section (.hero-title,
-         .cd-number, .cd-sep, below) reads viewport width through this
-         instead of a bare 100vw — min() caps it at 1024px, so past that
-         viewport width each formula keeps computing exactly what it would
-         at 1024px instead of continuing to grow. Without this, several
-         independent clamp()s here each hit their own ceiling at a
-         slightly different viewport width (~1090-1120px), so in that band
-         some are still growing while others have already capped —
-         relative proportions wobble until all of them finish saturating.
-         Freezing the shared input here means they all stop growing at
-         once, at one deliberate width, instead of drifting out of step
-         with each other. */
-      --hero-vw: min(100vw, 1024px);
     }
 
     .kueh-slice {
@@ -246,7 +233,15 @@
 
     .hero-title {
       font-family: var(--font-display);
-      font-size: clamp(4.5rem, calc(var(--hero-vw) * 0.1), 7rem);
+      /* Fixed per breakpoint (mobile ≤640px below, in-between 641-1023px
+         further below), not a fluid vw-based clamp() — 3 deliberate sizes
+         read as more predictable/controllable than continuous scaling,
+         and sidesteps the old system's own edge cases (independent
+         clamp()s here and on .cd-number/.cd-sep hitting their ceilings at
+         slightly different viewport widths, and a visible size snap right
+         at the old 640/641 mobile/desktop handoff). This value (desktop,
+         ≥1024px) matches what the old formula rendered at exactly 1024px. */
+      font-size: 6.4rem;
       font-weight: 600;
       letter-spacing: var(--tracking-display);
       color: var(--color-surface);
@@ -564,27 +559,14 @@
     .cd-number {
       display: block;
       font-family: var(--font-display);
-      /* Derived, not a flat `10vw` guess (this used to be
-         var(--type-display): clamp(3rem, 10vw, 7rem)) — a raw vw
-         percentage has no notion of the layout's own fixed overhead
-         (.hero's side padding + .countdown-viewport's own padding, 160px
-         combined), so right after the 640px mobile breakpoint — where
-         the *desktop* rules first apply but the viewport is barely wider
-         than mobile ever was — 10vw produced a font-size demanding more
-         width than was actually available, overflowing past .hero's own
-         right edge (confirmed directly: ~60px of overflow at 641px,
-         shrinking to 0 only past ~880px). This formula instead divides
-         the *actual* available width (100vw minus that 160px fixed
-         overhead, minus the grid's 6 fixed 24px gaps (144px), minus a
-         small safety margin) by the combined glyph-width-per-font-size-
-         unit of the 4 number columns + 3 separators (1.6234x per number,
-         from .cd-number's own `min-width: 2.2ch` reserve below, which
-         governs each column's real footprint now — see the mobile
-         formula's own comment, styles above, for why that's larger than
-         the numeral's bare rendered width). Floor (3rem) matches where
-         the mobile formula above now ends, for a smooth handoff at the
-         breakpoint instead of a jarring jump. */
-      font-size: clamp(3rem, calc((var(--hero-vw) - 320px) / 6.9), 7rem);
+      /* Fixed per breakpoint (mobile ≤640px, in-between 641-1023px —
+         both further below), not a fluid vw-based clamp() — see
+         .hero-title's own comment for why. This value (desktop, ≥1024px)
+         is what the old overflow-safe formula ((available width) / 6.9,
+         see git history) computed at exactly 1024px, its narrowest point
+         in this zone — safe at any wider desktop width too, since more
+         width only means more room. */
+      font-size: 6.38rem;
       font-weight: 700;
       letter-spacing: var(--tracking-counter);
       color: var(--color-text-on-surface);
@@ -614,12 +596,10 @@
     }
 
     .cd-sep {
-      /* Tied to .cd-number's own formula (× 0.6, same relationship the
-         mobile rule below already uses) instead of an independently
-         guessed clamp(2rem, 7vw, 4rem) — that guess didn't track
-         .cd-number's own overflow fix at all, so it could no longer be
-         trusted to stay proportionate to it. */
-      font-size: clamp(1.8rem, calc((var(--hero-vw) - 320px) / 6.9 * 0.6), 4.2rem);
+      /* Fixed per breakpoint, same reasoning/derivation as .cd-number's
+         own comment — tied to its value × 0.6, same relationship the
+         in-between/mobile rules further below also use. */
+      font-size: 3.83rem;
       font-weight: 300;
       color: var(--color-text-on-surface);
       line-height: 1;
@@ -1009,6 +989,24 @@
     }
 
     /* === RESPONSIVE === */
+    /* In-between zone of the hero title/countdown clock's 3-fixed-
+       breakpoint scheme (see .hero-title's own comment, above, for why
+       this replaced fluid vw-based clamp() scaling). All three values are
+       what the old fluid formulas computed at 768px (a common tablet
+       width) — a representative middle-of-zone reference, not the zone's
+       narrowest edge (641px): that edge value read as barely bigger than
+       mobile's own fixed size, with the real jump in size all crammed
+       into the in-between → desktop handoff instead of reading as an
+       actual "medium" step between the two. body's own overflow-x:hidden
+       is the safety net for the (mostly theoretical — 641-700px landscape
+       phones/phablets are rare) narrow end of this zone. */
+    @media (min-width: 641px) and (max-width: 1023px) {
+      .hero-title { font-size: 4.8rem; }
+      /* 20% below the 768px-derived value above (4.06rem/2.44rem) — the
+         768px reference read a bit too big in practice. */
+      .cd-number { font-size: 3.25rem; }
+      .cd-sep { font-size: 1.95rem; }
+    }
     @media (max-width: 640px) {
       .container { padding: 0 10px; }
       .hero { padding: 48px 10px 150px; } /* trimmed back down 40px — no longer coupled to the chute's own height (drop-chute.js's mobile chute height is now a fixed constant, not derived from this element's live bottom edge), so this is free to change without squashing the chute */
@@ -1043,40 +1041,24 @@
          .countdown-viewport's own `width: 100%` below (of *this*,
          now-definite, element) finally resolves the normal, intended
          way, padding included. */
-      .countdown-rim-wrap { width: calc(100vw - 36px); }
+      /* max-width caps how far the clock stretches as this zone's viewport
+         approaches 640px (calc(100vw - 36px) alone would let it grow to
+         ~600px there) — 432px (360px, +20%: read too narrow at that
+         original value) still kicks in before ~600px, just later. */
+      .countdown-rim-wrap { width: calc(100vw - 36px); max-width: 432px; }
       .countdown-viewport { width: 100%; padding: 10px 8px 20px; }
-      /* Derived, not guessed — re-derived (this specific formula was
-         stale): .countdown-viewport's own content-box width is
-         100vw - 92px (.countdown-rim-wrap's own -36px reduction above +
-         .countdown-viewport's own 8px+8px padding + a small safety
-         margin), minus the grid's 6 fixed 6px gaps (36px), divided by the
-         combined glyph-width-per-font-size-unit of the 4 number columns
-         + 3 separators. The glyph ratio here is 1.6234x a number's own
-         font-size — NOT the 1.3361x this formula used before: that was
-         the two-digit numeral's own *natural* rendered width, measured
-         before .cd-number grew a `min-width: 2.2ch` reserve (fixes the
-         digits visibly nudging the whole countdown sideways whenever a
-         narrower/wider digit swaps in) — min-width is larger than the
-         natural width for most digit pairs, so it's what actually
-         governs each column's real footprint now, and this formula needs
-         to fit *that*, not the glyph's own bare rendered size. Ceiling
-         raised to 7rem (matching the desktop formula's own) rather than
-         capped low — the point of re-deriving this properly was so the
-         clock keeps scaling smoothly with viewport width the same way
-         it does on desktop, all the way to the breakpoint, instead of
-         flattening out early (confirmed the formula itself stays safely
-         within the available width the whole way, so nothing but the
-         old artificial ceiling was stopping it from growing). It won't
-         actually reach anywhere near 7rem before 640px arrives (~4.95rem
-         at most), so this ceiling is really just "no practical cap in
-         this range" — the size change crossing into the desktop
-         breakpoint is a bit more noticeable now, but that's a fair trade
-         for not looking frozen mid-range on mobile, and the layout
-         itself changes structurally at that same point anyway (the
-         pulley/rig, spring track, etc.). */
       .countdown-grid { gap: 0 6px; }
-      .cd-number { font-size: clamp(1.5rem, calc((100vw - 92px) / 6.9), 7rem); }
-      .cd-sep { font-size: clamp(0.9rem, calc((100vw - 92px) / 6.9 * 0.6), 4.2rem); }
+      /* Fixed per breakpoint, same 3-breakpoint scheme as .hero-title/
+         .cd-number/.cd-sep's own comments (further above) explain — base
+         value is what the old overflow-safe fluid formula computed at
+         375px (a common phone width, used as the mobile zone's reference
+         rather than its narrowest edge since .hero-title has no matching
+         overflow constraint to stay conservative for), then bumped ~20%
+         larger (two successive ~10% rounds, read too small), then back
+         down 15% (read too big at that point). */
+      .hero-title { font-size: 4.63rem; }
+      .cd-number { font-size: 2.64rem; }
+      .cd-sep { font-size: 1.58rem; }
       .brief-section { padding: 60px 20px; }
       .batik-margin { display: none; } /* mobile column is too narrow to overlap without hurting legibility */
       .guide-section { padding: 60px 10px; }
