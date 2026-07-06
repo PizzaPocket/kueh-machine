@@ -80,6 +80,14 @@ function spawnBubble(container, originX, originY, liquidHeight) {
   );
 
   rising.onfinish = () => {
+    // Fired the instant this bubble reaches the surface — index.html's own
+    // rippleLiquid listens for this to trigger a small extra wobble timed
+    // to the pop, on top of the bigger one already fired when the drop
+    // itself released (updateDrop's phase === 0). BUBBLE_FLOAT_ABOVE_FRACTION
+    // is 0 (see tokens/liquid-bubbles.js), so "reaches the surface" and
+    // "pops" are the same moment — no separate float stage to time this to.
+    window.dispatchEvent(new CustomEvent('liquid:bubble-pop'));
+
     // .countdown-liquid's own mask-image hard-clips anything above the
     // current fill line, so moving to its parent for this last bit is
     // what makes "poking above the surface" actually visible instead of

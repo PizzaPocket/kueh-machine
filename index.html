@@ -418,14 +418,13 @@
        masked to a bottom-up "water level" via --liquid-fill, set every
        tick by the countdown script below). Both paint themselves with a
        plain CSS background-color below — no procedural shape, SVG, or
-       clip-path needed for a plain rectangle (src/organisms/
-       countdown-clock.js only wires up the water-level surface band and
-       the bubble burst now — see its own comment). No cast shadow off the
-       liquid's own edge either, and no rim or outer housing frame around it
-       (all dropped separately)
-       — the window sits directly on the hero background. The drop
-       (.countdown-drop below) grows and releases from the window's own
-       bottom edge, at horizontal center.
+       clip-path needed for a plain rectangle. No cast shadow off the
+       liquid's own edge (dropped separately). Wrapped in a
+       housing-frame.js chrome rim (src/organisms/countdown-clock.js) — the
+       same double-ring stroke treatment as the "Kueh" wordmark's own rims;
+       see that module's own comment. The drop (.countdown-drop below)
+       grows and releases from the window's own bottom edge, at horizontal
+       center.
 
        --countdown-bg-color/--countdown-liquid-color are the single place
        to retune either color — both layers' background-color below and
@@ -447,7 +446,18 @@
       position: relative;
       display: inline-block;
       padding: 16px 48px;
-      margin-bottom: 12px; /* trailing space before the hero's own bottom padding */
+    }
+
+    /* .housing-frame-wrap (styles/atoms.css — src/atoms/housing-frame.js),
+       not .countdown-viewport itself, which is no longer the outermost
+       element now that countdown-clock.js wraps it in the chrome rim —
+       margin-bottom on a plain block collapses out through its container,
+       but .housing-frame-wrap is inline-block, which blocks that
+       collapsing, so the margin would otherwise get trapped *inside* the
+       wrapper (inflating its own auto-height) instead of adding space
+       below it. */
+    .hero .housing-frame-wrap {
+      margin-bottom: 12px;
     }
 
     .countdown-window-bg,
@@ -1260,9 +1270,20 @@
     // textured surface a real height-field ripple could distort), but the
     // level visibly dipping and bobbing back level is roughly the real
     // physical effect anyway, and needs no canvas.
-    function rippleLiquid() {
+    //
+    // `intensity` scales the amplitude only (duration/decay/frequency stay
+    // put) — the same wave shape at a fraction of the size, so the small
+    // per-bubble wobble triggered on 'liquid:bubble-pop' below still reads
+    // as the same material settling, just barely. Calls can overlap (a
+    // burst's several bubbles each pop at their own staggered time, well
+    // after the drop's own full-size ripple has decayed) — each call just
+    // drives the same --liquid-fill property independently, so an overlap
+    // reads as one call's wave winning a given frame rather than the two
+    // summing, but at these small pop amplitudes that's not visible.
+    function rippleLiquid(intensity) {
       var el = document.getElementById('js-countdown-liquid');
       if (!el) return;
+      var scale = intensity === undefined ? 1 : intensity;
       var start = performance.now();
 
       // A single fixed-amplitude, fixed-frequency damped sine, identical
@@ -1273,7 +1294,7 @@
       // of reinforcing every cycle, like a real surface settling from a
       // couple of superimposed ripple modes at once) breaks that
       // regularity without changing the overall rAF/decay approach.
-      var amplitude = 0.9 + Math.random() * 0.6; // 0.9-1.5 percentage points
+      var amplitude = (1.7 + Math.random() * 1.1) * scale; // 1.7-2.8 percentage points at full intensity (was 0.9-1.5)
       var duration = 780 + Math.random() * 260; // 780-1040ms
       var decay = 3.6 + Math.random() * 1.2;
       var freq1 = 2.6 + Math.random() * 0.8; // cycles over the full duration
@@ -1295,6 +1316,16 @@
         requestAnimationFrame(step);
       })(start);
     }
+
+    // A much smaller echo of the same wobble, timed to each bubble
+    // reaching the surface and popping (src/atoms/liquid-bubbles.js
+    // dispatches this the instant a bubble's rise finishes) — the drop's
+    // own release already triggers the full-size ripple above; this is
+    // the little aftershock as the bubbles it kicked loose reach the top
+    // one by one, staggered over the next second or two.
+    window.addEventListener('liquid:bubble-pop', function () {
+      rippleLiquid(0.3);
+    });
 
     // === COUNTDOWN DRIP ===
     // Appended to document.body, not inside .hero — a sibling of .hero,

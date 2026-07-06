@@ -14,8 +14,8 @@ export const BUBBLE_COUNT_RANGE = 4; // 4-7 bubbles per burst
 
 export const BUBBLE_STAGGER_MAX_MS = 220; // random per-bubble spawn delay, so the burst feels turbulent, not a synchronized pop
 
-export const BUBBLE_SIZE_MIN_PX = 3;
-export const BUBBLE_SIZE_RANGE_PX = 4; // 3-7px diameter
+export const BUBBLE_SIZE_MIN_PX = 4;
+export const BUBBLE_SIZE_RANGE_PX = 5; // 4-9px diameter
 
 // Rise distance is read directly off the *currently visible* liquid column
 // height (--liquid-fill at burst time) — a bubble always travels the full
