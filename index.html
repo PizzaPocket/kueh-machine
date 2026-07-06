@@ -1632,36 +1632,42 @@
     var superellipseMod = null;
     import('./src/tokens/superellipse.js').then(function (mod) { superellipseMod = mod; });
 
-    // Recomputes ONE ring's outline BOX and its clip-path from today's
-    // live measurements and reapplies both directly, bypassing whatever's
+    // Recomputes ONE ring layer's BOX and its clip-path from today's live
+    // measurements and reapplies both directly, bypassing whatever's
     // supposed to trigger housing-frame.js's own update() normally.
-    // Fixes ONE ring layer (either the main .housing-frame or its
-    // .housing-frame-accent sibling) — shared by both below, since accent
-    // uses the exact same box as the main ring (housing-frame.js copies
-    // it once, at update() time) but its OWN, independently-computed
-    // clip-path at a smaller outset.
-    function fixLayer(label, el, fillLeft, fillTop, w, h, outset) {
+    // boxOutset sizes/positions the <div> itself — ALWAYS the main ring's
+    // own outset, even for the accent layer, since accent.style.left/top/
+    // width/height are a direct copy of the main ring's own box
+    // (housing-frame.js's update()), not independently sized. clipOutset
+    // is what's cut into that box — the main ring's own outset for the
+    // main layer, but the smaller accentOutset for the accent layer. The
+    // origin passed to the path builder has to use boxOutset in BOTH
+    // cases, matching where the shared box's own center actually is —
+    // an earlier version of this script wrongly used clipOutset for the
+    // accent layer's origin too, which would misalign accent's own clip
+    // shape inside its (bigger, main-ring-sized) box.
+    function fixLayer(label, el, fillLeft, fillTop, w, h, boxOutset, clipOutset) {
       var clipBefore = clipPathBBox(el);
       var boxBefore = el.getBoundingClientRect();
-      el.style.left = (fillLeft - outset) + 'px';
-      el.style.top = (fillTop - outset) + 'px';
-      el.style.width = (w + outset * 2) + 'px';
-      el.style.height = (h + outset * 2) + 'px';
+      el.style.left = (fillLeft - boxOutset) + 'px';
+      el.style.top = (fillTop - boxOutset) + 'px';
+      el.style.width = (w + boxOutset * 2) + 'px';
+      el.style.height = (h + boxOutset * 2) + 'px';
       var boxAfter = el.getBoundingClientRect();
       var boxChanged = Math.abs(boxBefore.left - boxAfter.left) > 0.5 || Math.abs(boxBefore.width - boxAfter.width) > 0.5;
 
       var clipMsg = 'superellipse module still loading';
       if (superellipseMod) {
         var d = superellipseMod.buildFunnelOutsetOutlinePath({
-          width: w, height: h, n: 10, outset: outset,
-          originX: w / 2 + outset, originY: h / 2 + outset,
+          width: w, height: h, n: 10, outset: clipOutset,
+          originX: w / 2 + boxOutset, originY: h / 2 + boxOutset,
         });
         el.style.clipPath = 'path("' + d + '")';
         var clipAfter = clipPathBBox(el);
-        var expectedW = w + outset * 2;
+        var expectedW = w + clipOutset * 2;
         clipMsg = 'clip bbox before=' + (clipBefore ? clipBefore.width.toFixed(1) : 'n/a') +
           ' after=' + (clipAfter ? clipAfter.width.toFixed(1) : 'n/a') +
-          ' (box width=' + expectedW.toFixed(1) + ')' +
+          ' (expected=' + expectedW.toFixed(1) + ')' +
           (clipBefore && Math.abs(clipBefore.width - expectedW) > 1 ? '  [CLIP WAS STALE]' : '  [clip already matched]');
       }
 
@@ -1683,9 +1689,9 @@
       var w = fillEl.clientWidth;
       var h = fillEl.clientHeight;
 
-      var out = fixLayer(label + ' MAIN  ', outline, fillLeft, fillTop, w, h, outset);
+      var out = fixLayer(label + ' MAIN  ', outline, fillLeft, fillTop, w, h, outset, outset);
       if (accent) {
-        out += '\n' + fixLayer(label + ' ACCENT', accent, fillLeft, fillTop, w, h, outset * accentRatio);
+        out += '\n' + fixLayer(label + ' ACCENT', accent, fillLeft, fillTop, w, h, outset, outset * accentRatio);
       } else {
         out += '\n' + label + ' ACCENT: not found';
       }
