@@ -72,6 +72,13 @@ const CHUTE_RIDE_LIFT_PX = 3; // rides a touch above the path's own centerline, 
 // per-roll from the real remaining arc length (spawnRoll) rather than
 // assuming a fixed travel time regardless of curve length.
 const ROLL_SPEED_PX_PER_MS = 0.35;
+// Scales ROLL_SPEED_PX_PER_MS down for the shorter mobile chute — a ball
+// rolling under gravity down a track roughly half as tall would realistically
+// reach roughly sqrt(height ratio) of the top speed, not the same flat px/ms.
+// Left at a flat constant, the mobile ball crossed its much shorter track at
+// the same absolute speed as desktop's, reading as an unrealistic speed-up
+// rather than a scaled-down roll.
+const ROLL_SPEED_SCALE_MOBILE = Math.sqrt(CHUTE_HEIGHT_MOBILE / CHUTE_HEIGHT_MAX);
 // Stretch & squash: the ball elongates along its direction of travel while
 // falling (a speed cue) and relaxes back to round while rolling. Two
 // stretch stages for the long fall (spawnFall) — modest while
@@ -285,7 +292,7 @@ export function init() {
   // it (re)runs, and read by spawnFallToChute/spawnRoll/spawnFall via
   // closure, so those three always act on the latest geometry without
   // needing their own resize handling or re-registering event listeners.
-  const state = { container: null, pathD: '', tendrilPathEl: null, crossingFraction: 0, totalLength: 0, endDoc: [0, 0], crossingDoc: [0, 0], spout: [0, 0], ball: null };
+  const state = { container: null, pathD: '', tendrilPathEl: null, crossingFraction: 0, totalLength: 0, endDoc: [0, 0], crossingDoc: [0, 0], spout: [0, 0], ball: null, chuteHeight: CHUTE_HEIGHT_MAX };
   let builtOnce = false;
 
   function buildChute() {
@@ -413,6 +420,7 @@ export function init() {
     state.tendrilPathEl = tendrilPathEl;
     state.crossingFraction = crossingFraction;
     state.totalLength = totalLength;
+    state.chuteHeight = chuteHeight;
     state.endDoc = [minX + endLocal[0], minY + endLocal[1]];
     state.crossingDoc = crossing
       ? [minX + crossing.x, minY + crossing.y - CHUTE_RIDE_LIFT_PX]
@@ -543,7 +551,11 @@ export function init() {
     // length varies by viewport.
     const remaining = 1 - crossingFraction;
     const remainingLength = totalLength * remaining;
-    const movementDuration = Math.max(250, remainingLength / ROLL_SPEED_PX_PER_MS);
+    const rollSpeed =
+      state.chuteHeight <= CHUTE_HEIGHT_MOBILE
+        ? ROLL_SPEED_PX_PER_MS * ROLL_SPEED_SCALE_MOBILE
+        : ROLL_SPEED_PX_PER_MS;
+    const movementDuration = Math.max(250, remainingLength / rollSpeed);
     const crossingPct = crossingFraction * 100;
 
     // Same accelerate-then-hold-terminal-velocity shape as the long fall
