@@ -990,10 +990,10 @@
       /* Stretched wide (most of the screen, just a little side margin)
          rather than shrink-wrapped to the digit content like desktop.
          max-width caps how far the clock stretches as this zone's viewport
-         approaches 640px (calc(100vw - 36px) alone would let it grow to
-         ~600px there) — 432px (360px, +20%: read too narrow at that
-         original value) still kicks in before ~600px, just later. */
-      .countdown-viewport { width: calc(100vw - 36px); max-width: 432px; padding: 10px 8px; border-width: 4px; }
+         approaches 640px (calc(100vw - 56px) alone would let it grow to
+         ~580px there) — 400px (down from 432px/36px margin, read a touch
+         too wide) still kicks in before ~580px, just later. */
+      .countdown-viewport { width: calc(100vw - 56px); max-width: 400px; padding: 10px 8px; border-width: 4px; }
       .countdown-grid { gap: 0 6px; }
       /* Fixed per breakpoint, same 3-breakpoint scheme as .hero-title/
          .cd-number/.cd-sep's own comments (further above) explain — base
