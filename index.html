@@ -1004,8 +1004,10 @@
          larger (two successive ~10% rounds, read too small), then back
          down 15% (read too big at that point). */
       .hero-title { font-size: 4.63rem; }
-      .cd-number { font-size: 2.64rem; }
-      .cd-sep { font-size: 1.58rem; }
+      /* .cd-number/.cd-sep further reduced 10% from 2.64rem/1.58rem —
+         read too big on mobile even after the tuning above. */
+      .cd-number { font-size: 2.38rem; }
+      .cd-sep { font-size: 1.42rem; }
       .brief-section { padding: 60px 20px; }
       .batik-margin { display: none; } /* mobile column is too narrow to overlap without hurting legibility */
       .guide-section { padding: 60px 10px; }
