@@ -163,6 +163,12 @@ const GROMMET_COUNT_MOBILE = 4; // same parity requirement, fewer for the narrow
 const GUIDE_STRING_EDGE_RUN_FRACTION = 0.35;
 
 const CUT_ZIP_MS = 400;
+// Mobile's sequential runSequence (see its own comment) doesn't wait for
+// cutTimeline's full CUT_ZIP_MS to elapse before starting the unravel —
+// that made the gap between the two feel too long. Shorter than CUT_ZIP_MS
+// on purpose: the unravel starts while the short local cut-string is still
+// mid-retract, not only once it's fully gone.
+const MOBILE_CUT_TO_UNRAVEL_DELAY_MS = 150;
 // The thread is one continuous path across the whole row (see
 // buildGuideThreadLayer) — a single clip-path sweep on the whole layer
 // replaces what used to be N independently-staggered per-segment
@@ -438,9 +444,18 @@ export function init() {
   );
   section.appendChild(scissorsWrap);
 
+  // translateY(-2px) here, not on the wrap itself — shifts only the blade
+  // images (mobile only), leaving the string/grommets (also children of
+  // the wrap, but positioned independently of this per-frame transform)
+  // untouched. Applied in the wrap's own LOCAL frame, same as everything
+  // else built relative to it — after the parent wrap's own mobile
+  // rotate(90deg), a local -y shift reads as a rightward shift on screen
+  // (see the mobile grommet/string build's own comment for that mapping),
+  // matching what was actually asked for ("shift right").
   function renderScissors(angleDeg) {
-    backImg.style.transform = `rotate(${-angleDeg}deg)`;
-    frontImg.style.transform = `rotate(${angleDeg}deg)`;
+    const mobileShift = isMobile ? 'translateY(-2px) ' : '';
+    backImg.style.transform = `${mobileShift}rotate(${-angleDeg}deg)`;
+    frontImg.style.transform = `${mobileShift}rotate(${angleDeg}deg)`;
   }
 
   // === Chip knob — a static child of an element timeline-panel.js's own
@@ -762,11 +777,14 @@ export function init() {
   // Mobile: sequential instead — the mobile cut is just a short local
   // string, not "the other end of the same string" the Getting Started
   // thread belongs to, so there's no shared-tension narrative tying them
-  // together in time. The unravel starts only once the cut-string has
-  // actually finished, and the section reveals right after the unravel.
+  // together in time. The unravel starts a short beat after the cut (not
+  // chained off cutTimeline's own full-duration callback — see
+  // MOBILE_CUT_TO_UNRAVEL_DELAY_MS), and the section reveals right after
+  // the unravel.
   function runSequence() {
     if (isMobile) {
-      cutTimeline(() => unzipGuide(revealCheckin));
+      cutTimeline(() => {});
+      setTimeout(() => unzipGuide(revealCheckin), MOBILE_CUT_TO_UNRAVEL_DELAY_MS);
       return;
     }
     let remaining = 2;

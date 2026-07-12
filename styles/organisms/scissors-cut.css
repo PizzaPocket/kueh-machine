@@ -338,4 +338,12 @@
   .sc-mobile-cut-string {
     display: block;
   }
+
+  /* Same local -y shift as renderScissors' own mobile translateY(-2px)
+     (scissors-cut.js) — the fulcrum + flanking rivets are part of the
+     scissors' own body, not the string/grommets, so they shift right
+     alongside the blades rather than staying independently fixed. */
+  .sc-scissors-rivet {
+    top: calc(50% - 2px);
+  }
 }
