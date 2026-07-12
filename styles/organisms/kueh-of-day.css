@@ -276,20 +276,12 @@
   filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.09)) drop-shadow(0 1px 4px rgba(0, 0, 0, 0.06));
 }
 
-/* First child of both .kod-media and .kod-content-window — the filled
-   <path> painting each window's superellipse + inner shadow (see
-   createRetroShape, src/atoms/retro-shape.js). DOM order alone doesn't
-   keep it behind the rest of that element's content: a position:absolute
-   box paints in its own stacking step regardless of tree order. z-index:
-   -1 (against the parent's position: relative, which makes it the
-   stacking context) is what actually pins it behind them. */
-.retro-shape-fill {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
+/* .retro-shape-fill (first child of both .kod-media and .kod-content-window
+   — the filled <path> painting each window's superellipse + inner shadow,
+   createRetroShape, src/atoms/retro-shape.js) moved to styles/atoms.css —
+   it's a general createRetroShape({fill}) consumer's requirement, not
+   KOTD-specific, and a second consumer (src/organisms/check-in.js) needing
+   it defined here (where it wouldn't be loaded) is what surfaced that. */
 
 .kod-media img {
   max-width: 100%;

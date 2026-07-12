@@ -10,14 +10,18 @@
 // silhouette.
 
 /**
+ * @param {{ horizontal?: boolean }} [opts] - `horizontal: true` runs the
+ *   seam left-to-right instead of top-to-bottom (.metal-seam-horizontal,
+ *   styles/atoms.css) — e.g. a full-bleed row divider, rather than a
+ *   vertical column divider.
  * @returns {HTMLElement} the .metal-seam container, with its two
  *   .metal-seam-line children already appended — size and position it
  *   however the caller needs (e.g. the Kueh of the Day seam between its
  *   two columns, kueh-of-day.js).
  */
-export function buildMetalSeam() {
+export function buildMetalSeam({ horizontal = false } = {}) {
   const seam = document.createElement('div');
-  seam.className = 'metal-seam';
+  seam.className = horizontal ? 'metal-seam metal-seam-horizontal' : 'metal-seam';
 
   for (let i = 0; i < 2; i++) {
     const line = document.createElement('div');

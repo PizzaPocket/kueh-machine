@@ -29,8 +29,23 @@
      edge. z-index here lifts the *entire* .timeline-section layer above
      that plain "auto" level instead. */
   z-index: 1;
-  padding: 64px 32px 56px;
+  /* Top padding grown well past the original 64px to make room for the
+     scissors-cut assembly (src/organisms/scissors-cut.js) — the hanging
+     scissors + cut-string sit in this space, above the chrome panel
+     itself, not inside it. Tune alongside that module's own
+     CUT_STRING_ABOVE_PANEL_GAP/SCISSORS_PIVOT_BELOW_STRING_GAP constants if
+     either changes. */
+  padding: 136px 32px 80px;
   color: var(--metal-shadow);
+}
+
+/* .sc-post-cut — added by scissors-cut.js's own maybeRemoveScissorsForNewDay
+   once the scissors are actually removed (the day after the cut, not the
+   moment it happens — see that function's own comment for why the timing
+   matters). Reverts padding-top to its original size now that the extra
+   room above the panel isn't holding anything anymore. */
+.timeline-section.sc-post-cut {
+  padding-top: 64px;
 }
 
 /* Still needed even with the inherited default above: .section-label/

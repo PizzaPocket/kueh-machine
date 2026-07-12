@@ -27,6 +27,8 @@
   <link rel="stylesheet" href="styles/organisms/site-nav.css">
   <link rel="stylesheet" href="styles/organisms/timeline-panel.css">
   <link rel="stylesheet" href="styles/organisms/drop-chute.css">
+  <link rel="stylesheet" href="styles/organisms/scissors-cut.css">
+  <link rel="stylesheet" href="styles/organisms/check-in.css">
   <style>
     /* === TOKENS ===
        Color tokens live in styles/tokens.css (semantic names, daily-themed
@@ -1079,23 +1081,30 @@
       <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is a team L&amp;D project built around making. Each person builds their own small app or website using Claude Code — their own individual interpretation of "Kueh Machine" — getting hands-on experience with tools that are changing what designers can do. Every person's piece comes together into one collective Kueh Machine, live at <a href="https://www.kuehmachine.com" class="brief-link">www.kuehmachine.com</a>.</p>
     </div>
     <div class="batik-mount batik-margin batik-margin-right" data-batik-group="brief-margins" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
+
+    <!-- TEMP TESTING CONTROL — display:flex rather than removed, so it's a
+         one-line toggle for more testing later (and its script block near
+         the bottom of the page, search "dev-date-override"). Remove both
+         for real before launch. Lets you simulate any date in the
+         project's own range (and whether it's before/after that day's
+         2:00pm SGT) so every date-driven visual on the page can be checked
+         without waiting for real time to pass. Lives at the bottom of
+         Brief, out of the way of the sections it actually drives. -->
+    <div id="dev-date-override" style="display:none; position:relative; z-index:1; align-items:center; gap:10px; padding:8px 16px; margin-top:24px; background:#1a1a1a; color:#fff; font:12px/1.4 monospace;">
+      <label for="dev-date-select">Simulate date:</label>
+      <select id="dev-date-select" style="font:inherit;"></select>
+      <label style="display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="dev-date-past-2pm">
+        Past 2:00
+      </label>
+    </div>
   </section>
 
   <!-- TIMELINE -->
   <section id="timeline" class="timeline-section matte-metal-surface reveal">
-    <!-- TEMP TESTING CONTROL — hidden (display:none) rather than removed,
-         so it's a one-line toggle for more testing later (and its script
-         block near the bottom of the page, search "dev-date-override").
-         Remove both for real before launch. Lets you simulate any date in
-         the project's own range so the spring/dial/chip can be checked at
-         every day in the cycle without waiting for real time to pass. -->
-    <div id="dev-date-override" style="display:none; position:relative; z-index:1; align-items:center; gap:10px; padding:8px 16px; background:#1a1a1a; color:#fff; font:12px/1.4 monospace;">
-      <label for="dev-date-select">Simulate date:</label>
-      <select id="dev-date-select" style="font:inherit;"></select>
-    </div>
     <div class="container">
       <p class="section-label">Timeline</p>
-      <h2 class="section-title">Three Monthly Meetings, June to August.</h2>
+      <h2 class="section-title"></h2>
       <div class="tl-body">
         <div class="tl-mount"></div>
 
@@ -1116,6 +1125,20 @@
             <p class="tl-label-time">2:00 PM SGT<br>Present and hand off</p>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECK IN — revealed by src/organisms/scissors-cut.js once the
+       Timeline string is cut; the row list below the header is built by
+       src/organisms/check-in.js. No .reveal class: this section's reveal
+       is the height-grow itself, not the page's shared opacity/translateY
+       scroll-fade. -->
+  <section id="check-in" class="check-in-section" aria-hidden="true">
+    <div class="check-in-collapse">
+      <div class="container checkin-header">
+        <p class="section-label">Check In</p>
+        <h2 class="section-title">Work in progress</h2>
       </div>
     </div>
   </section>
@@ -1505,21 +1528,28 @@
 
   document.getElementById('footer-year').textContent = new Date().getFullYear();
 
-  // === TEMP: dev date override (see #dev-date-override above) ===
-  // Hidden (display:none) rather than removed — remove this whole block
-  // (and the #dev-date-override div near the top of the Timeline section)
-  // for real before launch. Monkey-patches Date.now so every date-driven
-  // visual on the page (the hero countdown's own setTimeout loop already
+  // === TEMP: dev date override (see #dev-date-override at the bottom of
+  // the Brief section above) ===
+  // display:flex rather than removed — remove this whole block (and the
+  // #dev-date-override div at the bottom of the Brief section) for real
+  // before launch. Monkey-patches Date.now so every date-driven visual on
+  // the page (the hero countdown's own setTimeout loop already
   // calls Date.now() fresh each second; timeline-panel.js/kueh-of-day.js
   // listen for 'dev:date-changed' below) reacts as if the selected day
   // were "now," without needing to actually wait for it.
   (function () {
     var select = document.getElementById('dev-date-select');
+    var past2pm = document.getElementById('dev-date-past-2pm');
     if (!select) return;
 
     var START = Date.UTC(2026, 5, 24);
     var END = Date.UTC(2026, 7, 26);
     var ONE_DAY = 86400000;
+    // 06:01 UTC = just past 2:00pm SGT — matches timeline-panel.js's own
+    // CHECKIN_UTC/TARGET_UTC "06:00 UTC = 2:00pm SGT" convention, +1 minute
+    // so the check-in gate (Date.now() >= CHECKIN_UTC, exactly 06:00) reads
+    // unambiguously past rather than landing right on the boundary.
+    var PAST_2PM_UTC_OFFSET = 6 * 60 * 60000 + 60000;
     var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     var realNow = Date.now;
@@ -1537,15 +1567,23 @@
       select.appendChild(opt);
     }
 
-    select.addEventListener('change', function () {
+    // Recomputes Date.now's monkey-patched offset from whichever of the two
+    // controls last changed — the toggle has no effect on "— real time —"
+    // (there's no simulated day to add 06:01 UTC onto).
+    function applyDateOverride() {
       if (select.value === '') {
         Date.now = realNow;
       } else {
-        var offset = Number(select.value) - realNow();
+        var base = Number(select.value);
+        if (past2pm && past2pm.checked) base += PAST_2PM_UTC_OFFSET;
+        var offset = base - realNow();
         Date.now = function () { return realNow() + offset; };
       }
       window.dispatchEvent(new Event('dev:date-changed'));
-    });
+    }
+
+    select.addEventListener('change', applyDateOverride);
+    if (past2pm) past2pm.addEventListener('change', applyDateOverride);
   })();
   </script>
   <script type="module" src="src/main.js"></script>

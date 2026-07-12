@@ -35,6 +35,7 @@ import { buildFlourish, renderFlourish } from '../atoms/batik-flourish.js';
 import { OUTER_RIM, OUTER_BASE } from '../tokens/glass-shape.js';
 import { createGlassGraphic } from '../atoms/glass-graphic.js';
 import { computeConicChromeLayers, applyLayeredConicChrome } from '../tokens/chrome-metal.js';
+import { bounceFactor as sharedBounceFactor, BOUNCE_DURATION_MS } from '../atoms/bounce-timing.js';
 
 // Same color approach as the hero wordmark's themed rims (KUEH_RIM_DARK/
 // LIGHT, chrome-accents.js) — the day's theme color mixed toward
@@ -61,7 +62,7 @@ const CHIP_TAIL_LENGTH = 7;
 // classic-script/ES-module boundary — same precedent kueh-of-day.js's own
 // getDayIndexSGT sets for recomputing one small date calculation.
 const PROJECT_START_UTC = Date.UTC(2026, 5, 24); // 24 June 2026 kickoff
-const CHECKIN_UTC = Date.UTC(2026, 6, 29); // 29 July 2026 check-in
+const CHECKIN_UTC = Date.UTC(2026, 6, 29, 6, 0, 0); // 29 July 2026 check-in, 2:00pm SGT
 const TARGET_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // 26 August 2026 showcase
 
 const DAY_MS = 86400000;
@@ -381,7 +382,7 @@ const PULLEY_GAP = 90; // px past the spring track's own right edge
 const PULLEY_EDGE_SAFETY = 24;
 // Vertical counterpart to PULLEY_GAP for pulley 2 (below) — how far below
 // the entire 3-line "26 August" label block (.tl-label-right) it sits.
-const PULLEY2_LABEL_GAP = 28;
+const PULLEY2_LABEL_GAP = 12;
 const BASE_DROP = 40; // px from pulley down to the convergence node, at f=0
 const MAX_ADDITIONAL_DROP = 160; // extra px of sink by f=1 — same f as the spring/dial
 // Mobile has no pulley, so none of the above applies there the same way:
@@ -395,7 +396,14 @@ const MAX_ADDITIONAL_DROP = 160; // extra px of sink by f=1 — same f as the sp
 // signal for no physical reason. So the chip->node distance here is one
 // fixed constant, not BASE_DROP + f*MAX_ADDITIONAL_DROP — the glass just
 // hangs a constant distance below wherever the chip currently is.
-const MOBILE_NODE_DROP = 120;
+// Grown past its original 120 to satisfy src/organisms/scissors-cut.js's
+// own mobile rig: the cup's own lower edge needs to get within
+// CONTACT_START_DISTANCE_PX (scissors-cut.js, shared with desktop) of the
+// scissors' handles by ~27 July for that same shared threshold/logic to
+// produce the same "flat until touch, closes fast over the final couple of
+// days" shape desktop already has — not a separate mobile-only model, just
+// the same one fed the right distance. Measured, not derived analytically.
+const MOBILE_NODE_DROP = 189;
 const NODE_TO_RIM_GAP = 44; // px of open air between the node (where the string forks) and the glass's own rim — per the mockup, the cup hangs a visible distance below where the three strands diverge, not flush against it
 const BASE_STRAND_OVERSHOOT_PX = 2; // each strand's own base attachment point is nudged this far past the base ellipse (not the flourish anchor, just the drawn segment) so the line visibly covers the bottom rim rather than stopping exactly at its edge
 const TWIST_PERIOD_S = 36; // one full wind-unwind-wind cycle
@@ -824,11 +832,13 @@ export function init() {
   mount.innerHTML = '';
   mount.appendChild(layout);
 
+  // Bottom rivet row removed — src/organisms/scissors-cut.js's own grommet
+  // row now sits along this same section's bottom edge, and the two
+  // visually conflicted (raised bolts and punched holes sharing the same
+  // strip). Top row stays.
   const topRivets = buildRivetRow();
   topRivets.classList.add('metal-rivet-row-top');
-  const bottomRivets = buildRivetRow();
-  bottomRivets.classList.add('metal-rivet-row-bottom');
-  section.append(topRivets, bottomRivets);
+  section.append(topRivets);
 
   // Landing bounce (Stage 3) — triggered by drop-chute.js's
   // 'chute:ball-landed' once the rolling ball reaches the end of the
@@ -837,17 +847,8 @@ export function init() {
   // Y/IsMobile below cache tick()'s last-computed base chip position so
   // each bounce frame adds its offset to that same base, rather than
   // compounding onto an already-bounced value.
-  const BOUNCE_DURATION_MS = 500;
   const BOUNCE_GLASS_PX = 6; // glass: straight down and back
   const BOUNCE_CHIP_PX = 5; // chip: whatever direction the string currently pulls it
-  // Impact, not a smooth oscillation — a plain sin(t*pi) eases in from
-  // zero velocity, which reads as the glass drifting into the dip rather
-  // than getting hit. Split into two eased-out halves instead:
-  // DOWN_PORTION snaps down with maximum velocity at the moment of
-  // impact and decelerates into the bottom of the dip, then the longer
-  // remaining portion recoils back out the same way — fast off the
-  // bottom, settling in gradually.
-  const BOUNCE_DOWN_PORTION = 0.18;
   let bounceStart = null;
   let lastChipX = 0;
   let lastChipY = 0;
@@ -863,10 +864,10 @@ export function init() {
   let lastStretchFraction = 0;
   let lastThickness = 0;
 
-  function easeOutQuad(t) {
-    return 1 - (1 - t) * (1 - t);
-  }
-
+  // Curve itself lives in ../atoms/bounce-timing.js — shared with
+  // scissors-cut.js so both bounce-driven offsets (this one and the
+  // scissors' own angle delta) peak in exactly the same frame, since both
+  // fire off the same chute:ball-landed event.
   function bounceFactor() {
     if (bounceStart === null) return 0;
     const elapsed = performance.now() - bounceStart;
@@ -874,12 +875,7 @@ export function init() {
       bounceStart = null;
       return 0;
     }
-    const t = elapsed / BOUNCE_DURATION_MS;
-    if (t < BOUNCE_DOWN_PORTION) {
-      return easeOutQuad(t / BOUNCE_DOWN_PORTION); // 0 -> 1, fast start
-    }
-    const recoverT = (t - BOUNCE_DOWN_PORTION) / (1 - BOUNCE_DOWN_PORTION);
-    return 1 - easeOutQuad(recoverT); // 1 -> 0, fast off the bottom
+    return sharedBounceFactor(elapsed);
   }
 
   function applyBounce() {

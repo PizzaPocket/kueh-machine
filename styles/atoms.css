@@ -216,6 +216,49 @@
   );
 }
 
+/* .metal-seam-horizontal — same two-line construction, rotated: a
+   full-bleed row divider instead of a column divider. flex-direction:
+   column stacks the two lines top-to-bottom instead of side-by-side; each
+   line swaps its own width/height (100%/1px instead of 1px/100%) and its
+   gradient axis (to right instead of to bottom) but keeps the identical
+   color-mix stops, so it reads as the same seam material just turned 90deg.
+   height: 2px overrides the base .metal-seam's own height:100% — the
+   vertical seam stretches to fill a column's own height (set by its
+   parent), but a horizontal seam's "height" is really just its own two
+   1px lines stacked, not something that should stretch to fill whatever
+   block-level parent it sits in. */
+.metal-seam-horizontal {
+  flex-direction: column;
+  height: 2px;
+}
+
+.metal-seam-horizontal .metal-seam-line {
+  width: 100%;
+  height: 1px;
+}
+
+.metal-seam-horizontal .metal-seam-line:first-child {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--metal-base) 28%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 28%, white) 42%,
+    color-mix(in srgb, var(--metal-base) 10%, white) 50%,
+    color-mix(in srgb, var(--metal-base) 28%, white) 58%,
+    color-mix(in srgb, var(--metal-base) 28%, white) 100%
+  );
+}
+
+.metal-seam-horizontal .metal-seam-line:last-child {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--metal-base) 52%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 52%, white) 42%,
+    color-mix(in srgb, var(--metal-base) 70%, white) 50%,
+    color-mix(in srgb, var(--metal-base) 52%, white) 58%,
+    color-mix(in srgb, var(--metal-base) 52%, white) 100%
+  );
+}
+
 /* .rim-matte-inner-tinted — recolors the rim from the neutral --metal-base
    to the current theme's primary-strong color (--rim-base, which
    .rim-matte-inner/-glint's gradients above already fall back from) —
@@ -336,6 +379,27 @@
     color-mix(in srgb, var(--metal-highlight) 94%, var(--rim-base, var(--metal-base))) 45%,
     transparent 60%
   );
+}
+
+/* .retro-shape-fill — the filled <path>'s own SVG wrapper whenever
+   createRetroShape is called with a `fill` option (src/atoms/retro-shape.js),
+   e.g. nested inside .rim-matte-inner-glint via wrapWithInnerMatteRim's own
+   fillRefs param. Every such consumer needs this: DOM order alone doesn't
+   keep it behind the rest of its parent's content (a position:absolute box
+   paints in its own stacking step regardless of tree order) — z-index: -1
+   against the parent's own position:relative (which makes that parent the
+   stacking context) is what actually pins it behind them. width/height:100%
+   is what makes the fill actually cover its parent's box in the first
+   place — without it, the SVG falls back to its own unstyled intrinsic
+   size (confirmed directly: a consumer outside kueh-of-day.js, where this
+   rule originally lived scoped to that one stylesheet, rendered with no
+   visible fill at all until this was promoted here). */
+.retro-shape-fill {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 /* .rim-matte-outer-wrap / .rim-matte-outer (src/atoms/matte-rim.js's

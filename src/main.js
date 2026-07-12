@@ -12,7 +12,9 @@ import { init as initSiteNav } from './organisms/site-nav.js';
 import { init as initChromeAccents } from './organisms/chrome-accents.js';
 import { init as initBatikAccents } from './organisms/batik-accents.js';
 import { init as initCountdownClock } from './organisms/countdown-clock.js';
+import { init as initCheckIn } from './organisms/check-in.js';
 import { init as initTimelinePanel } from './organisms/timeline-panel.js';
+import { init as initScissorsCut } from './organisms/scissors-cut.js';
 import { init as initDropChute } from './organisms/drop-chute.js';
 
 initKuehOfDay();
@@ -20,7 +22,14 @@ initSiteNav();
 initChromeAccents();
 initBatikAccents();
 initCountdownClock();
+// Before initScissorsCut — that module measures .check-in-collapse's real
+// content height the first time it's revealed, so the row list has to
+// already exist by then.
+initCheckIn();
 initTimelinePanel();
+// After initTimelinePanel — queries .tl-day-chip/.tl-dial-meeting-mid,
+// which timeline-panel.js's own init() has to have built first.
+initScissorsCut();
 // After initTimelinePanel — measures .tl-spring-track's own live position
 // as one of its two anchor points, so the panel's rig has to exist first.
 initDropChute();

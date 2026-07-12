@@ -1,0 +1,231 @@
+/* === Check In section shell ===
+   Plain minimal section (no matte-metal-surface chrome), dark-themed
+   (background: var(--metal-shadow)) — a deliberately different register
+   from the light sections around it, since this is the section that only
+   exists "after" the cut, not part of the original page. .check-in-collapse
+   starts at height:0; all vertical spacing lives on the inner .container
+   as margin, not on .check-in-collapse's own padding — height:0 with
+   box-sizing:border-box does not actually render at 0px if the element
+   also carries vertical padding (the box floors at padding-top +
+   padding-bottom), so that spacing has to live one level in instead.
+   overflow:hidden here establishes a block formatting context so the
+   inner margin doesn't collapse through while collapsed. */
+.check-in-section {
+  position: relative;
+  background: var(--metal-shadow);
+}
+
+.check-in-collapse {
+  height: 0;
+  overflow: hidden;
+  /* Ease-in, not a plain ease — Getting Started is "falling" under gravity
+     as this section pushes it down, same accelerating curve as the
+     Timeline cut-string/guide-thread's own "one weight, released at the
+     cut" animations (scissors-cut.css's sc-fall-left/-right/sc-thread-fall). */
+  transition: height 500ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Text tokens calibrated against THIS section's own dark background, not
+   the page's default (--color-text-on-surface, calibrated for the light
+   --color-surface family) — per this project's own rule: whenever a
+   component changes its background, its text token has to be recalibrated
+   against that exact surface, not inherited from the page default. */
+.check-in-section .section-label,
+.check-in-section .section-title {
+  color: var(--color-surface);
+}
+
+.check-in-collapse .checkin-header {
+  margin: 64px auto 32px;
+}
+
+/* === Rows ===
+   Alternating leading edge: odd rows lead left (avatar first, text
+   left-aligned), even rows lead right (avatar last, text right-aligned) —
+   row-reverse + text-align swap the whole row's direction, so it's a pure
+   CSS mirror rather than duplicated markup for each direction. Padding
+   (not margin) top/bottom, per its own request — .container's own margin:
+   0 auto (horizontal centering) still applies underneath, untouched.
+   .check-in-collapse .checkin-row (not a bare .checkin-row selector) —
+   needs to out-specificity index.html's own .container rule (padding: 0
+   32px), which this file's own <link> loads before, not after, so equal
+   specificity would otherwise let .container's 0 vertical padding win. */
+.check-in-collapse .checkin-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 32px;
+}
+
+.checkin-row.checkin-row-reverse {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+/* No flex: 1 — an info block that stretches to fill all remaining row
+   width pushes .checkin-window all the way to the row's far edge instead
+   of sitting close to the text it belongs with. Sized to its own content;
+   .checkin-row's own gap is what keeps a consistent, tight space between
+   avatar/info/window instead. */
+.checkin-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Rim-wrapped retro-rectangle (src/organisms/check-in.js's own
+   buildEmptyWindow, wrapWithInnerMatteRim — same pairing KOTD's own
+   content window uses, kueh-of-day.js) — a placeholder for whatever real
+   per-contributor content eventually goes here. Fixed width (height comes
+   from JS, matching 2x the avatar's own height); .rim-matte-inner/-glint
+   (styles/atoms.css) supply their own width/height:100%, so only the
+   outermost .checkin-window needs an explicit size. */
+.checkin-window {
+  flex-shrink: 0;
+  width: 180px;
+}
+
+/* position: relative — the containing block .retro-shape-fill's own
+   position:absolute; inset:0 (styles/atoms.css) needs to actually fill
+   this element; without it the fill SVG falls back to sizing against
+   whatever ancestor further up the tree happens to be positioned instead.
+   No CSS background here beyond that — createRetroShape's own `fill`
+   option already renders a real, visible filled <path> at that color (see
+   buildEmptyWindow), same convention KOTD's own buildContentWindow
+   follows (kueh-of-day.js) with no redundant background on its wrapper
+   either. */
+.checkin-window-fill {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Circular placeholder avatar — same embossed-metal recipe as .metal-rivet/
+   .sc-scissors-rivet (styles/atoms.css, scissors-cut.css), scaled up, with
+   initials standing in for a real photo. */
+.checkin-avatar {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--metal-shadow);
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 0%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 55%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 100%
+  );
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.checkin-title {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-surface);
+}
+
+.checkin-byline {
+  font-size: 0.9375rem;
+  color: color-mix(in srgb, var(--color-surface) 70%, var(--metal-shadow));
+}
+
+.checkin-desc {
+  font-size: 0.875rem;
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-surface) 48%, var(--metal-shadow));
+}
+
+/* === Row seam ===
+   Full-bleed (edge to edge of the section, not confined to .container's
+   own max-width column) — a direct child of .check-in-collapse, a sibling
+   of .container rather than nested inside it, so its own width:100%
+   resolves against the section's full width. Dark-tinted (mixed toward
+   black/--metal-shadow, not white) — the base .metal-seam-line recipe
+   mixes toward white specifically because .matte-metal-surface's own panel
+   reads light (see that rule's own comment); this section is the opposite
+   surface, so the same "seam belongs to the material it's cut into" logic
+   needs the opposite mix direction. */
+.checkin-seam {
+  width: 100%;
+}
+
+/* Bottom padding for the section as a whole — the trailing seam
+   check-in.js appends after the last row is this section's actual last
+   child, so its own margin is what gives the section a bottom gutter —
+   .check-in-collapse itself still can't carry padding, see this file's own
+   top comment. 110px, not a plain round 64px to match the header's own top
+   margin — needs to comfortably clear scissors-cut.js's own
+   GROMMET_ABOVE_GUIDE_GAP (91px, the deliberate gap the grommet row floats
+   above #guide's top edge by), or the grommet row would sit inside this
+   section's own last-row content instead of in blank space beneath it. */
+.check-in-collapse > .checkin-seam:last-child {
+  margin-bottom: 110px;
+}
+
+.checkin-seam .metal-seam-line:first-child {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--metal-base) 28%, black) 0%,
+    color-mix(in srgb, var(--metal-base) 28%, black) 42%,
+    color-mix(in srgb, var(--metal-base) 55%, black) 50%,
+    color-mix(in srgb, var(--metal-base) 28%, black) 58%,
+    color-mix(in srgb, var(--metal-base) 28%, black) 100%
+  );
+}
+
+.checkin-seam .metal-seam-line:last-child {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--metal-base) 52%, black) 0%,
+    color-mix(in srgb, var(--metal-base) 52%, black) 42%,
+    color-mix(in srgb, var(--metal-base) 30%, black) 50%,
+    color-mix(in srgb, var(--metal-base) 52%, black) 58%,
+    color-mix(in srgb, var(--metal-base) 52%, black) 100%
+  );
+}
+
+/* Mobile keeps the alternating left/right leading edge (no row-direction
+   override) and keeps the window (no display:none) — just scaled down so
+   avatar + window + text all still fit a narrow row without wrapping.
+   Window height (104px, WINDOW_HEIGHT in check-in.js) is set inline by JS
+   and can't be overridden here without !important — aspect-ratio instead
+   of a fixed width derives the width FROM that inline height (104 * 1.5 =
+   156px), landing on the requested ~3:2 (wider-than-tall) shape rather
+   than the narrow, taller-than-wide box a fixed small width gave. */
+@media (max-width: 640px) {
+  .check-in-collapse .checkin-row {
+    gap: 12px;
+    padding: 16px 20px;
+  }
+
+  .checkin-window {
+    width: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .checkin-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 0.75rem;
+  }
+
+  .checkin-title {
+    font-size: 0.9375rem;
+  }
+
+  .checkin-byline {
+    font-size: 0.8125rem;
+  }
+
+  .checkin-desc {
+    font-size: 0.75rem;
+  }
+}

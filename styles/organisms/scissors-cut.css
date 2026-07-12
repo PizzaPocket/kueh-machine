@@ -1,0 +1,341 @@
+/* Timeline scissors-cut -> Getting Started unzip -> Check In reveal
+   (src/organisms/scissors-cut.js). Desktop only (>640px) — none of this is
+   shown under timeline-panel.css's own mobile breakpoint (see the media
+   query at the bottom of this file). */
+
+/* === Grommet (src/atoms/grommet.js) ===
+   The visual opposite of .metal-rivet (styles/atoms.css) — that one reads
+   as a raised bump; this one reads as a hole punched into the surface.
+   .grommet itself IS the rim — same diagonal 5-stop gradient recipe as
+   .rim-matte-inner (styles/atoms.css), just applied directly as this
+   element's own background rather than via a separate padded child, since
+   a grommet's rim is thin enough that one layer reads fine without needing
+   .rim-matte-inner's own rim+glint nesting. .grommet-hole (inset by the
+   rim's own thickness) is the actual dark recess — kept within the site's
+   own metal-shadow/metal-base ramp, not mixed toward literal black, so a
+   "hole" still reads as part of the same material rather than a void.
+
+   z-index: 1 — deliberately LOWER than .sc-guide-thread-layer's own z-index: 2
+   (below), so the thread crosses visibly *over* the rim. This only
+   resolves correctly because .sc-guide-grommet-row (below) no longer
+   carries its own z-index — see that rule's own comment for why trapping
+   .grommet/.grommet-hole in a separate stacking context would break this
+   entirely regardless of what z-index they're given. */
+.grommet {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--metal-base) 45%, white) 0%,
+    color-mix(in srgb, var(--metal-base) 30%, white) 20%,
+    color-mix(in srgb, var(--metal-highlight) 88%, var(--metal-base)) 45%,
+    color-mix(in srgb, var(--metal-base) 30%, white) 65%,
+    color-mix(in srgb, var(--metal-base) 45%, white) 100%
+  );
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark, but mixed from --color-surface-tint (the #guide section's own
+   background, index.html's .guide-section rule) toward black — not the
+   generic --metal-shadow/-base ramp, which belongs to the site's neutral
+   metal palette and reads as a mismatched material dropped onto this warm
+   cream surface. A hole punched into a specific surface should darken
+   *that* surface's own hue, the same reasoning .rim-matte-inner-tinted
+   already applies elsewhere (styles/atoms.css) for a rim sitting on a
+   themed background instead of a neutral one. */
+/* z-index: 3 — deliberately HIGHER than .sc-guide-thread-layer's own z-index: 2,
+   so the thread visually disappears *under* the hole (reading as diving
+   into the recess) exactly where it crosses over the rim at z-index: 1
+   above. Sandwiched: rim (1) < thread (2) < hole (3). */
+.grommet-hole {
+  position: absolute;
+  z-index: 3;
+  inset: 1.5px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--color-surface-tint) 35%, black) 0%,
+    color-mix(in srgb, var(--color-surface-tint) 48%, black) 60%,
+    color-mix(in srgb, var(--color-surface-tint) 72%, black) 100%
+  );
+  box-shadow: inset 0 1px 1.5px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.grommet-row {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+/* === Scissors === */
+.sc-scissors-wrap {
+  position: absolute;
+  pointer-events: none;
+}
+
+.sc-scissors-back,
+.sc-scissors-front {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 50% 50%;
+}
+
+/* Sandwiched stacking, not a flat pair: back blade (1) < cut-string (2,
+   below) < front blade (3). .sc-scissors-wrap has no z-index of its own
+   (position:absolute alone doesn't establish a stacking context), so these
+   values and .sc-cut-string's both resolve within #timeline's own
+   stacking context (.timeline-section has position:relative + z-index:1)
+   regardless of DOM nesting depth — the string threads visually between
+   the two blade layers wherever they cross it, not just behind or in front
+   of the whole assembly. */
+.sc-scissors-back { z-index: 1; }
+.sc-scissors-front { z-index: 3; }
+
+/* The fulcrum screw — same embossed-bump recipe as .metal-rivet (styles/
+   atoms.css: radial highlight near the top-left, darkening outward, drop
+   shadow underneath), not a shared class, since this one needs its own
+   absolute centering/z-index rather than .metal-rivet's flex-row layout.
+   z-index: 4 — topmost of the sandwich (back < string < front < rivet),
+   sitting on the visible face of both crossed blades like a real screw. */
+.sc-scissors-rivet {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 0%,
+    color-mix(in srgb, var(--metal-base) 22%, white) 55%,
+    color-mix(in srgb, var(--metal-base) 40%, white) 100%
+  );
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+/* Two smaller flanking rivets either side of the fulcrum screw — purely
+   decorative hardware (handle-plate bolts), not additional pivots, so they
+   share the fulcrum's own fixed 50%/50% vertical centering and never
+   rotate. `left` overrides the base rule's 50% — same specificity, so
+   these must stay ordered after .sc-scissors-rivet in the cascade. */
+.sc-scissors-rivet-left { left: calc(50% - 12px); }
+.sc-scissors-rivet-right { left: calc(50% + 12px); }
+
+/* === Mobile-only short cut-string + grommets (src/organisms/scissors-cut.js's
+   mobileGrommetA/B, mobileCutStringA/B) === Hidden by default (desktop) —
+   shown only under the mobile breakpoint below, where they're what actually
+   gets severed instead of the long desktop cut-string. Both are children of
+   .sc-scissors-wrap, positioned with plain local left/top (in the wrap's
+   own un-rotated coordinate space — see their build comment in
+   scissors-cut.js for the rotate(90deg) coordinate math), so they ride
+   along automatically with the wrap's own mobile rotation exactly like the
+   fulcrum/flanking rivets already do. */
+.sc-mobile-string-grommet {
+  display: none;
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+}
+
+.sc-mobile-cut-string {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Clip-path retract, not a rigid translate — a fixed-px slide leaves most
+   of the stroke still visibly sticking out past its own grommet, since
+   the segment's own length doesn't shrink, just its position. Each half
+   now has a real sized viewBox (see buildMobileCutStringHalf,
+   scissors-cut.js), so clip-path resolves against a meaningful box, same
+   reason the desktop guide-thread layer needed one. Anchored at each
+   half's OWN grommet end, shrinking away from the shared crossing-point
+   end — half A (grommet on its LEFT) grows the RIGHT inset; half B
+   (grommet on its RIGHT) grows the LEFT inset — so the last visible
+   sliver of each half sits right at its own grommet just before vanishing,
+   reading as the string being pulled fully into the hole. Same
+   accelerate-then-steady-pace shape as sc-fall-left/-right — one shared
+   "weight released at the cut" physical language across the whole
+   feature. */
+@keyframes sc-mobile-string-fall-a {
+  0% { clip-path: inset(0 0% 0 0); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  40% { clip-path: inset(0 20% 0 0); animation-timing-function: linear; }
+  100% { clip-path: inset(0 100% 0 0); }
+}
+@keyframes sc-mobile-string-fall-b {
+  0% { clip-path: inset(0 0 0 0%); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  40% { clip-path: inset(0 0 0 20%); animation-timing-function: linear; }
+  100% { clip-path: inset(0 0 0 100%); }
+}
+.sc-mobile-cut-string-a.sc-zipped { animation: sc-mobile-string-fall-a 400ms both; }
+.sc-mobile-cut-string-b.sc-zipped { animation: sc-mobile-string-fall-b 400ms both; }
+
+/* === Chip knob ===
+   Flat --color-primary-strong — same exact color the chip's own fill uses
+   (.tl-day-chip-fill, timeline-panel.css), no gradient at all now, so it
+   reads as literally the same material/object rather than a separately-
+   rendered add-on with its own (however subtle) shading. */
+.sc-chip-knob {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* === Timeline cut-string ===
+   Two independent halves split at the scissors' x. Both this and the
+   grommet thread's own retract (.sc-guide-thread-layer.sc-thread-retract,
+   below) share one physical model — a heavy weight starting at rest,
+   released the instant the string is cut: an accelerating first phase
+   (0%-40% of the duration), then a steady, capped "terminal velocity"
+   phase (40%-100%) — not a continuously-accelerating ease the whole way
+   through. z-index: 2 sandwiches it between the two blade layers — see
+   .sc-scissors-back/-front's own comment. */
+.sc-cut-string {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* 100vw, not a percentage of the segment's own width — each half's own
+   width varies with where the scissors happen to sit (the half on the far
+   side of an off-center scissors position can be much narrower than the
+   viewport), so a percentage-of-self transform could fall well short of
+   actually clearing the screen. A flat viewport-width translate clears it
+   regardless of either half's own size. The 40% keyframe only covers 20vw
+   of the full 100vw — most of the distance is covered in the back half of
+   the animation, at the steady post-acceleration pace, not the front half. */
+@keyframes sc-fall-left {
+  0% { transform: translateX(0); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  40% { transform: translateX(-20vw); animation-timing-function: linear; }
+  100% { transform: translateX(-100vw); }
+}
+@keyframes sc-fall-right {
+  0% { transform: translateX(0); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  40% { transform: translateX(20vw); animation-timing-function: linear; }
+  100% { transform: translateX(100vw); }
+}
+.sc-cut-string-left.sc-zipped { animation: sc-fall-left 400ms both; }
+.sc-cut-string-right.sc-zipped { animation: sc-fall-right 400ms both; }
+
+/* === Grommet row + threaded string ===
+   Anchored to #timeline's own bottom edge (a fixed, permanent decoration —
+   see scissors-cut.js's own build comment for why this no longer tracks
+   #guide). left/right: 32px matches .container's own horizontal inset, so
+   the grommets align with the same content column as everything else in
+   the section. bottom: 16px sits inside .timeline-section's own 72px
+   bottom padding (timeline-panel.css) — tune either alongside the other
+   if they change. .grommet-row (styles/atoms.css) already supplies
+   position:absolute/display:flex/justify-content.
+
+   Deliberately NO z-index here — position:absolute + z-index together are
+   what create a new stacking context, which would trap .grommet/
+   .grommet-hole inside it, comparing only against each other rather than
+   against .sc-guide-thread-layer (a sibling of this row, not a descendant).
+   Leaving this unset lets the rim/hole/thread sandwich below resolve
+   directly within #timeline's own stacking context instead. */
+.sc-guide-grommet-row {
+  left: 32px;
+  right: 32px;
+  bottom: 16px;
+}
+
+/* One single <svg> spanning the whole row (src/organisms/scissors-cut.js's
+   buildGuideThreadLayer) — one continuous line, not N separate segment
+   elements. The over-the-rim/under-the-surface weave look comes from a
+   static SVG <mask> inside it (white rects over the spans that should
+   show), not from any per-element positioning here. z-index: 2 sandwiches
+   it between each grommet's own rim (1, below the thread) and hole (3,
+   above it) — see .grommet/.grommet-hole's own comments — so the thread
+   reads as actually woven through each hole, not just floating over the
+   row. */
+.sc-guide-thread-layer {
+  position: absolute;
+  z-index: 2;
+  overflow: visible;
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
+}
+
+/* Clips the whole layer's own box — path AND its cecek dot circles
+   together, not just the stroked line (stroke-dashoffset alone, tried
+   first, only ever affects the path itself and left the dots sitting
+   motionless throughout the retract). inset(top right bottom left):
+   growing the RIGHT value anchors the visible remainder to the LEFT,
+   shrinking away toward the right — the row reads as sliding out toward
+   the left, not the right (confirmed against the actual rendered motion
+   for the old per-segment version of this rule; direction carries over
+   unchanged here). Same accelerate-then-steady-pace shape as sc-fall-left/
+   -right above — see .sc-cut-string's own comment for the shared "one
+   weight, released at the cut" reasoning. Duration kept in sync with
+   GUIDE_UNZIP_MS (scissors-cut.js). Because the clip sweeps the entire
+   layer box — including the offscreen-run, already-mask-hidden stretch
+   nearest the right edge — real visible material doesn't start shrinking
+   until partway through this animation even though it (and the Timeline
+   cut-string) both start at the exact same instant — see runSequence's own
+   comment (scissors-cut.js). */
+@keyframes sc-thread-fall {
+  0% { clip-path: inset(0 0% 0 0); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  40% { clip-path: inset(0 20% 0 0); animation-timing-function: linear; }
+  100% { clip-path: inset(0 100% 0 0); }
+}
+.sc-guide-thread-layer.sc-thread-retract {
+  animation: sc-thread-fall 1200ms both;
+}
+
+/* === Check In section shell === moved to styles/organisms/check-in.css —
+   that section now owns real (if still placeholder) content, a separate
+   concern from this file's own cut/unzip/reveal mechanism. */
+
+@media (max-width: 640px) {
+  /* Desktop-only pieces: the long cut-string (replaced by the short mobile
+     string/grommets) and the chip knob (the cup itself engages the
+     scissors on mobile — see scissors-cut.js's getContactPos). The Getting
+     Started grommet row/thread stay VISIBLE on mobile too — just a
+     smaller count (GROMMET_COUNT_MOBILE, scissors-cut.js) — and unravel
+     sequentially after the mobile cut-string finishes rather than in
+     parallel with it (see runSequence's own isMobile branch). */
+  .sc-cut-string,
+  .sc-chip-knob {
+    display: none;
+  }
+
+  /* .sc-scissors-wrap itself stays visible — rotated 90deg so the tip
+     faces right and the handles face left (see src/organisms/
+     scissors-cut.js's positionTimelineElements mobile branch for the
+     coordinate math this implies for everything positioned relative to
+     it). transform-origin defaults to 50% 50%, i.e. the wrap's own
+     center — the same point positionTimelineElements anchors left/top
+     against, so the rotation happens exactly in place. Every child
+     (blades, fulcrum + flanking rivets, the mobile string/grommets) rides
+     along automatically as one rigid object. */
+  .sc-scissors-wrap {
+    transform: rotate(90deg);
+  }
+
+  .sc-mobile-string-grommet,
+  .sc-mobile-cut-string {
+    display: block;
+  }
+}
