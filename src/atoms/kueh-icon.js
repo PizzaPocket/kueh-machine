@@ -16,6 +16,18 @@ function colorsForSeed(seed) {
     // rainbow-layer kueh already *is* this site's own default palette.
     return { base: '#61A081', shadow: '#2D6A4F', highlight: '#F9C74F' };
   }
+  if (seed.mode === 'neutral') {
+    // A near-zero primary chroma is intentional for the CSS ramp (it reads
+    // as white/cream there because REF's L values stay mid-tone), but at
+    // this icon's fixed L 0.62/0.42 that same low chroma has no hue left to
+    // show — it just renders as flat gray. Lighten base/shadow into the
+    // pale-cream range instead, where the warm hue is still visible.
+    return {
+      base: oklchToHex(0.92, Math.max(seed.primary.c, 0.03), seed.primary.h),
+      shadow: oklchToHex(0.76, Math.max(seed.primary.c, 0.03) * 1.2, seed.primary.h),
+      highlight: oklchToHex(0.85, seed.accent.c * 0.6, seed.accent.h),
+    };
+  }
   // base/shadow come from the kueh's actual body color (primary); the sheen
   // highlight uses the accent hue (e.g. gula melaka gold) rather than a
   // lighter tint of the same primary hue, so the icon reflects the food's

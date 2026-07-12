@@ -601,9 +601,9 @@ export const KUEH_SEED_TABLE = {
   },
   'putu-piring': {
     mode: 'neutral',
-    primary:   { h: 40, c: 0.02 }, // white rice flour
-    accent:    { h: 35, c: 0.10 }, // gula melaka core
-    highlight: { h: 50, c: 0.03 }, // grated coconut
+    primary:   { h: 40,  c: 0.02 }, // white rice flour (also stands in for the white grated coconut)
+    accent:    { h: 35,  c: 0.10 }, // gula melaka core
+    highlight: { h: 135, c: 0.07 }, // pandan/banana leaf
   },
   'kueh-bingka': {
     mode: 'chromatic',
