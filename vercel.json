@@ -1,3 +1,11 @@
 {
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/ruth", "destination": "/machines/ruth" },
+    { "source": "/ruth/:path*", "destination": "/machines/ruth/:path*" },
+    { "source": "/kaixin", "destination": "/machines/kaixin" },
+    { "source": "/kaixin/:path*", "destination": "/machines/kaixin/:path*" },
+    { "source": "/kevin", "destination": "/machines/kevin" },
+    { "source": "/kevin/:path*", "destination": "/machines/kevin/:path*" }
+  ]
 }

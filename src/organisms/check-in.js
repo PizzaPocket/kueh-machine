@@ -11,15 +11,16 @@ import { createRetroShape } from '../atoms/retro-shape.js';
 import { wrapWithInnerMatteRim } from '../atoms/matte-rim.js';
 import { buildMetalSeam } from '../atoms/metal-seam.js';
 
-// Two real submissions so far; the rest are unfilled placeholder rows
+// Three real submissions so far; the rest are unfilled placeholder rows
 // (clearly generic name/description, not fabricated people) reserving
-// space for the other nine team members' entries.
+// space for the other eight team members' entries.
 const CONTRIBUTORS = [
   { initials: 'KC', name: 'Kaixin Cai', desc: "(the one that's a puzzle game)" },
   { initials: 'KD', name: 'Kevin Dreher', desc: "(the one that's a Singlish translation app)" },
-  ...Array.from({ length: 9 }, (_, i) => ({
-    initials: `C${i + 3}`,
-    name: `Contributor ${i + 3}`,
+  { initials: 'RY', name: 'Ruth Yong', desc: "(the one that's a stacking game)" },
+  ...Array.from({ length: 8 }, (_, i) => ({
+    initials: `C${i + 4}`,
+    name: `Contributor ${i + 4}`,
     desc: "(the one that's a ___)",
   })),
 ];

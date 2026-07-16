@@ -1,0 +1,3718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Kueh Bakery</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: radial-gradient(ellipse at center, #C4863A 0%, #7A4A10 100%);
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; overflow: hidden; font-family: 'Nunito', sans-serif;
+}
+
+#wrapper {
+  position: relative; width: 400px; height: 764px;
+  transform-origin: center center; overflow: hidden; border-radius: 22px;
+  box-shadow: 0 20px 60px rgba(30,12,0,0.7);
+}
+
+canvas { display: block; }
+
+.overlay {
+  position: absolute; inset: 0; border-radius: 22px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; z-index: 20; gap: 10px; padding: 24px;
+}
+.overlay.hidden { display: none; }
+
+#nameInputOverlay {
+  background: rgba(16, 5, 0, 0.62);
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  justify-content: center; padding-bottom: 0;
+}
+.onboard-card {
+  width: 100%; max-width: 340px;
+  background: rgba(255, 250, 235, 0.97);
+  border-radius: 20px; padding: 24px 26px 22px;
+  box-shadow: 0 8px 32px rgba(80,40,0,0.25);
+  border: 1.5px solid rgba(210,165,70,0.4);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.card-eyebrow {
+  font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase;
+  color: #C4863A; font-weight: 700;
+}
+.card-title { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: #6B3A10; line-height: 1.2; }
+.card-body { font-size: 0.9rem; color: #7A5530; line-height: 1.7; }
+.card-signoff { font-size: 0.9rem; color: #7A5530; line-height: 1.6; margin-top: 4px; }
+.name-label { font-size: 0.8rem; color: #A07050; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.name-input {
+  width: 100%; padding: 10px 14px;
+  background: rgba(255,248,220,0.9);
+  border: 2px solid rgba(200,155,65,0.5);
+  border-radius: 10px; font-family: 'Nunito', sans-serif;
+  font-size: 1rem; color: #5A3010; outline: none; transition: border-color 0.2s;
+}
+.name-input:focus { border-color: #C4863A; }
+.name-input::placeholder { color: #C4A870; }
+
+#tutorialGateOverlay { background: rgba(16, 5, 0, 0.60); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+#tutorialOverlay     { background: transparent; pointer-events: none; justify-content: center; padding-bottom: 0; }
+.td-card {
+  pointer-events: auto;
+  background: rgba(255, 252, 240, 0.95);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  width: 88%; max-width: 360px;
+  border-radius: 14px;
+  padding: 12px 16px 14px;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.38);
+  border: 1.5px solid rgba(190,155,70,0.40);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  animation: liCardSlideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.td-header-row {
+  display: flex; align-items: baseline; gap: 8px; width: 100%; justify-content: center;
+}
+.td-step-tag {
+  font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase;
+  color: #B09060; font-weight: 700; font-family: 'Nunito', sans-serif;
+  white-space: nowrap;
+}
+.td-title {
+  font-family: 'Fredoka One', cursive; font-size: 1.1rem; color: #7B3F00;
+}
+.td-body {
+  font-size: 0.76rem; color: #8B6040; line-height: 1.45;
+  max-width: 300px; text-align: center; margin: 0;
+}
+.td-footer-row {
+  display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 4px;
+}
+.td-dots { display: flex; gap: 6px; }
+.td-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(196,134,58,0.25); }
+.td-dot.active { background: #C4863A; }
+.td-skip {
+  position: absolute; top: 16px; right: 16px;
+  font-family: 'Nunito', sans-serif; font-size: 0.82rem;
+  color: rgba(255,255,255,0.75); font-weight: 700;
+  background: rgba(0,0,0,0.28); border: none;
+  padding: 6px 14px; border-radius: 20px; cursor: pointer;
+  pointer-events: auto; transition: background 0.15s;
+}
+.td-skip:hover { background: rgba(0,0,0,0.42); }
+
+.tutorial-step { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; text-align: center; }
+.tutorial-step.active { display: flex; }
+.tut-icon  { font-size: 3.2rem; line-height: 1; }
+.tut-title { font-family: 'Fredoka One', cursive; font-size: 1.7rem; color: #7B3F00; }
+.tut-body  { font-size: 0.93rem; color: #8B6040; line-height: 1.65; max-width: 300px; }
+.tut-demo  {
+  width: 100%; max-width: 300px; height: 48px;
+  background: rgba(200,155,65,0.12); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; color: #A07050; border: 1.5px dashed rgba(200,155,65,0.4);
+}
+.tut-dots { display: flex; gap: 8px; margin-top: 4px; }
+.tut-dot  { width: 8px; height: 8px; border-radius: 50%; background: rgba(196,134,58,0.25); }
+.tut-dot.active { background: #C4863A; }
+
+#gameOverOverlay, #confirmExitOverlay {
+  background: rgba(16, 5, 0, 0.62);
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+}
+#levelIntroOverlay {
+  background: rgba(16, 5, 0, 0.55);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  justify-content: center; padding-bottom: 0;
+  pointer-events: auto;
+}
+#levelIntroOverlay .li-card { pointer-events: auto; }
+#levelCompleteOverlay {
+  background: rgba(16, 5, 0, 0.58);
+  backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+}
+
+/* ── Receipt-style popup card ───────────────────────────────────── */
+.li-card {
+  position: relative;
+  background: #FFFCF0;
+  width: 88%; max-width: 380px;
+  border-radius: 24px;
+  padding: 32px 28px 28px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  animation: liCardSlideUp 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.li-close {
+  position: absolute; top: 22px; right: 18px;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: #D42020;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 0; transition: background 0.15s;
+  box-shadow: 0 2px 8px rgba(180,0,0,0.35);
+}
+.li-close:hover { background: #B81818; }
+.li-close .material-icons-round { font-size: 1.3rem; color: #fff; }
+@keyframes liCardSlideUp {
+  from { transform: translateY(70px) scale(0.94); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ── Level complete animations ──────────────────────────────────── */
+@keyframes lcFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lcStarPop {
+  0%   { transform: scale(0) rotate(-25deg); opacity: 0; }
+  55%  { transform: scale(1.5) rotate(6deg); opacity: 1; }
+  75%  { transform: scale(0.88); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes lcIconBounce {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  55%  { transform: scale(1.25) rotate(8deg); opacity: 1; }
+  75%  { transform: scale(0.9) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* ── Envelope animation ─────────────────────────────────────────── */
+.env-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  cursor: pointer; user-select: none;
+}
+.env-body {
+  position: relative; width: 270px; height: 175px;
+  background: linear-gradient(160deg, #F5E4B4, #DDD090);
+  border-radius: 4px 4px 10px 10px;
+  box-shadow: 0 8px 30px rgba(80,40,0,0.28), inset 0 1px 0 rgba(255,255,255,0.45);
+  border: 1.5px solid rgba(180,138,50,0.50);
+  perspective: 600px;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+.env-fold-left {
+  position: absolute; inset: 0; width: 50%;
+  background: linear-gradient(to right, rgba(0,0,0,0.08), transparent);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  pointer-events: none;
+}
+.env-fold-right {
+  position: absolute; inset: 0; left: auto; width: 50%;
+  background: linear-gradient(to left, rgba(0,0,0,0.08), transparent);
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+  pointer-events: none;
+}
+.env-fold-bottom {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 88px;
+  background: rgba(0,0,0,0.07);
+  clip-path: polygon(0 100%, 100% 100%, 50% 0%);
+  pointer-events: none;
+}
+.env-flap {
+  position: absolute; top: 0; left: 0; width: 100%; height: 115px;
+  background: linear-gradient(to bottom, #D8C47A, #C4A855);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0%; z-index: 4;
+  transition: transform 0.75s cubic-bezier(0.4,0,0.2,1);
+  filter: drop-shadow(0 4px 5px rgba(0,0,0,0.18));
+}
+.env-flap.open { transform: rotateX(-175deg); }
+.env-seal {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 46px; height: 46px;
+  background: linear-gradient(145deg, #C4863A, #7A4818);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(80,40,0,0.35);
+  border: 2px solid rgba(255,210,110,0.55);
+  z-index: 3;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.env-seal.gone { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+.env-from {
+  position: absolute; bottom: 18px; left: 0; right: 0;
+  text-align: center;
+  font-family: 'Nunito',sans-serif; font-size: 0.70rem;
+  font-weight: 700; color: rgba(90,52,10,0.60);
+  letter-spacing: 0.4px; pointer-events: none; z-index: 3;
+}
+.env-tap-hint {
+  font-family: 'Nunito',sans-serif; font-size: 1.1rem;
+  color: rgba(255,255,255,0.88); font-weight: 700; margin: 0;
+  animation: envHintPulse 1.8s ease-in-out infinite;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+@keyframes envHintPulse {
+  0%,100% { opacity: 0.70; } 50% { opacity: 1; }
+}
+#envWrap.opening .env-body { pointer-events: none; }
+#envPhase { transition: opacity 0.4s ease, transform 0.4s ease; }
+#envPhase.fade-out { opacity: 0; transform: translateY(18px) scale(0.96); pointer-events: none; }
+#envLetter .onboard-card { height: 270px; overflow: hidden; }
+.env-letter {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  position: absolute; inset: 0; padding: 24px;
+  transform: translateY(200px); opacity: 0;
+  transition: transform 0.75s cubic-bezier(0.22,1,0.36,1), opacity 0.55s ease;
+  pointer-events: none;
+}
+.env-letter.visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.name-popup {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  position: absolute; inset: 0; padding: 24px;
+  transform: translateY(24px); opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease;
+  pointer-events: none;
+}
+.name-popup.visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.order-done-overlay {
+  position: absolute; inset: 0; border-radius: 22px;
+  background: rgba(240,255,230,0.88);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; z-index: 15; pointer-events: none;
+}
+.order-done-overlay.hidden { display: none; }
+
+.ov-icon  { font-size: 3.5rem; line-height: 1.1; }
+.ov-h1    { font-family: 'Fredoka One', cursive; font-size: 2.6rem; color: #7B3F00; text-align: center; }
+.ov-h2    { font-family: 'Fredoka One', cursive; font-size: 1.8rem; color: #7B3F00; text-align: center; }
+.ov-sub   { color: #A07050; font-size: 0.93rem; text-align: center; line-height: 1.6; }
+.ov-hint  { color: #C09878; font-size: 0.80rem; text-align: center; }
+.ov-score { font-family: 'Fredoka One', cursive; font-size: 2rem; color: #5C3317; }
+.ov-stars { font-size: 2rem; letter-spacing: 6px; }
+.divider  { width: 60px; height: 2px; background: #E0C090; border-radius: 2px; }
+.level-badge { font-size: 2rem; }
+
+.btn {
+  font-family: 'Fredoka One', cursive; font-size: 1.25rem; color: #fff;
+  background: linear-gradient(145deg, #ECA848, #B86A1A);
+  border: none; padding: 13px 46px; border-radius: 50px; cursor: pointer;
+  box-shadow: 0 5px 20px rgba(180,100,26,0.50); margin-top: 6px;
+  transition: transform 0.1s, box-shadow 0.1s; letter-spacing: 0.4px;
+}
+.btn:hover  { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(180,100,26,0.6); }
+.btn:active { transform: scale(0.95); }
+.btn-secondary {
+  font-family: 'Fredoka One', cursive; font-size: 1.05rem; color: #A07050;
+  background: rgba(200,160,80,0.15); border: 2px solid rgba(200,155,65,0.35);
+  padding: 10px 30px; border-radius: 50px; cursor: pointer;
+  transition: background 0.15s; margin-top: 2px;
+}
+.btn-secondary:hover { background: rgba(200,160,80,0.28); }
+.btn-green {
+  font-family: 'Fredoka One', cursive; font-size: 1.2rem; color: #fff;
+  background: linear-gradient(145deg, #60C060, #2E8B2E);
+  border: none; padding: 13px 36px; border-radius: 50px; cursor: pointer;
+  box-shadow: 0 5px 18px rgba(46,139,46,0.45); transition: transform 0.1s;
+}
+.btn-green:hover { transform: translateY(-2px); }
+
+.level-pips { display: flex; gap: 8px; margin: 4px 0; }
+.pip         { width: 12px; height: 12px; border-radius: 50%; background: rgba(200,160,80,0.28); }
+.pip.done    { background: #C4863A; }
+.pip.current { background: #E8A848; box-shadow: 0 0 0 3px rgba(232,168,72,0.3); }
+
+
+/* ── Navigation Bar ─────────────────────────────────── */
+#navBar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 64px;
+  background: linear-gradient(180deg, #FDF0CC 0%, #F0D070 100%);
+  border-top: 2px solid rgba(196,134,58,0.35);
+  display: flex; align-items: center; justify-content: space-around;
+  z-index: 30;
+}
+#navBar.hidden { display: none; }
+.nav-tab {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; background: none; border: none; cursor: pointer;
+  flex: 1; height: 100%; color: #C8B080;
+  font-family: 'Nunito', sans-serif; font-size: 0.60rem; font-weight: 700;
+  transition: color 0.15s, background 0.15s; padding: 6px 0;
+  border-top: 3px solid transparent;
+}
+.nav-tab svg { width: 20px; height: 20px; }
+.nav-tab .material-icons-round { font-size: 22px; }
+.nav-tab.active {
+  color: #5A1E04;
+  border-top: 3px solid #C4683A;
+  margin-top: 0;
+}
+
+/* ── Settings Button & Panel ────────────────────────── */
+#audioBtn {
+  position: absolute; top: 15px; right: 10px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(145deg, rgba(120,65,12,0.82), rgba(80,38,6,0.82));
+  border: 2px solid rgba(230,185,80,0.60);
+  color: #FFD890; cursor: pointer; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.40); transition: background 0.15s, transform 0.12s;
+}
+#audioBtn:hover  { background: linear-gradient(145deg, rgba(155,88,20,0.90), rgba(105,54,10,0.90)); }
+#audioBtn:active { transform: scale(0.93); }
+#audioBtn .material-icons-round { font-size: 26px; }
+#apOverlay {
+  position: absolute; inset: 0; z-index: 48;
+  background: rgba(16,5,0,0.60);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+#apOverlay.hidden { display: none; }
+#audioPanel {
+  position: absolute; top: 50%; left: 50%; z-index: 49;
+  transform: translate(-50%, -50%);
+  background: rgba(255,250,228,0.99); border-radius: 24px;
+  padding: 28px 28px 24px; box-shadow: 0 16px 56px rgba(60,28,0,0.50);
+  border: 1.5px solid rgba(200,155,65,0.45);
+  display: flex; flex-direction: column; gap: 16px; width: 340px;
+}
+#audioPanel.hidden { display: none; }
+.ap-header {
+  font-family: 'Fredoka One', cursive; font-size: 1.25rem;
+  color: #6B3A10; text-align: center;
+  padding-bottom: 10px; border-bottom: 1px solid rgba(196,134,58,0.25);
+}
+.ap-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.ap-label { font-family:'Nunito',sans-serif; font-size:0.95rem; color:#6B3A10; font-weight:700; }
+.ap-range { width:100%; accent-color:#C4863A; cursor:pointer; height:6px; }
+#audioPanel input[type=checkbox] { accent-color:#C4863A; width:20px; height:20px; cursor:pointer; }
+.ap-divider { height:1px; background:rgba(196,134,58,0.22); }
+.ap-divider.hidden { display:none; }
+.ap-game-actions { display:flex; gap:8px; }
+.ap-game-actions.hidden { display:none; }
+.ap-act-btn {
+  flex:1; font-family:'Fredoka One',cursive; font-size:0.95rem;
+  border:none; padding:10px 6px; border-radius:12px; cursor:pointer;
+  transition: transform 0.1s, box-shadow 0.1s; letter-spacing:0.2px;
+}
+.ap-act-btn:active { transform:scale(0.93); }
+.ap-act-retry { background:linear-gradient(145deg,#F0A840,#C47820); color:#fff; box-shadow:0 3px 10px rgba(180,100,20,0.35); }
+.ap-act-exit  { background:linear-gradient(145deg,#E07070,#B03030); color:#fff; box-shadow:0 3px 10px rgba(160,40,40,0.35); }
+
+/* ── Icon shapes for overlays ───────────────────────── */
+.oi {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; font-weight: 900; color: white;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+}
+.oi-gold  { background: linear-gradient(145deg, #FFD060, #C88020); }
+.oi-green { background: linear-gradient(145deg, #70CC70, #2A8A2A); }
+.oi-red   { background: linear-gradient(145deg, #EE6060, #B02020); }
+.oi-brown { background: linear-gradient(145deg, #C4863A, #7A4818); }
+.oi-blue  { background: linear-gradient(145deg, #70AEFF, #2060CC); }
+.tut-svg  { width: 58px; height: 58px; }
+.tut-mi {
+  width: 62px; height: 62px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+.tut-mi .material-icons-round { font-size: 2.4rem; color: #fff; }
+.ov-stars { display:flex; gap:6px; justify-content:center; align-items:center; margin:4px 0; }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <canvas id="c" width="400" height="700"></canvas>
+
+  <!-- Audio -->
+  <audio id="bgMusic"     src="cozy background music.mp3" loop preload="none"></audio>
+  <audio id="sfxMistake"  src="mistake sound.mp3"         preload="auto"></audio>
+  <audio id="sfxStack"    src="stack success.mp3"         preload="auto"></audio>
+  <audio id="sfxComplete" src="complete round.mp3"        preload="auto"></audio>
+  <audio id="sfxClick"    src="button click.mp3"          preload="auto"></audio>
+
+  <button id="audioBtn" onclick="toggleAudioPanel()">
+    <span class="material-icons-round">settings</span>
+  </button>
+  <div id="apOverlay" class="hidden" onclick="closeAudioPanel()"></div>
+  <div id="audioPanel" class="hidden">
+    <div class="ap-header">Settings</div>
+    <div class="ap-row"><span class="ap-label">Music</span><input type="checkbox" id="chkMusic" checked onchange="onMusicToggle()"></div>
+    <input type="range" id="volMusic" min="0" max="100" value="10" class="ap-range" oninput="onVolMusicChange(this.value)">
+    <div class="ap-row"><span class="ap-label">Sound FX</span><input type="checkbox" id="chkSfx" checked onchange="onSfxToggle()"></div>
+    <input type="range" id="volSfx" min="0" max="100" value="70" class="ap-range" oninput="onVolSfxChange(this.value)">
+    <div class="ap-row"><span class="ap-label">Vibration</span><input type="checkbox" id="chkVibrate" checked onchange="onVibrateToggle()"></div>
+    <div class="ap-divider hidden" id="apDivider"></div>
+    <div class="ap-game-actions hidden" id="apGameActions">
+      <button class="ap-act-btn ap-act-retry" onclick="retryFromSettings()">↺ Retry</button>
+      <button class="ap-act-btn ap-act-exit"  onclick="exitFromSettings()">← Exit</button>
+    </div>
+  </div>
+
+  <!-- Name / Onboarding (envelope animation) -->
+  <div class="overlay hidden" id="nameInputOverlay">
+    <!-- Phase 1: Closed envelope -->
+    <div id="envPhase" class="env-wrap" onclick="openEnvelope()">
+      <div class="env-body">
+        <div id="envFlap" class="env-flap"></div>
+        <div class="env-fold-left"></div>
+        <div class="env-fold-right"></div>
+        <div class="env-fold-bottom"></div>
+
+        <div class="env-from">From: Grandma Rohani</div>
+      </div>
+      <p class="env-tap-hint">Tap to open</p>
+    </div>
+    <!-- Phase 2: Letter slides out of envelope -->
+    <div id="envLetter" class="env-letter">
+      <div class="onboard-card">
+        <div id="letterText" class="card-body" style="white-space:pre-line;cursor:pointer" onclick="skipLetterTyping()"></div>
+      </div>
+      <button id="letterNextBtn" class="btn" onclick="showNamingCard()"
+              style="display:none;opacity:0;transform:translateY(8px);transition:opacity 0.4s ease,transform 0.4s ease;margin-top:12px">
+        Next
+      </button>
+    </div>
+    <!-- Phase 3: Name input popup -->
+    <div id="namingCard" class="name-popup">
+      <div class="onboard-card">
+        <div class="name-label">What shall the customers call you?</div>
+        <input class="name-input" id="bakerNameInput" type="text"
+               maxlength="20" placeholder="Baker ___" autocomplete="off" />
+        <button class="btn" onclick="confirmName()" style="margin-top:4px">
+          Start your journey
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial Gate -->
+  <div class="overlay hidden" id="tutorialGateOverlay">
+    <div class="li-card">
+      <div class="ov-h1" id="tutGateName" style="font-size:1.8rem">First time baking?</div>
+      <div class="divider"></div>
+      <div class="ov-sub">Learn the basics before your first order.</div>
+      <button class="btn-green" onclick="showTutorial()">Play tutorial</button>
+      <button class="btn-secondary" onclick="skipToGame()">Skip tutorial</button>
+    </div>
+  </div>
+
+  <!-- Tutorial Cards -->
+  <div class="overlay hidden" id="tutorialOverlay">
+    <button class="td-skip" onclick="skipToGame()">Skip</button>
+    <div class="td-card" id="tdCard">
+      <div id="tdTitle" class="td-title" style="text-align:center;width:100%">Read the Order</div>
+      <div id="tdBody" class="td-body">The order card shows the layers to stack. The highlighted chip tells you which colour to place <strong>next</strong>.</div>
+      <div class="td-footer-row">
+        <div class="td-dots">
+          <div class="td-dot active" id="tdDot1"></div>
+          <div class="td-dot"        id="tdDot2"></div>
+          <div class="td-dot"        id="tdDot3"></div>
+        </div>
+        <button class="btn" id="tdBtn" onclick="tutDemoNext()" style="padding:8px 22px;font-size:1rem;margin-top:0">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level Intro (reused for test-round intro & test-round complete) -->
+  <div class="overlay hidden" id="levelIntroOverlay">
+    <div class="li-card">
+      <button class="li-close" id="liCloseBtn" onclick="goToLevelMap()" style="display:none">
+        <span class="material-icons-round">close</span>
+      </button>
+      <div id="liIcon"   class="ov-icon"></div>
+      <div id="liLvlTag" style="font-size:1rem;letter-spacing:3px;text-transform:uppercase;color:#B09060;font-weight:700;font-family:'Nunito',sans-serif"></div>
+      <div id="liName"   class="ov-h1" style="font-size:1.6rem;white-space:nowrap"></div>
+      <div class="divider"></div>
+      <div id="liOrders" class="ov-sub"></div>
+      <div id="liPips"   class="level-pips" style="display:none"></div>
+      <button class="btn" id="levelIntroBtnStart">Let's Bake!</button>
+    </div>
+  </div>
+
+  <!-- Order done flash -->
+  <div class="order-done-overlay hidden" id="orderDoneOverlay">
+    <div style="font-size:2.2rem">✅</div>
+    <div style="font-family:'Fredoka One',cursive;font-size:1.7rem;color:#2E7A2E;margin-top:2px">Order Done!</div>
+    <div id="odBreakdown" style="color:#2A7A2A;font-size:0.80rem;font-family:'Nunito';font-weight:700;margin-top:6px;line-height:1.7;text-align:center;padding:0 10px"></div>
+  </div>
+
+  <!-- Level complete (fully rebuilt in JS each time with animations) -->
+  <div class="overlay hidden" id="levelCompleteOverlay"></div>
+
+  <!-- Game over -->
+  <div class="overlay hidden" id="gameOverOverlay">
+    <div class="li-card">
+      <div class="oi oi-red"><span class="material-icons-round" style="font-size:2.2rem">sentiment_very_dissatisfied</span></div>
+      <div class="ov-h1" style="color:#B03030">Aiyah!</div>
+      <div class="divider"></div>
+      <div class="ov-sub">You ran out of lives in the bakery...</div>
+      <div id="goScore" class="ov-score"></div>
+      <button class="btn" onclick="startOver()">Start over</button>
+      <button class="btn-secondary" onclick="goToMenu()">Main menu</button>
+    </div>
+  </div>
+
+  <!-- Confirm exit -->
+  <div class="overlay hidden" id="confirmExitOverlay">
+    <div class="li-card">
+      <div class="oi oi-brown"><span class="material-icons-round" style="font-size:2.2rem">logout</span></div>
+      <div class="ov-h2">Exit to menu?</div>
+      <div class="ov-sub">Progress in this level will be lost.</div>
+      <button class="btn" onclick="goToMenu()">Yes, exit</button>
+      <button class="btn-secondary" onclick="resumeGame()">Keep baking</button>
+    </div>
+  </div>
+
+  <!-- Navigation Bar (4 tabs: Play | Recipes | Scores | Profile) -->
+  <div id="navBar" class="hidden">
+    <button class="nav-tab" id="navPlay" onclick="navGo('play')">
+      <span class="material-icons-round">sports_esports</span>
+      <span>Play</span>
+    </button>
+    <button class="nav-tab" id="navRecipes" onclick="navGo('recipes')">
+      <span class="material-icons-round">menu_book</span>
+      <span>Recipes</span>
+    </button>
+    <button class="nav-tab" id="navScores" onclick="navGo('leaderboard')">
+      <span class="material-icons-round">leaderboard</span>
+      <span>Scores</span>
+    </button>
+    <button class="nav-tab" id="navProfile" onclick="navGo('profile')">
+      <span class="material-icons-round">person</span>
+      <span>Profile</span>
+    </button>
+  </div>
+
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 400, H = 700;
+
+function resize() {
+  const s = Math.min(window.innerWidth / 420, window.innerHeight / 784, 1);
+  document.getElementById('wrapper').style.transform = `scale(${s})`;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function getCanvasCoords(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+}
+function inBox(x, y, box) {
+  return x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+}
+
+// ═══════════════════════════════════════════════════════
+//  KUEH TYPES
+// ═══════════════════════════════════════════════════════
+const KT = {
+  pandan:   { name:'Pandan',   dark:'#1A5C1A', mid:'#3D9A3D', lite:'#A8E4A8', txt:'#fff' },
+  coconut:  { name:'Coconut',  dark:'#B8A478', mid:'#D8C090', lite:'#FFF8E8', txt:'#6B4820' },
+  rose:     { name:'Rose',     dark:'#A41830', mid:'#D43858', lite:'#F8A0B8', txt:'#fff' },
+  blue_pea: { name:'Blue Pea', dark:'#1E3A90', mid:'#3060CC', lite:'#98B8F4', txt:'#fff' },
+  turmeric: { name:'Turmeric', dark:'#B07808', mid:'#E0A820', lite:'#F8D868', txt:'#6B4808' },
+  yam:      { name:'Yam',      dark:'#502890', mid:'#7C50C4', lite:'#C4A0F0', txt:'#fff' },
+};
+
+// ═══════════════════════════════════════════════════════
+//  LEVELS  (20 stages)
+// ═══════════════════════════════════════════════════════
+const LEVELS = [
+  // ── TIER 1: APPRENTICE ───────────────────────────────
+  { number:1,  name:'Apprentice I',     badge:'🧁', targetOrders:3,  targetCoins:0,    speedMult:0.75, orders:[
+    { name:'Classic Pandan',   desc:'Start with the basics!',      layers:['pandan','coconut','pandan'],                    speed:2.0, decoy:0.22 },
+    { name:'Coconut Dream',    desc:'Silky smooth coconut layers', layers:['coconut','pandan','coconut','pandan'],           speed:2.1, decoy:0.24 },
+  ]},
+  { number:2,  name:'Apprentice II',    badge:'🧁', targetOrders:3,  targetCoins:60,   orders:[
+    { name:'Pandan Stack',     desc:'Stack it higher!',            layers:['pandan','coconut','pandan','coconut'],           speed:2.2, decoy:0.26 },
+    { name:'Rose Swirl',       desc:'A rosy introduction',         layers:['rose','coconut','pandan'],                      speed:2.3, decoy:0.27 },
+  ]},
+  { number:3,  name:'Apprentice III',   badge:'🧁', targetOrders:4,  targetCoins:90,   orders:[
+    { name:'Sunny Turmeric',   desc:'Warm and golden',             layers:['turmeric','coconut','pandan'],                  speed:2.4, decoy:0.28 },
+    { name:'Blue Beginnings',  desc:'A hint of floral blue',       layers:['blue_pea','coconut','blue_pea'],                speed:2.5, decoy:0.29 },
+    { name:'Mixed Trio',       desc:'Three flavours, one kueh',    layers:['pandan','rose','coconut'],                      speed:2.6, decoy:0.30 },
+  ]},
+  { number:4,  name:'Apprentice IV',    badge:'🧁', targetOrders:4,  targetCoins:120,  orders:[
+    { name:'Yam Lover',        desc:'Purple and dreamy',           layers:['yam','coconut','yam'],                          speed:2.6, decoy:0.31 },
+    { name:'Tropical Duo',     desc:'Two island favourites',       layers:['pandan','turmeric','pandan'],                   speed:2.8, decoy:0.32 },
+    { name:'Sunset Layers',    desc:'Warm colours all the way',    layers:['turmeric','rose','coconut','pandan'],            speed:3.0, decoy:0.34 },
+  ]},
+  { number:5,  name:'Apprentice V',     badge:'🧁', targetOrders:5,  targetCoins:150,  orders:[
+    { name:'Rose Garden',      desc:'Rosy and delightful',         layers:['rose','coconut','rose','coconut'],              speed:3.0, decoy:0.35 },
+    { name:'Ocean Breeze',     desc:'Blue and breezy',             layers:['blue_pea','coconut','blue_pea','coconut'],      speed:3.1, decoy:0.36 },
+    { name:'Classic Five',     desc:'Your first 5-layer kueh!',    layers:['pandan','coconut','rose','coconut','pandan'],   speed:3.2, decoy:0.37 },
+  ]},
+  // ── TIER 2: JUNIOR BAKER ─────────────────────────────
+  { number:6,  name:'Junior Baker I',   badge:'🍰', targetOrders:6,  targetCoins:200,  orders:[
+    { name:'Colour Burst',     desc:'Four colours!',               layers:['pandan','rose','turmeric','coconut'],           speed:3.2, decoy:0.38 },
+    { name:'Yam Delight',      desc:'Rich and creamy',             layers:['yam','coconut','yam','coconut'],               speed:3.3, decoy:0.39 },
+    { name:'Floral Dreams',    desc:'Blue and rose together',      layers:['blue_pea','rose','coconut','pandan'],           speed:3.4, decoy:0.40 },
+  ]},
+  { number:7,  name:'Junior Baker II',  badge:'🍰', targetOrders:7,  targetCoins:250,  orders:[
+    { name:'Purple Rain',      desc:'Yam-forward delight',         layers:['yam','pandan','yam','pandan'],                 speed:3.4, decoy:0.41 },
+    { name:'Sunrise Stack',    desc:'Start bright!',               layers:['turmeric','coconut','pandan','coconut'],       speed:3.5, decoy:0.42 },
+    { name:'Five Splendour',   desc:'Five colours, five layers',   layers:['rose','turmeric','pandan','blue_pea','coconut'], speed:3.6, decoy:0.43 },
+  ]},
+  { number:8,  name:'Junior Baker III', badge:'🍰', targetOrders:10, targetCoins:300,  orders:[
+    { name:'Ocean Blue',       desc:'Deep and serene',             layers:['blue_pea','coconut','blue_pea','yam'],          speed:3.7, decoy:0.44 },
+    { name:"Nenek's Special",  desc:"Grandma's prized recipe",     layers:['pandan','rose','coconut','turmeric','pandan'], speed:3.8, decoy:0.45 },
+    { name:'Heritage Lapis',   desc:'A classic for celebrations',  layers:['coconut','blue_pea','coconut','pandan','yam'], speed:4.0, decoy:0.46 },
+  ]},
+  { number:9,  name:'Junior Baker IV',  badge:'🍰', targetOrders:10, targetCoins:380,  orders:[
+    { name:'Grand Blue',       desc:'Blue pea takes the lead',     layers:['blue_pea','coconut','blue_pea','coconut','blue_pea'], speed:4.0, decoy:0.47 },
+    { name:'Yam Royale',       desc:'Yam stacked high!',           layers:['yam','rose','yam','coconut','yam'],            speed:4.1, decoy:0.48 },
+    { name:'Rainbow Five',     desc:'Every colour shines',         layers:['turmeric','rose','blue_pea','yam','pandan'],   speed:4.2, decoy:0.49 },
+  ]},
+  { number:10, name:'Junior Baker V',   badge:'🍰', targetOrders:10, targetCoins:450,  orders:[
+    { name:'Signature Six',    desc:'Six layers, no mercy',        layers:['pandan','rose','coconut','turmeric','blue_pea','yam'],    speed:4.3, decoy:0.50 },
+    { name:'Indigo Dream',     desc:'Blue pea all the way',        layers:['blue_pea','yam','blue_pea','coconut','blue_pea'],         speed:4.4, decoy:0.51 },
+    { name:'Grand Heritage',   desc:'A taste of tradition',        layers:['coconut','pandan','rose','yam','turmeric','coconut'],     speed:4.5, decoy:0.52 },
+  ]},
+  // ── TIER 3: HEAD BAKER ───────────────────────────────
+  { number:11, name:'Head Baker I',     badge:'🎂', targetOrders:12, targetCoins:500,  orders:[
+    { name:'Spice Market',     desc:'Turmeric leads the way',      layers:['turmeric','rose','coconut','pandan','turmeric','coconut'], speed:4.5, decoy:0.52 },
+    { name:'Royal Six',        desc:'Six colours, one dream',      layers:['rose','blue_pea','yam','turmeric','pandan','coconut'],    speed:4.6, decoy:0.53 },
+    { name:'Purple Majesty',   desc:'Yam through and through',     layers:['yam','coconut','yam','rose','yam','coconut'],             speed:4.7, decoy:0.54 },
+  ]},
+  { number:12, name:'Head Baker II',    badge:'🎂', targetOrders:14, targetCoins:560,  orders:[
+    { name:'Galaxy Kueh',      desc:'Colours out of this world',   layers:['yam','blue_pea','rose','turmeric','coconut','pandan'],    speed:4.8, decoy:0.54 },
+    { name:'Bakery Pride',     desc:'Your best work yet',          layers:['pandan','rose','blue_pea','yam','turmeric','coconut'],    speed:4.9, decoy:0.55 },
+    { name:'Seven Heaven',     desc:'A full seven-layer stack!',   layers:['pandan','coconut','rose','coconut','blue_pea','coconut','pandan'], speed:5.0, decoy:0.56 },
+  ]},
+  { number:13, name:'Head Baker III',   badge:'🎂', targetOrders:15, targetCoins:620,  orders:[
+    { name:'Rainbow Supreme',  desc:'Every colour, every bite',    layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose'],      speed:5.1, decoy:0.57 },
+    { name:'Pandan Parade',    desc:'Pandan takes centre stage',   layers:['pandan','coconut','pandan','rose','pandan','coconut','pandan'],    speed:5.2, decoy:0.58 },
+    { name:'Anniversary Kueh', desc:'For a very special occasion', layers:['rose','pandan','blue_pea','coconut','yam','turmeric','rose'],      speed:5.3, decoy:0.58 },
+  ]},
+  { number:14, name:'Head Baker IV',    badge:'🎂', targetOrders:16, targetCoins:700,  orders:[
+    { name:'Ultimate Heritage', desc:'All traditions at once',     layers:['coconut','rose','yam','blue_pea','turmeric','pandan','coconut'],  speed:5.4, decoy:0.59 },
+    { name:'Master Preview',    desc:"A taste of what's next",     layers:['blue_pea','yam','turmeric','rose','pandan','coconut','yam'],       speed:5.5, decoy:0.60 },
+    { name:'Grand Lapis',       desc:'The legendary seven-layer',  layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan'],   speed:5.6, decoy:0.60 },
+  ]},
+  { number:15, name:'Head Baker V',     badge:'🎂', targetOrders:18, targetCoins:780,  orders:[
+    { name:'Eight Wonders',    desc:'Eight perfect layers',        layers:['pandan','rose','coconut','yam','blue_pea','turmeric','pandan','coconut'], speed:5.7, decoy:0.61 },
+    { name:'Platinum Lapis',   desc:'Only legends attempt this',  layers:['rose','yam','turmeric','blue_pea','pandan','coconut','rose','yam'],      speed:5.8, decoy:0.62 },
+    { name:"Master's Touch",   desc:"Show them who's boss",       layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','pandan'], speed:5.9, decoy:0.62 },
+  ]},
+  // ── TIER 4: MASTER PATISSIER ─────────────────────────
+  { number:16, name:'Master I',         badge:'👑', targetOrders:20, targetCoins:850,  orders:[
+    { name:'Deep Violet',      desc:'Yam for days',                layers:['yam','rose','yam','blue_pea','yam','coconut','yam','pandan'],           speed:6.0, decoy:0.63 },
+    { name:'Midnight Blue',    desc:'The darkest, richest kueh',   layers:['blue_pea','yam','blue_pea','coconut','blue_pea','rose','blue_pea','yam'], speed:6.1, decoy:0.63 },
+    { name:"Grandmaster's Way",desc:"Grandma's ultimate recipe",   layers:['pandan','rose','blue_pea','yam','turmeric','coconut','rose','pandan'],   speed:6.2, decoy:0.64 },
+    { name:'Golden Crown',     desc:'Turmeric at the top',         layers:['turmeric','pandan','rose','coconut','yam','blue_pea','turmeric','coconut'], speed:6.2, decoy:0.64 },
+  ]},
+  { number:17, name:'Master II',        badge:'👑', targetOrders:25, targetCoins:1000, orders:[
+    { name:'Legendary Lapis',  desc:'Nine layers of pure legend',  layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose'],   speed:6.3, decoy:0.65 },
+    { name:'Nine Heavens',     desc:'Every flavour, nine times',   layers:['coconut','blue_pea','yam','rose','pandan','turmeric','coconut','blue_pea','yam'], speed:6.4, decoy:0.65 },
+    { name:"Chef's Tour",      desc:'A tour de force of kueh art', layers:['turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan'],  speed:6.5, decoy:0.66 },
+    { name:'Royal Banquet',    desc:'Fit for royalty',             layers:['yam','pandan','blue_pea','turmeric','rose','coconut','yam','blue_pea','pandan'],  speed:6.5, decoy:0.66 },
+  ]},
+  { number:18, name:'Master III',       badge:'👑', targetOrders:30, targetCoins:1200, orders:[
+    { name:'Decadent Ten',     desc:'Can you stack all ten?',      layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam'],       speed:6.6, decoy:0.67 },
+    { name:'Ultimate Parade',  desc:'All six types, twice over',   layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose','turmeric','pandan','blue_pea'], speed:6.7, decoy:0.67 },
+    { name:'Heritage Supreme', desc:'The finest heritage recipe',  layers:['coconut','yam','blue_pea','pandan','turmeric','rose','coconut','yam','blue_pea','pandan'],  speed:6.8, decoy:0.68 },
+    { name:'Penultimate Glory',desc:'Almost the very best…',       layers:['yam','rose','coconut','blue_pea','pandan','turmeric','yam','rose','coconut','blue_pea'],   speed:6.8, decoy:0.68 },
+  ]},
+  { number:19, name:'Master IV',        badge:'👑', targetOrders:40, targetCoins:1500, orders:[
+    { name:'Eleven Layers',    desc:'Eleven! Can you do it?',      layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose','blue_pea'],       speed:7.0, decoy:0.69 },
+    { name:'Hall of Legends',  desc:'Your name belongs here',      layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose'],      speed:7.1, decoy:0.69 },
+    { name:'Century Stack',    desc:'Ten layers of mastery',       layers:['coconut','rose','pandan','yam','blue_pea','turmeric','coconut','rose','pandan','yam'],                  speed:7.2, decoy:0.70 },
+    { name:'Penultimate Feat', desc:'One level from glory…',       layers:['turmeric','rose','blue_pea','yam','pandan','coconut','turmeric','rose','blue_pea','yam','pandan'],     speed:7.2, decoy:0.70 },
+  ]},
+  { number:20, name:'Master Patissier', badge:'👑', targetOrders:50, targetCoins:2000, orders:[
+    { name:'The Impossible Kueh',desc:'Only the best can do this!',  layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose'],                         speed:7.5, decoy:0.72 },
+    { name:'Hall of Fame',       desc:'Grandma is watching… 👀',    layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','coconut'],   speed:7.5, decoy:0.72 },
+    { name:'The Grand Finale',   desc:'Twelve layers. One chance.', layers:['pandan','rose','yam','blue_pea','turmeric','coconut','pandan','rose','yam','blue_pea','turmeric','coconut'],    speed:8.0, decoy:0.74 },
+    { name:'Ultimate Kueh',      desc:'Stack them all. Be legend.',  layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','rose','pandan','yam','blue_pea','turmeric'],   speed:8.0, decoy:0.74 },
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════
+//  LEVEL MAP  (20 nodes, scrollable virtual canvas)
+// ═══════════════════════════════════════════════════════
+// Virtual height: 2600px. Visible window: 618px (canvas 700 - header 82).
+// mapScrollY in [0, 1882]. Transform: ctx.translate(0, mapScrollY - 1840).
+// canvas_y = virtual_y + mapScrollY - 1840
+// virtual_y = canvas_y - mapScrollY + 1840
+const MAP_VIRTUAL_H  = 2600;
+const MAP_SCROLL_MAX = 1882;
+const MAP_NODE_R     = 34;
+
+// Organic winding path — snakes left-right up the virtual canvas
+// All 19 gaps = 120px for a smooth, even road throughout
+const MAP_NODES = [
+  { x:200, y:2430 }, // L1  start centre
+  { x:110, y:2310 }, // L2
+  { x: 65, y:2190 }, // L3
+  { x:140, y:2070 }, // L4
+  { x:250, y:1950 }, // L5
+  { x:325, y:1830 }, // L6
+  { x:280, y:1710 }, // L7
+  { x:170, y:1590 }, // L8
+  { x: 80, y:1470 }, // L9
+  { x: 95, y:1350 }, // L10
+  { x:190, y:1230 }, // L11
+  { x:300, y:1110 }, // L12
+  { x:330, y: 990 }, // L13
+  { x:255, y: 870 }, // L14
+  { x:155, y: 750 }, // L15
+  { x: 75, y: 630 }, // L16
+  { x:148, y: 510 }, // L17
+  { x:262, y: 390 }, // L18
+  { x:258, y: 270 }, // L19
+  { x:200, y: 150 }, // L20 — centered
+];
+
+// Stars: [always, 2-star threshold, 3-star threshold]
+// Thresholds set so 2★ requires solid play (~55% max), 3★ requires near-perfect (~80% max)
+const STAR_THRESHOLDS = [
+  [1,  200,  320], [1,  280,  440], [1,  400,  620], [1,  520,  810], [1,  650,  990], // 1-5
+  [1,  870, 1320], [1, 1090, 1650], [1, 1310, 1990], [1, 1660, 2510], [1, 1970, 2980], // 6-10
+  [1, 2190, 3310], [1, 2460, 3720], [1, 2720, 4110], [1, 3070, 4640], [1, 3420, 5170], // 11-15
+  [1, 3730, 5640], [1, 4390, 6640], [1, 5270, 7970], [1, 6590, 9970], [1, 8790,13290], // 16-20
+];
+
+// Customer personas — drawn with canvas
+const CUSTOMER_PERSONAS = [
+  { name:'Grandma',  skin:'#F0C898', hair:'#888888', hairStyle:'bun',      glasses:true,  extra:'wrinkles' },
+  { name:'Uncle',    skin:'#D4956A', hair:'#3A2A1A', hairStyle:'short',     glasses:true,  extra:null       },
+  { name:'Lady',     skin:'#F5C0A0', hair:'#1A1A3A', hairStyle:'long',      glasses:false, extra:'earring'  },
+  { name:'Cat',      skin:'#F0B860', hair:'#E08020', hairStyle:'catEars',   glasses:false, extra:'whiskers' },
+  { name:'Hipster',  skin:'#C8845A', hair:'#2A1A0A', hairStyle:'short',     glasses:true,  extra:'beard'    },
+  { name:'Aunty',    skin:'#E8A880', hair:'#1A1010', hairStyle:'bun',       glasses:false, extra:'earring'  },
+  { name:'Dog',      skin:'#D4A060', hair:'#8B5E30', hairStyle:'dogEars',   glasses:false, extra:'nose'     },
+  { name:'Girl',     skin:'#F8C8A8', hair:'#5A3010', hairStyle:'ponytail',  glasses:false, extra:'blush'    },
+  { name:'Old Uncle',skin:'#D08860', hair:'#C8C8C8', hairStyle:'short',     glasses:true,  extra:'wrinkles' },
+  { name:'Kid',      skin:'#F5D0A8', hair:'#7A4020', hairStyle:'messy',     glasses:false, extra:'blush'    },
+];
+
+function drawCustomerPortrait(cx, cy, r, idx) {
+  const p = CUSTOMER_PERSONAS[idx % CUSTOMER_PERSONAS.length];
+
+  // Shadow
+  ctx.save(); ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(cx+1, cy+2, r, r, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Face circle background (colour-coded per persona)
+  const bgColors = ['#FFF0E0','#FFE8D0','#FFF0F4','#FFF4E0','#FFF0E8','#FFEEF2','#FFF8E0','#FFF0F8','#F0F0F0','#FFF8F0'];
+  ctx.fillStyle = bgColors[idx % bgColors.length];
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#C4863A'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Clip to circle for all portrait drawing
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r-0.5, 0, Math.PI*2); ctx.clip();
+
+  // Hair (background layer)
+  ctx.fillStyle = p.hair;
+  if (p.hairStyle === 'catEars' || p.hairStyle === 'dogEars') {
+    // Animal ear body fill (drawn first as base)
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+  } else if (p.hairStyle === 'bun') {
+    ctx.fillRect(cx - r, cy - r, r*2, r*0.55);
+    ctx.beginPath(); ctx.arc(cx, cy - r*0.32, r*0.38, 0, Math.PI*2); ctx.fill();
+  } else if (p.hairStyle === 'long') {
+    ctx.fillRect(cx - r, cy - r, r*2, r*0.55);
+    ctx.fillRect(cx - r, cy - r*0.1, r*0.28, r*1.2);
+    ctx.fillRect(cx + r*0.72, cy - r*0.1, r*0.28, r*1.2);
+  } else if (p.hairStyle === 'ponytail') {
+    ctx.fillRect(cx - r, cy - r, r*2, r*0.5);
+    ctx.beginPath(); ctx.ellipse(cx + r*0.85, cy - r*0.2, r*0.18, r*0.55, 0.3, 0, Math.PI*2); ctx.fill();
+  } else if (p.hairStyle === 'messy') {
+    ctx.fillRect(cx - r, cy - r, r*2, r*0.5);
+    ctx.beginPath(); ctx.arc(cx - r*0.3, cy - r*0.82, r*0.22, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r*0.3, cy - r*0.9, r*0.2, 0, Math.PI*2); ctx.fill();
+  } else { // short
+    ctx.fillRect(cx - r, cy - r, r*2, r*0.52);
+  }
+
+  // Skin face
+  ctx.fillStyle = p.skin;
+  ctx.beginPath(); ctx.arc(cx, cy + r*0.12, r*0.72, 0, Math.PI*2); ctx.fill();
+
+  // Eyes
+  ctx.fillStyle = '#2A1A0A';
+  [-0.26, 0.26].forEach(dx => {
+    ctx.beginPath(); ctx.arc(cx + dx*r, cy - r*0.05, r*0.1, 0, Math.PI*2); ctx.fill();
+  });
+  // Eye whites
+  ctx.fillStyle = '#fff';
+  [-0.26, 0.26].forEach(dx => {
+    ctx.beginPath(); ctx.arc(cx + dx*r - r*0.04, cy - r*0.08, r*0.05, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Smile
+  ctx.strokeStyle = '#A06040'; ctx.lineWidth = r*0.1; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(cx, cy + r*0.22, r*0.25, 0.2, Math.PI - 0.2); ctx.stroke();
+
+  // Extras
+  if (p.extra === 'wrinkles') {
+    ctx.strokeStyle='rgba(140,90,50,0.35)'; ctx.lineWidth=r*0.06;
+    ctx.beginPath(); ctx.moveTo(cx-r*0.48, cy-r*0.08); ctx.lineTo(cx-r*0.28, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+r*0.28, cy); ctx.lineTo(cx+r*0.48, cy-r*0.08); ctx.stroke();
+  }
+  if (p.extra === 'earring') {
+    ctx.fillStyle='#FFD700';
+    ctx.beginPath(); ctx.arc(cx - r*0.72, cy + r*0.05, r*0.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r*0.72, cy + r*0.05, r*0.1, 0, Math.PI*2); ctx.fill();
+  }
+  if (p.extra === 'beard') {
+    ctx.fillStyle = p.hair; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.ellipse(cx, cy + r*0.46, r*0.42, r*0.28, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  if (p.extra === 'whiskers') {
+    ctx.strokeStyle='rgba(80,50,20,0.5)'; ctx.lineWidth=r*0.06;
+    [-r*0.5,-r*0.35].forEach(dy => {
+      ctx.beginPath(); ctx.moveTo(cx-r*0.18,cy+dy); ctx.lineTo(cx-r*0.72,cy+dy-r*0.08); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+r*0.18,cy+dy); ctx.lineTo(cx+r*0.72,cy+dy-r*0.08); ctx.stroke();
+    });
+    // Cat nose
+    ctx.fillStyle='#E07090';
+    ctx.beginPath(); ctx.arc(cx, cy+r*0.1, r*0.1, 0, Math.PI*2); ctx.fill();
+  }
+  if (p.extra === 'nose') {
+    // Dog nose
+    ctx.fillStyle='#3A2A1A';
+    ctx.beginPath(); ctx.ellipse(cx, cy+r*0.18, r*0.16, r*0.12, 0, 0, Math.PI*2); ctx.fill();
+  }
+  if (p.extra === 'blush') {
+    ctx.fillStyle='rgba(220,100,100,0.28)';
+    ctx.beginPath(); ctx.ellipse(cx-r*0.38, cy+r*0.2, r*0.2, r*0.12, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+r*0.38, cy+r*0.2, r*0.2, r*0.12, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  ctx.restore(); // unclip
+
+  // Animal ears (drawn outside clip for visibility)
+  if (p.hairStyle === 'catEars') {
+    ctx.fillStyle = p.hair;
+    ctx.beginPath(); ctx.moveTo(cx-r*0.55, cy-r*0.75); ctx.lineTo(cx-r*0.85, cy-r*1.1); ctx.lineTo(cx-r*0.18, cy-r*0.75); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx+r*0.55, cy-r*0.75); ctx.lineTo(cx+r*0.85, cy-r*1.1); ctx.lineTo(cx+r*0.18, cy-r*0.75); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,180,180,0.7)';
+    ctx.beginPath(); ctx.moveTo(cx-r*0.55, cy-r*0.8); ctx.lineTo(cx-r*0.78, cy-r*1.05); ctx.lineTo(cx-r*0.22, cy-r*0.8); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx+r*0.55, cy-r*0.8); ctx.lineTo(cx+r*0.78, cy-r*1.05); ctx.lineTo(cx+r*0.22, cy-r*0.8); ctx.closePath(); ctx.fill();
+  }
+  if (p.hairStyle === 'dogEars') {
+    ctx.fillStyle = p.hair;
+    ctx.beginPath(); ctx.ellipse(cx-r*0.82, cy-r*0.5, r*0.28, r*0.52, -0.35, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+r*0.82, cy-r*0.5, r*0.28, r*0.52, 0.35, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Glasses (drawn on top)
+  if (p.glasses) {
+    ctx.strokeStyle='#4A3010'; ctx.lineWidth=r*0.1;
+    ctx.strokeRect(cx-r*0.48, cy-r*0.2, r*0.36, r*0.28);
+    ctx.strokeRect(cx+r*0.12, cy-r*0.2, r*0.36, r*0.28);
+    ctx.beginPath(); ctx.moveTo(cx-r*0.12, cy-r*0.06); ctx.lineTo(cx+r*0.12, cy-r*0.06); ctx.stroke();
+  }
+}
+
+// Tutorial practice order (3 layers so completion feels real)
+const TUTORIAL_ORDER = { layers:['pandan','coconut','pandan'], speed:1.6, decoy:0.0 };
+
+// Mock leaderboard entries
+const MOCK_LEADERBOARD = [
+  { name:'Siti Rahayu', score:4200 },
+  { name:'Ahmad Faiz',  score:3850 },
+  { name:'Priya S',     score:3200 },
+  { name:'Wei Ming',    score:2800 },
+  { name:'Fatimah',     score:2100 },
+  { name:'Raj Kumar',   score:1950 },
+  { name:'Mei Lin',     score:1780 },
+  { name:'Zara Ali',    score:1620 },
+];
+const MOCK_SUGGESTED = [
+  { name:'Mei Lin',    levelName:'Apprentice I',  id:3847, color:'#3A8C3A' },
+  { name:'Arjun K',   levelName:'Apprentice II', id:9012, color:'#2C78A8' },
+];
+const RECIPE_BOOKS = [
+  { title:'Apprentice Bakes',  subtitle:'Levels 1 – 5',   color:'#D08020', spine:'#8A4008', filter: n => n.startsWith('Apprentice') },
+  { title:'Junior Kitchen',    subtitle:'Levels 6 – 10',  color:'#3A8A2A', spine:'#1E5814', filter: n => n.startsWith('Junior') },
+  { title:'Head Baker Series', subtitle:'Levels 11 – 15', color:'#1E70A8', spine:'#0A3C68', filter: n => n.startsWith('Head') },
+  { title:'Master Collection', subtitle:'Levels 16 – 19', color:'#8030A0', spine:'#4A0C6A', filter: n => n.startsWith('Master') && !n.startsWith('Master P') },
+  { title:'Grand Patissier',   subtitle:'Level 20',       color:'#B8980A', spine:'#786405', filter: n => n.startsWith('Master P') },
+  { title:'Secret Recipes',    subtitle:'Locked',         color:'#888888', spine:'#444444', filter: () => false, locked:true },
+];
+
+// ═══════════════════════════════════════════════════════
+//  LAYOUT CONSTANTS
+// ═══════════════════════════════════════════════════════
+const LH         = 28;
+const INIT_W     = 200;
+const PLATE_Y    = 575;
+const MOVER_Y    = 215;
+const SPEED_MULT = 1.7;
+
+// ═══════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════
+let state           = 'mainMenu';
+let bakerName       = 'Baker';
+let hasOnboarded    = false;
+let lives           = 3;
+let score           = 0;
+let levelIdx        = 0;
+let orderIdxInLevel = 0;
+let layerIdx        = 0;
+let placed          = [];
+let mover           = null;
+let moverDir        = 1;
+let moverSpd        = 2;
+let particles       = [];
+let shakeT          = 0;
+let redFlash        = 0;
+let greenFlash      = 0;
+let prevState       = 'playing';
+let isTestRound     = false;
+let orderBasePoints = 0;   // layer placement points for current order
+let orderPerfBonus  = 0;   // perfect-alignment bonus for current order
+
+// Progress
+let levelStars      = Array(20).fill(0);
+let highScores      = Array(20).fill(0);
+let unlockedLevels  = 1;
+let levelStartScore = 0;
+
+// Order done canvas animation
+let orderDoneAnimT  = 0;
+let orderDoneTotalPts = 0;
+
+// Lifetime stats
+let totalOrdersFilled  = 0;
+let perfectStacksCount = 0;
+
+// Recipe book — { key, name, desc, layers, levelName } deduped by key
+let collectedRecipes = [];
+
+// Friends — stored locally { name, id, level }
+let friends = [];
+let profileAddFriendBtnY = 560;   // updated each draw
+let profileRecommendBtns = [];    // [{x,y,w,h,id,name}] updated each draw
+let profileTab       = 0;         // 0=Suggested, 1=Friends
+let profileTabBtns   = [];        // updated each draw
+let recipesBookIdx   = -1;        // -1=grid view, ≥0=book detail view
+let recipesBookBtns  = [];        // [{x,y,w,h,idx}] updated each draw
+
+// Audio
+let audioUnlocked  = false;
+let musicEnabled   = true;
+let sfxEnabled     = true;
+let showAudioPanel = false;
+let sfxVolume      = 0.70;
+let vibrateEnabled = true;
+
+// Menu animation
+let menuTime   = 0;
+let steamParts = [];
+let menuMouseX = 0, menuMouseY = 0;
+
+// Map scroll state
+let mapScrollY       = 0;
+let mapTargetScrollY = 0;
+let mapDragStartY    = null;
+let mapDragScrollStart = 0;
+let mapDragDist      = 0;
+
+// Cloud state
+const clouds = [
+  { wx:0, x: 10, y: 22, w: 55, spd: 0.10 },
+  { wx:0, x: 62, y: 36, w: 38, spd: 0.07 },
+  { wx:1, x:-20, y: 18, w: 50, spd: 0.09 },
+  { wx:1, x: 55, y: 30, w: 42, spd: 0.08 },
+];
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+const level     = () => LEVELS[levelIdx % LEVELS.length];
+const orderData = () => level().orders[orderIdxInLevel % level().orders.length];
+const neededKT  = () => KT[orderData().layers[layerIdx]];
+
+function layerY(idx) { return PLATE_Y - (idx + 1) * LH; }
+
+function rr(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);     ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+function hideAll() {
+  ['nameInputOverlay','tutorialGateOverlay','tutorialOverlay',
+   'levelIntroOverlay','orderDoneOverlay','levelCompleteOverlay',
+   'gameOverOverlay','confirmExitOverlay']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+// ── Navigation helpers ────────────────────────────────
+const NAV_SHOW_STATES = new Set(['levelMap','profile','leaderboard','recipes']);
+function updateNavVisibility() {
+  document.getElementById('navBar').classList.toggle('hidden', !NAV_SHOW_STATES.has(state));
+}
+function addFriend() {
+  const name = (prompt("Enter your friend's baker name:") || '').trim();
+  if (name.length >= 2) {
+    const id = Math.floor(Math.random() * 9000) + 1000;
+    friends.push({ name: name.slice(0, 16), id, level: 1 });
+  }
+}
+
+function updateNavActive() {
+  const map = { profile:'navProfile', leaderboard:'navScores', levelMap:'navPlay', recipes:'navRecipes' };
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  if (map[state]) document.getElementById(map[state]).classList.add('active');
+}
+function navGo(dest) {
+  unlockAudio();
+  if (dest === 'play' || dest === 'levelMap') { showLevelMap(); }
+  else if (dest === 'profile')     { state='profile';     hideAll(); updateNavVisibility(); updateNavActive(); }
+  else if (dest === 'leaderboard') { state='leaderboard'; hideAll(); updateNavVisibility(); updateNavActive(); }
+  else if (dest === 'recipes')     { state='recipes'; recipesBookIdx=-1; hideAll(); updateNavVisibility(); updateNavActive(); }
+}
+
+// ── Audio helpers ─────────────────────────────────────
+const bgMusic     = document.getElementById('bgMusic');
+const sfxMistake  = document.getElementById('sfxMistake');
+const sfxStack    = document.getElementById('sfxStack');
+const sfxComplete = document.getElementById('sfxComplete');
+const sfxClick    = document.getElementById('sfxClick');
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  // Prime every SFX element during this user gesture so browsers (incl. iOS Safari)
+  // allow them to play later without another gesture.
+  [sfxMistake, sfxStack, sfxComplete, sfxClick].forEach(sfx => {
+    sfx.muted = true;
+    const p = sfx.play();
+    if (p) p.then(() => { sfx.pause(); sfx.currentTime = 0; sfx.muted = false; })
+             .catch(() => { sfx.muted = false; });
+  });
+  if (musicEnabled) bgMusic.play().catch(()=>{});
+}
+function playSound(sfx) {
+  if (!sfxEnabled || !audioUnlocked) return;
+  sfx.volume = sfxVolume;
+  sfx.currentTime = 0;
+  sfx.play().catch(()=>{});
+}
+function playClick() { unlockAudio(); playSound(sfxClick); }
+function updateMusicPlayback() {
+  const gameplayStates = new Set(['playing','testRound','dead']);
+  if (!musicEnabled || !audioUnlocked || gameplayStates.has(state)) bgMusic.pause();
+  else bgMusic.play().catch(()=>{});
+}
+function closeAudioPanel() {
+  showAudioPanel = false;
+  document.getElementById('audioPanel').classList.add('hidden');
+  document.getElementById('apOverlay').classList.add('hidden');
+}
+function toggleAudioPanel() {
+  showAudioPanel = !showAudioPanel;
+  document.getElementById('audioPanel').classList.toggle('hidden', !showAudioPanel);
+  document.getElementById('apOverlay').classList.toggle('hidden', !showAudioPanel);
+  if (showAudioPanel) {
+    const inGame = state === 'playing' || state === 'testRound';
+    document.getElementById('apDivider').classList.toggle('hidden', !inGame);
+    document.getElementById('apGameActions').classList.toggle('hidden', !inGame);
+  }
+}
+function retryFromSettings() {
+  closeAudioPanel();
+  lives = 3;
+  score = levelStartScore;
+  orderIdxInLevel = 0;
+  isTestRound = false;
+  beginOrder();
+}
+function exitFromSettings() {
+  closeAudioPanel();
+  mover = null;
+  showLevelMap();
+}
+function onMusicToggle() {
+  musicEnabled = document.getElementById('chkMusic').checked;
+  updateMusicPlayback();
+}
+function onSfxToggle() {
+  sfxEnabled = document.getElementById('chkSfx').checked;
+}
+function onVolMusicChange(val) {
+  bgMusic.volume = val / 100;
+}
+function onVolSfxChange(val) {
+  sfxVolume = val / 100;
+}
+function onVibrateToggle() {
+  vibrateEnabled = document.getElementById('chkVibrate').checked;
+}
+document.addEventListener('pointerdown', () => unlockAudio(), { once: true });
+
+// Play click sound on every button press (bubble phase so unlockAudio fires first)
+document.addEventListener('pointerdown', e => {
+  if (e.target.closest('button')) playClick();
+});
+
+// ═══════════════════════════════════════════════════════
+//  MAIN MENU FLOW
+// ═══════════════════════════════════════════════════════
+const LETTER_FULL = "Dear,\n\nThe stall is yours now. I've left you my recipes and the old steamer. The regular customers already know the way. Make me proud.\n\nLove,\nGrandma Rohani";
+let _envOpened = false;
+let _letterTimer = null;
+let _letterIdx = 0;
+
+function startLetterTyping() {
+  _letterIdx = 0;
+  const el = document.getElementById('letterText');
+  el.textContent = '';
+  _letterTimer = setInterval(() => {
+    _letterIdx++;
+    el.textContent = LETTER_FULL.slice(0, _letterIdx);
+    if (_letterIdx >= LETTER_FULL.length) {
+      clearInterval(_letterTimer); _letterTimer = null;
+      setTimeout(showLetterNextBtn, 700);
+    }
+  }, 28);
+}
+
+function skipLetterTyping() {
+  if (_letterTimer) {
+    clearInterval(_letterTimer); _letterTimer = null;
+    document.getElementById('letterText').textContent = LETTER_FULL;
+    showLetterNextBtn();
+  }
+}
+
+function showLetterNextBtn() {
+  const btn = document.getElementById('letterNextBtn');
+  btn.style.display = 'block';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    btn.style.opacity = '1';
+    btn.style.transform = 'translateY(0)';
+  }));
+}
+
+function showNamingCard() {
+  const letter = document.getElementById('envLetter');
+  letter.classList.remove('visible');
+  setTimeout(() => { letter.style.display = 'none'; }, 350);
+  const nc = document.getElementById('namingCard');
+  nc.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    nc.classList.add('visible');
+    setTimeout(() => document.getElementById('bakerNameInput').focus(), 400);
+  }));
+}
+
+function openEnvelope() {
+  if (_envOpened) return;
+  _envOpened = true;
+  document.getElementById('envFlap').classList.add('open');
+  // After flap opens, slide card up out of envelope
+  setTimeout(() => {
+    const letter = document.getElementById('envLetter');
+    letter.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      letter.classList.add('visible');
+      // Fade envelope out as card rises through it
+      setTimeout(() => {
+        document.getElementById('envPhase').classList.add('fade-out');
+        setTimeout(() => { document.getElementById('envPhase').style.display = 'none'; }, 420);
+      }, 300);
+      setTimeout(startLetterTyping, 650);
+    }));
+  }, 800);
+}
+
+function openNameInput() {
+  state = 'nameInput';
+  _envOpened = false;
+  hideAll();
+  const flap = document.getElementById('envFlap');
+  const phase = document.getElementById('envPhase');
+  const letter = document.getElementById('envLetter');
+  const nc = document.getElementById('namingCard');
+  if (flap) flap.classList.remove('open');
+  if (phase) { phase.classList.remove('fade-out'); phase.style.display = ''; }
+  if (letter) { letter.classList.remove('visible'); letter.style.display = 'none'; }
+  if (nc) { nc.classList.remove('visible'); nc.style.display = 'none'; }
+  if (_letterTimer) { clearInterval(_letterTimer); _letterTimer = null; }
+  const lt = document.getElementById('letterText');
+  if (lt) lt.textContent = '';
+  const nb = document.getElementById('letterNextBtn');
+  if (nb) { nb.style.display = 'none'; nb.style.opacity = '0'; nb.style.transform = 'translateY(8px)'; }
+  document.getElementById('nameInputOverlay').classList.remove('hidden');
+}
+
+function confirmName() {
+  const val = document.getElementById('bakerNameInput').value.trim();
+  bakerName    = val.length >= 2 ? val : 'Baker';
+  hasOnboarded = true;
+  hideAll();
+  state = 'tutorialGate';
+  document.getElementById('tutGateName').textContent = `First time baking, ${bakerName}?`;
+  document.getElementById('tutorialGateOverlay').classList.remove('hidden');
+}
+
+document.getElementById('bakerNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmName();
+});
+
+// ── Tutorial Demo state ───────────────────────────────
+let tutDemoStep  = 1;   // 1=ReadOrder, 2=TapToPlace, 3=WatchLives
+let tutDemoPhase = 0;   // sub-phase within step
+let tutDemoTime  = 0;   // frame counter within phase
+let tutDemoMX    = -110; // demo mover x
+let tutDemoMDir  = 1;
+let tutDemoLayers = [];  // [{x, w, kt}] demo placed layers
+let tutDemoLives  = 3;
+let tutDemoParts  = [];  // demo particles [{x,y,vx,vy,r,color,life,decay}]
+
+const TD_SPD  = 2.5;    // demo mover speed px/frame
+const TD_W    = INIT_W; // demo mover width
+
+function showTutorial() {
+  hideAll();
+  state = 'tutDemo';
+  tutDemoStep = 1; tutDemoPhase = 0; tutDemoTime = 0;
+  tutDemoMX = W + TD_W/2 + 10; tutDemoMDir = -1;
+  tutDemoLayers = []; tutDemoLives = 3; tutDemoParts = [];
+  updateTutDemoCard();
+  document.getElementById('tutorialOverlay').classList.remove('hidden');
+}
+
+function updateTutDemoCard() {
+  const steps = [
+    { tag:'Step 1 of 3', title:'Read the Order',
+      body:'The order card shows the layers to stack. The highlighted chip tells you which colour to place <strong>next</strong>.',
+      btn:'Next →' },
+    { tag:'Step 2 of 3', title:'Tap to Place',
+      body:'Watch the layer slide across. Tap when the right colour is <strong>near the centre</strong> — the closer, the bigger your layer! Off-centre taps trim it.',
+      btn:'Next →' },
+    { tag:'Step 3 of 3', title:'Watch Your Lives',
+      body:'Tapping the <strong>wrong colour</strong> costs you one life. Lose all 3 and you\'ll need to <strong>wait for your lives to refill</strong> before baking again!',
+      btn:"Got it!" }
+  ];
+  const s = steps[tutDemoStep - 1];
+  document.getElementById('tdTitle').textContent = s.title;
+  document.getElementById('tdBody').innerHTML      = s.body;
+  document.getElementById('tdBtn').textContent     = s.btn;
+  for (let i = 1; i <= 3; i++)
+    document.getElementById(`tdDot${i}`).className = 'td-dot' + (i === tutDemoStep ? ' active' : '');
+  // Rebuild card to restart slide-up animation
+  const card = document.getElementById('tdCard');
+  card.style.animation = 'none';
+  requestAnimationFrame(() => { card.style.animation = ''; });
+}
+
+function tutDemoNext() {
+  if (tutDemoStep < 3) {
+    tutDemoStep++;
+    tutDemoPhase = 0; tutDemoTime = 0;
+    tutDemoParts = [];
+    if (tutDemoStep === 2) {
+      tutDemoMX = -TD_W/2 - 10; tutDemoMDir = 1; tutDemoLayers = [];
+    } else if (tutDemoStep === 3) {
+      tutDemoMX = -TD_W/2 - 10; tutDemoMDir = 1; tutDemoLives = 3;
+      // Pre-place 2 layers so the demo looks mid-game
+      tutDemoLayers = [
+        { x: W/2, w: TD_W, kt: KT['pandan'] },
+        { x: W/2, w: TD_W - 22, kt: KT['coconut'] }
+      ];
+    }
+    updateTutDemoCard();
+  } else {
+    // Tutorial complete — skip straight to map
+    skipToGame();
+  }
+}
+
+function tutNext(step) {} // stub kept for safety
+
+function skipToGame() {
+  lives = 3; score = 0; levelIdx = 0; levelStartScore = 0;
+  isTestRound = false;
+  hideAll();
+  showLevelMap();
+}
+
+// ── Test round intro ──────────────────────────────────
+function showTestRoundIntro() {
+  state = 'testIntro';
+  hideAll();
+  updateNavVisibility();
+  const liIconTR = document.getElementById('liIcon');
+  liIconTR.style.display = ''; liIconTR.innerHTML = '<div class="oi oi-blue" style="width:56px;height:56px"><span class="material-icons-round" style="font-size:2rem">science</span></div>';
+  document.getElementById('liLvlTag').textContent = 'Practice Round';
+  document.getElementById('liName').textContent   = "Let's Practice!";
+  document.getElementById('liOrders').textContent =
+    `Stack ${TUTORIAL_ORDER.layers.map(id=>KT[id].name).join(' → ')} to complete your practice order.`;
+  const pipsElTR = document.getElementById('liPips');
+  pipsElTR.style.display = 'flex';
+  pipsElTR.innerHTML = TUTORIAL_ORDER.layers.map(id=>`<span style="background:${KT[id].mid};width:12px;height:12px;border-radius:50%;display:inline-block;margin:2px"></span>`).join('');
+  document.getElementById('liCloseBtn').style.display = 'none';
+  const btn = document.getElementById('levelIntroBtnStart');
+  btn.style.marginTop = '';
+  btn.textContent = 'Start practice';
+  btn.onclick     = startTestRound;
+  document.getElementById('levelIntroOverlay').classList.remove('hidden');
+}
+
+function startTestRound() {
+  hideAll();
+  isTestRound = true;
+  lives = 999;
+  updateMusicPlayback();
+  score = 0; layerIdx = 0; placed = []; particles = [];
+  moverDir = 1; moverSpd = 1.3 * SPEED_MULT;
+  spawnTestMover();
+  state = 'testRound';
+}
+
+function spawnTestMover() {
+  const prevW  = placed.length ? placed[placed.length - 1].w : INIT_W;
+  const typeId = TUTORIAL_ORDER.layers[layerIdx % TUTORIAL_ORDER.layers.length];
+  mover = {
+    x: moverDir > 0 ? -prevW/2 - 10 : W + prevW/2 + 10,
+    w: prevW, dir: moverDir, kt: KT[typeId], isCorrect: true,
+  };
+  moverDir *= -1;
+}
+
+// ═══════════════════════════════════════════════════════
+//  GAME FLOW
+// ═══════════════════════════════════════════════════════
+function showLevelMap() {
+  state = 'levelMap';
+  hideAll();
+  updateNavVisibility();
+  updateNavActive();
+  // Auto-scroll so current level appears at canvas y≈380
+  const nd = MAP_NODES[Math.min(unlockedLevels - 1, MAP_NODES.length - 1)];
+  mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, 380 - nd.y + 1840));
+  mapScrollY = mapTargetScrollY; // instant on first open
+}
+
+function goToLevelMap() { showLevelMap(); }
+
+function goToMenu() {
+  state = 'mainMenu';
+  isTestRound = false;
+  hideAll();
+  updateNavVisibility();
+  updateNavActive();
+}
+
+function startOver() {
+  lives = 3; score = 0; levelIdx = 0; levelStartScore = 0;
+  isTestRound = false;
+  hideAll();
+  showLevelMap();
+}
+
+function showLevelIntro() {
+  state = 'levelIntro';
+  hideAll();
+  updateNavVisibility();
+  const lv = level();
+  document.getElementById('liIcon').style.display  = 'none';
+  document.getElementById('liLvlTag').textContent  = `Level ${lv.number}`;
+  document.getElementById('liName').textContent    = lv.name;
+  document.getElementById('liOrders').textContent =
+    lv.targetCoins > 0
+      ? `Complete ${lv.targetOrders} orders · Earn ${lv.targetCoins} pts`
+      : `Complete ${lv.targetOrders} orders`;
+  document.getElementById('liPips').style.display = 'none';
+  document.getElementById('liCloseBtn').style.display = '';
+  const btn = document.getElementById('levelIntroBtnStart');
+  btn.textContent = "Let's bake!";
+  btn.onclick     = startLevel;
+  document.getElementById('levelIntroOverlay').classList.remove('hidden');
+}
+
+function startLevel() {
+  orderIdxInLevel = 0;
+  levelStartScore = score;
+  hideAll();
+  beginOrder();
+  updateMusicPlayback();
+}
+
+function beginOrder() {
+  layerIdx = 0; placed = []; particles = [];
+  orderBasePoints = 0; orderPerfBonus = 0;
+  moverDir = 1; moverSpd = orderData().speed * SPEED_MULT * (level().speedMult ?? 1);
+  spawnMover();
+  state = 'playing';
+}
+
+function spawnMover() {
+  const prevW     = placed.length ? placed[placed.length-1].w : INIT_W;
+  const isCorrect = Math.random() > orderData().decoy;
+  const typeId    = isCorrect
+    ? orderData().layers[layerIdx]
+    : Object.keys(KT).filter(k => k !== orderData().layers[layerIdx])[
+        Math.floor(Math.random() * (Object.keys(KT).length - 1))];
+  mover = {
+    x: moverDir > 0 ? -prevW/2 - 10 : W + prevW/2 + 10,
+    w: prevW, dir: moverDir, kt: KT[typeId], isCorrect,
+  };
+  moverDir *= -1;
+}
+
+// ── Placement ─────────────────────────────────────────
+function place() {
+  if (!mover) return;
+  if (state === 'testRound') { placeTestRound(); return; }
+  if (state !== 'playing') return;
+
+  if (!mover.isCorrect) { loseLife(); return; }
+
+  const prev = placed.length ? placed[placed.length-1] : { x:W/2, w:INIT_W };
+  const pl=prev.x-prev.w/2, pr=prev.x+prev.w/2;
+  const ml=mover.x-mover.w/2, mr=mover.x+mover.w/2;
+  const ol=Math.max(pl,ml), or_=Math.min(pr,mr), ow=or_-ol;
+
+  if (ow <= 2) { loseLife(); return; }
+
+  const perfect = Math.abs(mover.x - prev.x) < 8;
+  placed.push({ x: perfect?prev.x:(ol+or_)/2, w: perfect?prev.w:ow, kt: mover.kt });
+  layerIdx++;
+  const base = 10, perf = perfect ? 10 : 0;
+  score += base + perf;
+  orderBasePoints += base;
+  orderPerfBonus  += perf;
+  if (perfect) perfectStacksCount++;
+  greenFlash = 8;
+  playSound(sfxStack);
+  burst(placed[placed.length-1].x, layerY(placed.length-1), perfect);
+
+  if (layerIdx >= orderData().layers.length) { finishOrder(); return; }
+  moverSpd = (orderData().speed + layerIdx * 0.12) * SPEED_MULT * (level().speedMult ?? 1);
+  spawnMover();
+}
+
+function placeTestRound() {
+  const prev = placed.length ? placed[placed.length-1] : { x:W/2, w:INIT_W };
+  const pl=prev.x-prev.w/2, pr=prev.x+prev.w/2;
+  const ml=mover.x-mover.w/2, mr=mover.x+mover.w/2;
+  const ol=Math.max(pl,ml), or_=Math.min(pr,mr), ow=or_-ol;
+
+  if (ow <= 2) { spawnTestMover(); return; }
+  const perfect = Math.abs(mover.x - prev.x) < 8;
+  placed.push({ x: perfect?prev.x:(ol+or_)/2, w: perfect?prev.w:ow, kt: mover.kt });
+  layerIdx++;
+  burst(placed[placed.length-1].x, layerY(placed.length-1), perfect);
+  playSound(sfxStack);
+
+  if (layerIdx >= TUTORIAL_ORDER.layers.length) {
+    isTestRound = false;
+    mover = null;
+    setTimeout(() => { hideAll(); goToLevelMap(); }, 900);
+    return;
+  }
+  spawnTestMover();
+}
+
+function showTestRoundComplete() {
+  state = 'testComplete';
+  hideAll();
+  const liIconTC = document.getElementById('liIcon');
+  liIconTC.style.display = ''; liIconTC.innerHTML = '<div class="oi oi-gold" style="width:56px;height:56px"><span class="material-icons-round" style="font-size:2rem">emoji_events</span></div>';
+  document.getElementById('liLvlTag').textContent = `Wah, ${bakerName}!`;
+  document.getElementById('liName').textContent   = "You're a Natural!";
+  document.getElementById('liOrders').textContent = "Ready to serve real customers. Welcome to the bakery!";
+  const pipsElTC = document.getElementById('liPips');
+  pipsElTC.style.display = 'flex';
+  pipsElTC.innerHTML = '<div style="display:flex;gap:6px;justify-content:center">' + [0,1,2].map(()=>'<span class="material-icons-round" style="color:#FFD600;font-size:1.8rem">star</span>').join('') + '</div>';
+  document.getElementById('liCloseBtn').style.display = 'none';
+  const btn = document.getElementById('levelIntroBtnStart');
+  btn.style.marginTop = '';
+  btn.textContent = 'Open the bakery';
+  btn.onclick     = () => { lives=3; score=0; levelIdx=0; levelStartScore=0; showLevelMap(); };
+  document.getElementById('levelIntroOverlay').classList.remove('hidden');
+}
+
+function loseLife() {
+  lives--;
+  shakeT = 24; redFlash = 16;
+  if (vibrateEnabled && navigator.vibrate) navigator.vibrate(200);
+  playSound(sfxMistake);
+  burstWrong();
+  if (lives <= 0) {
+    state = 'dead';
+    document.getElementById('goScore').textContent = `Score: ${score} pts`;
+    document.getElementById('gameOverOverlay').classList.remove('hidden');
+    updateMusicPlayback();
+    return;
+  }
+  spawnMover();
+}
+
+function finishOrder() {
+  const compBonus = 50;
+  score += compBonus;
+  playSound(sfxComplete);
+  updateMusicPlayback();
+  advanceOrder();
+}
+
+function advanceOrder() {
+  // Record recipe
+  const od = orderData();
+  const rKey = od.name;
+  if (!collectedRecipes.find(r => r.key === rKey)) {
+    collectedRecipes.push({ key:rKey, name:od.name, desc:od.desc, layers:od.layers, levelName:level().name });
+  }
+  orderIdxInLevel++;
+  totalOrdersFilled++;
+  const lv = level();
+  if (orderIdxInLevel >= lv.targetOrders && (score - levelStartScore) >= lv.targetCoins) {
+    showLevelComplete(); return;
+  }
+  beginOrder();
+}
+
+function calculateStars(levelScore, lvlIdx) {
+  const t = STAR_THRESHOLDS[lvlIdx] || [1, 200, 300];
+  return levelScore >= t[2] ? 3 : levelScore >= t[1] ? 2 : 1;
+}
+
+function burstCelebration(stars) {
+  const cols = ['#FFD700','#FF6B6B','#7ED321','#50E3C2','#F5A623','#BD10E0','#FF9500','#00CED1'];
+  function fire(n) {
+    for (let i=0; i<n; i++) particles.push({
+      x: 30+Math.random()*(W-60), y: H/2+(Math.random()-.5)*120,
+      vx:(Math.random()-.5)*14, vy:-Math.random()*13-3,
+      life:1, decay:0.009+Math.random()*0.011,
+      col:cols[i%cols.length], shape:['star','circle','diamond','ring'][i%4],
+      size:5+Math.random()*9, rot:Math.random()*Math.PI*2,
+    });
+  }
+  fire(28);
+  setTimeout(()=>fire(22), 650);
+  if (stars>=2) setTimeout(()=>fire(22), 1200);
+  if (stars>=3) setTimeout(()=>fire(32), 1750);
+}
+
+function showLevelComplete() {
+  updateMusicPlayback();
+  const levelScore  = score - levelStartScore;
+  const starsEarned = calculateStars(levelScore, levelIdx);
+  levelStars[levelIdx]  = Math.max(levelStars[levelIdx], starsEarned);
+  highScores[levelIdx]  = Math.max(highScores[levelIdx], levelScore);
+  if (levelIdx < LEVELS.length - 1) unlockedLevels = Math.max(unlockedLevels, levelIdx + 2);
+  if (lives < 3) lives++;
+
+  state = 'levelComplete';
+  const lv     = level();
+  const isLast = levelIdx >= LEVELS.length - 1;
+  const msg    = isLast
+    ? `All levels mastered, ${bakerName}!`
+    : `${lv.name} cleared, ${bakerName}!${lives < 3 ? ' Life restored!' : ''}`;
+
+  // Rebuild overlay content for fresh animations each time
+  const ov = document.getElementById('levelCompleteOverlay');
+  ov.innerHTML = `
+    <div class="li-card" style="pointer-events:none">
+      <div style="font-family:'Fredoka One',cursive;font-size:3.2rem;color:#C4863A;line-height:1;animation:lcIconBounce 0.65s cubic-bezier(0.34,1.56,0.64,1) 0.05s both;opacity:0;">
+        ${lv.number}
+      </div>
+      <div class="ov-h1" style="font-size:2.1rem;animation:lcFadeUp 0.4s ease 0.3s both;opacity:0">Level Complete!</div>
+      <div class="divider" style="animation:lcFadeUp 0.35s ease 0.45s both;opacity:0"></div>
+      <div class="ov-sub" style="animation:lcFadeUp 0.35s ease 0.55s both;opacity:0">${msg}</div>
+      <div id="lcStars" class="ov-stars" style="min-height:50px"></div>
+    </div>
+  `;
+  ov.classList.remove('hidden');
+
+  // Stars pop in one by one
+  const starsEl = document.getElementById('lcStars');
+  for (let i=0; i<3; i++) {
+    setTimeout(() => {
+      const filled = i < starsEarned;
+      const s = document.createElement('span');
+      s.style.cssText = 'display:inline-flex;animation:lcStarPop 0.55s cubic-bezier(0.34,1.56,0.64,1) both;opacity:0;';
+      s.innerHTML = `<span class="material-icons-round" style="font-size:3rem;color:${filled?'#FFD600':'rgba(160,120,40,0.22)'};${filled?'filter:drop-shadow(0 0 10px rgba(255,200,0,0.75))':''};">${filled?'star':'star_border'}</span>`;
+      starsEl.appendChild(s);
+      if (filled) playSound(sfxStack);
+    }, 650 + i*380);
+  }
+
+  burstCelebration(starsEarned);
+
+  // Auto-dismiss: last star done at ~1960ms, then hold 2s → dismiss at 4000ms
+  setTimeout(() => {
+    ov.classList.add('hidden');
+    goToLevelMap();
+  }, 4000);
+}
+
+function confirmExit() {
+  prevState = state;
+  state = 'confirmExit';
+  document.getElementById('confirmExitOverlay').classList.remove('hidden');
+}
+function resumeGame() {
+  state = prevState;
+  document.getElementById('confirmExitOverlay').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════
+//  ORDER DONE CANVAS ANIMATION
+// ═══════════════════════════════════════════════════════
+function easeOutBack(t) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function drawOrderDone() {
+  orderDoneAnimT++;
+  const T = orderDoneAnimT;
+
+  drawGameBg();
+  drawPlate();
+  placed.forEach((l,i) => drawLayer(l.x, layerY(i), l.w, l.kt, false));
+
+  // Dark overlay
+  ctx.fillStyle = `rgba(0,0,0,${Math.min(T/20, 0.55)})`;
+  ctx.fillRect(0,0,W,H);
+
+  // Particle burst once
+  if (T === 6) burst(W/2, H/2 - 40, true);
+  tickParticles();
+
+  // Card pop-in
+  const cardProg  = Math.min(T / 38, 1);
+  const cardScale = easeOutBack(cardProg);
+  const cardW=280, cardH=110, cy=H/2;
+
+  ctx.save();
+  ctx.translate(W/2, cy);
+  ctx.scale(cardScale, cardScale);
+
+  ctx.shadowColor='rgba(0,0,0,0.45)'; ctx.shadowBlur=22;
+  ctx.fillStyle='#FFF8E8';
+  rr(-cardW/2, -cardH/2, cardW, cardH, 18); ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Green header strip
+  ctx.fillStyle='#2E8B2E';
+  rr(-cardW/2, -cardH/2, cardW, 48, 18); ctx.fill();
+  ctx.fillRect(-cardW/2, -cardH/2+30, cardW, 18);
+
+  ctx.fillStyle='#fff';
+  ctx.font="bold 22px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('Order Complete!', 0, -cardH/2+30);
+
+  if (T > 30) {
+    ctx.fillStyle='rgba(140,90,30,0.45)';
+    ctx.font="11px 'Nunito',sans-serif";
+    ctx.fillText('Tap to continue', 0, -cardH/2+82);
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROFILE & LEADERBOARD PAGES
+// ═══════════════════════════════════════════════════════
+function drawProfilePage() {
+  // ── Page header ───────────────────────────────────────
+  const hg = ctx.createLinearGradient(0,0,0,82);
+  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
+  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
+  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+  ctx.fillStyle='#FFF3D0'; ctx.font="bold 26px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('Profile', W/2, 50);
+
+  const bg = ctx.createLinearGradient(0,82,0,H);
+  bg.addColorStop(0,'#F5EDD5'); bg.addColorStop(1,'#E8D9A8');
+  ctx.fillStyle=bg; ctx.fillRect(0,82,W,H-82);
+
+  // ── Baker ID Card ─────────────────────────────────────
+  const cx=18, cy=92, cw=364, ch=200, cr=18;
+
+  // Soft blurred shadow (shadowBlur, not a hard offset rect)
+  ctx.save();
+  ctx.shadowColor='rgba(42,16,0,0.14)'; ctx.shadowBlur=22;
+  ctx.shadowOffsetX=0; ctx.shadowOffsetY=5;
+  ctx.fillStyle='#FFFDF5'; rr(cx,cy,cw,ch,cr); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='rgba(196,160,64,0.32)'; ctx.lineWidth=1.5;
+  rr(cx+0.75,cy+0.75,cw-1.5,ch-1.5,cr); ctx.stroke();
+
+  // Brown accent strip (clipped to card corners)
+  ctx.save(); ctx.beginPath(); rr(cx,cy,cw,ch,cr); ctx.clip();
+  const sg = ctx.createLinearGradient(cx,cy,cx+cw,cy);
+  sg.addColorStop(0,'#7A4010'); sg.addColorStop(0.6,'#A05818'); sg.addColorStop(1,'#C4863A');
+  ctx.fillStyle=sg; ctx.fillRect(cx,cy,cw,50);
+  ctx.save(); ctx.globalAlpha=0.12; ctx.fillStyle='#fff'; ctx.fillRect(cx,cy,cw,25); ctx.restore();
+  ctx.restore();
+
+  ctx.fillStyle='rgba(255,238,170,0.70)'; ctx.font="bold 9px 'Nunito',sans-serif"; ctx.textAlign='left';
+  ctx.fillText('KUEH BAKERY', cx+14, cy+22);
+  ctx.fillStyle='rgba(255,238,170,0.90)'; ctx.textAlign='right';
+  ctx.fillText('BAKER ID', cx+cw-14, cy+22);
+  ctx.fillStyle='rgba(255,238,170,0.45)'; ctx.font="7px 'Nunito',sans-serif"; ctx.textAlign='left';
+  ctx.fillText('MEMBER CARD', cx+14, cy+40);
+
+  // Avatar
+  const avx=cx+68, avy=cy+50+72, avr=46;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.10)'; ctx.shadowBlur=14; ctx.shadowOffsetY=3;
+  const ag = ctx.createRadialGradient(avx-14,avy-14,4,avx,avy,avr);
+  ag.addColorStop(0,'#FAD878'); ag.addColorStop(1,'#A06820');
+  ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(avx,avy,avr,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(avx,avy,avr,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle='rgba(160,100,30,0.25)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(avx,avy,avr-5,0,Math.PI*2); ctx.stroke();
+  ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(avx-12,avy-14,18,0,Math.PI*2); ctx.fill(); ctx.restore();
+  ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.font="bold 38px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText(bakerName.charAt(0).toUpperCase(), avx, avy+13);
+
+  // Right content
+  const rx=cx+132, ry=cy+60;
+  const lv = LEVELS[Math.min(unlockedLevels-1,LEVELS.length-1)];
+  const tierName = lv ? lv.name : 'Apprentice I';
+  let tc='#9E7A30';
+  if (tierName.startsWith('Junior')) tc='#3A8C3A';
+  else if (tierName.startsWith('Head'))  tc='#2C78A8';
+  else if (tierName.startsWith('Master')) tc='#7840B0';
+
+  ctx.fillStyle='#4A2008'; ctx.font="bold 20px 'Fredoka One',cursive"; ctx.textAlign='left';
+  ctx.fillText(bakerName, rx, ry+20);
+
+  ctx.font="bold 10px 'Nunito',sans-serif";
+  const tBw = ctx.measureText(tierName).width+20;
+  ctx.fillStyle=tc+'22'; rr(rx,ry+28,tBw,20,10); ctx.fill();
+  ctx.strokeStyle=tc+'80'; ctx.lineWidth=1.2; rr(rx+0.6,ry+28.6,tBw-1.2,18.8,9.5); ctx.stroke();
+  ctx.fillStyle=tc; ctx.fillText(tierName, rx+10, ry+41);
+
+  // Mini chips — Levels + Recipes, evenly spanning available right width
+  const lvCleared = Math.max(0, unlockedLevels-1);
+  const rightW = (cx+cw-14) - rx;           // e.g. 354-150 = 204
+  const chipCW = (rightW - 12) / 2;
+  const miniChips = [
+    { label:'Levels',  val:lvCleared,              color:'#2080B8' },
+    { label:'Recipes', val:collectedRecipes.length, color:'#C4863A' },
+  ];
+  // chipH=56 gives ~12px top and ~10px bottom padding — equal to left (chipX+12)
+  const miniChipH = 56;
+  miniChips.forEach((c,ci) => {
+    const chipX=rx+ci*(chipCW+12), chipY2=ry+56;
+    ctx.fillStyle=c.color+'18'; rr(chipX,chipY2,chipCW,miniChipH,8); ctx.fill();
+    ctx.strokeStyle=c.color+'40'; ctx.lineWidth=1; rr(chipX+0.5,chipY2+0.5,chipCW-1,miniChipH-1,7.5); ctx.stroke();
+    ctx.fillStyle=c.color; ctx.font="bold 20px 'Fredoka One',cursive"; ctx.textAlign='left';
+    ctx.fillText(c.val, chipX+12, chipY2+26);
+    ctx.fillStyle='rgba(80,48,16,0.48)'; ctx.font="bold 10px 'Nunito',sans-serif";
+    ctx.fillText(c.label.toUpperCase(), chipX+12, chipY2+46);
+  });
+
+  const idNum = `ID #${(bakerName.charCodeAt(0)*17+score)%9000+1000}`;
+  ctx.fillStyle='rgba(120,80,30,0.32)'; ctx.font="9px 'Nunito',sans-serif"; ctx.textAlign='right';
+  ctx.fillText(idNum, cx+cw-14, cy+ch-8);
+
+  // ── Tab bar (20px gap below baker card) ──────────────
+  const tabsY = cy + ch + 20;   // 312
+  const tabW  = (W - 48) / 2;   // 176
+  const TAB_H = 38;
+  profileTabBtns = [
+    { x:20,          y:tabsY, w:tabW, h:TAB_H, tab:0, label:'Suggested' },
+    { x:24+tabW,     y:tabsY, w:tabW, h:TAB_H, tab:1, label:'Friends'   },
+  ];
+
+  // Tab container
+  ctx.fillStyle='rgba(196,134,58,0.10)'; rr(20,tabsY,W-40,TAB_H,19); ctx.fill();
+  ctx.strokeStyle='rgba(196,134,58,0.22)'; ctx.lineWidth=1; rr(20.5,tabsY+0.5,W-41,TAB_H-1,18.5); ctx.stroke();
+
+  profileTabBtns.forEach(tb => {
+    if (tb.tab === profileTab) {
+      ctx.save(); ctx.shadowColor='rgba(180,100,20,0.18)'; ctx.shadowBlur=8;
+      const tg=ctx.createLinearGradient(tb.x,tb.y,tb.x,tb.y+TAB_H);
+      tg.addColorStop(0,'#F0A840'); tg.addColorStop(1,'#C47820');
+      ctx.fillStyle=tg; rr(tb.x+3,tb.y+3,tb.w-6,TAB_H-6,15); ctx.fill(); ctx.restore();
+      ctx.fillStyle='#fff';
+    } else {
+      ctx.fillStyle='rgba(100,60,16,0.42)';
+    }
+    ctx.font="bold 12px 'Nunito',sans-serif"; ctx.textAlign='center';
+    ctx.fillText(tb.label, tb.x+tb.w/2, tb.y+24);
+  });
+
+  const contentY = tabsY + TAB_H + 14;   // ~364
+
+  // ── Tab 0: Suggested Bakers ───────────────────────────
+  if (profileTab === 0) {
+    profileRecommendBtns = [];
+    MOCK_SUGGESTED.forEach((sf, si) => {
+      const rowY = contentY + si * 60;
+      ctx.save(); ctx.shadowColor='rgba(80,40,0,0.06)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
+      ctx.fillStyle='rgba(255,249,236,0.96)'; rr(16,rowY,W-32,52,12); ctx.fill(); ctx.restore();
+      ctx.strokeStyle='rgba(196,134,58,0.16)'; ctx.lineWidth=1; rr(16.5,rowY+0.5,W-33,51,11.5); ctx.stroke();
+
+      ctx.save(); ctx.shadowColor='rgba(0,0,0,0.08)'; ctx.shadowBlur=6;
+      ctx.fillStyle=sf.color; ctx.beginPath(); ctx.arc(49,rowY+26,17,0,Math.PI*2); ctx.fill(); ctx.restore();
+      ctx.fillStyle='#fff'; ctx.font="bold 12px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText(sf.name.charAt(0), 49, rowY+31);
+
+      ctx.fillStyle='#4A2008'; ctx.font="bold 13px 'Nunito',sans-serif"; ctx.textAlign='left';
+      ctx.fillText(sf.name, 74, rowY+20);
+      ctx.fillStyle='rgba(100,60,16,0.44)'; ctx.font="10px 'Nunito',sans-serif";
+      ctx.fillText(sf.levelName, 74, rowY+36);
+
+      const bw=56, bh=26, bx=W-16-16-bw, by2=rowY+13; // 16px card edge + 16px inner padding
+      const isAdded=friends.some(f=>f.id===sf.id);
+      if (isAdded) {
+        ctx.fillStyle='rgba(26,144,96,0.12)'; rr(bx,by2,bw,bh,8); ctx.fill();
+        ctx.strokeStyle='rgba(26,144,96,0.30)'; ctx.lineWidth=1; rr(bx+0.5,by2+0.5,bw-1,bh-1,7.5); ctx.stroke();
+        ctx.fillStyle='#1A9060'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='center';
+        ctx.fillText('Added!', bx+bw/2, by2+17);
+      } else {
+        const abg=ctx.createLinearGradient(bx,by2,bx,by2+bh);
+        abg.addColorStop(0,'#F0A840'); abg.addColorStop(1,'#C47820');
+        ctx.fillStyle=abg; rr(bx,by2,bw,bh,8); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='center';
+        ctx.fillText('+ Add', bx+bw/2, by2+17);
+        profileRecommendBtns.push({ x:bx, y:by2, w:bw, h:bh, id:sf.id, name:sf.name });
+      }
+    });
+  }
+
+  // ── Tab 1: Friends ────────────────────────────────────
+  if (profileTab === 1) {
+    // Baker ID badge
+    ctx.fillStyle='rgba(196,134,58,0.10)'; rr(20,contentY,W-40,34,10); ctx.fill();
+    ctx.strokeStyle='rgba(196,134,58,0.28)'; ctx.lineWidth=1; rr(20,contentY,W-40,34,10); ctx.stroke();
+    ctx.fillStyle='#7B4A18'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='left';
+    ctx.fillText('Your Baker ID', 32, contentY+13);
+    ctx.fillStyle='#C4863A'; ctx.font="bold 13px 'Fredoka One',cursive";
+    ctx.fillText(idNum, 32, contentY+27);
+    ctx.fillStyle='rgba(120,80,30,0.42)'; ctx.font="9px 'Nunito',sans-serif"; ctx.textAlign='right';
+    ctx.fillText('share with friends →', W-30, contentY+20);
+
+    let nextY = contentY + 44;
+    const shown = friends.slice(0, 3);
+    if (shown.length === 0) {
+      ctx.fillStyle='rgba(120,80,30,0.36)'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
+      ctx.fillText('No friends yet — share your Baker ID!', W/2, nextY+18);
+      nextY += 36;
+    } else {
+      shown.forEach(f => {
+        ctx.save(); ctx.shadowColor='rgba(80,40,0,0.06)'; ctx.shadowBlur=6; ctx.shadowOffsetY=2;
+        ctx.fillStyle='rgba(255,249,236,0.94)'; rr(16,nextY,W-32,48,12); ctx.fill(); ctx.restore();
+        ctx.strokeStyle='rgba(196,134,58,0.14)'; ctx.lineWidth=1; rr(16.5,nextY+0.5,W-33,47,11.5); ctx.stroke();
+        const fc=['#C4863A','#3A8C3A','#2C78A8','#7840B0'][f.name.charCodeAt(0)%4];
+        ctx.fillStyle=fc; ctx.beginPath(); ctx.arc(40,nextY+24,15,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font="bold 11px 'Fredoka One',cursive"; ctx.textAlign='center';
+        ctx.fillText(f.name.charAt(0).toUpperCase(), 40, nextY+28);
+        ctx.fillStyle='#4A2008'; ctx.font="bold 13px 'Nunito',sans-serif"; ctx.textAlign='left';
+        ctx.fillText(f.name, 62, nextY+18);
+        ctx.fillStyle='rgba(120,80,30,0.48)'; ctx.font="10px 'Nunito',sans-serif";
+        ctx.fillText(`Baker  ·  ID #${f.id}`, 62, nextY+32);
+        nextY += 56;
+      });
+      if (friends.length > 3) {
+        ctx.fillStyle='rgba(120,80,30,0.38)'; ctx.font="10px 'Nunito',sans-serif"; ctx.textAlign='center';
+        ctx.fillText(`+${friends.length-3} more`, W/2, nextY+12);
+        nextY += 24;
+      }
+    }
+
+    profileAddFriendBtnY = nextY + 8;
+    ctx.save(); ctx.shadowColor='rgba(180,100,20,0.16)'; ctx.shadowBlur=12; ctx.shadowOffsetY=3;
+    const afg=ctx.createLinearGradient(20,profileAddFriendBtnY,20,profileAddFriendBtnY+40);
+    afg.addColorStop(0,'#F0A840'); afg.addColorStop(1,'#C47820');
+    ctx.fillStyle=afg; rr(20,profileAddFriendBtnY,W-40,40,14); ctx.fill(); ctx.restore();
+    ctx.fillStyle='#fff'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillText('+ Add Friend', W/2, profileAddFriendBtnY+26);
+  }
+}
+
+function drawLeaderboard() {
+  // ── Bakery brown header (matches all other pages) ─────
+  const hg = ctx.createLinearGradient(0,0,0,82);
+  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
+  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
+  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+  ctx.fillStyle='#FFF3D0'; ctx.font="bold 26px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('Leaderboard', W/2, 50);
+
+  // ── Warm cream content background (matches other pages) ─
+  const bg = ctx.createLinearGradient(0,82,0,H);
+  bg.addColorStop(0,'#F5EDD5'); bg.addColorStop(1,'#E8D9A8');
+  ctx.fillStyle=bg; ctx.fillRect(0,82,W,H-82);
+
+  // ── Column headers — 12px visual gap below brown header ──
+  const headY=102;  // 82 (header bottom) + 12px gap + 8px cap height
+  ctx.fillStyle='rgba(100,55,12,0.55)'; ctx.font="bold 12px 'Nunito',sans-serif";
+  ctx.textAlign='left';  ctx.fillText('RANK', 32, headY);
+  ctx.fillText('NAME', 116, headY);
+  ctx.textAlign='right'; ctx.fillText('POINTS', 368, headY);
+  ctx.strokeStyle='rgba(196,134,58,0.30)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(12,headY+6); ctx.lineTo(W-12,headY+6); ctx.stroke();
+
+  // ── Data rows ─────────────────────────────────────────
+  const all=[...MOCK_LEADERBOARD,{name:bakerName,score,isMe:true}];
+  all.sort((a,b)=>b.score-a.score);
+
+  const rowH=54, rowGap=3, startY=116;
+  // Warm bakery tones: golden amber, sage, warm peach
+  const top3Fills=['#F5D888','#C8E898','#F5C0A0'];
+  const top3Borders=['rgba(196,160,40,0.55)','rgba(100,160,60,0.45)','rgba(200,100,60,0.40)'];
+
+  all.slice(0,9).forEach((e,i)=>{
+    const ey=startY+i*(rowH+rowGap), isMe=e.isMe, isTop3=i<3;
+    const my=ey+rowH/2;
+
+    // Row background
+    ctx.save();
+    if(isMe){
+      ctx.shadowColor='rgba(196,100,20,0.28)'; ctx.shadowBlur=10;
+      ctx.fillStyle='rgba(240,170,60,0.32)'; rr(16,ey,W-32,rowH,12); ctx.fill(); ctx.restore();
+      ctx.strokeStyle='#C4683A'; ctx.lineWidth=2;
+      rr(16.5,ey+0.5,W-33,rowH-1,11.5); ctx.stroke();
+    } else if(isTop3){
+      ctx.fillStyle=top3Fills[i]; rr(16,ey,W-32,rowH,12); ctx.fill(); ctx.restore();
+      ctx.strokeStyle=top3Borders[i]; ctx.lineWidth=1.2;
+      rr(16.5,ey+0.5,W-33,rowH-1,11.5); ctx.stroke();
+    } else {
+      ctx.fillStyle=i%2===0?'rgba(200,155,65,0.12)':'rgba(200,155,65,0.06)';
+      rr(16,ey,W-32,rowH,12); ctx.fill(); ctx.restore();
+    }
+
+    // Rank — gold/copper/bronze star for top 3, soft circle for rest
+    if(isTop3){
+      const sc=['#F5C000','#C8A870','#CD8020'][i];
+      const ss=['#A88000','#8A6030','#8A4810'][i];
+      ctx.fillStyle=sc; ctx.beginPath();
+      for(let k=0;k<10;k++){
+        const a=(k*Math.PI/5)-Math.PI/2, r=k%2===0?16:7;
+        const px=48+r*Math.cos(a), py=my+r*Math.sin(a);
+        k===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle=ss; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.fillStyle='#3A1A00'; ctx.font="bold 13px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText(i+1,48,my+5);
+    } else {
+      ctx.fillStyle=isMe?'rgba(196,100,30,0.28)':'rgba(160,110,40,0.20)';
+      ctx.beginPath(); ctx.arc(48,my,14,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=isMe?'rgba(196,100,30,0.50)':'rgba(160,110,40,0.35)';
+      ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle=isMe?'#7A3008':'#6A4010';
+      ctx.font="bold 13px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText(i+1,48,my+5);
+    }
+
+    // Avatar — 12px gap after rank badge right edge (48+16=64), center at 92
+    const avx=92, avR=17;
+    const initC=['#C4863A','#3A8C3A','#2C78A8','#7840B0','#C0402A'][e.name.charCodeAt(0)%5];
+    ctx.fillStyle=isMe?'#C4683A':initC;
+    ctx.beginPath(); ctx.arc(avx,my,avR,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.60)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font="bold 12px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillText((e.name.charAt(0)||'?').toUpperCase(),avx,my+4);
+
+    // Name — starts after avatar, ends 16px from card right (368)
+    const nameX=avx+avR+8, nameMaxW=368-nameX-8;
+    ctx.fillStyle='#3A1A06';
+    ctx.font=`bold ${isTop3||isMe?16:15}px 'Nunito',sans-serif`; ctx.textAlign='left';
+    let nm=isMe?'You':e.name;
+    while(ctx.measureText(nm).width>nameMaxW&&nm.length>2) nm=nm.slice(0,-1);
+    ctx.fillText(nm,nameX,my+5);
+
+    // Score — 16px from card right edge (card right=384, padding=16 → x=368)
+    ctx.fillStyle=isMe?'#7A3008':'#5A2C06';
+    ctx.font=`bold ${isTop3||isMe?16:15}px 'Fredoka One',cursive`; ctx.textAlign='right';
+    ctx.fillText(e.score.toLocaleString(),368,my+5);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  LEVEL MAP DRAWING
+// ═══════════════════════════════════════════════════════
+function handleLevelMapClick(x, y) {
+  if (Math.abs(mapDragDist) > 8) return; // was a drag, not a tap
+  const vy = y - mapScrollY + 1840; // convert canvas y to virtual y
+  MAP_NODES.forEach((nd, i) => {
+    if (Math.hypot(x - nd.x, vy - nd.y) <= MAP_NODE_R + 6 && i < unlockedLevels) {
+      playClick();
+      levelIdx = i;
+      orderIdxInLevel = 0;
+      levelStartScore = score;
+      showLevelIntro();
+    }
+  });
+}
+
+const LAYER_DISPLAY = {
+  pandan:   { label:'Pandan',   color:'#5CB85C' },
+  coconut:  { label:'Coconut',  color:'#F5DEB3' },
+  rose:     { label:'Rose',     color:'#E87474' },
+  blue_pea: { label:'Blue Pea', color:'#7890D4' },
+  turmeric: { label:'Turmeric', color:'#E8C040' },
+  yam:      { label:'Yam',      color:'#A070C0' },
+};
+
+function bookTotals() {
+  return RECIPE_BOOKS.map(bk => {
+    if (bk.locked) return { total:0, collected:0 };
+    const allNames = new Set();
+    LEVELS.forEach(lv => { if (bk.filter(lv.name)) lv.orders.forEach(od => allNames.add(od.name)); });
+    const collected = collectedRecipes.filter(r => bk.filter(r.levelName)).length;
+    return { total: allNames.size, collected };
+  });
+}
+
+function drawMiniStack(pvX, pvY, pvW, cardH, layers) {
+  const n = layers.length;
+  const layH = Math.max(7, Math.min(12, Math.floor((cardH-16)/n)));
+  const totalH = n * layH;
+  const sy = pvY + (cardH - totalH - 6) / 2;
+  layers.forEach((lid, li) => {
+    const k = KT[lid] || { mid:'#ccc', dark:'#999', lite:'#eee' };
+    const ly = sy + (n - 1 - li) * layH;
+    const lg = ctx.createLinearGradient(pvX,ly,pvX,ly+layH-1);
+    lg.addColorStop(0,k.lite); lg.addColorStop(0.5,k.mid); lg.addColorStop(1,k.dark);
+    ctx.fillStyle=lg; rr(pvX,ly,pvW,layH-1,2); ctx.fill();
+    ctx.save(); ctx.globalAlpha=0.26; ctx.fillStyle='#fff';
+    rr(pvX+2,ly+1,pvW-4,Math.max(2,Math.floor(layH*0.36)),1); ctx.fill(); ctx.restore();
+  });
+  ctx.strokeStyle='rgba(80,40,10,0.14)'; ctx.lineWidth=1;
+  rr(pvX-1,sy-1,pvW+2,totalH+2,3); ctx.stroke();
+  const plateY2 = sy + totalH + 1;
+  ctx.fillStyle='#C4A040'; ctx.fillRect(pvX-4,plateY2,pvW+8,3);
+  ctx.fillStyle='rgba(196,160,64,0.40)'; ctx.fillRect(pvX-6,plateY2+2,pvW+12,2);
+}
+
+function drawRecipePage() {
+  // ── Header ────────────────────────────────────────────
+  const hg = ctx.createLinearGradient(0,0,0,82);
+  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
+  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
+  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+
+  const bg = ctx.createLinearGradient(0,82,0,H);
+  bg.addColorStop(0,'#F5EDD5'); bg.addColorStop(1,'#E8D9A8');
+  ctx.fillStyle=bg; ctx.fillRect(0,82,W,H-82);
+
+  // ── Book detail view ──────────────────────────────────
+  if (recipesBookIdx >= 0) {
+    const bk = RECIPE_BOOKS[recipesBookIdx];
+    ctx.fillStyle='#FFF3D0'; ctx.font="bold 22px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillText(bk.title, W/2, 50);
+
+    // Back button
+    ctx.fillStyle='rgba(255,240,190,0.22)'; rr(10,18,62,28,12); ctx.fill();
+    ctx.strokeStyle='rgba(255,220,100,0.45)'; ctx.lineWidth=1; rr(10.5,18.5,61,27,11.5); ctx.stroke();
+    ctx.fillStyle='#FFE890'; ctx.font="bold 11px 'Nunito',sans-serif"; ctx.textAlign='center';
+    ctx.fillText('< Back', 41, 36);
+
+    const bookRecipes = collectedRecipes.filter(r => bk.filter(r.levelName));
+    if (bookRecipes.length === 0) {
+      ctx.fillStyle='rgba(160,110,50,0.35)'; ctx.font="bold 44px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText('?', W/2, 310);
+      ctx.fillStyle='#A07050'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText('No recipes collected yet', W/2, 360);
+      ctx.fillStyle='rgba(140,90,30,0.50)'; ctx.font="12px 'Nunito',sans-serif";
+      ctx.fillText('Complete orders in this book to unlock', W/2, 385);
+      return;
+    }
+
+    const cardW=178, cardH=86, padX=11, padY=8;
+    bookRecipes.slice(0,10).forEach((r, idx) => {
+      const cx2 = padX + (idx%2)*(cardW+padX);
+      const cy2 = 97 + Math.floor(idx/2)*(cardH+padY);
+      ctx.save(); ctx.shadowColor='rgba(80,40,0,0.08)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
+      ctx.fillStyle='#FFFDF5'; rr(cx2,cy2,cardW,cardH,12); ctx.fill(); ctx.restore();
+      ctx.strokeStyle='rgba(196,160,70,0.24)'; ctx.lineWidth=1.2; rr(cx2+0.6,cy2+0.6,cardW-1.2,cardH-1.2,12); ctx.stroke();
+      drawMiniStack(cx2+10, cy2, 36, cardH, r.layers);
+      const tx=cx2+56, maxTW=cardW-62;
+      ctx.fillStyle='#4A2008'; ctx.font="bold 13px 'Fredoka One',cursive"; ctx.textAlign='left';
+      let nm=r.name;
+      while(ctx.measureText(nm).width>maxTW && nm.length>4) nm=nm.slice(0,-1);
+      if(nm!==r.name) nm+='…';
+      ctx.fillText(nm, tx, cy2+20);
+      ctx.fillStyle='rgba(196,134,58,0.18)'; rr(tx,cy2+25,cardW-tx+cx2-10,16,5); ctx.fill();
+      ctx.fillStyle='#A07050'; ctx.font="bold 9px 'Nunito',sans-serif";
+      ctx.fillText(r.levelName, tx+5, cy2+36);
+      ctx.fillStyle='rgba(100,60,16,0.45)'; ctx.font="9px 'Nunito',sans-serif";
+      const ln0=r.layers.map(id=>KT[id]?.name||id).join(' · ');
+      let ln=ln0; const lnW=cardW-tx+cx2-12;
+      while(ctx.measureText(ln).width>lnW && ln.length>4) ln=ln.slice(0,-1);
+      ctx.fillText(ln!==ln0?ln+'…':ln, tx, cy2+53);
+      ctx.fillStyle='rgba(120,70,20,0.12)'; rr(tx,cy2+59,38,15,5); ctx.fill();
+      ctx.fillStyle='rgba(120,70,20,0.50)'; ctx.font="bold 8px 'Nunito',sans-serif"; ctx.textAlign='center';
+      ctx.fillText(`${r.layers.length} layers`, tx+19, cy2+69);
+    });
+    return;
+  }
+
+  // ── Books grid view ───────────────────────────────────
+  ctx.fillStyle='#FFF3D0'; ctx.font="bold 26px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('Recipe Books', W/2, 50);
+
+  const totals = bookTotals();
+  const cardW=177, cardH=168, padX=11, gapX=24, padY=10;
+  recipesBookBtns = [];
+
+  RECIPE_BOOKS.forEach((bk, bi) => {
+    const col = bi%2, row = Math.floor(bi/2);
+    const bx = padX + col*(cardW+gapX);
+    const by = 96 + row*(cardH+padY);
+    const t = totals[bi];
+    const pct = (t.total > 0) ? t.collected/t.total : 0;
+
+    ctx.save(); ctx.shadowColor='rgba(80,40,0,0.10)'; ctx.shadowBlur=14; ctx.shadowOffsetY=3;
+    ctx.fillStyle = bk.locked ? '#E8E0D0' : '#FFFDF5';
+    rr(bx,by,cardW,cardH,14); ctx.fill(); ctx.restore();
+    ctx.strokeStyle='rgba(196,160,70,0.24)'; ctx.lineWidth=1.2; rr(bx+0.6,by+0.6,cardW-1.2,cardH-1.2,14); ctx.stroke();
+
+    // Left spine
+    ctx.save(); ctx.beginPath(); rr(bx,by,cardW,cardH,14); ctx.clip();
+    ctx.fillStyle = bk.locked ? '#888' : bk.spine;
+    ctx.fillRect(bx,by,10,cardH);
+    ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#fff'; ctx.fillRect(bx,by,10,cardH/2); ctx.restore();
+    ctx.restore();
+
+    if (bk.locked) {
+      ctx.save(); ctx.globalAlpha=0.50; ctx.fillStyle='#C8C0B0';
+      ctx.beginPath(); rr(bx,by,cardW,cardH,14); ctx.clip();
+      ctx.fillRect(bx,by,cardW,cardH); ctx.restore();
+      ctx.fillStyle='rgba(80,50,10,0.35)'; ctx.font="bold 28px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText('?', bx+cardW/2+4, by+cardH/2+8);
+      ctx.fillStyle='rgba(80,50,10,0.42)'; ctx.font="bold 10px 'Nunito',sans-serif";
+      ctx.fillText('Coming soon', bx+cardW/2+4, by+cardH/2+28);
+      return;
+    }
+
+    const tx2=bx+18;
+    // Title
+    ctx.fillStyle='#3A1A06'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='left';
+    let title=bk.title;
+    while(ctx.measureText(title).width>cardW-26 && title.length>4) title=title.slice(0,-1);
+    if(title!==bk.title) title+='…';
+    ctx.fillText(title, tx2, by+28);
+
+    // Subtitle
+    ctx.fillStyle='rgba(100,60,16,0.48)'; ctx.font="11px 'Nunito',sans-serif";
+    ctx.fillText(bk.subtitle, tx2, by+44);
+
+    // Progress bar at bottom with 14px bottom padding
+    const barPad=14, barH=10, barW=cardW-26;
+    const barX=tx2, barY=by+cardH-barPad-barH;
+
+    // Large collected count — anchored 8px above progress bar
+    ctx.fillStyle=bk.color; ctx.font="bold 36px 'Fredoka One',cursive"; ctx.textAlign='left';
+    const numW = ctx.measureText(`${t.collected}`).width;
+    ctx.fillText(`${t.collected}`, tx2, barY-8);
+
+    // "/ N recipes" small beside the number
+    ctx.fillStyle='rgba(100,60,16,0.38)'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='left';
+    ctx.fillText(`/ ${t.total}`, tx2+numW+5, barY-20);
+    ctx.fillText('recipes', tx2+numW+5, barY-8);
+
+    // Pct label right-aligned, same baseline as "recipes"
+    ctx.fillStyle=bk.color; ctx.font="bold 11px 'Nunito',sans-serif"; ctx.textAlign='right';
+    ctx.fillText(Math.round(pct*100)+'%', barX+barW, barY-8);
+    ctx.fillStyle='rgba(140,100,40,0.14)'; rr(barX,barY,barW,barH,5); ctx.fill();
+    if (pct > 0) {
+      const pg = ctx.createLinearGradient(barX,0,barX+barW*pct,0);
+      pg.addColorStop(0,bk.color+'CC'); pg.addColorStop(1,bk.spine);
+      ctx.fillStyle=pg; rr(barX,barY,Math.max(10,barW*pct),barH,5); ctx.fill();
+    }
+
+    if (t.total > 0) recipesBookBtns.push({ x:bx, y:by, w:cardW, h:cardH, idx:bi });
+  });
+}
+
+function drawLevelMap() {
+  // Smooth scroll
+  mapScrollY += (mapTargetScrollY - mapScrollY) * 0.14;
+  if (Math.abs(mapScrollY - mapTargetScrollY) < 0.3) mapScrollY = mapTargetScrollY;
+
+  drawMapHeader();
+
+  // Clip to content area below header
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 82, W, 618); ctx.clip();
+
+  ctx.save();
+  ctx.translate(0, mapScrollY - 1840);
+  drawMapLandscape();
+  drawMapPath();
+  MAP_NODES.forEach((nd, i) => {
+    const isCurrent = i === unlockedLevels - 1 && levelStars[i] === 0;
+    drawMapNode(nd.x, nd.y, i + 1, i < unlockedLevels, levelStars[i], LEVELS[i], isCurrent);
+  });
+  ctx.restore(); // undo translate
+
+  ctx.restore(); // undo clip
+
+  // Current level card — pinned above nav bar (screen space, not translated)
+  const cardW = 220, cardH = 44, cardX = W/2 - cardW/2, cardY = 636;
+  // Card shadow
+  ctx.save(); ctx.globalAlpha = 0.22;
+  ctx.fillStyle = '#000';
+  rr(cardX+3, cardY+4, cardW, cardH, 14); ctx.fill();
+  ctx.restore();
+  // Card background
+  const cg = ctx.createLinearGradient(cardX, cardY, cardX, cardY+cardH);
+  cg.addColorStop(0, '#7A4010'); cg.addColorStop(1, '#4A2208');
+  ctx.fillStyle = cg;
+  rr(cardX, cardY, cardW, cardH, 14); ctx.fill();
+  // Gold border
+  ctx.strokeStyle = '#C4A040'; ctx.lineWidth = 2;
+  rr(cardX+1, cardY+1, cardW-2, cardH-2, 13); ctx.stroke();
+  // Top sheen
+  ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = '#fff';
+  rr(cardX+6, cardY+5, cardW-12, cardH*0.42, 10); ctx.fill();
+  ctx.restore();
+
+  const lv = LEVELS[Math.min(unlockedLevels-1, LEVELS.length-1)];
+  if (unlockedLevels < LEVELS.length) {
+    // "Current Level" eyebrow
+    ctx.fillStyle = 'rgba(255,210,100,0.65)';
+    ctx.font = "bold 9px 'Nunito',sans-serif"; ctx.textAlign = 'center';
+    ctx.fillText('CURRENT LEVEL', W/2, cardY + 15);
+    // Level number + name
+    ctx.fillStyle = '#FFE8A0';
+    ctx.font = "bold 18px 'Fredoka One',cursive"; ctx.textAlign = 'center';
+    ctx.fillText(`Level ${unlockedLevels}  ·  ${lv.name}`, W/2, cardY + 34);
+  } else {
+    ctx.fillStyle = '#FFE8A0';
+    ctx.font = "bold 16px 'Fredoka One',cursive"; ctx.textAlign = 'center';
+    ctx.fillText('All 20 levels unlocked!', W/2, cardY + 28);
+  }
+
+}
+
+function drawMapLandscape() {
+  // Zone-based gradient background (top=snow, bottom=lush green)
+  const bg = ctx.createLinearGradient(0, 0, 0, MAP_VIRTUAL_H);
+  bg.addColorStop(0,    '#C8D8E0');  // top: cold grey-blue (snow zone)
+  bg.addColorStop(0.18, '#C8D8C0');  // grey-green transition
+  bg.addColorStop(0.45, '#A8CC88');  // upper forest green
+  bg.addColorStop(0.75, '#88C068');  // mid meadow
+  bg.addColorStop(1,    '#60A040');  // bottom lush
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, MAP_VIRTUAL_H);
+
+  // ── TOP ZONE: Snow + Mountains (y 0–620) ──────────────
+  drawMountain(55,  125, 190, 200);
+  drawMountain(320,  80, 170, 190);
+  drawSnowPatch( 30, 390, 110);
+  drawSnowPatch(310, 420,  90);
+  drawSnowPatch(160, 315,  70);
+  drawPineTree( 30, 545, 52);
+  drawPineTree( 80, 515, 42);
+  drawPineTree(360, 530, 55);
+  drawPineTree(310, 500, 40);
+  drawPineTree(180, 485, 38);
+
+  // ── UPPER-MID ZONE: Forest (y 620–1130) ───────────────
+  drawMapTree( 28, 655); drawMapTree(375, 695);
+  drawMapTree( 55, 875); drawMapTree(355, 845);
+  drawMapTree(190, 795);
+  drawMapBush( 95, 765); drawMapBush(310, 740);
+  drawMapRock(155, 720); drawMapRock(265, 780);
+  drawFlowerPatch( 60, 905, '#F87070');
+  drawFlowerPatch(340, 880, '#F060B0');
+
+  // ── RIVER ZONE (y 1130–1650) ──────────────────────────
+  drawMapRiver(1350);
+  drawWoodenBridge(175, 1345);
+  drawMapTree( 22, 1200); drawMapTree(378, 1235);
+  drawMapTree( 40, 1470); drawMapTree(362, 1435);
+  drawMapBush(295, 1250); drawMapBush(100, 1450);
+  drawFlowerPatch( 55, 1315, '#60C0F0');
+  drawFlowerPatch(340, 1275, '#F0E040');
+
+  // ── LOWER-MID ZONE: Green fields (y 1650–2075) ────────
+  drawMapTree( 30, 1710); drawMapTree(372, 1740);
+  drawMapTree(120, 1940); drawMapTree(290, 1970);
+  drawMapBush(185, 1830); drawMapBush( 65, 1890);
+  drawMapRock(240, 1795); drawMapRock(310, 1910);
+  drawFlowerPatch( 70, 1765, '#F87070');
+  drawFlowerPatch(340, 1750, '#F0E040');
+  drawFlowerPatch(195, 2000, '#F060B0');
+
+  // ── BOTTOM ZONE: Start area (y 2075–2500) ─────────────
+  drawMapTree( 25, 2125); drawMapTree(375, 2165);
+  drawMapTree( 42, 2345); drawMapTree(370, 2360);
+  drawMapBush(150, 2235); drawMapBush(275, 2265);
+  drawFlowerPatch( 65, 2345, '#F87070');
+  drawFlowerPatch(340, 2330, '#F0E040');
+  drawFlowerPatch(115, 2420, '#60C0F0');
+  drawFlowerPatch(290, 2410, '#F8A040');
+}
+
+function drawMountain(cx, topY, w, h) {
+  // Shadow side
+  ctx.fillStyle = '#8090A0';
+  ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx+w/2, topY+h); ctx.lineTo(cx, topY+h); ctx.closePath(); ctx.fill();
+  // Main face
+  const g = ctx.createLinearGradient(cx-w/2, topY, cx, topY+h);
+  g.addColorStop(0,'#D0D8E0'); g.addColorStop(1,'#9AAABB');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(cx-w/2, topY+h); ctx.lineTo(cx, topY); ctx.lineTo(cx+w/2, topY+h); ctx.closePath(); ctx.fill();
+  // Snow cap
+  const sh = h*0.32;
+  ctx.fillStyle = '#EEF2F8';
+  ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx+w*0.22, topY+sh); ctx.lineTo(cx-w*0.18, topY+sh*0.88); ctx.closePath(); ctx.fill();
+}
+
+function drawSnowPatch(cx, cy, w) {
+  ctx.fillStyle = 'rgba(240,244,250,0.82)';
+  ctx.beginPath(); ctx.ellipse(cx, cy, w/2, w*0.22, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx-w*0.22, cy-w*0.06, w*0.2, w*0.12, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx+w*0.24, cy-w*0.04, w*0.18, w*0.1, 0, 0, Math.PI*2); ctx.fill();
+}
+
+function drawPineTree(cx, baseY, size) {
+  ctx.fillStyle = '#6A4020';
+  ctx.fillRect(cx-size*0.07, baseY-size*0.28, size*0.14, size*0.3);
+  [[1.0,0],[0.75,0.3],[0.52,0.55]].forEach(([sw, yo]) => {
+    const ty = baseY - size*0.28 - size*yo;
+    ctx.fillStyle = '#1E5518';
+    ctx.beginPath(); ctx.moveTo(cx-sw*size/2, ty); ctx.lineTo(cx, ty-sw*size*0.72); ctx.lineTo(cx+sw*size/2, ty); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#2E7028';
+    ctx.beginPath(); ctx.moveTo(cx-sw*size*0.38, ty); ctx.lineTo(cx, ty-sw*size*0.56); ctx.lineTo(cx+sw*size*0.38, ty); ctx.closePath(); ctx.fill();
+  });
+}
+
+function drawMapBush(cx, baseY) {
+  ctx.fillStyle = '#1E6828';
+  ctx.beginPath(); ctx.arc(cx, baseY, 22, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#288038';
+  ctx.beginPath(); ctx.arc(cx-13, baseY-9, 15, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+13, baseY-8, 14, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, baseY-18, 13, 0, Math.PI*2); ctx.fill();
+  ctx.save(); ctx.globalAlpha=0.15; ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.ellipse(cx-4, baseY-20, 7, 4, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawMapRock(cx, cy) {
+  ctx.fillStyle = '#8890A0';
+  ctx.beginPath(); ctx.ellipse(cx, cy, 18, 12, 0.15, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.beginPath(); ctx.ellipse(cx-5, cy-4, 7, 4, -0.3, 0, Math.PI*2); ctx.fill();
+}
+
+function drawMapRiver(centerY) {
+  const rg = ctx.createLinearGradient(0, centerY-38, 0, centerY+38);
+  rg.addColorStop(0,'#7AC8E8'); rg.addColorStop(0.5,'#50A8D0'); rg.addColorStop(1,'#7AC8E8');
+  ctx.fillStyle = rg;
+  ctx.beginPath();
+  ctx.moveTo(0, centerY-32);
+  ctx.bezierCurveTo(100,centerY-48, 200,centerY-18, 300,centerY-35);
+  ctx.bezierCurveTo(360,centerY-42, 400,centerY-28, 400,centerY-28);
+  ctx.lineTo(400, centerY+32);
+  ctx.bezierCurveTo(300,centerY+44, 200,centerY+20, 100,centerY+40);
+  ctx.bezierCurveTo(50,centerY+48, 0,centerY+32, 0,centerY+32);
+  ctx.closePath(); ctx.fill();
+  // Shimmer
+  ctx.strokeStyle='rgba(255,255,255,0.28)'; ctx.lineWidth=2.5;
+  [[25,-8],[130,-4],[240,-10],[350,-6]].forEach(([x,dy])=>{
+    ctx.beginPath(); ctx.moveTo(x, centerY+dy); ctx.lineTo(x+28, centerY+dy-4); ctx.stroke();
+  });
+  // Bank grass
+  ctx.fillStyle='#60A040';
+  ctx.fillRect(0, centerY-42, W, 12);
+  ctx.fillRect(0, centerY+30, W, 12);
+}
+
+function drawWoodenBridge(cx, cy) {
+  // Bridge planks across the river
+  ctx.fillStyle = '#9B6020';
+  ctx.fillRect(cx-32, cy-8, 64, 16);
+  ctx.strokeStyle='#7A4810'; ctx.lineWidth=2;
+  [-20,-6,8,22].forEach(dx => {
+    ctx.beginPath(); ctx.moveTo(cx+dx, cy-8); ctx.lineTo(cx+dx, cy+8); ctx.stroke();
+  });
+  // Rope railings
+  ctx.strokeStyle='#6A3808'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(cx-32,cy-12); ctx.lineTo(cx+32,cy-12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-32,cy+12); ctx.lineTo(cx+32,cy+12); ctx.stroke();
+}
+
+function drawWoodenSign(cx, cy, arrowUp) {
+  ctx.fillStyle = '#8B5E20';
+  ctx.fillRect(cx-4, cy, 8, 38);
+  const g = ctx.createLinearGradient(cx-28,cy-10,cx+28,cy+10);
+  g.addColorStop(0,'#C4862E'); g.addColorStop(1,'#A06820');
+  ctx.fillStyle = g;
+  rr(cx-30, cy-18, 60, 28, 5); ctx.fill();
+  ctx.strokeStyle='#7A4010'; ctx.lineWidth=1.5; rr(cx-30,cy-18,60,28,5); ctx.stroke();
+  // Arrow on sign
+  ctx.strokeStyle='#7A4010'; ctx.lineWidth=2.5; ctx.lineCap='round';
+  const ay = arrowUp ? cy-6 : cy-4;
+  const dir = arrowUp ? -1 : 1;
+  ctx.beginPath(); ctx.moveTo(cx, ay+dir*7); ctx.lineTo(cx, ay-dir*7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-7, ay+dir*1); ctx.lineTo(cx, ay-dir*7); ctx.lineTo(cx+7, ay+dir*1); ctx.stroke();
+}
+
+function drawMapTree(cx, cy) {
+  ctx.fillStyle='#7A5020'; ctx.fillRect(cx-4,cy-16,8,20);
+  ctx.fillStyle='#226622'; ctx.beginPath(); ctx.arc(cx,cy-26,17,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#2E882E'; ctx.beginPath(); ctx.arc(cx-7,cy-18,12,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+7,cy-18,12,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx,cy-36,13,0,Math.PI*2); ctx.fill();
+}
+
+function drawFlowerPatch(cx, cy, col) {
+  const off=[-8,-4,0,4,8];
+  off.forEach((dx,i)=>{
+    const fy=cy+(i%2===0?-3:3);
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(cx+dx,fy,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx+dx,fy,1.3,0,Math.PI*2); ctx.fill();
+  });
+}
+
+function drawGlossyStar(cx, cy, r, filled) {
+  ctx.beginPath();
+  for (let i=0; i<10; i++) {
+    const a=(i*Math.PI/5)-Math.PI/2;
+    const rad=i%2===0?r:r*0.42;
+    i===0?ctx.moveTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a)):ctx.lineTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a));
+  }
+  ctx.closePath();
+  if (filled) {
+    const g=ctx.createRadialGradient(cx-r*.15,cy-r*.15,0,cx,cy,r);
+    g.addColorStop(0,'#FFE860'); g.addColorStop(0.6,'#F0C030'); g.addColorStop(1,'#B07810');
+    ctx.fillStyle=g; ctx.fill();
+    ctx.save();
+    ctx.beginPath();
+    for (let i=0; i<10; i++) {
+      const a=(i*Math.PI/5)-Math.PI/2, rad=i%2===0?r:r*0.42;
+      i===0?ctx.moveTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a)):ctx.lineTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a));
+    }
+    ctx.closePath(); ctx.clip();
+    ctx.fillStyle='rgba(255,255,255,0.28)';
+    ctx.beginPath(); ctx.ellipse(cx-r*.1,cy-r*.32,r*.45,r*.22,-0.2,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  } else {
+    ctx.fillStyle='rgba(180,140,50,0.22)'; ctx.fill();
+  }
+}
+
+function drawMapHeader() {
+  const hg = ctx.createLinearGradient(0,0,0,82);
+  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
+  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
+  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+
+  // Level pill card (centre of header)
+  const lv = LEVELS[Math.min(unlockedLevels-1, LEVELS.length-1)];
+  const pillW = 182, pillH = 52, pillX = W/2 - pillW/2, pillY = 13;
+  // pill shadow
+  ctx.save(); ctx.globalAlpha = 0.20;
+  ctx.fillStyle = '#000'; rr(pillX+2, pillY+3, pillW, pillH, 14); ctx.fill();
+  ctx.restore();
+  // pill fill
+  const pg = ctx.createLinearGradient(pillX, pillY, pillX, pillY+pillH);
+  pg.addColorStop(0,'rgba(255,240,180,0.22)'); pg.addColorStop(1,'rgba(100,50,0,0.18)');
+  ctx.fillStyle = pg; rr(pillX, pillY, pillW, pillH, 14); ctx.fill();
+  ctx.strokeStyle = '#C4A040'; ctx.lineWidth = 1.5;
+  rr(pillX+1, pillY+1, pillW-2, pillH-2, 13); ctx.stroke();
+  // Top sheen
+  ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#fff';
+  rr(pillX+8, pillY+6, pillW-16, pillH*0.4, 8); ctx.fill();
+  ctx.restore();
+
+  // "LEVEL X / 20" — big, bold
+  ctx.fillStyle = '#FFE880';
+  ctx.font = "bold 26px 'Fredoka One',cursive"; ctx.textAlign = 'center';
+  ctx.fillText(`Level ${unlockedLevels} / ${LEVELS.length}`, W/2, pillY + 33);
+  // Level name subtitle
+  ctx.fillStyle = 'rgba(255,220,130,0.72)';
+  ctx.font = "bold 10px 'Nunito',sans-serif"; ctx.textAlign = 'center';
+  ctx.fillText(lv ? lv.name.toUpperCase() : '', W/2, pillY + 48);
+
+}
+
+// Smooth catmull-rom path through all nodes
+function traceMapPath() {
+  const pts = MAP_NODES;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i-1)];
+    const p1 = pts[i];
+    const p2 = pts[i+1];
+    const p3 = pts[Math.min(pts.length-1, i+2)];
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+  }
+}
+
+function drawMapPath() {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
+
+  // Road shadow
+  ctx.strokeStyle = 'rgba(60,35,5,0.22)'; ctx.lineWidth = 36;
+  traceMapPath(); ctx.stroke();
+  // Road base (dark edge)
+  ctx.strokeStyle = '#B8882A'; ctx.lineWidth = 32;
+  traceMapPath(); ctx.stroke();
+  // Road surface
+  ctx.strokeStyle = '#DEB84A'; ctx.lineWidth = 26;
+  traceMapPath(); ctx.stroke();
+  // Center highlight
+  ctx.strokeStyle = 'rgba(255,238,160,0.30)'; ctx.lineWidth = 10;
+  traceMapPath(); ctx.stroke();
+}
+
+function drawMapNode(cx, cy, num, isUnlocked, stars, lv, isCurrent) {
+  const bw = 54, bh = 54, br = 12;
+
+  // Pulsing glow for current level
+  if (isCurrent) {
+    const pulse = 0.45 + 0.55 * Math.abs(Math.sin(menuTime * 0.07));
+    ctx.save(); ctx.globalAlpha = pulse * 0.5;
+    ctx.fillStyle = '#FFE040';
+    rr(cx-bw/2-10, cy-bh/2-10, bw+20, bh+20, br+10); ctx.fill();
+    ctx.restore();
+  }
+
+  // Drop shadow
+  ctx.save(); ctx.globalAlpha = 0.32;
+  ctx.fillStyle = '#1A0800';
+  rr(cx-bw/2+3, cy-bh/2+5, bw, bh, br); ctx.fill();
+  ctx.restore();
+
+  // Button gradient
+  let topC, botC, rimC;
+  if (!isUnlocked)      { topC='#A8A8A8'; botC='#686868'; rimC='#C8C8C8'; }
+  else if (stars >= 3)  { topC='#F0C030'; botC='#A07010'; rimC='#FFE068'; }
+  else                  { topC='#E03030'; botC='#880808'; rimC='#FF5858'; }
+
+  const g = ctx.createLinearGradient(cx, cy-bh/2, cx, cy+bh/2);
+  g.addColorStop(0, topC); g.addColorStop(1, botC);
+  ctx.fillStyle = g;
+  rr(cx-bw/2, cy-bh/2, bw, bh, br); ctx.fill();
+
+  // Outer rim
+  ctx.strokeStyle = rimC; ctx.lineWidth = 2.5;
+  rr(cx-bw/2+1, cy-bh/2+1, bw-2, bh-2, br); ctx.stroke();
+
+  // Top sheen
+  ctx.save(); ctx.globalAlpha = 0.26;
+  ctx.fillStyle = '#fff';
+  rr(cx-bw/2+5, cy-bh/2+5, bw-10, bh*0.38, br-2); ctx.fill();
+  ctx.restore();
+
+  if (!isUnlocked) {
+    // Centered lock — total icon height ~20px (shackle top -9 to body bottom +10), center at cy
+    // Lock body (10px tall, centered)
+    ctx.fillStyle = 'rgba(255,255,255,0.80)';
+    ctx.fillRect(cx-9, cy-3, 18, 13);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(cx-9, cy-3, 18, 3);
+    // Lock shackle (semicircle, radius 7, top at cy-3-7=cy-10)
+    ctx.strokeStyle = 'rgba(255,255,255,0.80)'; ctx.lineWidth = 3.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(cx, cy-3, 7, Math.PI, 0); ctx.stroke();
+    // Keyhole
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.arc(cx, cy+3, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(cx-1.5, cy+3, 3, 5);
+  } else {
+    // Level number, large and centred in button
+    ctx.font = "bold 22px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillText(num, cx+1, cy+9);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(num, cx, cy+8);
+  }
+
+  // Star pill above button (only when at least 1 star earned)
+  if (isUnlocked && stars > 0) drawMapStars(cx, cy - bh/2 - 19, stars);
+}
+
+function drawNodeStar(cx, cy, r, filled) {
+  const path = () => {
+    ctx.beginPath();
+    for (let i=0; i<10; i++) {
+      const a = i*Math.PI/5 - Math.PI/2;
+      const rad = i%2===0 ? r : r*0.42;
+      i===0 ? ctx.moveTo(cx+rad*Math.cos(a), cy+rad*Math.sin(a))
+             : ctx.lineTo(cx+rad*Math.cos(a), cy+rad*Math.sin(a));
+    }
+    ctx.closePath();
+  };
+  path();
+  if (filled) {
+    const g = ctx.createRadialGradient(cx-r*0.2, cy-r*0.3, 0, cx, cy, r);
+    g.addColorStop(0,'#FFF060'); g.addColorStop(0.55,'#FFD600'); g.addColorStop(1,'#C08000');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.save(); path(); ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,0.36)';
+    ctx.beginPath(); ctx.ellipse(cx-r*0.1, cy-r*0.32, r*0.42, r*0.22, -0.25, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill();
+  }
+  path();
+  ctx.strokeStyle = filled ? '#A06000' : 'rgba(255,255,255,0.5)'; ctx.lineWidth=1.2; ctx.stroke();
+}
+
+function drawMapStars(cx, y, earnedCount) {
+  if (earnedCount === 0) return;
+  const r=7, gap=15; // star radius and center-to-center gap
+  const padX=8, padY=5;
+  const pillW = 2*gap + 2*r + 2*padX; // = 30+14+16 = 60px
+  const pillH = 2*r + 2*padY;          // = 14+10 = 24px
+  const px = cx - pillW/2, py = y - pillH/2;
+  // Shadow
+  ctx.save(); ctx.globalAlpha=0.28; ctx.fillStyle='#1A0800';
+  rr(px+2, py+3, pillW, pillH, pillH/2); ctx.fill(); ctx.restore();
+  // Pill
+  ctx.fillStyle='rgba(18,8,0,0.62)';
+  rr(px, py, pillW, pillH, pillH/2); ctx.fill();
+  // Stars
+  for (let i=0; i<3; i++) {
+    drawGlossyStar(cx - gap + i*gap, y, r, i < earnedCount);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════════
+// Particle shape types: 'star','circle','diamond','ring'
+function burst(x, y, perfect) {
+  const perfectColors = ['#FFD700','#FF6B6B','#7ED321','#50E3C2','#F5A623','#BD10E0'];
+  const normalColors  = ['#F0C030','#3DAA60','#E06060'];
+  const n = perfect ? 16 : 6;
+  const colors = perfect ? perfectColors : normalColors;
+  const shapes = perfect ? ['star','circle','diamond','star','circle'] : ['circle','diamond'];
+  for (let i=0; i<n; i++) particles.push({
+    x: x+(Math.random()-.5)*140, y,
+    vx:(Math.random()-.5)*8, vy:-Math.random()*9-2,
+    life:1, decay:0.015+Math.random()*0.018,
+    col: colors[i % colors.length],
+    shape: shapes[i % shapes.length],
+    size: 6+Math.random()*8, rot: Math.random()*Math.PI*2,
+  });
+}
+function burstWrong() {
+  for (let i=0; i<8; i++) particles.push({
+    x: W/2+(Math.random()-.5)*260, y:H/2+(Math.random()-.5)*100,
+    vx:(Math.random()-.5)*9, vy:(Math.random()-.5)*9-2,
+    life:1, decay:0.028+Math.random()*0.015,
+    col: i%2===0 ? '#E03030' : '#CC2020',
+    shape: i%3===0 ? 'ring' : 'diamond',
+    size: 8+Math.random()*8, rot: Math.random()*Math.PI*2,
+  });
+}
+function tickParticles() {
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.22; p.life-=p.decay; p.rot+=0.08;
+    ctx.save(); ctx.globalAlpha=Math.min(p.life,.95);
+    ctx.fillStyle=p.col; ctx.strokeStyle=p.col; ctx.lineWidth=2.5;
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    const s=p.size;
+    if (p.shape==='circle') {
+      ctx.beginPath(); ctx.arc(0,0,s,0,Math.PI*2); ctx.fill();
+    } else if (p.shape==='diamond') {
+      ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(s,0); ctx.lineTo(0,s); ctx.lineTo(-s,0); ctx.closePath(); ctx.fill();
+    } else if (p.shape==='ring') {
+      ctx.beginPath(); ctx.arc(0,0,s,0,Math.PI*2); ctx.stroke();
+    } else { // star
+      ctx.beginPath();
+      for(let j=0;j<10;j++){
+        const a=j*Math.PI/5-Math.PI/2, r=j%2===0?s:s*0.42;
+        j===0?ctx.moveTo(r*Math.cos(a),r*Math.sin(a)):ctx.lineTo(r*Math.cos(a),r*Math.sin(a));
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW: MAIN MENU BAKERY SCENE
+// ═══════════════════════════════════════════════════════
+function drawBakeryScene(t) {
+  drawBakeryWall(t);
+  drawStringLights(t);
+  drawLeftWindow(t);
+  drawRightWindow(t);
+  drawWallShelf();
+  drawBakeryTitle(t);
+  drawDisplayCase(t);
+  drawBakeryCounter();
+  drawMenuButton(t);
+  drawSteamParticles(t);
+}
+
+function drawBakeryWall(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0,   '#FFF8E8');
+  g.addColorStop(0.55,'#FDECC8');
+  g.addColorStop(1,   '#F0D8A8');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(175,128,55,0.09)'; ctx.lineWidth = 1;
+  for (let x=0; x<=W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,440); ctx.stroke(); }
+  for (let y=0; y<=440; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  const beam = ctx.createLinearGradient(0, 0, 0, 28);
+  beam.addColorStop(0, '#A07030'); beam.addColorStop(1, '#C89840');
+  ctx.fillStyle = beam; ctx.fillRect(0, 0, W, 28);
+  ctx.fillStyle = '#8A5E20'; ctx.fillRect(0, 25, W, 4);
+  ctx.fillStyle = 'rgba(255,220,120,0.18)'; ctx.fillRect(0, 0, W, 8);
+}
+
+function drawStringLights(t) {
+  const bulbColors = ['#FFE08A','#FFB06A','#FF9090','#90E890','#90C8FF','#FFAA50','#E890FF'];
+  const numBulbs = 9;
+
+  ctx.strokeStyle = 'rgba(80,45,10,0.55)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, 14);
+  ctx.quadraticCurveTo(W/2, 30, W, 14);
+  ctx.stroke();
+
+  for (let i = 0; i < numBulbs; i++) {
+    const frac   = i / (numBulbs - 1);
+    const bx     = frac * W;
+    const by     = 14 + Math.sin(frac * Math.PI) * 16;
+    const flicker= 0.72 + 0.28 * Math.sin(t * 0.045 + i * 1.35);
+    const col    = bulbColors[i % bulbColors.length];
+
+    ctx.fillStyle = '#5A3010';
+    ctx.fillRect(bx - 2, by - 8, 4, 8);
+
+    ctx.save();
+    ctx.shadowColor = col; ctx.shadowBlur = 14 * flicker;
+    ctx.globalAlpha = flicker;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(bx, by, 5.5, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = flicker * 0.6;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(bx - 1.5, by - 1.5, 2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+/* Arched window — cx is window centre, windowTopY is top of arch curve */
+function drawArchwayWindow(cx, windowTopY, innerW, innerH, time, cloudSet, showSun = true) {
+  const hw     = innerW / 2;
+  const frameT = 8;
+
+  // Outer wooden frame (plain rectangle)
+  ctx.fillStyle = '#7A4818';
+  ctx.fillRect(cx - hw - frameT, windowTopY - frameT, innerW + frameT*2, innerH + frameT*2);
+
+  // Sky background (clipped to inner pane)
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx - hw, windowTopY, innerW, innerH);
+  ctx.clip();
+
+  const skyG = ctx.createLinearGradient(0, windowTopY, 0, windowTopY + innerH);
+  skyG.addColorStop(0, '#C8E8FC'); skyG.addColorStop(0.7, '#E8F4FD'); skyG.addColorStop(1, '#F5F9FD');
+  ctx.fillStyle = skyG;
+  ctx.fillRect(cx - hw, windowTopY, innerW, innerH);
+
+  for (const cl of cloudSet) {
+    cl.x += cl.spd;
+    if (cl.x > innerW + cl.w + 10) cl.x = -cl.w - 10;
+    drawCloud(cx - hw + cl.x, windowTopY + cl.y, cl.w);
+  }
+  if (showSun) {
+    const sunX = cx + hw - 18, sunY = windowTopY + 18;
+    const sunG = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 22);
+    sunG.addColorStop(0, 'rgba(255,240,180,0.9)'); sunG.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = sunG;
+    ctx.beginPath(); ctx.arc(sunX, sunY, 22, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // Pane dividers
+  ctx.strokeStyle = '#7A4818'; ctx.lineWidth = 3.5; ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.moveTo(cx, windowTopY); ctx.lineTo(cx, windowTopY + innerH); ctx.stroke();
+  const hMid = windowTopY + innerH * 0.5;
+  ctx.beginPath(); ctx.moveTo(cx - hw, hMid); ctx.lineTo(cx + hw, hMid); ctx.stroke();
+
+  // Glass reflection strip
+  ctx.fillStyle = 'rgba(255,255,255,0.13)';
+  ctx.fillRect(cx - hw + 5, windowTopY + 4, 13, innerH - 8);
+
+  // Sill
+  ctx.fillStyle = '#9B5E20';
+  ctx.fillRect(cx - hw - frameT - 4, windowTopY + innerH + frameT - 2, innerW + frameT*2 + 8, 9);
+  ctx.fillStyle = '#C4862E';
+  ctx.fillRect(cx - hw - frameT - 4, windowTopY + innerH + frameT - 2, innerW + frameT*2 + 8, 4);
+}
+
+function drawCloud(x, y, w) {
+  ctx.fillStyle = 'rgba(255,255,255,0.82)';
+  ctx.beginPath(); ctx.arc(x + w*0.5, y, w*0.22, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w*0.25, y + 4, w*0.18, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w*0.75, y + 4, w*0.16, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w*0.5,  y + 6, w*0.25, 0, Math.PI*2); ctx.fill();
+}
+
+function drawLeftWindow(t)  { drawArchwayWindow( 80, 42, 108, 158, t, clouds.filter(c=>c.wx===0), false); }
+function drawRightWindow(t) { drawArchwayWindow(320, 42, 108, 158, t, clouds.filter(c=>c.wx===1), true); }
+
+function drawWallShelf() {
+  ctx.fillStyle = '#9B5E20'; ctx.fillRect(148, 98, 104, 8);
+  ctx.fillStyle = '#C4862E'; ctx.fillRect(148, 96, 104, 4);
+  drawJar(172, 96, '#8B5E3C', '#E8C090');
+  drawJar(200, 94, '#3D6B3D', '#A8E4A8');
+  drawJar(228, 96, '#A83838', '#F8A0B8');
+}
+
+function drawJar(cx, baseY, bodyCol, lidCol) {
+  ctx.fillStyle = bodyCol;
+  rr(cx-10, baseY-30, 20, 30, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(cx-6, baseY-26, 5, 16);
+  ctx.fillStyle = lidCol;
+  rr(cx-11, baseY-34, 22, 8, 3); ctx.fill();
+}
+
+function drawBakeryTitle(t) {
+  const pulse = 1 + 0.012 * Math.sin(t * 0.032);
+  ctx.save();
+  ctx.translate(W/2, 216);
+  ctx.scale(pulse, pulse);
+
+  ctx.font = "bold 50px 'Fredoka One', cursive";
+  ctx.textAlign = 'center';
+
+  // Warm halo — two blurred passes, no hard card
+  ctx.save();
+  ctx.filter = 'blur(22px)';
+  ctx.globalAlpha = 0.70;
+  ctx.fillStyle = '#FFFAEC';
+  ctx.fillText('KUEH',   0, -18);
+  ctx.fillText('BAKERY', 0,  38);
+  ctx.restore();
+
+  ctx.save();
+  ctx.filter = 'blur(9px)';
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#FFE890';
+  ctx.fillText('KUEH',   0, -18);
+  ctx.fillText('BAKERY', 0,  38);
+  ctx.restore();
+
+  // Crisp gold gradient text with dark drop-shadow
+  ctx.shadowColor = 'rgba(55, 18, 0, 0.72)';
+  ctx.shadowBlur  = 9;
+  ctx.shadowOffsetY = 3;
+  const tg = ctx.createLinearGradient(0, -54, 0, 50);
+  tg.addColorStop(0, '#FFE464');
+  tg.addColorStop(0.45, '#F0BC28');
+  tg.addColorStop(1, '#D08018');
+  ctx.fillStyle = tg;
+  ctx.fillText('KUEH',   0, -18);
+  ctx.fillText('BAKERY', 0,  38);
+  ctx.restore();
+}
+
+function drawDisplayCase(t) {
+  const cx=W/2, cy=330, cw=320, ch=95, x=cx-cw/2, y=cy-ch/2;
+
+  const cg = ctx.createLinearGradient(x, y, x, y+ch);
+  cg.addColorStop(0,'#E8C888'); cg.addColorStop(1,'#D4AE60');
+  ctx.fillStyle=cg; ctx.fillRect(x+3, y+3, cw-6, ch-6);
+
+  ctx.fillStyle='#8B5E20';
+  [[x+18,y+ch],[x+cw-18,y+ch]].forEach(([fx,fy]) => { ctx.fillRect(fx-8,fy,16,10); });
+
+  const stacks = [
+    { cx:cx-90, layers:['pandan','coconut','pandan'] },
+    { cx:cx,    layers:['rose','turmeric','coconut'] },
+    { cx:cx+90, layers:['blue_pea','coconut','yam'] },
+  ];
+  stacks.forEach(s => drawDisplayStack(s.cx, y, ch, s.layers, t));
+
+  ctx.fillStyle='rgba(185,220,255,0.10)'; ctx.fillRect(x,y,cw,ch);
+  ctx.strokeStyle='#8B6010'; ctx.lineWidth=3.5;
+  rr(x,y,cw,ch,6); ctx.stroke();
+
+  const fhg = ctx.createLinearGradient(x,y-6,x,y+2);
+  fhg.addColorStop(0,'#C48A28'); fhg.addColorStop(1,'#A06810');
+  ctx.fillStyle=fhg; ctx.fillRect(x-2,y-6,cw+4,10);
+
+  ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(x+4,y+4,8,ch-8);
+  ctx.fillStyle='rgba(255,255,255,0.07)'; ctx.fillRect(x+14,y+4,4,ch-8);
+
+  ctx.fillStyle='#8B6010';
+  rr(cx-42,y+ch+3,84,16,4); ctx.fill();
+  ctx.fillStyle='#F0D890'; ctx.font="bold 9px 'Nunito',sans-serif"; ctx.textAlign='center';
+  ctx.fillText("TODAY'S SPECIAL", cx, y+ch+14);
+}
+
+function drawDisplayStack(cx, caseTop, caseH, layers, t) {
+  const sw=54, sh=16;
+  const baseY = caseTop + caseH - 12;
+  const bob   = Math.sin(t * 0.025 + cx) * 1.5;
+
+  layers.forEach((id, i) => {
+    const kt = KT[id];
+    const ly = baseY - (i+1)*sh + bob;
+    const lg = ctx.createLinearGradient(cx-sw/2, ly, cx-sw/2, ly+sh-2);
+    lg.addColorStop(0, kt.lite); lg.addColorStop(0.4, kt.mid); lg.addColorStop(1, kt.dark);
+    ctx.fillStyle = lg;
+    rr(cx-sw/2, ly, sw, sh-2, 3); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.28)';
+    rr(cx-sw/2+4, ly+2, sw-8, 4, 2); ctx.fill();
+  });
+
+}
+
+function drawBakeryCounter() {
+  const ctg = ctx.createLinearGradient(0, 378, 0, 400);
+  ctg.addColorStop(0,'#C89040'); ctg.addColorStop(1,'#A07020');
+  ctx.fillStyle=ctg; ctx.fillRect(0, 378, W, 22);
+  ctx.fillStyle='#E0A840'; ctx.fillRect(0, 378, W, 5);
+  ctx.fillStyle='#886010'; ctx.fillRect(0, 397, W, 3);
+
+  const lcg = ctx.createLinearGradient(0,400,0,H);
+  lcg.addColorStop(0,'#C08030'); lcg.addColorStop(1,'#8B5A18');
+  ctx.fillStyle=lcg; ctx.fillRect(0,400,W,H-400);
+
+  ctx.strokeStyle='rgba(80,40,5,0.20)'; ctx.lineWidth=1.5;
+  [100,200,300].forEach(x => { ctx.beginPath(); ctx.moveTo(x,412); ctx.lineTo(x,H-20); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(0,H-20); ctx.lineTo(W,H-20); ctx.stroke();
+
+  [50,150,250,350].forEach(x => {
+    ctx.fillStyle='#E0B050';
+    rr(x-12, (400+(H-20))/2-5, 24, 10, 5); ctx.fill();
+    ctx.strokeStyle='#A07820'; ctx.lineWidth=1;
+    rr(x-12, (400+(H-20))/2-5, 24, 10, 5); ctx.stroke();
+  });
+}
+
+function drawMenuButton(t) {
+  const bx=W/2, by=470, bw=210, bh=54;
+  const pulse   = 1 + 0.025 * Math.sin(t * 0.04);
+  const hovering= menuMouseX>bx-bw/2 && menuMouseX<bx+bw/2
+                && menuMouseY>by-bh/2 && menuMouseY<by+bh/2;
+
+  ctx.save(); ctx.translate(bx, by); ctx.scale(pulse, pulse);
+
+  ctx.shadowColor='rgba(230,165,60,0.55)'; ctx.shadowBlur=hovering?28:18;
+  const bg = ctx.createLinearGradient(-bw/2,-bh/2,-bw/2,bh/2);
+  bg.addColorStop(0, hovering?'#FFD068':'#F0B040');
+  bg.addColorStop(1, hovering?'#D09020':'#B06A10');
+  ctx.fillStyle=bg;
+  rr(-bw/2,-bh/2,bw,bh,27); ctx.fill();
+  ctx.shadowBlur=0;
+
+  ctx.fillStyle='rgba(255,255,255,0.18)';
+  rr(-bw/2+6,-bh/2+4,bw-12,bh/2-4,22); ctx.fill();
+
+  ctx.fillStyle='#fff';
+  ctx.font="bold 21px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.shadowColor='rgba(0,0,0,0.15)'; ctx.shadowBlur=3;
+  ctx.fillText('Start game', 0, 8);
+  ctx.shadowBlur=0;
+  ctx.restore();
+
+}
+
+function drawSteamParticles(t) {
+  if (Math.floor(t) % 4 === 0 && Math.random() < 0.3) {
+    steamParts.push({
+      x: 80+Math.random()*240, y:280, size:5+Math.random()*7,
+      vx:(Math.random()-.5)*0.4, vy:-0.5-Math.random()*0.4,
+      life:1, decay:0.008+Math.random()*0.006,
+    });
+  }
+  steamParts = steamParts.filter(p => p.life>0);
+  for (const p of steamParts) {
+    p.x+=p.vx; p.y+=p.vy; p.life-=p.decay;
+    p.vx += (Math.random()-.5)*0.04;
+    ctx.save(); ctx.globalAlpha = p.life * 0.35;
+    ctx.fillStyle='#F5F0E8';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW: GAME SCENE
+// ═══════════════════════════════════════════════════════
+function drawGameBg() {
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#FFF8E8'); g.addColorStop(0.65,'#FDECC8'); g.addColorStop(1,'#F5DCA8');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(175,130,55,0.09)'; ctx.lineWidth=1;
+  for (let x=0;x<=W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for (let y=0;y<=H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  ctx.save(); ctx.globalAlpha=0.30;
+  ctx.strokeStyle='#C09040'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,26); ctx.quadraticCurveTo(W/2,56,W,26); ctx.stroke();
+  const bCols=['#E84060','#E4A020','#3A9A3A','#3060CC','#7850C0','#E84060','#E4A020'];
+  for(let i=0;i<7;i++){
+    const tt=i/6, bx=tt*W, by=26+Math.sin(tt*Math.PI)*30;
+    ctx.fillStyle=bCols[i]; ctx.beginPath();
+    ctx.moveTo(bx-10,by); ctx.lineTo(bx+10,by); ctx.lineTo(bx,by+20);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  const cy=H-90;
+  const cg=ctx.createLinearGradient(0,cy,0,H);
+  cg.addColorStop(0,'#D49848'); cg.addColorStop(1,'#A87028');
+  ctx.fillStyle=cg; ctx.fillRect(0,cy,W,H-cy);
+  ctx.fillStyle='#E8B058'; ctx.fillRect(0,cy,W,6);
+  ctx.fillStyle='#B88030'; ctx.fillRect(0,cy+6,W,3);
+  for(let x=20;x<W;x+=60){
+    ctx.strokeStyle='rgba(100,55,10,0.10)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,cy+10); ctx.lineTo(x+20,H); ctx.stroke();
+  }
+}
+
+function drawPlate() {
+  const py=PLATE_Y;
+  const sty=py+14, sby=py+44;
+
+  // ── 1. BASE (behind everything) ──────────────────────
+  ctx.fillStyle='#6A4A06';
+  ctx.beginPath(); ctx.ellipse(W/2,py+54,58,13,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#B88820';
+  ctx.beginPath(); ctx.ellipse(W/2,py+51,56,12,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#D0A030';
+  ctx.beginPath(); ctx.ellipse(W/2,py+49,54,10,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#E8BC48'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.ellipse(W/2,py+48,47,7,0,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(255,225,100,0.18)';
+  ctx.beginPath(); ctx.ellipse(W/2,py+46,32,4,0,0,Math.PI*2); ctx.fill();
+
+  // ── 2. STEM (behind plate) ────────────────────────────
+  ctx.fillStyle='#A07818';
+  ctx.beginPath(); ctx.moveTo(W/2-17,sty); ctx.lineTo(W/2+17,sty);
+  ctx.lineTo(W/2+13,sby); ctx.lineTo(W/2-13,sby); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#C09028';
+  ctx.beginPath(); ctx.ellipse(W/2,sty,17,5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,210,80,0.16)'; ctx.fillRect(W/2-4,sty+3,8,sby-sty-5);
+  ctx.fillStyle='#B08820';
+  ctx.beginPath(); ctx.ellipse(W/2,sby,13,4,0,0,Math.PI*2); ctx.fill();
+
+  // ── 3. PLATE (on top, covers stem) ────────────────────
+  ctx.fillStyle='#7A5A0A';
+  ctx.beginPath(); ctx.ellipse(W/2,py+16,126,18,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#C8A030';
+  ctx.beginPath(); ctx.ellipse(W/2,py+12,124,16,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#DEB848';
+  ctx.beginPath(); ctx.ellipse(W/2,py+10,120,14,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#F0C858'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.ellipse(W/2,py+9,112,11,0,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#C89828';
+  ctx.beginPath(); ctx.ellipse(W/2,py+8,106,9,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,235,120,0.25)';
+  ctx.beginPath(); ctx.ellipse(W/2,py+6,80,5,0,0,Math.PI*2); ctx.fill();
+}
+
+function drawLayer(cx,sy,w,kt,glow) {
+  if (w<4) return;
+  const x=cx-w/2, h=LH-2;
+  if (glow){ctx.shadowColor=kt.mid; ctx.shadowBlur=18;}
+  const bg=ctx.createLinearGradient(x,sy,x,sy+h);
+  bg.addColorStop(0,kt.lite); bg.addColorStop(0.25,kt.mid); bg.addColorStop(1,kt.dark);
+  ctx.fillStyle=bg; rr(x,sy+3,w,h,5); ctx.fill();
+  if (glow) ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(255,255,255,0.28)'; rr(x+7,sy+4,w-14,5,2); ctx.fill();
+  ctx.globalAlpha=0.20; ctx.fillStyle=kt.mid; rr(x+4,sy+9,w-8,h-14,3); ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(0,0,0,0.10)'; ctx.fillRect(x+4,sy+h-1,w-8,2);
+  if(w>44){
+    ctx.fillStyle=kt.txt; ctx.globalAlpha=0.95;
+    ctx.font=`bold ${Math.min(13,w/13)}px 'Nunito',sans-serif`; ctx.textAlign='center';
+    ctx.fillText(kt.name,cx,sy+h/2+5); ctx.globalAlpha=1;
+  }
+}
+
+function drawAndMoveMover() {
+  if (!mover) return;
+  const active = state==='playing' || state==='testRound';
+  if (!active) return;
+  mover.x += moverSpd * mover.dir;
+  const exitR = mover.dir>0 && mover.x-mover.w/2>W+5;
+  const exitL = mover.dir<0 && mover.x+mover.w/2<-5;
+  if (exitR||exitL) {
+    if (state==='testRound') spawnTestMover(); else spawnMover();
+    return;
+  }
+  drawLayer(mover.x, MOVER_Y, mover.w, mover.kt, true);
+}
+
+function drawHUD() {
+  const skip = ['mainMenu','nameInput','tutorialGate','tutorial','tutDemo','levelMap'];
+  if (skip.includes(state)) return;
+
+  for(let i=0;i<3;i++){
+    ctx.globalAlpha = (isTestRound||i<lives)?1:0.22;
+    const hx=18+i*30, hy=19, hr=12;
+    ctx.fillStyle='#E03030';
+    ctx.beginPath();
+    ctx.moveTo(hx, hy+hr*0.38);
+    ctx.bezierCurveTo(hx, hy-hr*0.5, hx-hr, hy-hr*0.5, hx-hr, hy+hr*0.12);
+    ctx.bezierCurveTo(hx-hr, hy+hr*0.72, hx, hy+hr*1.18, hx, hy+hr*1.18);
+    ctx.bezierCurveTo(hx, hy+hr*1.18, hx+hr, hy+hr*0.72, hx+hr, hy+hr*0.12);
+    ctx.bezierCurveTo(hx+hr, hy-hr*0.5, hx, hy-hr*0.5, hx, hy+hr*0.38);
+    ctx.fill();
+    ctx.save(); ctx.globalAlpha*=0.40; ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.ellipse(hx-4, hy-1, 4, 3, -0.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+
+  if (state!=='playing' && state!=='testRound') return;
+
+  // ── helpers shared by both modes ──────────────────────
+  function drawChips(layers, chipY) {
+    const chipH=26, n=layers.length;
+    const chipW=Math.min(48,(W-40)/n-4);
+    const gapX=Math.min(8,(W-40-n*chipW)/Math.max(n-1,1));
+    const sx=(W-(n*chipW+(n-1)*gapX))/2;
+    layers.forEach((id,i)=>{
+      const k=KT[id], cx=sx+i*(chipW+gapX), done=i<layerIdx, cur=i===layerIdx;
+      if(cur){
+        ctx.save(); ctx.globalAlpha=0.28; ctx.fillStyle='#F0B030';
+        rr(cx-5,chipY-5,chipW+10,chipH+10,10); ctx.fill(); ctx.restore();
+        ctx.strokeStyle='#F0B030'; ctx.lineWidth=2; rr(cx-2,chipY-2,chipW+4,chipH+4,6); ctx.stroke();
+        ctx.fillStyle='#E09020'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='center';
+        ctx.fillText('NEXT', cx+chipW/2, chipY-7);
+      }
+      ctx.fillStyle=done?k.dark:cur?k.mid:'rgba(0,0,0,0.15)'; rr(cx,chipY,chipW,chipH,4); ctx.fill();
+      if(done){ ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.fillText('✓',cx+chipW/2,chipY+chipH-6); }
+      else { ctx.fillStyle=cur?k.txt:'rgba(255,255,255,0.55)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(k.name,cx+chipW/2,chipY+chipH-6); }
+    });
+  }
+
+  // Card top is y=74 — safely below the settings button (top:15px, 52px tall → bottom at y=67)
+  const CARD_TOP = 74, CARD_H = 80, HEADER_H = 30;
+  const CARD_BOT = CARD_TOP + CARD_H;          // 154
+  const CHIP_Y   = CARD_BOT + 19;              // 173 — NEXT label at +12 above chip, +19 from card
+
+  if (state==='testRound') {
+    ctx.save(); rr(10,CARD_TOP,W-20,CARD_H,12); ctx.clip();
+    ctx.fillStyle='rgba(255,252,238,0.96)'; ctx.fillRect(10,CARD_TOP,W-20,CARD_H);
+    ctx.fillStyle='#3A8A2A'; ctx.fillRect(10,CARD_TOP,W-20,HEADER_H);
+    ctx.restore();
+    ctx.strokeStyle='rgba(60,140,50,0.40)'; ctx.lineWidth=1.5; rr(10,CARD_TOP,W-20,CARD_H,12); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillText('Practice Round', W/2, CARD_TOP+20);
+    ctx.fillStyle='#2A5A1A'; ctx.font="bold 16px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillText('Practice Kueh', W/2, CARD_TOP+52);
+    ctx.fillStyle='#508040'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
+    ctx.fillText('Stack the layers in order!', W/2, CARD_TOP+69);
+    drawChips(TUTORIAL_ORDER.layers, CHIP_Y);
+    return;
+  }
+
+  // ── Playing mode ──────────────────────────────────────
+  const od=orderData(), lv=level(), tot=lv.targetOrders;
+  const lvScore = score - levelStartScore;
+
+  // Score above the card, centered (hearts are top-left, settings button top-right — score is safe here)
+  ctx.fillStyle='#7B3F00'; ctx.font="bold 16px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText(`${lvScore} pts`, W/2, 33);
+
+  // Star progress bar — compact, centered, stars at 1/3, 2/3, end
+  const st  = STAR_THRESHOLDS[levelIdx] || [1,200,300];
+  const sr  = 9;                      // star radius
+  const bCY = 47;                     // bar + star center y
+  const bH  = 5;                      // bar track height
+  const bx  = W/2 - 100;             // bar left x
+  const bTW = 200;                    // bar track width
+  const s1=lvScore>=1, s2=lvScore>=st[1], s3=lvScore>=st[2];
+  // Stars at fixed evenly-spaced positions: 1/3, 2/3, end
+  const starX1 = bx + bTW * (1/3);
+  const starX2 = bx + bTW * (2/3);
+  const starX3 = bx + bTW;
+  // Bracket-based fill: bar fills in thirds, each third = one star bracket
+  let fillFrac;
+  if (lvScore >= st[2]) {
+    fillFrac = 1;
+  } else if (lvScore >= st[1]) {
+    fillFrac = 2/3 + (1/3) * ((lvScore - st[1]) / Math.max(1, st[2] - st[1]));
+  } else if (lvScore >= 1) {
+    fillFrac = 1/3 + (1/3) * ((lvScore - 1) / Math.max(1, st[1] - 1));
+  } else {
+    fillFrac = 0;
+  }
+
+  // Track
+  ctx.fillStyle='rgba(0,0,0,0.10)';
+  rr(bx, bCY-bH/2, bTW, bH, bH/2); ctx.fill();
+  // Fill
+  if (fillFrac>0) {
+    ctx.fillStyle = s3?'#FFD600' : '#E8A848';
+    rr(bx, bCY-bH/2, Math.max(bH, bTW*fillFrac), bH, bH/2); ctx.fill();
+  }
+  // Three stars — smooth rounded star shape using quadratic bezier curves
+  [{cx:starX1,filled:s1},{cx:starX2,filled:s2},{cx:starX3,filled:s3}].forEach(({cx,filled})=>{
+    ctx.save();
+    // Draw star with 5 outer points and rounded inner curves
+    const pts=5, outer=sr, inner=sr*0.42;
+    ctx.beginPath();
+    for(let i=0;i<pts*2;i++){
+      const a = i*Math.PI/pts - Math.PI/2;
+      const r = i%2===0 ? outer : inner;
+      const x = cx + r*Math.cos(a), y = bCY + r*Math.sin(a);
+      i===0 ? ctx.moveTo(x,y) : ctx.quadraticCurveTo(
+        cx + (i%2===0 ? inner : outer)*0.72*Math.cos(a - Math.PI/pts),
+        bCY + (i%2===0 ? inner : outer)*0.72*Math.sin(a - Math.PI/pts),
+        x, y
+      );
+    }
+    ctx.closePath();
+    if(filled){
+      ctx.shadowBlur=10; ctx.shadowColor='rgba(255,200,0,0.65)';
+      const g=ctx.createRadialGradient(cx-sr*.18,bCY-sr*.18,0,cx,bCY,sr);
+      g.addColorStop(0,'#FFF060'); g.addColorStop(0.55,'#F0C028'); g.addColorStop(1,'#C08010');
+      ctx.fillStyle=g;
+    } else {
+      ctx.fillStyle='rgba(160,140,110,0.28)';
+    }
+    ctx.fill();
+    if(filled){
+      ctx.strokeStyle='rgba(160,100,0,0.55)'; ctx.lineWidth=1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // Card with full-width amber header clipped to rounded corners
+  ctx.save(); rr(10,CARD_TOP,W-20,CARD_H,12); ctx.clip();
+  ctx.fillStyle='rgba(255,252,238,0.96)'; ctx.fillRect(10,CARD_TOP,W-20,CARD_H);
+  ctx.fillStyle='#C4863A'; ctx.fillRect(10,CARD_TOP,W-20,HEADER_H);
+  ctx.restore();
+  ctx.strokeStyle='rgba(196,134,58,0.45)'; ctx.lineWidth=1.5; rr(10,CARD_TOP,W-20,CARD_H,12); ctx.stroke();
+
+  // Header: level name left, order count right — both clear of the settings button
+  ctx.fillStyle='#fff'; ctx.font="bold 14px 'Fredoka One',cursive"; ctx.textAlign='left';
+  ctx.fillText(`Level ${lv.number}  ·  ${lv.name}`, 20, CARD_TOP+20);
+  ctx.fillStyle='rgba(255,240,190,0.95)'; ctx.font="bold 12px 'Nunito',sans-serif"; ctx.textAlign='right';
+  ctx.fillText(`Order ${orderIdxInLevel+1}/${tot}`, W-18, CARD_TOP+20);
+
+  // Order name — vertically centred in card body (equal ~8px top & bottom padding)
+  ctx.fillStyle='#4A2008'; ctx.font="bold 18px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText(od.name, W/2, CARD_TOP+52);
+
+  // Description
+  ctx.fillStyle='#A07850'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
+  ctx.fillText(od.desc, W/2, CARD_TOP+69);
+
+  drawChips(od.layers, CHIP_Y);
+}
+
+// ═══════════════════════════════════════════════════════
+//  TUTORIAL DEMO RENDERER
+// ═══════════════════════════════════════════════════════
+function drawTutDemo() {
+  tutDemoTime++;
+
+  // Background + static elements
+  drawGameBg();
+  drawPlate();
+  tutDemoLayers.forEach((l, i) => drawLayer(l.x, layerY(i), l.w, l.kt, false));
+
+  // ── Step 2: Tap to Place demo ──
+  if (tutDemoStep === 2 && tutDemoPhase < 2) {
+    const ktId = tutDemoPhase === 0 ? 'pandan' : 'coconut';
+    const kt   = KT[ktId];
+    tutDemoMX += TD_SPD * tutDemoMDir;
+
+    // Bounce off walls
+    if (tutDemoMDir > 0 && tutDemoMX > W + TD_W/2 + 10) { tutDemoMDir = -1; }
+    if (tutDemoMDir < 0 && tutDemoMX < -TD_W/2 - 10) { tutDemoMDir = 1; }
+
+    // Auto-tap: phase 0 → perfect (centre), phase 1 → off-centre +45px
+    const tapX = tutDemoPhase === 0 ? W/2 : W/2 + 45;
+    const hitTap = (tutDemoMDir > 0 && tutDemoMX >= tapX) ||
+                   (tutDemoMDir < 0 && tutDemoMX <= tapX);
+    if (hitTap) {
+      const tapActualX = tutDemoMX;
+      const prev = tutDemoLayers.length
+        ? tutDemoLayers[tutDemoLayers.length - 1]
+        : { x: W/2, w: TD_W };
+      const ml = tapActualX - TD_W/2, mr = tapActualX + TD_W/2;
+      const pl = prev.x - prev.w/2, pr = prev.x + prev.w/2;
+      const ol = Math.max(pl, ml), orr = Math.min(pr, mr), ow = orr - ol;
+      if (ow > 2) {
+        const perfect = Math.abs(tapActualX - prev.x) < 8;
+        const nx = perfect ? prev.x : (ol + orr) / 2;
+        const nw = perfect ? prev.w : ow;
+        tutDemoLayers.push({ x: nx, w: nw, kt });
+        playSound(sfxStack);
+        const py = layerY(tutDemoLayers.length - 1);
+        for (let p = 0; p < 12; p++) {
+          tutDemoParts.push({ x: nx, y: py,
+            vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 4 - 1,
+            r: 3 + Math.random() * 4, life: 1, decay: 0.028,
+            color: perfect ? '#FFD050' : '#E8A848'
+          });
+        }
+      }
+      tutDemoPhase++; tutDemoTime = 0;
+      tutDemoMX = -TD_W/2 - 10; tutDemoMDir = 1;
+    } else {
+      drawLayer(tutDemoMX, MOVER_Y, TD_W, kt, true);
+    }
+  }
+
+  // ── Step 3: Watch Lives demo (rose = wrong colour) ──
+  if (tutDemoStep === 3 && tutDemoPhase === 0) {
+    const kt = KT['rose'];
+    tutDemoMX += TD_SPD * tutDemoMDir;
+    if (tutDemoMDir > 0 && tutDemoMX > W + TD_W/2 + 10) { tutDemoMDir = -1; }
+    if (tutDemoMDir < 0 && tutDemoMX < -TD_W/2 - 10) { tutDemoMDir = 1; }
+
+    // Auto-tap wrong colour around centre
+    if (tutDemoMDir > 0 && tutDemoMX >= W/2 ||
+        tutDemoMDir < 0 && tutDemoMX <= W/2) {
+      playSound(sfxMistake);
+      tutDemoLives = 2;
+      tutDemoPhase = 1; tutDemoTime = 0;
+      // Red burst
+      for (let p = 0; p < 14; p++) {
+        tutDemoParts.push({ x: tutDemoMX, y: MOVER_Y,
+          vx: (Math.random() - 0.5) * 7, vy: (Math.random() - 0.5) * 5,
+          r: 3 + Math.random() * 4, life: 1, decay: 0.030,
+          color: '#E03030'
+        });
+      }
+    } else {
+      drawLayer(tutDemoMX, MOVER_Y, TD_W, kt, true);
+    }
+  }
+
+  // Particles
+  tutDemoParts = tutDemoParts.filter(p => p.life > 0);
+  tutDemoParts.forEach(p => {
+    p.x += p.vx; p.y += p.vy * 0.9; p.life -= p.decay;
+    ctx.save(); ctx.globalAlpha = p.life * 0.9;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+
+  // ── HUD ──
+  // Hearts (using tutDemoLives)
+  for (let i = 0; i < 3; i++) {
+    ctx.globalAlpha = i < tutDemoLives ? 1 : 0.22;
+    const hx=18+i*30, hy=19, hr=12;
+    ctx.fillStyle='#E03030';
+    ctx.beginPath();
+    ctx.moveTo(hx,hy+hr*0.38);
+    ctx.bezierCurveTo(hx,hy-hr*0.5,hx-hr,hy-hr*0.5,hx-hr,hy+hr*0.12);
+    ctx.bezierCurveTo(hx-hr,hy+hr*0.72,hx,hy+hr*1.18,hx,hy+hr*1.18);
+    ctx.bezierCurveTo(hx,hy+hr*1.18,hx+hr,hy+hr*0.72,hx+hr,hy+hr*0.12);
+    ctx.bezierCurveTo(hx+hr,hy-hr*0.5,hx,hy-hr*0.5,hx,hy+hr*0.38);
+    ctx.fill();
+    ctx.save(); ctx.globalAlpha*=0.40; ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.ellipse(hx-4,hy-1,4,3,-0.4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  // Order card
+  const CARD_TOP=74, CARD_H=80, HEADER_H=30, CARD_BOT=154, CHIP_Y=173;
+  const dli = Math.min(tutDemoLayers.length, TUTORIAL_ORDER.layers.length);
+  ctx.save(); rr(10,CARD_TOP,W-20,CARD_H,12); ctx.clip();
+  ctx.fillStyle='rgba(255,252,238,0.96)'; ctx.fillRect(10,CARD_TOP,W-20,CARD_H);
+  ctx.fillStyle='#3A8A2A'; ctx.fillRect(10,CARD_TOP,W-20,HEADER_H);
+  ctx.restore();
+  ctx.strokeStyle='rgba(60,140,50,0.40)'; ctx.lineWidth=1.5; rr(10,CARD_TOP,W-20,CARD_H,12); ctx.stroke();
+  ctx.fillStyle='#fff'; ctx.font="bold 14px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('Practice Order', W/2, CARD_TOP+20);
+  ctx.fillStyle='#2A5A1A'; ctx.font="bold 16px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('Kueh Lapis', W/2, CARD_TOP+52);
+  ctx.fillStyle='#508040'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
+  ctx.fillText('Stack the layers in order!', W/2, CARD_TOP+69);
+  // Chips
+  const cLayers=TUTORIAL_ORDER.layers, chipH=26, n=cLayers.length;
+  const chipW=Math.min(48,(W-40)/n-4), gapX=Math.min(8,(W-40-n*chipW)/Math.max(n-1,1));
+  const csx=(W-(n*chipW+(n-1)*gapX))/2;
+  cLayers.forEach((id,i)=>{
+    const k=KT[id], cx=csx+i*(chipW+gapX), done=i<dli, cur=i===dli;
+    if(cur){
+      ctx.save(); ctx.globalAlpha=0.28; ctx.fillStyle='#F0B030';
+      rr(cx-5,CHIP_Y-5,chipW+10,chipH+10,10); ctx.fill(); ctx.restore();
+      ctx.strokeStyle='#F0B030'; ctx.lineWidth=2; rr(cx-2,CHIP_Y-2,chipW+4,chipH+4,6); ctx.stroke();
+      ctx.fillStyle='#E09020'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='center';
+      ctx.fillText('NEXT',cx+chipW/2,CHIP_Y-7);
+    }
+    ctx.fillStyle=done?k.dark:cur?k.mid:'rgba(0,0,0,0.15)'; rr(cx,CHIP_Y,chipW,chipH,4); ctx.fill();
+    if(done){ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.fillText('✓',cx+chipW/2,CHIP_Y+chipH-6);}
+    else{ctx.fillStyle=cur?k.txt:'rgba(255,255,255,0.55)';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(k.name,cx+chipW/2,CHIP_Y+chipH-6);}
+  });
+
+  // ── Spotlight overlay per step ──
+  ctx.save();
+  ctx.fillStyle = 'rgba(8, 4, 0, 0.60)';
+  if (tutDemoStep === 1) {
+    // Spotlight: order card + chips area
+    const sy1 = CARD_TOP - 12, sh1 = CHIP_Y + chipH + 16 - sy1;
+    ctx.fillRect(0, 0, W, sy1);
+    ctx.fillRect(0, sy1 + sh1, W, H - sy1 - sh1);
+    ctx.fillRect(0, sy1, 5, sh1);
+    ctx.fillRect(W - 5, sy1, 5, sh1);
+  } else if (tutDemoStep === 3 && tutDemoPhase >= 1) {
+    // Spotlight on hearts only AFTER wrong tap sound plays
+    const hly = 4, hlh = 44, hlx = 4, hlw = 88;
+    ctx.fillRect(0, 0, W, hly);
+    ctx.fillRect(0, hly + hlh, W, H - hly - hlh);
+    ctx.fillRect(0, hly, hlx, hlh);
+    ctx.fillRect(hlx + hlw, hly, W - hlx - hlw, hlh);
+  }
+  ctx.restore();
+  // "−1 life!" label appears after wrong-tap in step 3
+  if (tutDemoStep === 3 && tutDemoPhase >= 1) {
+    ctx.save();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = "bold 15px 'Fredoka One',cursive";
+    ctx.textAlign = 'left';
+    ctx.fillText('−1 life!', 108, 26);
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════
+function loop() {
+  ctx.clearRect(0,0,W,H);
+  menuTime++;
+
+  if (state === 'levelMap') {
+    drawLevelMap();
+  } else if (state === 'profile') {
+    drawProfilePage();
+  } else if (state === 'leaderboard') {
+    drawLeaderboard();
+  } else if (state === 'recipes') {
+    drawRecipePage();
+  } else if (state === 'orderDone') {
+    drawOrderDone();
+  } else {
+    const isMenu = ['mainMenu','nameInput','tutorialGate',
+                    'testIntro','testComplete'].includes(state);
+    if (state === 'tutDemo') {
+      drawTutDemo();
+    } else if (state === 'levelIntro' || state === 'levelComplete') {
+      drawLevelMap();
+    } else if (isMenu) {
+      drawBakeryScene(menuTime);
+    } else {
+      let sx=0;
+      if(shakeT>0){sx=Math.sin(shakeT*1.8)*8*(shakeT/24);shakeT--;}
+      ctx.save(); ctx.translate(sx,0);
+      drawGameBg();
+      if(redFlash>0){ctx.fillStyle=`rgba(210,30,30,${redFlash*0.038})`;ctx.fillRect(-12,0,W+24,H);redFlash--;}
+      drawPlate();
+      placed.forEach((l,i) => drawLayer(l.x,layerY(i),l.w,l.kt,false));
+      drawAndMoveMover();
+      tickParticles();
+      if(greenFlash>0){ctx.fillStyle=`rgba(50,180,60,${greenFlash*0.025})`;ctx.fillRect(0,0,W,H);greenFlash--;}
+      ctx.restore();
+      drawHUD();
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════
+canvas.addEventListener('mousemove', e => {
+  const c = getCanvasCoords(e);
+  menuMouseX = c.x; menuMouseY = c.y;
+  if (state === 'levelMap' && mapDragStartY !== null) {
+    mapDragDist = c.y - mapDragStartY;
+    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapDragScrollStart - mapDragDist));
+  }
+});
+
+canvas.addEventListener('mousedown', e => {
+  if (state === 'levelMap') {
+    const c = getCanvasCoords(e);
+    mapDragStartY = c.y; mapDragScrollStart = mapTargetScrollY; mapDragDist = 0;
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (state === 'levelMap') {
+    if (Math.abs(mapDragDist) <= 8) { // treat as click
+      const c = getCanvasCoords(e);
+      handleLevelMapClick(c.x, c.y);
+    }
+    mapDragStartY = null;
+  }
+});
+
+canvas.addEventListener('wheel', e => {
+  if (state === 'levelMap') {
+    e.preventDefault();
+    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapTargetScrollY + e.deltaY * 0.6));
+  }
+}, { passive: false });
+
+canvas.addEventListener('click', e => {
+  const {x, y} = getCanvasCoords(e);
+  unlockAudio();
+
+  if (state === 'levelMap') return; // handled by mouseup
+  if (state === 'orderDone' && orderDoneAnimT > 30) { advanceOrder(); return; }
+  if (state === 'leaderboard') return;
+  if (state === 'recipes') {
+    if (recipesBookIdx >= 0) {
+      // Back button area (top-left, y=18-46, x=10-72)
+      if (x>=10 && x<=72 && y>=18 && y<=46) { playClick(); recipesBookIdx=-1; }
+    } else {
+      recipesBookBtns.forEach(btn => {
+        if (x>=btn.x && x<=btn.x+btn.w && y>=btn.y && y<=btn.y+btn.h) { playClick(); recipesBookIdx=btn.idx; }
+      });
+    }
+    return;
+  }
+  if (state === 'profile') {
+    // Tab switching
+    let tapped = false;
+    profileTabBtns.forEach(tb => {
+      if (x >= tb.x && x <= tb.x+tb.w && y >= tb.y && y <= tb.y+tb.h) {
+        if (profileTab !== tb.tab) { playClick(); profileTab = tb.tab; } tapped = true;
+      }
+    });
+    if (!tapped) {
+      if (profileTab === 0) {
+        profileRecommendBtns.forEach(btn => {
+          if (x >= btn.x && x <= btn.x+btn.w && y >= btn.y && y <= btn.y+btn.h) {
+            playClick();
+            if (!friends.some(f => f.id === btn.id)) friends.push({ name:btn.name, id:btn.id, level:1 });
+          }
+        });
+      } else {
+        if (x > 20 && x < W-20 && y > profileAddFriendBtnY && y < profileAddFriendBtnY+40) { playClick(); addFriend(); }
+      }
+    }
+    return;
+  }
+
+  if (state === 'mainMenu') {
+    if (x > W/2-105 && x < W/2+105 && y > 443 && y < 497) {
+      playClick();
+      if (hasOnboarded) showLevelMap(); else openNameInput();
+    }
+    return;
+  }
+  if (state === 'playing' || state === 'testRound') place();
+});
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  unlockAudio();
+
+  if (state === 'levelMap') {
+    const c = getCanvasCoords(t);
+    mapDragStartY = c.y; mapDragScrollStart = mapTargetScrollY; mapDragDist = 0;
+    return;
+  }
+  if (state === 'orderDone' && orderDoneAnimT > 30) { advanceOrder(); return; }
+  if (state === 'leaderboard') return;
+  if (state === 'recipes') {
+    if (recipesBookIdx >= 0) {
+      // Back button area (top-left, y=18-46, x=10-72)
+      if (x>=10 && x<=72 && y>=18 && y<=46) { playClick(); recipesBookIdx=-1; }
+    } else {
+      recipesBookBtns.forEach(btn => {
+        if (x>=btn.x && x<=btn.x+btn.w && y>=btn.y && y<=btn.y+btn.h) { playClick(); recipesBookIdx=btn.idx; }
+      });
+    }
+    return;
+  }
+  if (state === 'profile') {
+    // Tab switching
+    let tapped = false;
+    profileTabBtns.forEach(tb => {
+      if (x >= tb.x && x <= tb.x+tb.w && y >= tb.y && y <= tb.y+tb.h) {
+        if (profileTab !== tb.tab) { playClick(); profileTab = tb.tab; } tapped = true;
+      }
+    });
+    if (!tapped) {
+      if (profileTab === 0) {
+        profileRecommendBtns.forEach(btn => {
+          if (x >= btn.x && x <= btn.x+btn.w && y >= btn.y && y <= btn.y+btn.h) {
+            playClick();
+            if (!friends.some(f => f.id === btn.id)) friends.push({ name:btn.name, id:btn.id, level:1 });
+          }
+        });
+      } else {
+        if (x > 20 && x < W-20 && y > profileAddFriendBtnY && y < profileAddFriendBtnY+40) { playClick(); addFriend(); }
+      }
+    }
+    return;
+  }
+
+  if (state === 'mainMenu') {
+    playClick();
+    if (hasOnboarded) showLevelMap(); else openNameInput(); return;
+  }
+  if (state === 'playing' || state === 'testRound') place();
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (state === 'levelMap' && mapDragStartY !== null) {
+    const c = getCanvasCoords(e.touches[0]);
+    mapDragDist = c.y - mapDragStartY;
+    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapDragScrollStart - mapDragDist));
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  if (state === 'levelMap') {
+    if (Math.abs(mapDragDist) <= 8) { // tap
+      const t = e.changedTouches[0];
+      const c = getCanvasCoords(t);
+      handleLevelMapClick(c.x, c.y);
+    }
+    mapDragStartY = null;
+  }
+});
+
+document.addEventListener('keydown', e => {
+  unlockAudio();
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (state === 'playing' || state === 'testRound') place();
+    else if (state === 'orderDone' && orderDoneAnimT > 30) advanceOrder();
+  }
+  if (e.code === 'Enter') {
+    if (state === 'mainMenu') { if (hasOnboarded) showLevelMap(); else openNameInput(); }
+  }
+  if (e.code === 'Escape') { closeAudioPanel(); }
+});
+
+bgMusic.volume = 0.10;
+updateNavVisibility();
+updateNavActive();
+loop();
+</script>
+</body>
+</html>
