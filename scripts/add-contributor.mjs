@@ -70,30 +70,46 @@ function addToCheckIn(slug, fullName, tagline) {
   writeFileSync(CHECK_IN_PATH, src.replace(full, `const CONTRIBUTORS = [\n${newBody}];`));
 }
 
+// Three entries per contributor, not two — a bare "/slug" -> "/machines/
+// slug" rewrite (the original shape) serves the page fine but leaves the
+// browser's address bar at "/slug" with no trailing slash, which breaks
+// every one of that page's own "./"-relative asset links (they resolve
+// against "slug" as if it were a filename, one directory too high — the
+// exact bug that broke Amy/Jesslyn/Ruth's pages). Fixed by redirecting the
+// bare slug to add the trailing slash FIRST, then rewriting the now-
+// slash-terminated path to the real index.html explicitly (a bare
+// trailing-slash rewrite destination doesn't reliably resolve to a
+// directory's index.html on Vercel).
 function addToVercelRewrites(slug) {
   const src = readFileSync(VERCEL_JSON_PATH, 'utf8');
 
-  if (src.includes(`"source": "/${slug}"`)) {
-    throw new Error(`/${slug} is already in vercel.json's rewrites.`);
+  if (src.includes(`"source": "/${slug}"`) || src.includes(`"source": "/${slug}/"`)) {
+    throw new Error(`/${slug} is already in vercel.json's redirects/rewrites.`);
   }
 
   // Edited as text, not JSON.parse + stringify, to preserve the existing
-  // one-rewrite-per-line formatting instead of expanding every object.
-  const lastEntryRegex = /(    \{ "source": "[^"]*", "destination": "[^"]*" \})\n(  \]\n\}\n?)$/;
-  const match = src.match(lastEntryRegex);
-  if (!match) {
+  // one-entry-per-line formatting instead of expanding every object.
+  const lastRedirectRegex = /(    \{ "source": "[^"]*", "destination": "[^"]*", "permanent": false \})\n(  \],\n  "rewrites": \[\n)/;
+  const redirectMatch = src.match(lastRedirectRegex);
+  const lastRewriteRegex = /(    \{ "source": "[^"]*", "destination": "[^"]*" \})\n(  \]\n\}\n?)$/;
+  const rewriteMatch = src.match(lastRewriteRegex);
+  if (!redirectMatch || !rewriteMatch) {
     throw new Error(
-      `Couldn't find the expected rewrites array shape in ${path.relative(ROOT, VERCEL_JSON_PATH)}. ` +
-        'It may have been hand-edited since this script was written — add the rewrite manually.'
+      `Couldn't find the expected redirects/rewrites array shape in ${path.relative(ROOT, VERCEL_JSON_PATH)}. ` +
+        'It may have been hand-edited since this script was written — add the entries manually.'
     );
   }
 
-  const [full, lastEntry, tail] = match;
-  const newEntries =
-    `    { "source": "/${slug}", "destination": "/machines/${slug}" },\n` +
+  const [redirectFull, lastRedirect, redirectTail] = redirectMatch;
+  const newRedirect = `    { "source": "/${slug}", "destination": "/${slug}/", "permanent": false }\n`;
+  const withRedirect = src.replace(redirectFull, `${lastRedirect},\n${newRedirect}${redirectTail}`);
+
+  const [rewriteFull, lastRewrite, rewriteTail] = rewriteMatch;
+  const newRewrites =
+    `    { "source": "/${slug}/", "destination": "/machines/${slug}/index.html" },\n` +
     `    { "source": "/${slug}/:path*", "destination": "/machines/${slug}/:path*" }\n`;
 
-  writeFileSync(VERCEL_JSON_PATH, src.replace(full, `${lastEntry},\n${newEntries}${tail}`));
+  writeFileSync(VERCEL_JSON_PATH, withRedirect.replace(rewriteFull, `${lastRewrite},\n${newRewrites}${rewriteTail}`));
 }
 
 function main() {
