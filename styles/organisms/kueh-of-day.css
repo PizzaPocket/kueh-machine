@@ -217,19 +217,15 @@
   background: var(--color-accent);
 }
 
-/* The icon templates' own artwork (src/atoms/kueh-icon.js) isn't
-   perfectly centered within its 64x64 viewBox — most sit a little
-   low (the "dome" template's drawn content spans roughly y=20-54, a
-   visual center around y=37, not the viewBox's true center at 32) — a
-   few px that's invisible at the icon's other usage sizes but reads as
-   "off-center" once cropped tightly into a 32px circle. Nudging the
-   wrap (not the bare .kueh-icon svg) keeps the .icon-sheen-highlight
-   clone — an exact copy absolutely positioned inset: 0 on the wrap
-   (styles/atoms.css) — moving as one unit with the base icon instead of
-   drifting out of alignment with it. */
-.kod-tag-icon-face .icon-sheen-wrap {
-  transform: translateY(-1.5px);
-}
+/* No compensating transform here anymore — this used to nudge the wrap up
+   1.5px to paper over the "dome"/"cup" templates' own drawn content
+   sitting a few px low of the 64x64 viewBox's true vertical center
+   (src/atoms/kueh-icon.js), which read as visibly bottom-weighted once
+   cropped tightly into a small circle. Fixed at the source instead (both
+   templates' own coordinates now center correctly), so this nudge would
+   just over-correct an already-centered icon. The other templates' own
+   residual offset (a couple px at most) is small enough to stay invisible
+   at any of this icon's usage sizes. */
 
 /* The kueh photo's own window: clipped to a retro-rectangle superellipse
    (clip-path set from JS — src/atoms/retro-shape.js hands back a

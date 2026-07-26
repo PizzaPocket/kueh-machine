@@ -1,8 +1,12 @@
 // Color engine: generates the site's full semantic palette from three
 // authored hues per kueh (primary/accent/highlight — see KUEH_SEED_TABLE),
-// reproducing the *lightness/chroma structure* of the original hand-authored
-// kueh-lapis palette (measured in OKLCH from the original hex values below)
-// at each hue.
+// reproducing the *lightness/chroma structure* of DEFAULT_THEME's own
+// original forest-green ramp (REF below, measured in OKLCH once, kept as a
+// fixed structural template since) at each kueh's own authored hue.
+// DEFAULT_THEME's actual hex values have since been swapped to a different
+// palette (see its own comment) — REF no longer needs to literally match
+// them, since it was always a hue-independent ramp shape, not a live
+// derivation.
 //
 // Earlier version derived accent/highlight from the primary hue via a fixed
 // rotation (the actual offset between pandan/egg-yellow/rose-pink). That
@@ -12,24 +16,31 @@
 // authored per kueh (see kueh.js); only the L/C *shape* of each tier — how
 // light, how saturated, relative to its role — stays formulaic.
 
-// The original, hand-authored palette. This is preserved verbatim (not
-// regenerated) both as a reference archive and as the literal palette used
-// on kueh-lapis's own day — the multicolor "signature" kueh already *is*
-// this site's palette, so there's nothing to generate for it.
+// The literal palette used on kueh-lapis's own day — the multicolor
+// "signature" kueh already *is* this site's palette, so there's nothing to
+// generate for it. Originally a forest-green ramp (the site's very first
+// hand-authored palette, before the per-kueh seed system existed); updated
+// to the pink/lime-green/cream stripe pattern most commonly associated
+// with kueh lapis, since the original green+gold combination didn't
+// actually match any real version of the kueh (checked directly against
+// reference photos). REF below keeps the original palette's L/C *shape* —
+// that's a hue-independent ramp template applied to every OTHER kueh's own
+// authored hue, not something that needs to change just because this one
+// palette's specific hues did.
 export const DEFAULT_THEME = {
-  colorPrimaryStrong: '#2D6A4F',
-  colorPrimary:        '#61A081',
-  colorPrimarySoft:    '#95D5B2',
-  colorAccent:          '#F9C74F',
+  colorPrimaryStrong: '#B72E68',
+  colorPrimary:        '#E8629A',
+  colorPrimarySoft:    '#F8BFD9',
+  colorAccent:          '#F7D774',
   colorSurface:          '#FFF8F0',
   colorSurfaceTint:      '#F0E8DA',
   colorSurfaceBorder:    '#D6C8B4',
-  colorHighlight:         '#F4978E',
-  colorHighlightSoft:     '#FAD9D6',
-  colorTextOnSurface:        '#0F3D28',
-  colorTextOnSurfaceMuted:   '#4D7A63',
-  colorTextOnPrimary:        '#D4E8DF',
-  colorTextOnPrimaryMuted:   '#9ECBB5',
+  colorHighlight:         '#8FCB5E',
+  colorHighlightSoft:     '#DCF0BE',
+  colorTextOnSurface:        '#5C1638',
+  colorTextOnSurfaceMuted:   '#8C4569',
+  colorTextOnPrimary:        '#FBE0EC',
+  colorTextOnPrimaryMuted:   '#EDB7CE',
 };
 
 // Reference shape of the ramp, measured in OKLCH from DEFAULT_THEME.
@@ -223,6 +234,21 @@ export function generatePalette(seed) {
     colorTextOnPrimary: textOnPrimary,
     colorTextOnPrimaryMuted: textOnPrimaryMuted,
   };
+}
+
+// The --color-accent slice of generatePalette, standalone — for a caller
+// that wants one specific kueh's own accent color without generating (or
+// applying to :root) that kueh's entire palette. kueh-of-day.js's own
+// applyPalette is inherently global/single-kueh-at-a-time (it writes
+// :root custom properties for whichever kueh is "today"), which doesn't
+// fit a consumer showing several different kueh's colors at once — the
+// Check In section's per-contributor avatars (src/organisms/check-in.js),
+// each cycling through a different kueh via src/atoms/kueh-icon.js's
+// accentForKueh. Same signature/chromatic split generatePalette itself
+// relies on (see that function's own comment).
+export function accentHexForSeed(seed) {
+  if (!seed || seed.mode === 'signature') return DEFAULT_THEME.colorAccent;
+  return oklchToHex(REF.accentL, seed.accent.c, normalizeHue(seed.accent.h));
 }
 
 // Maps camelCase palette keys to their --kebab-case CSS custom property names.

@@ -1,11 +1,35 @@
 {
   "outputDirectory": ".",
   "rewrites": [
-    { "source": "/ruth", "destination": "/machines/ruth" },
-    { "source": "/ruth/:path*", "destination": "/machines/ruth/:path*" },
+    { "source": "/amanda", "destination": "/machines/amanda" },
+    { "source": "/amanda/:path*", "destination": "/machines/amanda/:path*" },
+    { "source": "/amy", "destination": "/machines/amy" },
+    { "source": "/amy/:path*", "destination": "/machines/amy/:path*" },
+    { "source": "/geraldine", "destination": "/machines/geraldine" },
+    { "source": "/geraldine/:path*", "destination": "/machines/geraldine/:path*" },
+    { "source": "/jesslyn", "destination": "/machines/jesslyn" },
+    { "source": "/jesslyn/:path*", "destination": "/machines/jesslyn/:path*" },
     { "source": "/kaixin", "destination": "/machines/kaixin" },
     { "source": "/kaixin/:path*", "destination": "/machines/kaixin/:path*" },
+    { "source": "/ken", "destination": "/machines/ken" },
+    { "source": "/ken/:path*", "destination": "/machines/ken/:path*" },
     { "source": "/kevin", "destination": "/machines/kevin" },
-    { "source": "/kevin/:path*", "destination": "/machines/kevin/:path*" }
+    { "source": "/kevin/:path*", "destination": "/machines/kevin/:path*" },
+    { "source": "/liwei", "destination": "/machines/liwei" },
+    { "source": "/liwei/:path*", "destination": "/machines/liwei/:path*" },
+    { "source": "/meijun", "destination": "/machines/meijun" },
+    { "source": "/meijun/:path*", "destination": "/machines/meijun/:path*" },
+    { "source": "/natalia", "destination": "/machines/natalia" },
+    { "source": "/natalia/:path*", "destination": "/machines/natalia/:path*" },
+    { "source": "/nicole", "destination": "/machines/nicole" },
+    { "source": "/nicole/:path*", "destination": "/machines/nicole/:path*" },
+    { "source": "/ruth", "destination": "/machines/ruth" },
+    { "source": "/ruth/:path*", "destination": "/machines/ruth/:path*" },
+    { "source": "/samantha", "destination": "/machines/samantha" },
+    { "source": "/samantha/:path*", "destination": "/machines/samantha/:path*" },
+    { "source": "/sophia", "destination": "/machines/sophia" },
+    { "source": "/sophia/:path*", "destination": "/machines/sophia/:path*" },
+    { "source": "/viki", "destination": "/machines/viki" },
+    { "source": "/viki/:path*", "destination": "/machines/viki/:path*" }
   ]
 }

@@ -666,7 +666,7 @@ function buildRig() {
         chipToPulleyFlourishes.map((f) => renderFlourish(chipWorld, pulley1Point, f, CECEK_FILL)).join('');
 
       // This span's own endpoints are the two fixed pulley axles — they
-      // never move, landing bounce or not, so unlike seg1/seg3 there's no
+      // never move, landing bounce or not, so unlike seg1 there's no
       // endpoint shift for its dots to react to. But it isn't a dead length
       // of string either: it's the middle of one taut line the cup is
       // tugging against the spring, so as the chip gets pulled toward
@@ -685,7 +685,16 @@ function buildRig() {
     // from the bounced chip on mobile, same as the real pulley 2 (fixed,
     // untouched) does on desktop.
     const runStart = isMobileMode ? chipWorld : pulley2Point;
-    const seg3 = pulleyToNode.compute(runStart, nodeWorld);
+    // On mobile, runStart (chipWorld) is itself the bounced endpoint, so
+    // the dot trace naturally slides with it — same as seg1. On desktop,
+    // though, runStart is the fixed pulley2 axle and only the far end
+    // (nodeWorld) moves; since dots are measured as arc-length from
+    // runStart, that leaves them glued to pulley2 with new dots merely
+    // appearing at the growing node end, instead of the whole trace
+    // sliding down together. Feed chipBounceOffset in as the same
+    // dot-pattern phase seg2 uses, so this span's dots keep sliding in
+    // lockstep with the rest of the taut string during the tug.
+    const seg3 = pulleyToNode.compute(runStart, nodeWorld, isMobileMode ? 0 : chipBounceOffset);
     frontMarkup +=
       renderSegment(seg3, CECEK_FILL) +
       pulleyToNodeFlourishes.map((f) => renderFlourish(runStart, nodeWorld, f, CECEK_FILL)).join('');

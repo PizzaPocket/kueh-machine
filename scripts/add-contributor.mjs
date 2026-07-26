@@ -24,9 +24,6 @@ const CHECK_IN_PATH = path.join(ROOT, 'src/organisms/check-in.js');
 const VERCEL_JSON_PATH = path.join(ROOT, 'vercel.json');
 const MACHINES_DIR = path.join(ROOT, 'machines');
 
-const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven'];
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-
 function usage() {
   console.error('Usage: node scripts/add-contributor.mjs <slug> "<Full Name>" "<tagline>"');
   console.error('Example: node scripts/add-contributor.mjs maya "Maya Studio" "the one that\'s a generative poster maker"');
@@ -35,61 +32,42 @@ function usage() {
 
 function initialsFor(fullName) {
   const words = fullName.trim().split(/\s+/);
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  if (words.length === 1) return (words[0][0] + words[0][words[0].length - 1]).toUpperCase();
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
+// CONTRIBUTORS is a flat, alphabetical-by-first-name roster (everyone's
+// real first name is already known — see check-in.js) — not a generated
+// placeholder block. Onboarding someone therefore means finding their
+// existing row by first-name match and filling in its real name/tagline,
+// falling back to appending a brand-new row for anyone not already listed.
 function addToCheckIn(slug, fullName, tagline) {
   const src = readFileSync(CHECK_IN_PATH, 'utf8');
 
-  const blockRegex =
-    /\/\/ \w+ real submissions? so far; the rest are unfilled placeholder rows\n\/\/ \(clearly generic name\/description, not fabricated people\) reserving\n\/\/ space for the other \w+ team members?' entries\.\nconst CONTRIBUTORS = \[\n((?:  \{ initials: '[^']*', name: '[^']*', desc: "[^"]*" \},\n)*)  \.\.\.Array\.from\(\{ length: (\d+) \}, \(_, i\) => \(\{\n    initials: `C\$\{i \+ (\d+)\}`,\n    name: `Contributor \$\{i \+ \d+\}`,\n    desc: "\(the one that's a ___\)",\n  \}\)\),\n\];/;
-
-  const match = src.match(blockRegex);
-  if (!match) {
+  const blockRegex = /const CONTRIBUTORS = \[\n((?:  \{ initials: '[^']*', name: '[^']*', desc: "[^"]*" \},\n)+)\];/;
+  const blockMatch = src.match(blockRegex);
+  if (!blockMatch) {
     throw new Error(
-      `Couldn't find the expected CONTRIBUTORS block shape in ${path.relative(ROOT, CHECK_IN_PATH)}. ` +
+      `Couldn't find the expected CONTRIBUTORS array shape in ${path.relative(ROOT, CHECK_IN_PATH)}. ` +
         'It may have been hand-edited since this script was written — add the entry manually.'
     );
   }
+  const [full, body] = blockMatch;
 
-  const [full, existingLines, lengthStr, offsetStr] = match;
-  const oldLength = parseInt(lengthStr, 10);
-  const oldOffset = parseInt(offsetStr, 10);
+  const entryRegex = /  \{ initials: '([^']*)', name: '([^']*)', desc: "([^"]*)" \},\n/g;
+  const entries = [...body.matchAll(entryRegex)];
 
-  if (existingLines.includes(`name: '${fullName}'`)) {
-    throw new Error(`${fullName} is already in the CONTRIBUTORS list.`);
+  const firstName = fullName.trim().split(/\s+/)[0].toLowerCase();
+  const existing = entries.find((e) => e[2].split(/\s+/)[0].toLowerCase() === firstName);
+
+  if (existing && existing[2] === fullName && existing[3] !== "(the one that's a ___)") {
+    throw new Error(`${fullName} is already in the CONTRIBUTORS list with a submitted tagline.`);
   }
-  if (oldLength <= 0) {
-    throw new Error('No placeholder slots left (roster is full) — add a new slot in check-in.js manually.');
-  }
-
-  const newLength = oldLength - 1;
-  const newOffset = oldOffset + 1;
-  const realCount = existingLines.split('\n').filter(Boolean).length + 1;
 
   const newLine = `  { initials: '${initialsFor(fullName)}', name: '${fullName}', desc: "(${tagline})" },\n`;
+  const newBody = existing ? body.replace(existing[0], newLine) : body + newLine;
 
-  const commentLine1 = `// ${cap(WORDS[realCount])} real submission${realCount === 1 ? '' : 's'} so far; the rest are unfilled placeholder rows`;
-  const commentLine3 =
-    newLength === 0
-      ? '// space for no one else — every slot is filled.'
-      : `// space for the other ${WORDS[newLength]} team member${newLength === 1 ? '' : 's'}' entries.`;
-
-  const newBlock =
-    `${commentLine1}\n` +
-    `// (clearly generic name/description, not fabricated people) reserving\n` +
-    `${commentLine3}\n` +
-    `const CONTRIBUTORS = [\n` +
-    `${existingLines}${newLine}` +
-    `  ...Array.from({ length: ${newLength} }, (_, i) => ({\n` +
-    `    initials: \`C\${i + ${newOffset}}\`,\n` +
-    `    name: \`Contributor \${i + ${newOffset}}\`,\n` +
-    `    desc: "(the one that's a ___)",\n` +
-    `  })),\n` +
-    `];`;
-
-  writeFileSync(CHECK_IN_PATH, src.replace(full, newBlock));
+  writeFileSync(CHECK_IN_PATH, src.replace(full, `const CONTRIBUTORS = [\n${newBody}];`));
 }
 
 function addToVercelRewrites(slug) {

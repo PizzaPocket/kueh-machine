@@ -189,11 +189,11 @@
    rendered add-on with its own (however subtle) shading. */
 .sc-chip-knob {
   position: absolute;
-  top: -14px;
+  top: -15px;
   left: 50%;
   transform: translateX(-50%);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--color-primary-strong);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);

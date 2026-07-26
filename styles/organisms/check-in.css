@@ -12,10 +12,84 @@
    inner margin doesn't collapse through while collapsed. */
 .check-in-section {
   position: relative;
+  /* isolation: isolate — contains .check-in-collapse's z-index: 1 and
+     .checkin-margin's z-index: 0 (below) within this section's own
+     stacking context. Without it, position:relative alone (with z-index:
+     auto) does NOT create a real stacking context, so those child
+     z-indexes escape all the way to the document root and compete with
+     unrelated elements elsewhere on the page instead of just each other —
+     the exact bug .hero's own identical isolation: isolate exists to
+     prevent (see that rule's own comment), here surfacing as the row
+     seams painting above content from a completely different section. */
+  isolation: isolate;
+  /* Trims .checkin-margin's own deliberate bleed past this section's edges
+     (negative left/right/top, mirroring .brief-section's identical
+     treatment of .batik-margin) — unrelated to .check-in-collapse's own
+     overflow below, which exists for the height:0 collapse mechanism, not
+     margin cropping. */
+  overflow: hidden;
   background: var(--metal-shadow);
 }
 
+/* Wire-bundle margin strips (src/atoms/wire-bundle.js, filled in by
+   src/organisms/check-in.js's own init()) — same bleed treatment as
+   .brief-section's .batik-margin-left/-right (index.html): width and
+   bleed amounts intentionally match those exactly, so the two read as the
+   same decorative language reused, not a new one invented for this
+   section. Unlike brief's fixed-height version, though, top AND bottom
+   (not an explicit height) stretch this the full height of
+   .check-in-section itself — brief is a fixed, short section; Check In's
+   own height is entirely content-driven (15 contributor rows now, more
+   later), so a fixed height here would either fall short of a long list
+   or leave a dead gap below a short one. check-in.js measures this mount's
+   own real rendered size at reveal time (once it's actually laid out) to
+   pick a matching viewBox aspect + bundle count, rather than assuming a
+   fixed size the way the per-window wire bundles can.
+   z-index: 0 (implicit) needs .check-in-collapse to explicitly out-rank it
+   (below) or the collapse's own non-positioned content would otherwise
+   paint UNDER a positioned z-index:auto sibling regardless of DOM order. */
+.checkin-margin {
+  position: absolute;
+  z-index: 0;
+  top: -60px;
+  bottom: -60px;
+  width: 220px;
+  pointer-events: none;
+}
+
+.checkin-margin-left { left: clamp(-180px, calc(-60px - (1200px - 100vw) * 0.2143), -60px); }
+.checkin-margin-right { right: clamp(-180px, calc(-60px - (1200px - 100vw) * 0.2143), -60px); }
+
+/* overflow: visible (overriding the SVG spec's own default of hidden on
+   the root <svg>) — without it, every strand's deliberate "just past the
+   edge" bleed (wire-bundle.js's edgeAnchor) gets hard-clipped exactly at
+   this box's own edge, which reads fine on the outer side (immediately
+   re-clipped by .check-in-section's overflow:hidden a few px further out
+   regardless) but reads as an unnatural flat cut on the INNER side, right
+   where it's most visible against the row content next to it. Letting it
+   spill into the empty gutter there instead lets it taper off naturally. */
+.checkin-margin .wire-bundle {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
 .check-in-collapse {
+  /* No z-index here (deliberately, unlike an earlier version) — giving
+     THIS element a stack level would composite its entire subtree
+     (every row AND every seam) as one atomic unit above .checkin-margin,
+     with no way for anything inside it to sit at a different level. That
+     collapsed the row seams and the margin wires into the same fight: the
+     seams (thin, full-bleed, crossing straight through the margin's own
+     width) always painted on top and visibly interrupted the wire
+     graphic. Leaving this un-stacked lets its children (.checkin-row,
+     .checkin-seam below) each set their OWN z-index directly against
+     .checkin-margin instead, in .check-in-section's shared isolate
+     context — rows above the wires (so avatar/text stay legible), seams
+     below them (so the wires read as continuous, uninterrupted cable
+     behind the row content, the way the reference photos are dense and
+     unbroken throughout). */
   height: 0;
   overflow: hidden;
   /* Ease-in, not a plain ease — Getting Started is "falling" under gravity
@@ -23,6 +97,14 @@
      Timeline cut-string/guide-thread's own "one weight, released at the
      cut" animations (scissors-cut.css's sc-fall-left/-right/sc-thread-fall). */
   transition: height 500ms cubic-bezier(0.4, 0, 1, 1);
+  /* Same reasoning as .checkin-row's own pointer-events: none (below) —
+     this element ALSO has no z-index/position of its own (see comment
+     above), so it's ALSO a plain in-flow box that CSS stacking paints
+     above any negative-z-index descendant for hit-testing purposes, one
+     level further out than .checkin-row. Without this, a click aimed at
+     .checkin-window (z-index: -1) lands on this element's own empty box
+     instead. */
+  pointer-events: none;
 }
 
 /* Text tokens calibrated against THIS section's own dark background, not
@@ -49,12 +131,38 @@
    .check-in-collapse .checkin-row (not a bare .checkin-row selector) —
    needs to out-specificity index.html's own .container rule (padding: 0
    32px), which this file's own <link> loads before, not after, so equal
-   specificity would otherwise let .container's 0 vertical padding win. */
+   specificity would otherwise let .container's 0 vertical padding win.
+   No z-index/position here (deliberately, unlike an earlier version) —
+   giving THE ROW itself a stack level would composite its entire subtree
+   (avatar, info, AND window) as one atomic unit, with no way for any one
+   of them to sit at a different level than the others relative to
+   .checkin-margin — the exact bug .check-in-collapse's own z-index removal
+   above already fixed once for row-vs-seam; the row would just reintroduce
+   it one level down. .checkin-avatar/.checkin-info set their OWN z-index
+   directly against .checkin-margin instead (keeping them readable over the
+   wires); .checkin-window deliberately does NOT, so the margin's wires
+   paint in front of it where the two overlap.
+   pointer-events: none — without it, this row's own plain (invisible,
+   backgroundless) box still counts as "there" for hit-testing: CSS
+   stacking paints a non-positioned in-flow box like this ABOVE any
+   descendant with a negative z-index (.checkin-window's own -1), so even
+   though nothing is visibly drawn here, it was silently swallowing every
+   click meant for the link underneath it. none here (inherited by
+   descendants unless overridden) plus auto re-enabled on the specific
+   interactive/content children below restores clicking without giving up
+   the "wires paint in front of the window" z-index itself. */
 .check-in-collapse .checkin-row {
   display: flex;
   align-items: center;
   gap: 20px;
   padding: 24px 32px;
+  pointer-events: none;
+}
+
+.checkin-avatar,
+.checkin-info,
+.checkin-window {
+  pointer-events: auto;
 }
 
 .checkin-row.checkin-row-reverse {
@@ -67,7 +175,15 @@
    of sitting close to the text it belongs with. Sized to its own content;
    .checkin-row's own gap is what keeps a consistent, tight space between
    avatar/info/window instead. */
+/* position: relative + z-index: 1 — out-ranks .checkin-margin's own
+   z-index: 0 directly (both sit in .check-in-section's shared isolate
+   context, since neither .check-in-collapse nor .checkin-row above claims
+   a stack level of their own) — keeps the text readable over the wire
+   margins. See .checkin-row's own comment for why this lives here instead
+   of one level up. */
 .checkin-info {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -80,10 +196,36 @@
    per-contributor content eventually goes here. Fixed width (height comes
    from JS, matching 2x the avatar's own height); .rim-matte-inner/-glint
    (styles/atoms.css) supply their own width/height:100%, so only the
-   outermost .checkin-window needs an explicit size. */
+   outermost .checkin-window needs an explicit size.
+   position: relative + z-index: -1 (below .checkin-margin's own 0,
+   .checkin-avatar/.checkin-info's own 1) — the wire margins are meant to
+   paint IN FRONT of the window where the two overlap, unlike the avatar/
+   text which stay above them for legibility (see .checkin-info's own
+   comment). Without an explicit z-index here it'd default to auto and,
+   despite .checkin-margin's DOM position earlier in the section, still
+   paint on top of it — z-index:auto only avoids CREATING a stacking
+   context, it doesn't make an element lose stacking-order ties to a
+   positioned sibling. */
 .checkin-window {
+  position: relative;
+  z-index: -1;
+  display: block;
   flex-shrink: 0;
   width: 180px;
+}
+
+/* Only contributors with a real deployed machine get an <a> instead of a
+   plain div (see check-in.js's buildEmptyWindow) — the brightness lift is
+   the only cue that window is clickable, since it's otherwise styled
+   identically to every placeholder window. */
+a.checkin-window {
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+a.checkin-window:hover,
+a.checkin-window:focus-visible {
+  filter: brightness(1.1);
 }
 
 /* position: relative — the containing block .retro-shape-fill's own
@@ -101,28 +243,127 @@
   height: 100%;
 }
 
-/* Circular placeholder avatar — same embossed-metal recipe as .metal-rivet/
-   .sc-scissors-rivet (styles/atoms.css, scissors-cut.css), scaled up, with
-   initials standing in for a real photo. */
+/* left/top/width/height are set inline per row (check-in.js's
+   buildEmptyWindow — random placement, OUTLET_SIZE_PCT), all in %, so this
+   scales at the same rate as .checkin-window's own size on both desktop
+   (fixed 180px) and mobile (aspect-ratio-derived, below) without a
+   separate mobile override. translate(-50%, -50%) makes left/top address
+   the outlet's own CENTER rather than its top-left corner — the reference
+   point the random-placement math (check-in.js) actually reasons about.
+   Cropping at the window's edge comes for free from fillWrap's own
+   clip-path (createRetroShape), not from overflow:hidden here. */
+.checkin-window-outlet {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* One-off foreground extras some rows carry (check-in.js's buildEmptyWindow,
+   contributor.windowDecors) — shared positioning base, like the outlet
+   above; fillWrap's own clip-path crops it to the window's shape rather
+   than any overflow:hidden here. Modifier classes below place a given
+   decor asset (each spec's own `position` picks which one). */
+.checkin-window-decor {
+  position: absolute;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* Amy's bird — resting on the window's own bottom edge, toward the right. */
+.checkin-window-decor--bottom-right {
+  right: 6%;
+  bottom: 0;
+  height: 72%;
+  width: auto;
+}
+
+/* Jesslyn's POW! badge (images/checkin/pow-jesslyn.svg) — pinned to the
+   top-right corner, echoing the badge's own position on her actual
+   invitation card (machines/jesslyn/style.css's .comic-badge: top: -16px;
+   right: -14px, i.e. overlapping the card's own top-right corner). */
+.checkin-window-decor--top-right {
+  top: 2%;
+  right: 2%;
+  height: 54%;
+  width: auto;
+}
+
+/* Ruth's string lights — hanging from the window's own top edge, blown up
+   to 2x the window's own width (bulbs read as too small/fiddly at native
+   scale) and centered so the overflow crops evenly off both sides rather
+   than one — fillWrap's own clip-path (buildEmptyWindow) still crops it to
+   the window's shape same as everything else. This one's a div wrapper
+   with the SVG's own markup injected inline (check-in.js), not an <img> —
+   its SMIL animations need to be part of the live render tree to animate
+   smoothly (see check-in.js's own comment) — so height can't be `auto`
+   the way an <img> could derive it from the image's own intrinsic ratio;
+   aspect-ratio gives the wrapper a real height instead, which the injected
+   svg's width/height: 100% (below) then needs to actually fill it. */
+.checkin-window-decor--top {
+  top: 0;
+  left: 50%;
+  width: 200%;
+  aspect-ratio: 400 / 44;
+  transform: translateX(-50%);
+}
+
+/* Ruth's steam (images/checkin/steam.svg) — covers the whole window rather
+   than a corner/edge like the other decors; the rising-wisp animation
+   lives inside the SVG itself (each circle's own <animate>), so this just
+   needs to fill the box for that motion to read as coming up from the
+   window's own bottom. Same inline-markup wrapper as .checkin-window-
+   decor--top above, not an <img> (object-fit doesn't apply — see the
+   svg width/height: 100% rule below instead). */
+.checkin-window-decor--bottom {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The actual sizing for both inline decors above — object-fit only applies
+   to *replaced* elements (img/video/canvas), not the plain <div> wrapper
+   these markup injections use, so the injected <svg> itself needs its own
+   explicit width/height: 100% instead. preserveAspectRatio (set in JS,
+   check-in.js) handles the meet/slice cropping behavior object-fit would
+   otherwise have given an <img>. */
+.checkin-window-decor--top svg,
+.checkin-window-decor--bottom svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Circular avatar holding one of the Kueh of the Day icon templates
+   (src/atoms/kueh-icon.js, set via check-in.js's own innerHTML) in that
+   kueh's own color palette rather than initials. background is set
+   inline per-avatar (check-in.js's own accentForKueh) — the same
+   --color-accent kueh-of-day.js's tag badge uses (.kod-tag-icon-face),
+   just resolved per-icon instead of read off the page-wide custom
+   property, so no background color lives here to avoid it fighting the
+   inline value. overflow: hidden is a safety clip — the icon templates'
+   own shapes are inset within their 64x64 viewBox with margin already,
+   but nothing guarantees that stays true if a future template draws
+   closer to the edge. position: relative + z-index: 1 — same "read over
+   the wire margins" treatment .checkin-info's own comment explains. */
 .checkin-avatar {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   width: 52px;
   height: 52px;
   border-radius: 50%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-display);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--metal-shadow);
-  background: radial-gradient(
-    circle at 35% 30%,
-    color-mix(in srgb, var(--metal-highlight) 80%, var(--metal-base)) 0%,
-    color-mix(in srgb, var(--metal-base) 22%, white) 55%,
-    color-mix(in srgb, var(--metal-base) 40%, white) 100%
-  );
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.checkin-avatar svg {
+  display: block;
+  width: 70%;
+  height: 70%;
 }
 
 .checkin-title {
@@ -147,13 +388,20 @@
    Full-bleed (edge to edge of the section, not confined to .container's
    own max-width column) — a direct child of .check-in-collapse, a sibling
    of .container rather than nested inside it, so its own width:100%
-   resolves against the section's full width. Dark-tinted (mixed toward
+   resolves against the section's full width. That full width is exactly
+   the problem for z-index: this thin bar crosses straight through
+   .checkin-margin's own width on both sides, so without an explicit
+   z-index: -1 here (below .checkin-margin's 0, both in .check-in-section's
+   shared isolate context) it painted on top and visibly interrupted the
+   wire graphic every single row. Dark-tinted (mixed toward
    black/--metal-shadow, not white) — the base .metal-seam-line recipe
    mixes toward white specifically because .matte-metal-surface's own panel
    reads light (see that rule's own comment); this section is the opposite
    surface, so the same "seam belongs to the material it's cut into" logic
    needs the opposite mix direction. */
 .checkin-seam {
+  position: relative;
+  z-index: -1;
   width: 100%;
 }
 
@@ -201,6 +449,14 @@
    156px), landing on the requested ~3:2 (wider-than-tall) shape rather
    than the narrow, taller-than-wide box a fixed small width gave. */
 @media (max-width: 640px) {
+  /* Matches .checkin-row's own 20px side padding below (not the base
+     .container's 10px) — without this the section label/title sat closer
+     to the edge than the row content directly underneath it. */
+  .check-in-collapse .checkin-header {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
   .check-in-collapse .checkin-row {
     gap: 12px;
     padding: 16px 20px;
@@ -214,7 +470,6 @@
   .checkin-avatar {
     width: 40px;
     height: 40px;
-    font-size: 0.75rem;
   }
 
   .checkin-title {
@@ -227,5 +482,11 @@
 
   .checkin-desc {
     font-size: 0.75rem;
+  }
+
+  /* Mobile column is too narrow to overlap without hurting legibility —
+     same call .batik-margin's own mobile rule makes (index.html). */
+  .checkin-margin {
+    display: none;
   }
 }

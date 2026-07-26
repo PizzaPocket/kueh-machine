@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title id="page-title">A Day for Me</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Bangers&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div class="confetti-burst" id="confetti-burst" aria-hidden="true"></div>
+
+<button class="sound-toggle" id="sound-toggle" type="button" aria-label="Mute sounds">🔊</button>
+
+<!-- ===================== WELCOME SCREEN ===================== -->
+<section class="screen active" id="screen-welcome">
+  <div class="welcome-float" aria-hidden="true">
+    <span class="float-item f1">🎈</span>
+    <span class="float-item f2">✨</span>
+    <span class="float-item f3">🎈</span>
+    <span class="float-item f4">🎉</span>
+    <span class="float-item f5">✨</span>
+    <span class="float-item f6">🎈</span>
+  </div>
+  <div class="welcome-wrap">
+    <div class="welcome-badge">🎂</div>
+    <h1 class="live-title" id="welcome-title">A Day for Me</h1>
+    <p class="welcome-sub">Let's plan a birthday that feels just right.</p>
+
+    <div class="field">
+      <label for="input-name">What's your name?</label>
+      <input type="text" id="input-name" placeholder="Type your name..." maxlength="20" autocomplete="off" autofocus />
+    </div>
+
+    <div class="field">
+      <label>Pick your favourite colour</label>
+      <div class="color-row">
+        <div class="color-swatches" id="color-swatches">
+          <button type="button" class="color-swatch" style="background:#D32F2F" data-color="#D32F2F" aria-label="Red"></button>
+          <button type="button" class="color-swatch" style="background:#BF360C" data-color="#BF360C" aria-label="Orange"></button>
+          <button type="button" class="color-swatch" style="background:#2E7D32" data-color="#2E7D32" aria-label="Green"></button>
+          <button type="button" class="color-swatch" style="background:#00695C" data-color="#00695C" aria-label="Teal"></button>
+          <button type="button" class="color-swatch" style="background:#1565C0" data-color="#1565C0" aria-label="Blue"></button>
+          <button type="button" class="color-swatch" style="background:#6A1B9A" data-color="#6A1B9A" aria-label="Purple"></button>
+          <button type="button" class="color-swatch selected" style="background:#AD1457" data-color="#AD1457" aria-label="Pink"></button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-big" id="btn-start" disabled>Let's go!</button>
+  </div>
+</section>
+
+<!-- ===================== APP SHELL (header shown on all screens after welcome) ===================== -->
+<header class="app-header" id="app-header" hidden>
+  <div class="header-inner">
+    <div class="greeting">
+      <span class="greeting-hi">Hi <span id="greet-name">friend</span>! 👋</span>
+      <span class="step-label" id="step-label"></span>
+    </div>
+    <div class="budget-meter">
+      <div class="budget-numbers">
+        <span id="budget-spent">$0</span> spent of <span id="budget-total">$2,000</span>
+      </div>
+      <div class="meter-track">
+        <div class="meter-fill" id="meter-fill"></div>
+      </div>
+      <div class="budget-remaining" id="budget-remaining">$2,000 left to plan with</div>
+    </div>
+    <div class="balance-widget">
+      <div class="balance-seesaw">
+        <div class="balance-plank" id="balance-plank">
+          <span class="balance-tag need">Need</span>
+          <span class="balance-tag want">Want</span>
+        </div>
+        <div class="balance-fulcrum"></div>
+      </div>
+      <div class="balance-caption" id="balance-caption">Tag choices to see your balance</div>
+    </div>
+  </div>
+</header>
+
+<main id="app-main">
+
+<!-- ===================== CELEBRATION PICKER ===================== -->
+<section class="screen" id="screen-picker">
+  <div class="screen-inner">
+    <h2>How do you want to celebrate, <span class="name-slot"></span>?</h2>
+    <p class="screen-sub">Pick one or maximum of two — it's your day to plan.</p>
+
+    <div class="budget-banner">
+      <span class="budget-banner-emoji">💰</span>
+      <div>
+        <div class="budget-banner-line">Up to <span id="budget-banner-amount">$2,000</span></div>
+        <div class="budget-banner-label">Spend wisely — whatever's left grows your Savings Jar!</div>
+      </div>
+    </div>
+
+    <div class="pick-grid">
+      <button class="pick-card" data-path="party">
+        <span class="pick-emoji">🎉</span>
+        <span class="pick-title">A Big Party</span>
+        <span class="pick-desc">Plan the place, food, decorations and more</span>
+      </button>
+      <button class="pick-card" data-path="activity">
+        <span class="pick-emoji">🎈</span>
+        <span class="pick-title">A Small Get-Together</span>
+        <span class="pick-desc">A fun outing with family or close friends</span>
+      </button>
+      <button class="pick-card" data-path="gift">
+        <span class="pick-emoji">🎁</span>
+        <span class="pick-title">A Gift I Want</span>
+        <span class="pick-desc">Browse gifts and maybe save up for one</span>
+      </button>
+    </div>
+
+    <div class="nav-row">
+      <span></span>
+      <button class="btn btn-primary" id="btn-picker-continue" disabled>Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PARTY SCREEN ===================== -->
+<section class="screen" id="screen-party">
+  <div class="screen-inner">
+    <h2>Plan your big party 🎉</h2>
+    <p class="screen-sub">Pick one option in each category — or leave one out entirely. A simple party is a wonderful party.</p>
+    <div id="party-categories"></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" data-back>Back</button>
+      <button class="btn btn-primary" id="btn-party-continue">Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GIFT SCREEN ===================== -->
+<section class="screen" id="screen-gift">
+  <div class="screen-inner">
+    <h2>Find your gift 🎁</h2>
+    <p class="screen-sub">Browse gifts below. If one costs more than you have, I'll show you a saving-up plan.</p>
+    <div class="pick-grid gift-grid" id="gift-grid"></div>
+    <div id="save-up-panel" class="save-up-panel" hidden></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" data-back>Back</button>
+      <button class="btn btn-primary" id="btn-gift-continue">Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ACTIVITY SCREEN ===================== -->
+<section class="screen" id="screen-activity">
+  <div class="screen-inner">
+    <h2>Choose your activity 🎈</h2>
+    <p class="screen-sub">Something fun with family or a few close friends.</p>
+    <div class="pick-grid" id="activity-grid"></div>
+    <div class="nav-row">
+      <button class="btn btn-ghost" data-back>Back</button>
+      <button class="btn btn-primary" id="btn-activity-continue">Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== INVITATION CARD SCREEN ===================== -->
+<section class="screen" id="screen-invite">
+  <div class="screen-inner">
+    <h2>Design your invitation 💌</h2>
+    <p class="screen-sub">Make a card to send, and keep track of who's coming.</p>
+
+    <div class="invite-layout">
+      <div class="invite-controls">
+        <div class="field">
+          <label for="invite-friend-name">Friend's name (optional)</label>
+          <input type="text" id="invite-friend-name" placeholder="e.g. Maya" maxlength="20" />
+        </div>
+        <div class="field">
+          <label for="invite-card-title">Card title</label>
+          <input type="text" id="invite-card-title" placeholder="e.g. Ava's Birthday" maxlength="40" />
+        </div>
+        <div class="field">
+          <label for="invite-date">Date</label>
+          <input type="text" id="invite-date" placeholder="e.g. 30/09/2026" />
+        </div>
+        <div class="field">
+          <label for="invite-place">Place</label>
+          <input type="text" id="invite-place" placeholder="Where's it happening?" />
+        </div>
+        <div class="field">
+          <label for="invite-message">Short message</label>
+          <textarea id="invite-message" maxlength="120" placeholder="Come celebrate with me!"></textarea>
+        </div>
+        <div class="invite-actions">
+          <button class="btn btn-secondary" id="btn-print-card">🖨️ Print card</button>
+          <button class="btn btn-secondary" id="btn-save-card">🖼️ Save as image</button>
+        </div>
+      </div>
+
+      <div class="invite-preview-wrap">
+        <div class="invite-card" id="invite-card">
+          <div class="comic-badge">POW!</div>
+          <div class="invite-card-inner">
+            <div class="comic-title-panel">
+              <div class="invite-headline">
+                <span class="headline-name" id="invite-card-headline-name" hidden></span>
+                <span class="headline-main">You're Invited!</span>
+              </div>
+            </div>
+            <div class="invite-name-panel" id="invite-card-name">Ava's Birthday</div>
+            <div class="invite-bubble-row">
+              <div class="invite-bubble" id="invite-card-date">Date: —</div>
+              <div class="invite-bubble" id="invite-card-place">Place: —</div>
+            </div>
+            <div class="invite-msg-panel" id="invite-card-message">Come celebrate with me!</div>
+            <div class="invite-qr-panel">
+              <img class="invite-qr-img" crossorigin="anonymous" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Fdocs.google.com%2Fforms%2Fd%2Fe%2F1FAIpQLScQz5SMRoNP9IWUKpYv7QBzBai1lPJmqtJX9VuoEfiSZfp8SQ%2Fviewform%3Fusp%3Ddialog" alt="QR code to RSVP" />
+              <span>Scan this QR code to RSVP!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rsvp-block">
+      <h3>Guest List &amp; RSVPs</h3>
+
+      <div class="qr-rsvp">
+        <img class="qr-code" width="150" height="150" crossorigin="anonymous" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https%3A%2F%2Fdocs.google.com%2Fforms%2Fd%2Fe%2F1FAIpQLScQz5SMRoNP9IWUKpYv7QBzBai1lPJmqtJX9VuoEfiSZfp8SQ%2Fviewform%3Fusp%3Ddialog" alt="QR code to the online RSVP form" />
+        <div class="qr-info">
+          <p class="qr-title">Scan to RSVP online</p>
+          <p class="screen-sub small">Print or share this card, and a friend's parent can scan the code to send their RSVP straight to you.</p>
+          <a class="qr-link" href="https://docs.google.com/forms/d/e/1FAIpQLScQz5SMRoNP9IWUKpYv7QBzBai1lPJmqtJX9VuoEfiSZfp8SQ/viewform?usp=dialog" target="_blank" rel="noopener">Or open the RSVP form directly →</a>
+        </div>
+      </div>
+
+      <p class="screen-sub small">Got an RSVP another way — a phone call, or in person? Log it here too:</p>
+      <form id="rsvp-form" class="rsvp-form">
+        <input type="text" id="rsvp-child" placeholder="Friend's name" required />
+        <input type="text" id="rsvp-parent" placeholder="Parent/guardian name" required />
+        <input type="text" id="rsvp-contact" placeholder="Contact (phone or email)" required />
+        <button type="submit" class="btn btn-primary btn-small">Add to list</button>
+      </form>
+      <ul class="rsvp-list" id="rsvp-list"></ul>
+      <button class="btn btn-ghost btn-small" id="btn-export-rsvp" hidden>⬇️ Download guest list (.csv)</button>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" data-back>Back</button>
+      <button class="btn btn-primary" id="btn-invite-continue">Continue</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SUMMARY SCREEN ===================== -->
+<section class="screen" id="screen-summary">
+  <div class="screen-inner">
+    <h2>Here's your day, <span class="name-slot"></span> 🎊</h2>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3>What you planned</h3>
+        <ul class="summary-list" id="summary-breakdown"></ul>
+      </div>
+
+      <div class="summary-card">
+        <h3>Your money</h3>
+        <div class="summary-stat">
+          <span class="summary-stat-label">Budget</span>
+          <span class="summary-stat-value" id="summary-budget">$2,000</span>
+        </div>
+        <div class="summary-stat">
+          <span class="summary-stat-label">Spent</span>
+          <span class="summary-stat-value" id="summary-spent">$0</span>
+        </div>
+        <div class="summary-stat highlight">
+          <span class="summary-stat-label">Saved</span>
+          <span class="summary-stat-value" id="summary-saved">$2,000</span>
+        </div>
+        <div class="summary-tags">
+          <span id="summary-needs">0 needs</span> · <span id="summary-wants">0 wants</span>
+        </div>
+      </div>
+
+      <div class="summary-card savings-jar-card">
+        <h3>🏺 Savings Jar</h3>
+        <p class="jar-amount" id="jar-amount">$2,000</p>
+        <div class="field">
+          <label for="jar-goal">What are you saving up for?</label>
+          <input type="text" id="jar-goal" placeholder="e.g. a new bike" />
+        </div>
+        <div class="field">
+          <label for="jar-goal-cost">How much does it cost?</label>
+          <input type="number" id="jar-goal-cost" min="0" placeholder="e.g. 150" />
+        </div>
+      </div>
+    </div>
+
+    <div class="savings-plan-block" id="savings-plan-block" hidden>
+      <h3>📈 Your Savings Plan</h3>
+      <div class="save-row">
+        <label for="jar-goal-weekly">Save $<span id="jar-goal-weekly-amount">5</span> a week</label>
+        <input type="range" id="jar-goal-weekly" min="1" max="50" value="5" />
+      </div>
+
+      <div class="savings-plan-preview-wrap">
+        <div class="savings-plan-card" id="savings-plan-card">
+          <div class="savings-plan-title" id="plan-card-title">Ava's Savings Plan</div>
+          <div class="savings-plan-goal" id="plan-card-goal">Saving for: a new bike</div>
+          <div class="savings-plan-bar-track"><div class="savings-plan-bar-fill" id="plan-card-bar"></div></div>
+          <div class="savings-plan-stats">
+            <div><span id="plan-card-have">$0</span><small>saved so far</small></div>
+            <div><span id="plan-card-cost">$0</span><small>goal cost</small></div>
+          </div>
+          <div class="savings-plan-message" id="plan-card-message"></div>
+          <div class="savings-plan-tracker" id="plan-card-tracker"></div>
+        </div>
+      </div>
+
+      <div class="invite-actions">
+        <button class="btn btn-secondary" id="btn-print-plan">🖨️ Print plan</button>
+        <button class="btn btn-secondary" id="btn-save-plan">🖼️ Save as image</button>
+      </div>
+    </div>
+
+    <div class="trade-off-note" id="trade-off-note"></div>
+
+    <div class="recap-block">
+      <h3>🎊 Save Your Recap</h3>
+      <div class="recap-preview-wrap">
+        <div class="recap-card" id="recap-card">
+          <div class="recap-title" id="recap-card-title">Ava's Big Day</div>
+          <ul class="recap-list" id="recap-card-list"></ul>
+          <div class="recap-stats">
+            <div><span id="recap-card-spent">$0</span><small>spent</small></div>
+            <div><span id="recap-card-saved">$0</span><small>saved</small></div>
+          </div>
+          <div class="recap-tags" id="recap-card-tags"></div>
+          <div class="recap-note" id="recap-card-note"></div>
+        </div>
+      </div>
+      <div class="invite-actions">
+        <button class="btn btn-secondary" id="btn-print-recap">🖨️ Print recap</button>
+        <button class="btn btn-secondary" id="btn-save-recap">🖼️ Save as image</button>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn btn-ghost" data-back>Back</button>
+      <button class="btn btn-primary btn-big" id="btn-restart">Plan another day</button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="app-footer">
+  <p>A Day for Me — built by Jesslyn, for <strong>kuehmachine.com</strong></p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="./script.js" defer></script>
+</body>
+</html>

@@ -17,12 +17,12 @@
 export const KUEH_DATA = [
   {
     id: 'kueh-ku',
-    name: 'Kueh Ku',
+    name: 'Ang Ku Kueh',
     origin: 'Hokkien Chinese (Fujian), adopted into Peranakan cuisine',
     category: 'sweet',
     texture: 'steamed',
     occasion: 'festive/ritual',
-    description: "Oval, tortoise-shell-shaped glutinous rice cake with a soft chewy skin, pressed in a mold and filled with sweet mung bean paste. Traditionally dyed red ('ang ku kueh' literally means red tortoise cake) for birthdays and religious offerings, though softer-skinned versions in other colors are just as common.",
+    description: "Oval, tortoise-shell-shaped glutinous rice cake with a soft chewy skin, pressed in a mold and filled with sweet mung bean paste. The name literally means 'red tortoise cake' — traditionally dyed red for birthdays and religious offerings, though softer-skinned versions in other colors are just as common.",
     photo: 'images/kueh/kueh-ku.png',
     flavor_profile: ['Sweet', 'Chewy', 'Mung Bean', 'Glutinous'],
     origin_sentence: 'A Hokkien Chinese tradition brought into Peranakan kitchens: pressed into a tortoise mold and traditionally dyed red, its shape symbolizing longevity at birthdays and temple offerings.',
@@ -563,11 +563,19 @@ export const KUEH_SEED_TABLE = {
     highlight: { h: 60,  c: 0.07 }, // warm coconut cream
   },
   'kueh-lapis': { mode: 'signature', primary: null, accent: null, highlight: null },
+  // Checked against the actual photo (images/kueh/kueh-salat.png): a
+  // lime-green top band over a distinct BLUE-teal band with white flecks —
+  // not the plain green-on-cream the original seed assumed (no blue at
+  // all), which is what's actually shown. primary/accent are swapped from
+  // a first-draft version that had this backwards: the `block` template
+  // (kueh-icon.js) puts PRIMARY in the majority/bottom fill and ACCENT in
+  // the top band, so blue (the bottom layer) has to be primary and green
+  // (the top layer) has to be accent, not the other way round.
   'kueh-salat': {
     mode: 'chromatic',
-    primary:   { h: 138, c: 0.12 }, // glutinous rice + pandan custard, green
-    accent:    { h: 68,  c: 0.05 }, // pale eggy custard cream
-    highlight: { h: 160, c: 0.09 }, // deeper leaf green
+    primary:   { h: 205, c: 0.12 }, // blue-tinted band (bottom, majority fill)
+    accent:    { h: 112, c: 0.16 }, // lime-green pandan top layer
+    highlight: { h: 95,  c: 0.05 }, // pale white fleck / rice base
   },
   'kueh-dadar': {
     mode: 'chromatic',
@@ -575,11 +583,19 @@ export const KUEH_SEED_TABLE = {
     accent:    { h: 40,  c: 0.12 }, // gula melaka filling
     highlight: { h: 55,  c: 0.05 }, // coconut cream
   },
+  // primary was h:80 (yellow-green) — checked against the photo
+  // (images/kueh/kueh-bahulu.png), which is warm golden-amber throughout,
+  // nowhere near yellow-green. accent was then pushed to h:26 (red-orange)
+  // to stay distinguishable from primary, but the `fluted` template's main
+  // fill (kueh-icon.js) is actually driven by ACCENT (colorsForSeed's
+  // `highlight`, not `primary`/`base`), so that red-orange became the
+  // icon's own main body color — reading as pale peach/salmon instead of
+  // the photo's clearly golden tone. Brought back near primary's own gold.
   'kueh-bahulu': {
     mode: 'chromatic',
-    primary:   { h: 80,  c: 0.14 }, // golden sponge
-    accent:    { h: 45,  c: 0.13 }, // toasty baked amber
-    highlight: { h: 70,  c: 0.05 }, // pale eggy cream
+    primary:   { h: 42, c: 0.13 }, // golden baked sponge body
+    accent:    { h: 46, c: 0.16 }, // warm golden (icon's actual main fill via `fluted`)
+    highlight: { h: 70, c: 0.05 }, // pale eggy cream
   },
   'kueh-talam': {
     mode: 'chromatic',
@@ -605,17 +621,30 @@ export const KUEH_SEED_TABLE = {
     accent:    { h: 35,  c: 0.10 }, // gula melaka core
     highlight: { h: 135, c: 0.07 }, // pandan/banana leaf
   },
+  // accent was h:30 (orange-red) — the icon's `block-crust` template
+  // (kueh-icon.js) draws its pale majority fill from ACCENT, not from this
+  // seed's own `highlight` field, so the "orange-red" accent was what
+  // actually rendered as the interior — reading as peachy-salmon rather
+  // than the photo's clear pale butter-yellow. h:58 c:0.10 (first fix)
+  // still rendered too pink/tan at oklchToHex's actual output (#edc5a8) —
+  // moderate chroma at high L doesn't read as "yellow" the way the raw
+  // hue number suggests; checked numerically (not just by eye) and h:80
+  // c:0.16 is what actually resolves to a clear gold-yellow (#efc784).
   'kueh-bingka': {
     mode: 'chromatic',
-    primary:   { h: 48, c: 0.13 }, // golden-brown baked crust
-    accent:    { h: 30, c: 0.13 }, // deep caramelized edge
+    primary:   { h: 48, c: 0.13 }, // golden-brown baked crust (top band)
+    accent:    { h: 80, c: 0.16 }, // pale creamy-yellow interior (majority fill)
     highlight: { h: 55, c: 0.05 }, // pale tapioca cream
   },
+  // primary was h:345 (pink) — the actual photo (images/kueh/kueh-koci.png)
+  // shows a purple/lavender-tinted dumpling, not pink. highlight's
+  // "filling cream" was also too washed out (c:0.04) against the photo's
+  // visibly rich caramelized-brown gula melaka filling.
   'kueh-koci': {
     mode: 'chromatic',
-    primary:   { h: 345, c: 0.10 }, // pink dye (the pink variant)
+    primary:   { h: 290, c: 0.08 }, // purple-tinted glutinous rice
     accent:    { h: 90,  c: 0.07 }, // banana leaf wrap
-    highlight: { h: 40,  c: 0.04 }, // coconut filling cream
+    highlight: { h: 38,  c: 0.12 }, // caramelized gula melaka filling
   },
   'apam-balik': {
     mode: 'chromatic',
@@ -629,11 +658,16 @@ export const KUEH_SEED_TABLE = {
     accent:    { h: 35,  c: 0.10 }, // peanut/gula melaka filling
     highlight: { h: 140, c: 0.05 }, // pandan leaf lining, faint green
   },
+  // The photo (images/kueh/kueh-kosui.png) shows the brown gula melaka
+  // variant sitting right next to a pandan GREEN one — the original seed
+  // was all-brown (no green at all), missing half of what's actually
+  // shown. accent now carries that green instead of a second brown tone;
+  // the white coconut topping (still present on both) moved to highlight.
   'kueh-kosui': {
     mode: 'chromatic',
-    primary:   { h: 32, c: 0.12 }, // palm sugar jelly, brown
-    accent:    { h: 45, c: 0.03 }, // grated white coconut topping
-    highlight: { h: 20, c: 0.11 }, // deeper amber
+    primary:   { h: 32,  c: 0.12 }, // palm sugar jelly, brown (classic variant)
+    accent:    { h: 140, c: 0.10 }, // pandan green variant
+    highlight: { h: 45,  c: 0.03 }, // grated white coconut topping
   },
   'kueh-ubi-kayu': {
     mode: 'neutral',
@@ -651,22 +685,44 @@ export const KUEH_SEED_TABLE = {
 
 // Hand-authored shape-template mapping — same reliability reasoning as the
 // seed table above. Falls back to 'disc' if an id is ever missing.
+// Checked each shape against its actual photo (images/kueh/*.png), not
+// just guessed from name/category. Reassigned from the original five-
+// template set to the newer roll/cup/block/block-crust/fluted/
+// fluted-filled/dome-topped/folded templates (src/atoms/kueh-icon.js)
+// added specifically because these didn't fit: kueh-dadar is a rolled
+// crepe, not a disc; kueh-pie-tee is a fluted pastry cup, not a dome;
+// kueh-salat/kueh-talam are two-tone blocks with the PALER band on top
+// (rice topped with custard/coconut cream) — `block`; kueh-bingka is also
+// two-tone but inverted, a DARKER caramelized crust over a pale interior —
+// `block-crust`, a separate template since `block`'s top band is always
+// the palette's palest role, backwards for bingka. Neither is
+// layered-bars' many thin rainbow stripes, which overstates kueh that
+// only ever show two distinct layers; that template stays reserved for
+// kueh that actually show a dozen-plus thin layers (kueh-lapis,
+// kueh-lapis-legit). kueh-bahulu is a plain pleated flower-mold (fluted,
+// no center mark — it's an unfilled sponge); kueh-tutu is the same mold
+// WITH the filling dot it actually shows once cut (fluted-filled);
+// kueh-kosui is dome-topped for the grated-coconut tuft it's always
+// finished with, not a plain dome; apam-balik is a thick folded-over half
+// cut in half again, not a thin moon-sliver crescent — see `folded`'s own
+// comment for why that template replaced crescent entirely (nothing else
+// used it).
 export const KUEH_SHAPE_TABLE = {
-  'ondeh-ondeh':       'dome',
+  'ondeh-ondeh':       'dome-coated', // rolled in coconut all over, not just topped (see dome-coated's own comment)
   'kueh-lapis':        'layered-bars',
-  'kueh-salat':        'layered-bars',
-  'kueh-dadar':        'disc',
-  'kueh-bahulu':       'dome',
-  'kueh-talam':        'layered-bars',
+  'kueh-salat':        'block',
+  'kueh-dadar':        'roll',
+  'kueh-bahulu':       'fluted',
+  'kueh-talam':        'block',
   'kueh-ku':           'dome',
-  'kueh-pie-tee':      'dome',
+  'kueh-pie-tee':      'cup',
   'kueh-lapis-legit':  'layered-bars',
   'putu-piring':       'disc',
-  'kueh-bingka':       'disc',
+  'kueh-bingka':       'block-crust',
   'kueh-koci':         'pyramid',
-  'apam-balik':        'crescent',
-  'kueh-tutu':         'dome',
-  'kueh-kosui':        'dome',
-  'kueh-ubi-kayu':     'disc',
+  'apam-balik':        'folded',
+  'kueh-tutu':         'fluted-filled',
+  'kueh-kosui':        'dome-topped',
+  'kueh-ubi-kayu':     'block',
   'kueh-lopez':        'pyramid',
 };

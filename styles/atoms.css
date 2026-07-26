@@ -402,6 +402,22 @@
   height: 100%;
 }
 
+/* .wire-bundle (src/atoms/wire-bundle.js) — a generative colored-wire
+   background. No z-index needed the way .retro-shape-fill above needs -1:
+   its consumer (src/organisms/check-in.js) appends it AFTER the fill svg
+   and BEFORE any real foreground content, so plain DOM order alone paints
+   it in between. width/height: 100% + the SVG's own
+   preserveAspectRatio="none" stretches its fixed 0 0 100 100 viewBox
+   (wire-bundle.js's own comment) to match whatever real box it's dropped
+   into. */
+.wire-bundle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 /* .rim-matte-outer-wrap / .rim-matte-outer (src/atoms/matte-rim.js's
    wrapWithOuterMatteRim) — the "outer" counterpart .rim-matte-inner's own
    comment above describes: a thin metal bezel framing an already-complete

@@ -1,0 +1,32 @@
+<svg width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="40" cy="95" r="5" fill="#F5F0E8">
+<animate attributeName="cy" values="98;6" dur="4.6s" begin="0s" repeatCount="indefinite"/>
+<animate attributeName="cx" values="40;46" dur="4.6s" begin="0s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.35;0" dur="4.6s" begin="0s" repeatCount="indefinite"/>
+</circle>
+<circle cx="70" cy="95" r="6" fill="#F5F0E8">
+<animate attributeName="cy" values="98;6" dur="5.2s" begin="-1.3s" repeatCount="indefinite"/>
+<animate attributeName="cx" values="70;64" dur="5.2s" begin="-1.3s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.35;0" dur="5.2s" begin="-1.3s" repeatCount="indefinite"/>
+</circle>
+<circle cx="100" cy="95" r="5.5" fill="#F5F0E8">
+<animate attributeName="cy" values="98;6" dur="4.9s" begin="-2.6s" repeatCount="indefinite"/>
+<animate attributeName="cx" values="100;94" dur="4.9s" begin="-2.6s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.35;0" dur="4.9s" begin="-2.6s" repeatCount="indefinite"/>
+</circle>
+<circle cx="125" cy="95" r="6.5" fill="#F5F0E8">
+<animate attributeName="cy" values="98;6" dur="5.5s" begin="-0.8s" repeatCount="indefinite"/>
+<animate attributeName="cx" values="125;131" dur="5.5s" begin="-0.8s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.35;0" dur="5.5s" begin="-0.8s" repeatCount="indefinite"/>
+</circle>
+<circle cx="55" cy="95" r="4.5" fill="#F5F0E8">
+<animate attributeName="cy" values="98;6" dur="4.2s" begin="-3.4s" repeatCount="indefinite"/>
+<animate attributeName="cx" values="55;50" dur="4.2s" begin="-3.4s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.35;0" dur="4.2s" begin="-3.4s" repeatCount="indefinite"/>
+</circle>
+<circle cx="110" cy="95" r="6" fill="#F5F0E8">
+<animate attributeName="cy" values="98;6" dur="5.0s" begin="-1.9s" repeatCount="indefinite"/>
+<animate attributeName="cx" values="110;116" dur="5.0s" begin="-1.9s" repeatCount="indefinite"/>
+<animate attributeName="opacity" values="0.35;0" dur="5.0s" begin="-1.9s" repeatCount="indefinite"/>
+</circle>
+</svg>

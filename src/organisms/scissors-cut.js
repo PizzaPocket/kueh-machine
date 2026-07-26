@@ -114,7 +114,7 @@ const CUT_STRING_ABOVE_PANEL_GAP = 148;
 // whole assembly needs more CUT_STRING_ABOVE_PANEL_GAP clearance to
 // compensate, since the fulcrum — and everything below it — drops by the
 // same amount).
-const SCISSORS_PIVOT_BELOW_STRING_GAP = 54;
+const SCISSORS_PIVOT_BELOW_STRING_GAP = 55;
 
 // === Mobile layout (<=640px) ===
 // A simpler variant, not a scaled-down version of the desktop rig: the

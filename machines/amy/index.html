@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kueh Machine</title>
+<meta name="description" content="Pull the lever, crack open a capsule, and meet a traditional Singaporean kueh." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Oxygen&family=Patrick+Hand&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="capsule-blue" viewBox="0 0 80 80">
+      <path d="M80 40C80 62.0914 62.0914 80 40 80C17.9086 80 0 62.0914 0 40C0 17.9086 17.9086 0 40 0C62.0914 0 80 17.9086 80 40Z" fill="white"/>
+      <path d="M76.5 43C45.5 57.5 15.3333 49 3 42.5C3.83333 56.1667 15.5 77.5 40 77.5C66.5189 77.5 76.3333 54 76.5 43Z" fill="#758CA3"/>
+      <path d="M40 0C62.0914 0 80 17.9086 80 40C80 62.0914 62.0914 80 40 80C17.9086 80 0 62.0914 0 40C0 17.9086 17.9086 0 40 0ZM4.26074 44.3428C6.40519 62.1771 21.5876 76 40 76C58.3354 76 73.469 62.2926 75.7129 44.5664C48.5619 57.7398 19.6808 51.1696 4.26074 44.3428ZM40 4C20.1774 4 4.09819 20.0213 4.00195 39.8213C18.4745 46.7826 48.5166 54.3904 75.999 39.9395C75.9663 20.085 59.8621 4 40 4Z" fill="black"/>
+      <path d="M58.793 22.293C59.1835 21.9025 59.8165 21.9025 60.207 22.293C61.4772 23.5631 62.4309 24.6408 63.1865 25.9981C63.9403 27.352 64.4654 28.9271 64.9746 31.1572C65.0973 31.6955 64.7609 32.2316 64.2227 32.3545C63.6842 32.4774 63.1484 32.14 63.0254 31.6016C62.5347 29.4526 62.0597 28.0875 61.4385 26.9717C60.8191 25.8592 60.0228 24.9368 58.793 23.707C58.4025 23.3165 58.4025 22.6835 58.793 22.293ZM52.0664 10.6406C52.2648 10.1254 52.844 9.8682 53.3594 10.0664C57.8697 11.8013 67.4772 18.036 69.9766 29.2832C70.0962 29.8223 69.7558 30.3568 69.2168 30.4766C68.6777 30.5962 68.1432 30.2559 68.0235 29.7168C65.7228 19.3645 56.7971 13.5323 52.6406 11.9336C52.1253 11.7352 51.8682 11.156 52.0664 10.6406Z" fill="black"/>
+    </symbol>
+    <symbol id="capsule-gold" viewBox="0 0 80 80">
+      <path d="M80 40C80 62.0914 62.0914 80 40 80C17.9086 80 0 62.0914 0 40C0 17.9086 17.9086 0 40 0C62.0914 0 80 17.9086 80 40Z" fill="white"/>
+      <path d="M76.5 43C45.5 57.5 15.3333 49 3 42.5C3.83333 56.1667 15.5 77.5 40 77.5C66.5189 77.5 76.3333 54 76.5 43Z" fill="#BCA076"/>
+      <path d="M40 0C62.0914 0 80 17.9086 80 40C80 62.0914 62.0914 80 40 80C17.9086 80 0 62.0914 0 40C0 17.9086 17.9086 0 40 0ZM4.26074 44.3428C6.40519 62.1771 21.5876 76 40 76C58.3354 76 73.469 62.2926 75.7129 44.5664C48.5619 57.7398 19.6808 51.1696 4.26074 44.3428ZM40 4C20.1774 4 4.09819 20.0213 4.00195 39.8213C18.4745 46.7826 48.5166 54.3904 75.999 39.9395C75.9663 20.085 59.8621 4 40 4Z" fill="black"/>
+      <path d="M58.7934 22.2935C59.1839 21.9029 59.8169 21.9029 60.2074 22.2935C61.4773 23.5634 62.4314 24.6415 63.1869 25.9985C63.9405 27.3523 64.4659 28.9279 64.975 31.1577C65.0973 31.6957 64.761 32.232 64.2231 32.355C63.6848 32.4779 63.149 32.1402 63.0258 31.6021C62.5352 29.4534 62.0599 28.0879 61.4389 26.9722C60.8196 25.8598 60.0229 24.9371 58.7934 23.7075C58.4029 23.317 58.4029 22.684 58.7934 22.2935ZM52.0668 10.6411C52.2652 10.1258 52.8444 9.86868 53.3598 10.0669C57.8703 11.8021 67.4777 18.0369 69.977 29.2837C70.0963 29.8225 69.7559 30.3572 69.2172 30.4771C68.6783 30.5967 68.1439 30.256 68.0239 29.7173C65.7233 19.3654 56.7977 13.533 52.641 11.9341C52.1258 11.7358 51.8688 11.1564 52.0668 10.6411Z" fill="black"/>
+    </symbol>
+    <symbol id="capsule-red" viewBox="0 0 80 80">
+      <path d="M80 40C80 62.0914 62.0914 80 40 80C17.9086 80 0 62.0914 0 40C0 17.9086 17.9086 0 40 0C62.0914 0 80 17.9086 80 40Z" fill="white"/>
+      <path d="M76.5 43C45.5 57.5 15.3333 49 3 42.5C3.83333 56.1667 15.5 77.5 40 77.5C66.5189 77.5 76.3333 54 76.5 43Z" fill="#DD7B68"/>
+      <path d="M40 0C62.0914 0 80 17.9086 80 40C80 62.0914 62.0914 80 40 80C17.9086 80 0 62.0914 0 40C0 17.9086 17.9086 0 40 0ZM4.26074 44.3428C6.40519 62.1771 21.5876 76 40 76C58.3354 76 73.469 62.2926 75.7129 44.5664C48.5619 57.7398 19.6808 51.1696 4.26074 44.3428ZM40 4C20.1774 4 4.09819 20.0213 4.00195 39.8213C18.4745 46.7826 48.5166 54.3904 75.999 39.9395C75.9663 20.085 59.8621 4 40 4Z" fill="black"/>
+      <path d="M58.7935 22.2935C59.184 21.9029 59.817 21.9029 60.2075 22.2935C61.4774 23.5634 62.4315 24.6415 63.187 25.9985C63.9406 27.3523 64.4659 28.9279 64.9751 31.1577C65.0974 31.6957 64.7611 32.232 64.2231 32.355C63.6849 32.4779 63.1491 32.1402 63.0259 31.6021C62.5352 29.4534 62.06 28.0879 61.439 26.9722C60.8197 25.8598 60.023 24.9371 58.7935 23.7075C58.4029 23.317 58.4029 22.684 58.7935 22.2935ZM52.0669 10.6411C52.2652 10.1258 52.8445 9.86867 53.3599 10.0669C57.8704 11.802 67.4778 18.0369 69.9771 29.2837C70.0963 29.8225 69.756 30.3571 69.2173 30.4771C68.6784 30.5967 68.144 30.256 68.0239 29.7173C65.7234 19.3654 56.7978 13.533 52.6411 11.9341C52.1259 11.7358 51.8689 11.1564 52.0669 10.6411Z" fill="black"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="scene">
+
+  <header class="site-header">
+    <h1 class="logo">ガチャ ガチャ クエ</h1>
+    <p class="logo-subtext">gacha gacha kueh</p>
+  </header>
+
+  <main class="stage">
+
+    <section class="machine-view" id="machineView">
+
+      <div class="machine" id="machine">
+        <img class="machine-art" src="./assets/gacha-machine.svg" alt="Illustration of the kueh gachapon machine" />
+
+        <button class="knob-btn" id="knobBtn" type="button" aria-label="Turn the knob" disabled></button>
+
+        <button class="capsule" id="capsuleBtn" type="button" aria-label="Open capsule" hidden>
+          <svg viewBox="0 0 80 80" aria-hidden="true" focusable="false">
+            <use id="capsuleUse" href="#capsule-blue" width="80" height="80" />
+          </svg>
+        </button>
+      </div>
+
+      <p class="microcopy" id="microcopy" aria-live="polite">Insert a coin to begin</p>
+
+      <div class="controls">
+        <button class="control-btn coin-btn" id="coinBtn" type="button">
+          <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+            <circle cx="20" cy="20" r="17" />
+            <text x="20" y="26" text-anchor="middle">$</text>
+          </svg>
+          <span>Insert Coin</span>
+        </button>
+      </div>
+
+    </section>
+
+    <section class="reveal-view" id="revealView" hidden>
+      <div class="reveal-card" id="revealCard">
+        <div class="kueh-art" id="kuehArt"></div>
+        <h2 class="kueh-name" id="kuehName"></h2>
+        <p class="kueh-desc" id="kuehDesc"></p>
+        <dl class="kueh-meta">
+          <div>
+            <dt>Taste</dt>
+            <dd id="kuehTaste"></dd>
+          </div>
+          <div>
+            <dt>History</dt>
+            <dd id="kuehHistory"></dd>
+          </div>
+        </dl>
+        <div class="reveal-actions">
+          <button class="btn-primary" id="againBtn" type="button">Gacha again!</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Kueh Machine — built by Amy, for kuehmachine.com</p>
+  </footer>
+
+</div>
+
+<script src="./js/data.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>

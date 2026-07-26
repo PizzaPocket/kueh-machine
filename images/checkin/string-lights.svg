@@ -1,0 +1,71 @@
+<svg width="400" height="44" viewBox="0 0 400 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<filter id="bulb-glow" x="-150%" y="-150%" width="400%" height="400%">
+<feGaussianBlur stdDeviation="3" result="blur"/>
+</filter>
+</defs>
+<path d="M0,14 Q200,30 400,14" stroke="rgba(80,45,10,0.55)" stroke-width="1.5" fill="none"/>
+<rect x="-2" y="6" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="0s" repeatCount="indefinite"/>
+<circle cx="0" cy="14" r="7" fill="#FFE08A" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="0" cy="14" r="5.5" fill="#FFE08A"/>
+<circle cx="-1.5" cy="12.5" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="48" y="12.12" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-0.494s" repeatCount="indefinite"/>
+<circle cx="50" cy="20.12" r="7" fill="#FFB06A" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="50" cy="20.12" r="5.5" fill="#FFB06A"/>
+<circle cx="48.5" cy="18.62" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="98" y="17.31" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-0.988s" repeatCount="indefinite"/>
+<circle cx="100" cy="25.31" r="7" fill="#FF9090" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="100" cy="25.31" r="5.5" fill="#FF9090"/>
+<circle cx="98.5" cy="23.81" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="148" y="20.78" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-1.483s" repeatCount="indefinite"/>
+<circle cx="150" cy="28.78" r="7" fill="#90E890" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="150" cy="28.78" r="5.5" fill="#90E890"/>
+<circle cx="148.5" cy="27.28" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="198" y="22" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-1.977s" repeatCount="indefinite"/>
+<circle cx="200" cy="30" r="7" fill="#90C8FF" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="200" cy="30" r="5.5" fill="#90C8FF"/>
+<circle cx="198.5" cy="28.5" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="248" y="20.78" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-0.171s" repeatCount="indefinite"/>
+<circle cx="250" cy="28.78" r="7" fill="#FFAA50" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="250" cy="28.78" r="5.5" fill="#FFAA50"/>
+<circle cx="248.5" cy="27.28" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="298" y="17.31" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-0.665s" repeatCount="indefinite"/>
+<circle cx="300" cy="25.31" r="7" fill="#E890FF" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="300" cy="25.31" r="5.5" fill="#E890FF"/>
+<circle cx="298.5" cy="23.81" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="348" y="12.12" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-1.159s" repeatCount="indefinite"/>
+<circle cx="350" cy="20.12" r="7" fill="#FFE08A" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="350" cy="20.12" r="5.5" fill="#FFE08A"/>
+<circle cx="348.5" cy="18.62" r="2" fill="#fff" opacity="0.6"/>
+</g>
+<rect x="398" y="6" width="4" height="8" fill="#5A3010"/>
+<g opacity="1">
+<animate attributeName="opacity" values="0.68;1;0.68" keyTimes="0;0.5;1" calcMode="spline" keySplines="0.42 0 0.58 1;0.42 0 0.58 1" dur="2.3s" begin="-1.653s" repeatCount="indefinite"/>
+<circle cx="400" cy="14" r="7" fill="#FFB06A" opacity="0.45" filter="url(#bulb-glow)"/>
+<circle cx="400" cy="14" r="5.5" fill="#FFB06A"/>
+<circle cx="398.5" cy="12.5" r="2" fill="#fff" opacity="0.6"/>
+</g>
+</svg>
