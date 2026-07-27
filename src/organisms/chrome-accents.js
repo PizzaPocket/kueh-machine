@@ -126,6 +126,16 @@ export function init() {
     attachRetroShapeClip(fill, SMALL_RETRO_SHAPE_OPTS);
   });
 
+  // Leveling Up's "n00b level" badges (.n00b-pill, index.html) — same
+  // small-control shape as .btn/.tab/.file-card above, but no rim/fill
+  // split needed: unlike .tab (background lives on a sibling .tab-fill),
+  // .n00b-pill already paints its own flat background directly, so this
+  // is the plain "just reshape this element's own silhouette" case
+  // attachRetroShapeClip's own doc comment describes (retro-shape.js).
+  document.querySelectorAll('.n00b-pill').forEach((pill) => {
+    attachRetroShapeClip(pill, SMALL_RETRO_SHAPE_OPTS);
+  });
+
   // Wordmark rims: two text-clipped conic sweeps per word (see the
   // constants above), using computeConicChromeLayers's metal output only
   // — no glints — matching housing-frame.js's own outer housing (same

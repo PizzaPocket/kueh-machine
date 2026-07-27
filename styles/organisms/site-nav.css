@@ -26,7 +26,8 @@
    fallback only matters for the instant before that JS runs. */
 #brief,
 #timeline,
-#guide {
+#guide,
+#leveling-up {
   scroll-margin-top: calc(var(--site-nav-height, 64px) + 12px);
 }
 

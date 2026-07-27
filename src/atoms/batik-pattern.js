@@ -12,28 +12,54 @@
 //
 // PETAL_FILLS deliberately avoids --color-primary-soft and --color-surface*
 // — both already do double duty as section background colors elsewhere on
-// the page (brief-section, kueh-of-day-section, guide-section), and a
-// petal filled the same color as the surface it sits on renders as an
-// invisible (outline-only) hole in the flower. That same collision hits
-// cecek: the traditional dot color is light/white, which works fine on
-// brief-section's colored (--color-primary-soft) background but is
-// literally --color-surface itself on guide-section's plain white one —
-// a dot the same color as what it's drawn on doesn't render as a dot, it
-// renders as a gap. Cecek dots aren't always drawn over a colored petal
-// fill (the vine variant's stem-tracing dots and scattered berries sit
-// directly on the section background), so this can't be fixed by contrast
-// against the petal alone — the caller has to say what family of surface
-// the mount sits on, via the `surface` option (see renderBatikPattern).
+// the page (leveling-up-section, guide-section), and a petal filled the
+// same color as the surface it sits on renders as an invisible (outline-
+// only) hole in the flower. That same collision hits cecek: the
+// traditional dot color is light/white, which works fine on a colored
+// (e.g. --color-primary-soft) background but is literally --color-surface
+// itself on guide-section's plain white one — a dot the same color as
+// what it's drawn on doesn't render as a dot, it renders as a gap. Cecek
+// dots aren't always drawn over a colored petal fill (the vine variant's
+// stem-tracing dots and scattered berries sit directly on the section
+// background), so this can't be fixed by contrast against the petal alone
+// — the caller has to say what family of surface the mount sits on, via
+// the `surface` option (see renderBatikPattern).
+//
+// The same trap hit the OUTLINE/TENDRIL stroke: both used to be a single
+// hardcoded --color-accent constant, which reads fine against every
+// surface this file's authors had tried (leveling-up-section's pink,
+// guide-section's cream) but goes fully invisible — not just a missing
+// outline, the *entire* fill:none tendril line — the moment a caller's
+// section background is --color-accent itself (brief-section, after
+// brief-section and leveling-up-section swapped background colors).
+// Fixed the same way as the cecek collision: STROKE_BY_SURFACE below
+// resolves per `surface` instead of a bare constant, so adding a new
+// full-bleed background color to the page (or reassigning an existing
+// one to a different section) means adding/moving a matching surface
+// entry here, not discovering an invisible motif after the fact.
 
 import { buildBatikComposition } from '../tokens/batik-motifs.js';
 
 const CECEK_FILL_BY_SURFACE = {
   tinted: 'var(--color-surface)', // light dot, for colored/saturated section backgrounds
   plain: 'var(--color-primary-strong)', // dark dot, for white/cream (--color-surface family) backgrounds
+  accent: 'var(--color-surface)', // light dot, same family as tinted — --color-accent is saturated enough for it to read
+};
+
+const STROKE_BY_SURFACE = {
+  tinted: 'var(--color-accent)',
+  plain: 'var(--color-accent)',
+  accent: 'var(--color-primary-strong)', // --color-accent itself would be invisible against an --color-accent background
 };
 
 const PETAL_FILLS = ['var(--color-primary)', 'var(--color-highlight-soft)', 'var(--color-highlight)'];
 const LEAF_FILL = 'var(--color-primary-strong)';
+// Defaults for renderPetal/renderLeaf/renderTendril's own `stroke` param
+// below — used as-is by every caller outside this file (batik-flourish.js,
+// batik-segment.js, timeline-panel.js, drop-chute.js), none of which sit on
+// an --color-accent background. renderBatikPattern is the only caller that
+// resolves a different, surface-aware stroke (STROKE_BY_SURFACE above) and
+// passes it through explicitly.
 const OUTLINE_STROKE = 'var(--color-accent)';
 export const TENDRIL_STROKE = 'var(--color-accent)';
 const DOT_RADIUS = 2;
@@ -57,26 +83,26 @@ export function renderCecekLayer(dots, defaultFill) {
 // stamens, a paisley's curled tail — rendered/animated the same way a
 // leaf's midrib already was; unified under one .batik-detail class rather
 // than keeping that a leaf-only concept.
-export function renderPetal(petal) {
+export function renderPetal(petal, stroke = OUTLINE_STROKE) {
   const fill = PETAL_FILLS[petal.petalIndexInCluster % PETAL_FILLS.length];
   const extra = petal.extraD
-    ? `<path class="batik-detail" d="${petal.extraD}" fill="none" stroke="${OUTLINE_STROKE}" stroke-width="1" opacity="0.5"/>`
+    ? `<path class="batik-detail" d="${petal.extraD}" fill="none" stroke="${stroke}" stroke-width="1" opacity="0.5"/>`
     : '';
   return `<g class="batik-motif" data-cluster="${petal.clusterIndex}" transform="translate(${petal.x.toFixed(1)},${petal.y.toFixed(1)}) rotate(${petal.angle.toFixed(1)})">
-    <path class="batik-outline" d="${petal.d}" fill="${fill}" stroke="${OUTLINE_STROKE}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path class="batik-outline" d="${petal.d}" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
     ${extra}
   </g>`;
 }
 
-export function renderLeaf(leaf) {
+export function renderLeaf(leaf, stroke = OUTLINE_STROKE) {
   return `<g class="batik-motif" data-cluster="${leaf.clusterIndex}" transform="translate(${leaf.x.toFixed(1)},${leaf.y.toFixed(1)}) rotate(${leaf.angle.toFixed(1)})">
-    <path class="batik-outline" d="${leaf.d}" fill="${LEAF_FILL}" stroke="${OUTLINE_STROKE}" stroke-width="1.5" stroke-linejoin="round"/>
-    <path class="batik-detail" d="${leaf.midribD}" fill="none" stroke="${OUTLINE_STROKE}" stroke-width="1" opacity="0.5"/>
+    <path class="batik-outline" d="${leaf.d}" fill="${LEAF_FILL}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path class="batik-detail" d="${leaf.midribD}" fill="none" stroke="${stroke}" stroke-width="1" opacity="0.5"/>
   </g>`;
 }
 
-export function renderTendril(tendril) {
-  return `<path class="batik-tendril" d="${tendril.d}" fill="none" stroke="${TENDRIL_STROKE}" stroke-width="2" stroke-linecap="round"/>`;
+export function renderTendril(tendril, stroke = TENDRIL_STROKE) {
+  return `<path class="batik-tendril" d="${tendril.d}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`;
 }
 
 /**
@@ -97,10 +123,14 @@ export function renderTendril(tendril) {
  * margin mounts flanking brief-section pass the same explicit variant so
  * they read as one composition split across two strips, not two unrelated
  * patterns that happen to sit in the same section (see batik-accents.js).
- * `surface` picks the cecek dot color family: 'tinted' (default, a light
- * dot) for a colored section background, 'plain' for a white/cream one —
- * see CECEK_FILL_BY_SURFACE above for why this can't be figured out from
- * the palette alone.
+ * `surface` picks BOTH the cecek dot color family and the outline/tendril
+ * stroke: 'tinted' (default, light dot + accent stroke) for a colored
+ * section background, 'plain' (dark dot + accent stroke) for a white/cream
+ * one, 'accent' (light dot + primary-strong stroke) for an --color-accent
+ * background itself — see CECEK_FILL_BY_SURFACE/STROKE_BY_SURFACE above
+ * for why this can't be figured out from the palette alone, and why a new
+ * full-bleed background color needs a matching entry in both maps rather
+ * than assuming the existing accent stroke will just show up on it.
  */
 function renderBatikPattern({
   clusterCount = 6,
@@ -112,10 +142,11 @@ function renderBatikPattern({
 } = {}) {
   const composition = buildBatikComposition({ clusterCount, width, height, sizeScale, variant });
   const cecekFill = CECEK_FILL_BY_SURFACE[surface] ?? CECEK_FILL_BY_SURFACE.tinted;
+  const stroke = STROKE_BY_SURFACE[surface] ?? STROKE_BY_SURFACE.tinted;
 
-  const tendrils = composition.tendrils.map(renderTendril).join('');
-  const leaves = composition.leaves.map(renderLeaf).join('');
-  const petals = composition.petals.map(renderPetal).join('');
+  const tendrils = composition.tendrils.map((tendril) => renderTendril(tendril, stroke)).join('');
+  const leaves = composition.leaves.map((leaf) => renderLeaf(leaf, stroke)).join('');
+  const petals = composition.petals.map((petal) => renderPetal(petal, stroke)).join('');
   const dots = renderCecekLayer(composition.dots, cecekFill);
 
   return `<svg class="batik-pattern" width="${composition.width}" height="${composition.height}" viewBox="0 0 ${composition.width} ${composition.height}" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">

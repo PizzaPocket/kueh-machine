@@ -437,7 +437,7 @@
        own, so swapping a color is one edit here instead of several. */
     :root {
       --countdown-bg-color: var(--color-highlight-soft); /* instruction row 6's background */
-      --countdown-liquid-color: var(--color-primary-soft); /* .brief-section's background ("What is Kueh Machine?") */
+      --countdown-liquid-color: var(--color-accent); /* .brief-section's background ("What is Kueh Machine?") */
     }
 
     /* Height is purely content-driven (no min-height) — the box is exactly
@@ -655,7 +655,7 @@
     /* === BRIEF === */
     .brief-section {
       position: relative;
-      background: var(--color-primary-soft);
+      background: var(--color-accent);
       padding: 80px 32px;
       overflow: hidden; /* .batik-margin bleeds past the section's own edges on all four sides by design */
     }
@@ -956,6 +956,120 @@
       display: inline-block;
     }
 
+    /* === POST-CHECK-IN ARCHIVE (src/organisms/checkin-archive.js flips
+       these on the day after check-in) — Leveling Up itself needs no
+       gating: it's plain always-visible markup below, same as Getting
+       Started. Only Check In (and the Timeline's scissors-cut apparatus
+       that reveals it) get archived, not deleted, so both can be restored
+       for a future incarnation of the site. === */
+    #check-in.is-archived { display: none; }
+
+    /* scissors-cut.js's rendered elements — .sc-scissors-wrap covers the
+       blade images, rivets, and mobile cut-string/grommets (all appended
+       as its children); the rest are appended directly to #timeline. */
+    #timeline.scissors-archived .sc-scissors-wrap,
+    #timeline.scissors-archived .sc-cut-string,
+    #timeline.scissors-archived .sc-guide-grommet-row,
+    #timeline.scissors-archived .sc-guide-thread-layer,
+    #timeline.scissors-archived .sc-chip-knob {
+      display: none;
+    }
+
+    .nav-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--color-primary-strong);
+      background: var(--color-accent);
+      border-radius: var(--radius-pill);
+      vertical-align: middle;
+    }
+
+    /* Distinct base color from Getting Started's --color-surface-tint, so
+       the two sections read as visually separate even reusing the same
+       .guide-section layout. --color-primary-soft is brief-section's own
+       background color too (swapped between the two sections along with
+       --color-accent) — data-batik-surface="tinted" (on the mounts below,
+       the default the batik system already uses for a colored/saturated
+       background) is what keeps the pattern's stroke/dots reading
+       correctly against it, same as brief-section's own mounts. */
+    #leveling-up { background: var(--color-primary-soft); }
+
+    /* Same collision as the batik stroke above, hitting a different
+       component: the shared nth-child fill cycle (further up, under
+       "GETTING STARTED") puts --color-primary-soft at positions 2 and 8,
+       which any .steps-list on the page can land a card on. That's
+       invisible against guide-section's own --color-surface-tint
+       background, but blends straight into this section's own
+       --color-primary-soft one (position 2 is the one actually hit today —
+       every walkthrough here has a step 02). Scoped to #leveling-up
+       specifically, not changed at the shared rule, so guide-section's
+       own cards are untouched. */
+    #leveling-up .steps-list > .step-card:nth-child(2) { --step-fill-color: var(--color-highlight-soft); }
+
+    /* Each walkthrough/tip is its own title + one-liner, then its own
+       .steps-list nested below — restarting the 01/02.. numbering per
+       group, since Netlify Drop and GitHub are two separate skills, not
+       one continuous flow. The generic .steps-list rule (40px margin-top,
+       for guide-section's single top-level list) would double up with
+       this wrapper's own gap, so the nested override below tightens it. */
+    .leveling-groups {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 44px;
+    }
+    /* .pill (defined above, under "Code pills" — otherwise unused on the
+       page) doubles here as the "n00b level" badge, sitting right above
+       its group's title. font-family: .pill's own --font-mono is for
+       actual code and isn't otherwise rendered anywhere on the page (no
+       <kbd>, no other .pill), so a plain label stays on the two type
+       families the rest of the page already uses. border/border-radius:
+       swaps the plain rounded-pill shape for the same small-control
+       retro-rectangle superellipse .btn/.tab/.file-card use — same shape
+       as the Overview/Recipe toggle. chrome-accents.js attaches the
+       actual clip-path; border: none because a straight CSS border
+       doesn't follow a clip-path'd corner (see .file-card's own comment
+       for the same fix), and .n00b-pill already paints its own flat
+       background so no rim/fill split is needed, just the clip. */
+    .n00b-pill {
+      font-family: var(--font-sans);
+      margin-bottom: 8px;
+      border: none;
+      border-radius: var(--radius-interactive);
+    }
+
+    .leveling-group-title {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--color-text-on-surface);
+    }
+    .leveling-group-intro {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--color-text-on-surface);
+    }
+    .leveling-group .steps-list {
+      margin-top: 16px;
+    }
+
+    .leveling-resource-list {
+      list-style: disc;
+      padding-left: 1.2em;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .leveling-resource-list li {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
     /* === FOOTER === */
     .site-footer {
       padding: 28px 32px;
@@ -1022,9 +1136,9 @@
   <!-- SITE NAV -->
   <nav class="site-nav" aria-label="Section navigation">
     <div class="site-nav-inner">
-      <a href="#brief" data-nav-target="brief" class="text-sheen">Brief</a>
+      <a href="#leveling-up" data-nav-target="leveling-up" class="text-sheen">Leveling Up<span class="nav-badge">NEW</span></a>
       <a href="#timeline" data-nav-target="timeline" class="text-sheen">Timeline</a>
-      <a href="#guide" data-nav-target="guide" class="text-sheen">Getting Started</a>
+      <a href="#brief" data-nav-target="brief" class="text-sheen">Brief</a>
     </div>
   </nav>
 
@@ -1073,15 +1187,157 @@
     </div>
   </section>
 
-  <!-- BRIEF -->
-  <section id="brief" class="brief-section reveal">
-    <div class="batik-mount batik-margin batik-margin-left" data-batik-group="brief-margins" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
-    <div class="brief-inner">
-      <h2 class="brief-heading">What is Kueh Machine?</h2>
-      <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is a team L&amp;D project built around making. Each person builds their own small app or website using Claude Code — their own individual interpretation of "Kueh Machine" — getting hands-on experience with tools that are changing what designers can do. Every person's piece comes together into one collective Kueh Machine, live at <a href="https://www.kuehmachine.com" class="brief-link">www.kuehmachine.com</a>.</p>
-    </div>
-    <div class="batik-mount batik-margin batik-margin-right" data-batik-group="brief-margins" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
+  <!-- LEVELING UP — live now, same as Getting Started below it; no
+       gating of its own. (src/organisms/checkin-archive.js only archives
+       #check-in and the Timeline's scissors apparatus, the day after
+       check-in.) Netlify Drop and GitHub each get their own walkthrough
+       (own title, one-liner, and numbered sub-steps, restarting at 01)
+       since they're two independent skills, not one continuous flow. The
+       two tips below them follow the same title + one-liner shape but
+       their row has no step-num — a tip isn't a step to complete. -->
+  <section id="leveling-up" class="guide-section reveal">
+    <!-- Margin strips, not the full-bleed layer guide-section uses — text
+         sits directly on this section's own colored background (unlike
+         guide-section's step-cards, which give the full-bleed layer gaps
+         to peek through), so the pattern stays clear of the reading
+         column, same approach as .brief-section's own margins.
 
+         data-batik-height is NOT the actual rendered height — batik-
+         pattern.js's SVG stretches its viewBox to cover whatever box the
+         CSS gives it (preserveAspectRatio="xMidYMid slice"), so this
+         value only matters relative to the mount's real measured height:
+         too small and every motif gets zoomed up to cover the extra
+         height, rendering huge. brief-section's own margins are tuned to
+         "800" because that section's mount renders at ~780px (a ~1:1
+         ratio); this section is much longer (two walkthroughs plus two
+         tips, not one intro block) and its mount renders at ~2100px, so
+         height/clusters are scaled up to match that same ~1:1 ratio and
+         land motifs back at their intended size and density (100 height
+         units per cluster, same as brief-section's own 800/8). Re-tune
+         both if this section's content length changes meaningfully. -->
+    <div class="batik-mount batik-margin batik-margin-left" data-batik-group="leveling-margins" data-batik-surface="tinted" data-batik-width="220" data-batik-height="2100" data-batik-clusters="21" data-batik-scale="0.85" aria-hidden="true"></div>
+    <div class="batik-mount batik-margin batik-margin-right" data-batik-group="leveling-margins" data-batik-surface="tinted" data-batik-width="220" data-batik-height="2100" data-batik-clusters="21" data-batik-scale="0.85" aria-hidden="true"></div>
+    <div class="container">
+      <p class="section-label">Leveling up</p>
+      <h2 class="section-title">Skills worth picking up next</h2>
+      <p class="guide-intro">You've already got Claude Code and VS Code building something real. Here are a few more skills and tools worth exploring as you keep building this month.</p>
+
+      <div class="leveling-groups">
+
+        <!-- NETLIFY DROP — led by the outcome (a real link to test on your
+             phone), with the tool name as the prescription, not the headline. -->
+        <div class="leveling-group">
+          <p class="pill n00b-pill">n00b level I</p>
+          <p class="leveling-group-title">Put a live link in your pocket</p>
+          <p class="leveling-group-intro">A real address on the open internet, not just something running on your laptop: test it on an actual phone, or send the link to anyone and have them open it themselves. Start with Netlify Drop.</p>
+          <div class="steps-list">
+
+            <!-- 01 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">01</span>
+              <div class="step-body">
+                <p class="step-heading">Open Netlify Drop and drag your folder in</p>
+                <p class="step-text">Go to the page below and drag your whole project folder onto it. Netlify uploads it and hands you back a live URL you can open on your phone right away. <a class="step-link text-sheen" href="https://app.netlify.com/drop" target="_blank" rel="noopener">Open Netlify Drop</a></p>
+              </div>
+              <div class="step-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2"><g transform="translate(9.167 9.167) scale(11.5703)"><clipPath id="netlify-icon-clip"><path d="M0 0h42.667v42.667H0z"/></clipPath><g clip-path="url(#netlify-icon-clip)"><path d="M23.99 24.43h-5.317l-.44-.44v-5.317l.44-.44h5.316l.442.44v5.316l-.442.442z" fill="#014847" fill-rule="nonzero"/><g fill="#05bdba" fill-rule="nonzero"><path d="M12.928 32.441h-.452l-2.255-2.254v-.448l3.447-3.451 2.388.004.319.315v2.388l-3.447 3.446zM10.221 12.928v-.452l2.255-2.255h.452l3.447 3.447v2.384l-.319.323h-2.388l-3.447-3.447zM13.395 23.25H.273L0 22.974v-3.287l.273-.275h13.122l.273.275v3.287l-.273.274zM42.393 23.25H29.272l-.273-.275v-3.287l.273-.275h13.121l.274.275v3.287l-.274.274zM19.417 13.395V3.553l.275-.273h3.287l.274.273v9.842l-.274.273h-3.287l-.275-.273zM19.417 39.11v-9.84l.275-.275h3.287l.274.274v9.84l-.274.274h-3.287l-.275-.274z"/></g></g></g></svg>
+              </div>
+            </div>
+
+            <!-- 02 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">02</span>
+              <div class="step-body">
+                <p class="step-heading">Create a free account to keep the link</p>
+                <p class="step-text">A dropped site without an account expires after a while. Sign up for free and claim the site, then drag an updated folder onto the same link whenever you make changes.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- GITHUB + GITHUB PAGES — same outcome-first framing. -->
+        <div class="leveling-group">
+          <p class="pill n00b-pill">n00b level II</p>
+          <p class="leveling-group-title">Never lose your work, and auto-publish every change</p>
+          <p class="leveling-group-intro">Real version control, the way professional teams track every change, plus free hosting that updates itself every time you push. Start with GitHub and GitHub Pages.</p>
+          <div class="steps-list">
+
+            <!-- 01 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">01</span>
+              <div class="step-body">
+                <p class="step-heading">Create a GitHub account</p>
+                <p class="step-text">Create a free account if you don't have one already. <a class="step-link text-sheen" href="https://github.com/signup" target="_blank" rel="noopener">Sign up for GitHub</a></p>
+              </div>
+              <div class="step-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8C0 11.54 2.29 14.53 5.47 15.59C5.87 15.66 6.02 15.42 6.02 15.21C6.02 15.02 6.01 14.39 6.01 13.72C4 14.09 3.48 13.23 3.32 12.78C3.23 12.55 2.84 11.84 2.5 11.65C2.22 11.5 1.82 11.13 2.49 11.12C3.12 11.11 3.57 11.7 3.72 11.94C4.44 13.15 5.59 12.81 6.05 12.6C6.12 12.08 6.33 11.73 6.56 11.53C4.78 11.33 2.92 10.64 2.92 7.58C2.92 6.71 3.23 5.99 3.74 5.43C3.66 5.23 3.38 4.41 3.82 3.31C3.82 3.31 4.49 3.1 6.02 4.13C6.66 3.95 7.34 3.86 8.02 3.86C8.7 3.86 9.38 3.95 10.02 4.13C11.55 3.09 12.22 3.31 12.22 3.31C12.66 4.41 12.38 5.23 12.3 5.43C12.81 5.99 13.12 6.7 13.12 7.58C13.12 10.65 11.25 11.33 9.47 11.53C9.76 11.78 10.01 12.26 10.01 13.01C10.01 14.08 10 14.94 10 15.21C10 15.42 10.15 15.67 10.55 15.59C13.71 14.53 16 11.53 16 8C16 3.58 12.42 0 8 0Z" transform="scale(64)" fill="var(--color-primary-strong)"/></svg>
+              </div>
+            </div>
+
+            <!-- 02 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">02</span>
+              <div class="step-body">
+                <p class="step-heading">Create a new repository for your project</p>
+                <p class="step-text">On github.com, click New repository, give it a name, and keep it public. Skip adding a README if your project already has files.</p>
+              </div>
+            </div>
+
+            <!-- 03 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">03</span>
+              <div class="step-body">
+                <p class="step-heading">Give Claude Code the repository's URL and ask it to push</p>
+                <p class="step-text">On your new repository's page, click the green Code button and copy the URL. Paste that into Claude Code and ask it to push your project there, it'll set that as your project's remote and handle the rest. Or use VS Code's Source Control panel to stage, commit, and push by hand.</p>
+              </div>
+            </div>
+
+            <!-- 04 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">04</span>
+              <div class="step-body">
+                <p class="step-heading">Turn on GitHub Pages</p>
+                <p class="step-text">In your repository, go to Settings, then Pages, and set the source to your main branch. GitHub publishes your project at username.github.io/repo-name within a minute or two, and every push after that updates it automatically.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TIP: ICON LIBRARIES (no step-num — a tip, not a step) -->
+        <div class="leveling-group">
+          <p class="leveling-group-title">Ditch the emoji, use real icon sets</p>
+          <p class="leveling-group-intro">Emoji as icons is one of the fastest tells that a project's still in prototype mode.</p>
+          <div class="steps-list">
+            <div class="step-card">
+              <div class="step-body">
+                <ul class="leveling-resource-list">
+                  <li><a class="step-link text-sheen" href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (lucide.dev) — the most common default Claude Code reaches for already.</li>
+                  <li><a class="step-link text-sheen" href="https://heroicons.com" target="_blank" rel="noopener">Heroicons</a> (heroicons.com) — from the Tailwind CSS team, solid and outline styles.</li>
+                  <li><a class="step-link text-sheen" href="https://phosphoricons.com" target="_blank" rel="noopener">Phosphor Icons</a> (phosphoricons.com) — six weights from thin to bold, for matching a specific tone.</li>
+                  <li><a class="step-link text-sheen" href="https://tabler.io/icons" target="_blank" rel="noopener">Tabler Icons</a> (tabler.io/icons) — thousands of icons, useful when you need something oddly specific.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIP: WRITING (no step-num — a tip, not a step) -->
+        <div class="leveling-group">
+          <p class="leveling-group-title">Make your project sound like you wrote it</p>
+          <p class="leveling-group-intro">Claude Code's first draft of your README or project copy can default to generic, over-dramatic phrasing that reads as AI-written.</p>
+          <div class="steps-list">
+            <div class="step-card">
+              <div class="step-body">
+                <p class="step-text">Watch for tells like copious em dashes (—) standing in for periods and commas, hollow intensifiers like "genuinely" or "truly" that add emphasis without adding information, and endings that oversell what was just said. This write-up covers the specific patterns to catch and cut. <a class="step-link text-sheen" href="https://creatoreconomy.so/p/use-my-no-ai-slop-skill-to-remove-20-ai-slop-patterns" target="_blank" rel="noopener">Read the write-up</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </section>
 
   <!-- TIMELINE -->
@@ -1133,6 +1389,17 @@
         <h2 class="section-title">Work in progress</h2>
       </div>
     </div>
+  </section>
+
+  <!-- BRIEF -->
+  <section id="brief" class="brief-section reveal">
+    <div class="batik-mount batik-margin batik-margin-left" data-batik-group="brief-margins" data-batik-surface="accent" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
+    <div class="brief-inner">
+      <h2 class="brief-heading">What is Kueh Machine?</h2>
+      <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is a team L&amp;D project built around making. Each person builds their own small app or website using Claude Code — their own individual interpretation of "Kueh Machine" — getting hands-on experience with tools that are changing what designers can do. Every person's piece comes together into one collective Kueh Machine, live at <a href="https://www.kuehmachine.com" class="brief-link">www.kuehmachine.com</a>.</p>
+    </div>
+    <div class="batik-mount batik-margin batik-margin-right" data-batik-group="brief-margins" data-batik-surface="accent" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
+
   </section>
 
   <!-- GETTING STARTED -->

@@ -7,6 +7,7 @@
 // just imports and calls them. Adding the next feature later means adding
 // one import and one call here, not new logic in this file.
 
+import { init as initDebugDate } from './dev/debug-date.js';
 import { init as initKuehOfDay } from './organisms/kueh-of-day.js';
 import { init as initSiteNav } from './organisms/site-nav.js';
 import { init as initChromeAccents } from './organisms/chrome-accents.js';
@@ -16,7 +17,12 @@ import { init as initCheckIn } from './organisms/check-in.js';
 import { init as initTimelinePanel } from './organisms/timeline-panel.js';
 import { init as initScissorsCut } from './organisms/scissors-cut.js';
 import { init as initDropChute } from './organisms/drop-chute.js';
+import { init as initCheckinArchive } from './organisms/checkin-archive.js';
 
+// First — a no-op unless the URL has ?debug=1, but when it does apply a
+// Date.now() override, every other organism below reads "now" via
+// Date.now() at its own init time, so this has to run before all of them.
+initDebugDate();
 initKuehOfDay();
 initSiteNav();
 initChromeAccents();
@@ -33,3 +39,7 @@ initScissorsCut();
 // After initTimelinePanel — measures .tl-spring-track's own live position
 // as one of its two anchor points, so the panel's rig has to exist first.
 initDropChute();
+// Last — a pure CSS-class toggle (.is-archived/.scissors-archived), so it
+// has no ordering dependency on anything above; runs after so it reads as
+// a final cleanup pass over what those already built.
+initCheckinArchive();
