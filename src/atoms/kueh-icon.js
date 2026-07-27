@@ -124,8 +124,8 @@ const TEMPLATES = {
   // coconut, regardless of the crepe's own color.
   roll(colors) {
     return `
-      <rect x="6" y="20" width="44" height="24" rx="10" fill="${colors.base}"/>
-      <ellipse cx="44" cy="32" rx="3" ry="7" fill="#8B5E34"/>
+      <rect x="10" y="20" width="44" height="24" rx="10" fill="${colors.base}"/>
+      <ellipse cx="48" cy="32" rx="3" ry="7" fill="#8B5E34"/>
     `;
   },
   // A flared, fluted shell (kueh pie tee's crispy cup) — a trapezoid wider

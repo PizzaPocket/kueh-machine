@@ -1,0 +1,361 @@
+:root {
+  --paper: #f4ede1;
+  --paper-dim: #ece2d2;
+  --ink: #3a3227;
+  --ink-soft: #6b5f4f;
+  --accent: #c96a4a;
+  --accent-soft: #e0a986;
+  --line: #d8cbb4;
+  --card: #fffaf1;
+  --radius: 18px;
+  --shadow: 0 6px 0 -2px rgba(58,50,39,0.08), 0 10px 24px -8px rgba(58,50,39,0.18);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, "Avenir Next", "Segoe UI", sans-serif;
+  min-height: 100svh;
+}
+
+h1, h2 {
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { padding: 28px 20px 40px; }
+.hidden { display: none !important; }
+
+/* ---------- Onboarding ---------- */
+
+.onboard-header { text-align: center; margin-bottom: 28px; }
+.onboard-header h1 { font-size: 2rem; color: var(--ink); }
+.tagline { color: var(--ink-soft); margin-top: 6px; font-size: 0.95rem; }
+
+.onboard-body { display: flex; flex-direction: column; gap: 28px; }
+.onboard-step h2 { font-size: 1.15rem; margin-bottom: 4px; }
+.hint { color: var(--ink-soft); font-size: 0.85rem; margin: 4px 0 14px; line-height: 1.4; }
+
+.goal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+.goal-toggle { display: flex; align-items: center; gap: 10px; font-size: 1rem; }
+.goal-toggle input { width: 18px; height: 18px; accent-color: var(--accent); }
+.goal-input { display: flex; align-items: center; gap: 6px; }
+.goal-input input {
+  width: 56px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.95rem;
+  text-align: right;
+}
+.unit { color: var(--ink-soft); font-size: 0.8rem; }
+.goal-row:has(input[data-role="include"]:not(:checked)) .goal-input { opacity: 0.35; pointer-events: none; }
+
+#custom-habit-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.custom-habit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+}
+.custom-habit-item button {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.custom-habit-item button:hover { color: var(--accent); }
+
+#custom-habit-form { display: flex; gap: 8px; }
+#custom-icon {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 8px;
+  font-size: 1rem;
+}
+#custom-name {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+#custom-habit-form button {
+  border: none;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.warning { color: var(--accent); font-size: 0.85rem; text-align: center; }
+
+.primary-btn {
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff8f0;
+  padding: 14px;
+  font-size: 1.05rem;
+  font-family: Georgia, serif;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease;
+}
+.primary-btn:hover { transform: translateY(-1px); }
+.primary-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ---------- Island ---------- */
+
+.island-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.island-header h1 { font-size: 1.5rem; }
+#settings-btn {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+/* Square to match the source art's native 1024x1024 resolution — sized in
+   CSS px so it renders at or near 1:1 device pixels instead of upscaling
+   to fill the viewport, which is what made it look soft full-bleed. */
+.scene-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: var(--paper-dim); /* the "nothing yet" state at 0%, before any stage image shows */
+}
+
+.scene-fullbg { position: absolute; inset: 0; }
+.scene-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center center;
+}
+/* Each stage swaps in its own drawn image (see scenes.js) — fade the new one in rather than hard-cutting. */
+.scene-bg-stage { animation: stage-in 0.6s ease; }
+@keyframes stage-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.wisdom-panel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(255, 250, 241, 0.92);
+  backdrop-filter: blur(2px);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  animation: rise 0.5s ease;
+}
+.wisdom-panel p {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 0.98rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--paper-dim);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.5s ease;
+}
+#progress-label { font-size: 0.85rem; color: var(--ink-soft); min-width: 34px; text-align: right; }
+
+/* ---------- habit icon dock ---------- */
+
+.habit-icons { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 8px; }
+.habit-icon-wrap {
+  flex: 0 0 auto;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(var(--accent) calc(var(--frac, 0) * 360deg), var(--paper-dim) 0deg);
+  transition: background 0.4s ease;
+}
+.habit-icon-btn {
+  width: 100%; height: 100%;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+}
+
+footer.byline {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  padding: 20px 0 6px;
+}
+
+/* ---------- bottom sheet ---------- */
+
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(20, 16, 10, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 25;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.habit-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--card);
+  border-radius: 22px 22px 0 0;
+  padding: 14px 20px max(20px, env(safe-area-inset-bottom));
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.25);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+  z-index: 30;
+}
+.habit-sheet.open { transform: translateY(0); pointer-events: auto; }
+
+.sheet-handle { width: 36px; height: 4px; background: var(--line); border-radius: 2px; margin: 0 auto 16px; }
+.sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.sheet-title { font-family: Georgia, serif; font-size: 1.2rem; }
+.sheet-subtitle { color: var(--ink-soft); font-size: 0.85rem; margin: 0 0 14px; }
+.sheet-body { margin-bottom: 18px; }
+
+/* ---------- shared tap controls (used inside the bottom sheet) ---------- */
+
+.level-buttons { display: flex; gap: 8px; }
+.level-btn {
+  flex: 1;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 11px 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.level-btn:hover { border-color: var(--accent-soft); }
+.level-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff8f0;
+}
+
+.water-controls { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+.water-controls .level-btn { flex: 1; }
+
+.undo-btn {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  border-radius: 10px;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.undo-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.undo-btn:not(:disabled):hover { border-color: var(--accent-soft); color: var(--accent); }
+
+.glass-picker { display: flex; gap: 8px; animation: rise 0.25s ease; }
+.glass-picker.hidden { display: none; }
+.glass-option { flex: 1; }
+
+.tap-btn {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 11px 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.tap-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff8f0;
+}
+
+@media (max-width: 420px) {
+  .screen { padding: 20px 14px 32px; }
+  .onboard-header h1 { font-size: 1.7rem; }
+}

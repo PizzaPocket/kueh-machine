@@ -1,0 +1,26 @@
+<svg viewBox="45 55 150 132" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<filter id="soft-shadow-ondeh" x="-30%" y="-30%" width="160%" height="160%">
+<feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.35"/>
+</filter>
+</defs>
+<g filter="url(#soft-shadow-ondeh)">
+<defs><radialGradient id="ondeh-grad-0" cx="35%" cy="30%">
+<stop offset="0%" stop-color="rgb(104,191,116)"/>
+<stop offset="100%" stop-color="rgb(74,161,86)"/>
+</radialGradient></defs>
+<circle cx="92" cy="138" r="35.6" fill="url(#ondeh-grad-0)"/>
+<circle cx="105.4" cy="136.4" r="1.7" fill="#F5EEE2" opacity="0.85"/><circle cx="92.0" cy="128.8" r="2.0" fill="#F5EEE2" opacity="0.85"/><circle cx="111.8" cy="130.5" r="1.7" fill="#F5EEE2" opacity="0.85"/><circle cx="94.0" cy="149.6" r="1.6" fill="#F5EEE2" opacity="0.85"/>
+<defs><radialGradient id="ondeh-grad-1" cx="35%" cy="30%">
+<stop offset="0%" stop-color="rgb(106,193,118)"/>
+<stop offset="100%" stop-color="rgb(76,163,88)"/>
+</radialGradient></defs>
+<circle cx="148" cy="132" r="32.1" fill="url(#ondeh-grad-1)"/>
+<circle cx="140.1" cy="119.1" r="1.7" fill="#F5EEE2" opacity="0.85"/><circle cx="156.4" cy="122.2" r="2.2" fill="#F5EEE2" opacity="0.85"/><circle cx="148.0" cy="121.4" r="2.2" fill="#F5EEE2" opacity="0.85"/><circle cx="132.5" cy="121.5" r="1.7" fill="#F5EEE2" opacity="0.85"/>
+<defs><radialGradient id="ondeh-grad-2" cx="35%" cy="30%">
+<stop offset="0%" stop-color="rgb(107,194,119)"/>
+<stop offset="100%" stop-color="rgb(77,164,89)"/>
+</radialGradient></defs>
+<circle cx="120" cy="96" r="28.9" fill="url(#ondeh-grad-2)"/>
+<circle cx="123.5" cy="103.9" r="2.2" fill="#F5EEE2" opacity="0.85"/><circle cx="120.7" cy="81.1" r="1.5" fill="#F5EEE2" opacity="0.85"/><circle cx="118.1" cy="104.2" r="2.3" fill="#F5EEE2" opacity="0.85"/><circle cx="128.5" cy="85.0" r="1.9" fill="#F5EEE2" opacity="0.85"/></g>
+</svg>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Care Island</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ONBOARDING -->
+  <section id="onboarding" class="screen">
+    <header class="onboard-header">
+      <h1>Care Island</h1>
+      <p class="tagline">Small acts of care, tended into a little world.</p>
+    </header>
+
+    <div class="onboard-body">
+      <div class="onboard-step">
+        <h2>Set your goals</h2>
+        <p class="hint">One-time setup. You'll only tap preset levels day to day — no typing after this.</p>
+        <div id="onboard-editor"></div>
+      </div>
+
+      <p id="habit-count-warning" class="warning hidden">Add at least 3 habits total to begin.</p>
+
+      <button id="begin-btn" class="primary-btn">Begin</button>
+    </div>
+  </section>
+
+  <!-- ISLAND -->
+  <section id="island" class="screen hidden">
+    <header class="island-header">
+      <h1>Care Island</h1>
+      <button id="settings-btn" title="Edit habits">⚙︎</button>
+    </header>
+
+    <div class="scene-wrap">
+      <div id="scene-fullbg" class="scene-fullbg"></div>
+      <div id="wisdom-panel" class="wisdom-panel hidden">
+        <p id="wisdom-text"></p>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+      <span id="progress-label">0%</span>
+    </div>
+
+    <div id="habit-icons" class="habit-icons"></div>
+
+    <footer class="byline">Care Island — by Natalia, for kuehmachine.com</footer>
+  </section>
+
+  <!-- SETTINGS (edit habits, reachable from island) -->
+  <section id="settings" class="screen hidden">
+    <header class="onboard-header">
+      <h1>Edit habits</h1>
+    </header>
+    <div class="onboard-body">
+      <div id="settings-editor"></div>
+      <p class="hint">Editing habits does not affect today's already-logged progress.</p>
+      <button id="settings-done-btn" class="primary-btn">Done</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- Habit bottom sheet: tap an icon on the island to open -->
+<div id="sheet-backdrop" class="sheet-backdrop"></div>
+<div id="habit-sheet" class="habit-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span id="sheet-title" class="sheet-title"></span>
+    <button id="sheet-undo-btn" class="undo-btn" title="Undo last">↶</button>
+  </div>
+  <div id="sheet-body" class="sheet-body"></div>
+  <button id="sheet-done-btn" class="primary-btn">Done</button>
+</div>
+
+<script src="./scenes.js"></script>
+<script src="./wisdoms.js"></script>
+<script src="./script.js"></script>
+</body>
+</html>

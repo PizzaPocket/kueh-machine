@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gatcha-Kueh — Pull for a Mystery Kueh</title>
+<meta name="description" content="Gatcha-Kueh — pull, reveal, collect your kuehs. Nine kuehs across three rarity tiers. Collect them all.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/style.css?v=5">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <span class="wordmark">Gatcha-Kueh</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- MACHINE -->
+    <section class="machine-section">
+      <div class="hero-tile-bg" aria-hidden="true"></div>
+      <div class="wrap">
+        <h1>Pull. Reveal. Collect your <em class="accent-italic">kuehs</em>.</h1>
+        <p class="hero-copy">Nine kuehs live inside this machine, across three tiers of rarity. Some are common, some take a bit of luck. What you get is entirely up to the machine.</p>
+
+        <div class="machine-rig">
+          <div class="machine-stage" id="machine-stage">
+            <div class="machine-illustration" id="machine-illustration"></div>
+            <div class="dispense-window" id="dispense-window">
+              <span class="dispense-hint">?</span>
+            </div>
+            <div class="capsule-layer" id="capsule-layer">
+              <div class="capsule-backdrop"></div>
+              <div class="capsule-reveal" id="capsule-reveal">
+                <div class="capsule-rays"></div>
+                <div class="capsule-glow"></div>
+                <div class="capsule-shadow"></div>
+                <div class="capsule-ball" id="capsule-ball">
+                  <div class="capsule-half capsule-half--top"></div>
+                  <div class="capsule-kueh" id="capsule-kueh"></div>
+                  <div class="capsule-half capsule-half--bottom"></div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="knob-btn" id="lever-btn" aria-label="Turn the knob for a mystery kueh">
+              <span class="knob-label">Turn</span>
+            </button>
+          </div>
+        </div>
+
+        <p class="odds-note">Common 60% &middot; Rare 30% &middot; Ultra Rare 10%</p>
+      </div>
+    </section>
+
+    <!-- REVEAL -->
+    <section class="output" id="output-section" hidden>
+      <div class="wrap wrap-narrow">
+        <div class="output-card" id="output-card">
+          <span class="rarity-banner" id="rarity-banner"></span>
+          <div class="output-illustration" id="output-illustration"></div>
+          <h2 id="output-name"></h2>
+          <p class="output-meaning" id="output-meaning"></p>
+
+          <div class="output-message-block">
+            <p class="output-message-label">This pull</p>
+            <p class="output-message" id="output-flavor"></p>
+          </div>
+
+          <button type="button" class="btn btn-primary" id="pull-again-btn">Pull again</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- COLLECTION -->
+    <section class="collection-section">
+      <div class="wrap">
+        <p class="eyebrow">Your collection</p>
+        <h2 id="collection-heading">0 of 9 collected</h2>
+        <div class="collection-grid" id="collection-grid"><!-- injected by app.js --></div>
+      </div>
+    </section>
+
+    <!-- LEGENDARY -->
+    <section class="legendary-section">
+      <div class="wrap">
+        <p class="eyebrow eyebrow--legendary">Beyond the machine</p>
+        <h2>5 Legendary kuehs, still shrouded</h2>
+        <p class="legendary-copy">Something rarer than Ultra Rare exists. The machine isn't giving it up yet — the mechanic for how you'd actually earn one is still being figured out.</p>
+        <div class="legendary-grid" id="legendary-grid"><!-- injected by app.js --></div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="kueh-modal-overlay" id="kueh-modal-overlay" hidden>
+    <div class="kueh-modal" role="dialog" aria-modal="true" aria-labelledby="kueh-modal-name">
+      <button type="button" class="kueh-modal-close" id="kueh-modal-close" aria-label="Close">&times;</button>
+
+      <div class="kueh-modal-illustration" id="kueh-modal-illustration"></div>
+      <span class="rarity-badge" id="kueh-modal-rarity"></span>
+      <h2 id="kueh-modal-name"></h2>
+      <p class="kueh-modal-meaning" id="kueh-modal-meaning"></p>
+
+      <div class="kueh-modal-section">
+        <p class="kueh-modal-label">Origin story</p>
+        <p id="kueh-modal-origin"></p>
+      </div>
+
+      <div class="kueh-modal-section">
+        <p class="kueh-modal-label">Why &amp; when it's eaten</p>
+        <p id="kueh-modal-when"></p>
+      </div>
+
+      <div class="kueh-modal-section">
+        <p class="kueh-modal-label">Fun facts</p>
+        <ul class="kueh-modal-facts" id="kueh-modal-facts"></ul>
+      </div>
+
+      <div class="kueh-modal-section" id="kueh-modal-variants-section">
+        <p class="kueh-modal-label">Variants</p>
+        <div class="kueh-modal-variants" id="kueh-modal-variants"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>Gatcha-Kueh — a part of <strong>kuehmachine.com</strong></p>
+      <p>Ken — a dream-builder.</p>
+    </div>
+  </footer>
+
+  <script src="./js/data.js?v=5"></script>
+  <script src="./js/svg.js?v=5"></script>
+  <script src="./js/app.js?v=5"></script>
+</body>
+</html>

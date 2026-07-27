@@ -19,7 +19,7 @@ import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 // everyone else's desc stays "___" until their project lands — see
 // scripts/add-contributor.mjs.
 const CONTRIBUTORS = [
-  { initials: 'AA', name: 'Amanda Ng', desc: "(the one that's a ___)" },
+  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one that's a ___)" },
   { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/machines/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }] },
   { initials: 'GE', name: 'Geraldine Chua', desc: "(the one that's a ___)" },
   {
@@ -30,19 +30,26 @@ const CONTRIBUTORS = [
     url: '/machines/jesslyn/',
     windowDecors: [{ src: 'images/checkin/pow-jesslyn.svg', position: 'top-right' }],
   },
-  { initials: 'KC', name: 'Kaixin Cai', desc: "(the one with songs that walked through a hawker centre)" },
-  { initials: 'KN', name: 'Ken Lee', desc: "(the one that's a ___)" },
+  { initials: 'KC', name: 'Kaixin Cai', title: 'Songs that Walked Through a Hawker Centre', desc: "(the one that's very punny)" },
+  {
+    initials: 'KN',
+    name: 'Ken Lee',
+    title: 'Gatcha-Kueh',
+    desc: "(the one you pull, reveal, and collect)",
+    url: '/machines/ken/',
+    windowDecors: [{ src: 'images/checkin/ondeh-ken.svg', position: 'bottom-right-crop' }],
+  },
   { initials: 'KD', name: 'Kevin Dreher', desc: "(the one that's a Singlish translation app)" },
   {
     initials: 'LW',
     name: 'Li Wei Lim',
     title: 'Lapis',
-    desc: "(the one that's a ___)",
+    desc: "(the one that's a snake game)",
     url: '/machines/liwei/',
     windowDecors: [{ src: 'images/checkin/snake-peek.gif', position: 'top-left' }],
   },
-  { initials: 'MJ', name: 'Mei Jun Chew', desc: "(the one that's a ___)" },
-  { initials: 'NA', name: 'Natalia Lionardy', desc: "(the one that's a ___)" },
+  { initials: 'MJ', name: 'Mei Jun Chew', desc: "(the one that's a taste of home)" },
+  { initials: 'NA', name: 'Natalia Lionardy', title: 'Care Island', desc: "(the one where you watch today's scene come alive)", url: '/machines/natalia/' },
   { initials: 'NE', name: 'Nicole Ng', desc: "(the one that's a ___)" },
   {
     initials: 'RY',
@@ -55,7 +62,7 @@ const CONTRIBUTORS = [
       { src: 'images/checkin/steam.svg', position: 'bottom', inline: true },
     ],
   },
-  { initials: 'SA', name: 'Samantha Tan', desc: "(the one that's Remember.fm)" },
+  { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)" },
   { initials: 'SO', name: 'Sophia Himawan', desc: "(the one that's a ___)" },
   { initials: 'VI', name: 'Viki Yap', desc: "(the one that turns your kueh ideas into reality)" },
 ];

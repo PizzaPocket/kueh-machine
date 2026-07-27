@@ -278,6 +278,19 @@ a.checkin-window:focus-visible {
   width: auto;
 }
 
+/* Ken's ondeh-ondeh cluster (images/checkin/ondeh-ken.svg) — own modifier
+   rather than reusing .checkin-window-decor--bottom-right above (Amy's
+   bird already uses that one; changing it would shift her too). Pushed
+   PAST the window's own bottom edge (negative bottom) so fillWrap's own
+   clip-path crops the lowest spheres — reads as the cluster naturally
+   resting in/behind the window frame rather than floating in front of it. */
+.checkin-window-decor--bottom-right-crop {
+  right: 4%;
+  bottom: -14%;
+  height: 70%;
+  width: auto;
+}
+
 /* Jesslyn's POW! badge (images/checkin/pow-jesslyn.svg) — pinned to the
    top-right corner, echoing the badge's own position on her actual
    invitation card (machines/jesslyn/style.css's .comic-badge: top: -16px;

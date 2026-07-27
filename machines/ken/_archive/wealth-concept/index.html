@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kueh — Portfolio, Assembled</title>
+<meta name="description" content="Kueh — a wealth product discovery and portfolio-building tool. Every product is a kueh; every portfolio is a kueh box.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <button type="button" class="wordmark js-go-home">Kueh</button>
+      <button type="button" class="btn btn-header js-open-signup">Get started</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============================================================
+         VIEW 1 — LANDING (marketing one-pager)
+    ============================================================= -->
+    <div class="view is-active" id="view-landing">
+
+      <!-- HERO -->
+      <section class="hero">
+        <div class="wrap">
+          <p class="eyebrow">A portfolio-building service for wealth-tier clients</p>
+          <h1>Some things still take time to make.</h1>
+          <p class="hero-copy">Real kueh is layered by hand, hours at a time. A good filling needs its time to set, and there's no shortcut for that. The recipes have barely changed in generations, because the slow way is the way that lasts.</p>
+          <p class="hero-copy">We think a portfolio deserves the same patience: no shortcuts, no chasing whatever's trending this quarter, just something assembled deliberately, piece by piece, to hold up over time. Here, each piece is a kueh. What you build from them is a kueh box.</p>
+          <button type="button" class="btn btn-primary js-open-signup">Build your kueh box</button>
+        </div>
+      </section>
+
+      <!-- HOW IT WORKS -->
+      <section class="how-it-works">
+        <div class="wrap">
+          <p class="eyebrow">How it works</p>
+          <h2>Three steps, no jargon required</h2>
+          <div class="steps">
+            <div class="step">
+              <span class="step-num">01</span>
+              <h3>Answer three honest questions</h3>
+              <p>On risk comfort, time horizon, and what you're actually trying to do with the money.</p>
+            </div>
+            <div class="step">
+              <span class="step-num">02</span>
+              <h3>Unlock what suits you</h3>
+              <p>Simple, liquid kuehs are always open. The more complex, less liquid ones earn their way in — the same way a real desk gates them.</p>
+            </div>
+            <div class="step">
+              <span class="step-num">03</span>
+              <h3>Assemble your box</h3>
+              <p>Combine kuehs into a portfolio and watch its risk, horizon, and return profile update live.</p>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary js-open-signup">Get started</button>
+        </div>
+      </section>
+
+      <!-- TRY IT -->
+      <section class="try-section">
+        <div class="wrap">
+          <p class="eyebrow">Try it yourself</p>
+          <h2>Build a taste of your box</h2>
+          <p class="section-copy">Drag a kueh into the box below, or just tap one — no sign-up needed. This is a sandbox; your real box (with adjustable allocations) comes after the questionnaire.</p>
+
+          <div class="try-tray" id="try-tray"><!-- injected by app.js --></div>
+
+          <div class="try-grid">
+            <div class="try-dropzone" id="try-dropzone">
+              <p class="try-dropzone-empty" id="try-dropzone-empty">Drag kuehs here</p>
+            </div>
+
+            <div class="try-summary box-panel">
+              <p class="eyebrow">Your sandbox box</p>
+              <div class="box-empty" id="try-empty">
+                <p>Nothing added yet.</p>
+              </div>
+              <div class="box-contents" id="try-contents" hidden>
+                <ul class="box-list try-list" id="try-list"></ul>
+                <div class="profile">
+                  <p class="profile-label">Risk spread</p>
+                  <div class="meter">
+                    <div class="meter-track"><div class="meter-fill" id="try-risk-fill"></div></div>
+                    <div class="meter-caption" id="try-risk-caption"></div>
+                  </div>
+                  <p class="profile-label">Horizon mix</p>
+                  <div class="range-bar">
+                    <div class="range-track"><div class="range-fill" id="try-horizon-fill"></div></div>
+                    <div class="range-caption" id="try-horizon-caption"></div>
+                  </div>
+                  <p class="profile-label">Rough return range</p>
+                  <div class="range-bar">
+                    <div class="range-track"><div class="range-fill" id="try-return-fill"></div></div>
+                    <div class="range-caption" id="try-return-caption"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-secondary js-open-signup">Build your real box</button>
+        </div>
+      </section>
+
+      <!-- COMPARISON -->
+      <section class="compare-section">
+        <div class="wrap">
+          <p class="eyebrow">The range</p>
+          <h2>Six kuehs, six ways to hold wealth</h2>
+          <p class="section-copy">Every kueh below is a real product archetype. Its risk, liquidity, and complexity aren't decorative — they're the same numbers that drive the portfolio math once you start building.</p>
+          <div class="compare-table" id="compare-table" role="table" aria-label="Kueh comparison table"><!-- injected by app.js --></div>
+          <button type="button" class="btn btn-secondary js-open-signup">Compare and build</button>
+        </div>
+      </section>
+
+      <!-- PERFORMANCE -->
+      <section class="performance-section">
+        <div class="wrap">
+          <p class="eyebrow">Performance, at a glance</p>
+          <h2>Return follows risk — see where each kueh sits</h2>
+          <p class="section-copy">Each line marks a kueh's illustrative target return range, plotted against its risk score. These are indicative figures for a product archetype, not a historical track record.</p>
+          <div class="chart-card">
+            <div class="scatter-wrap" id="scatter-wrap"><!-- injected by app.js --></div>
+            <div class="scatter-legend" id="scatter-legend"><!-- injected by app.js --></div>
+          </div>
+          <button type="button" class="btn btn-secondary js-open-signup">See your fit</button>
+        </div>
+      </section>
+
+      <!-- CLOSING CTA -->
+      <section class="closing-cta">
+        <div class="wrap">
+          <h2>Ready to build your box?</h2>
+          <p class="section-copy">Two minutes of questions. No obligation, no commitment — just a clearer picture of what suits you.</p>
+          <button type="button" class="btn btn-primary js-open-signup">Build your kueh box</button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============================================================
+         VIEW 2 — QUESTIONNAIRE (dedicated page)
+    ============================================================= -->
+    <div class="view" id="view-questionnaire">
+      <section class="questionnaire">
+        <div class="wrap wrap-narrow">
+          <p class="eyebrow">Before we begin</p>
+          <h2 id="quiz-greeting">A few honest questions</h2>
+          <p class="section-copy">There are no wrong answers here — just ones that point toward the right kueh for you.</p>
+
+          <form id="quiz-form" class="quiz">
+
+            <fieldset class="quiz-q" data-q="risk">
+              <legend>If this investment dropped 15% in a year — but that same risk could mean stronger gains over time — how would you feel?</legend>
+              <div class="quiz-options">
+                <label class="quiz-option"><input type="radio" name="risk" value="1"><span>Very uneasy. I'd rather not see that at all.</span></label>
+                <label class="quiz-option"><input type="radio" name="risk" value="2"><span>Uncomfortable, but I could accept it for the right reason.</span></label>
+                <label class="quiz-option"><input type="radio" name="risk" value="3"><span>That's simply part of investing, to me.</span></label>
+                <label class="quiz-option"><input type="radio" name="risk" value="4"><span>Comfortable — I'm here for the higher potential return.</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="quiz-q" data-q="horizon">
+              <legend>How long can this money stay invested before you'd need it back?</legend>
+              <div class="quiz-options">
+                <label class="quiz-option"><input type="radio" name="horizon" value="1"><span>Under 2 years</span></label>
+                <label class="quiz-option"><input type="radio" name="horizon" value="2"><span>3 to 5 years</span></label>
+                <label class="quiz-option"><input type="radio" name="horizon" value="3"><span>5 to 10 years</span></label>
+                <label class="quiz-option"><input type="radio" name="horizon" value="4"><span>10 years or more</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="quiz-q" data-q="goal">
+              <legend>What are you really trying to do with this money?</legend>
+              <div class="quiz-options">
+                <label class="quiz-option"><input type="radio" name="goal" value="1"><span>Preserve exactly what I have.</span></label>
+                <label class="quiz-option"><input type="radio" name="goal" value="2"><span>Earn a steady stream of income.</span></label>
+                <label class="quiz-option"><input type="radio" name="goal" value="3"><span>Grow it steadily over the years.</span></label>
+                <label class="quiz-option"><input type="radio" name="goal" value="4"><span>Maximise long-term growth, above all.</span></label>
+              </div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-primary" id="quiz-submit">See what's unlocked</button>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         VIEW 3 — WORKSPACE (gallery + box builder)
+    ============================================================= -->
+    <div class="view" id="view-workspace">
+      <section class="profile-bar">
+        <div class="wrap profile-bar-inner">
+          <div>
+            <p class="eyebrow" style="margin-bottom:4px;">Your profile</p>
+            <p class="profile-bar-tier" id="profile-bar-tier"></p>
+          </div>
+          <button type="button" class="btn btn-secondary" id="retake-quiz">Retake the questions</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="wrap workspace-grid">
+
+          <div class="gallery-col">
+            <p class="eyebrow">Browse</p>
+            <h2>Your kueh gallery</h2>
+            <p class="section-copy">Locked kuehs stay visible so you can see the full range — they'll open as your profile allows.</p>
+            <div class="gallery" id="gallery"><!-- kueh cards injected by app.js --></div>
+          </div>
+
+          <aside class="box-col">
+            <div class="box-panel" id="box-panel">
+              <p class="eyebrow">Your kueh box</p>
+              <div class="box-empty" id="box-empty">
+                <p>Empty for now. Add a kueh from the gallery to start assembling your box.</p>
+              </div>
+
+              <div class="box-contents" id="box-contents" hidden>
+                <div class="box-visual" id="box-visual"></div>
+                <ul class="box-list" id="box-list"></ul>
+
+                <div class="profile">
+                  <p class="profile-label">Risk spread</p>
+                  <div class="meter" id="risk-meter">
+                    <div class="meter-track">
+                      <div class="meter-fill" id="risk-fill"></div>
+                    </div>
+                    <div class="meter-caption" id="risk-caption"></div>
+                  </div>
+
+                  <p class="profile-label">Horizon mix</p>
+                  <div class="range-bar" id="horizon-bar">
+                    <div class="range-track">
+                      <div class="range-fill" id="horizon-fill"></div>
+                    </div>
+                    <div class="range-caption" id="horizon-caption"></div>
+                  </div>
+
+                  <p class="profile-label">Rough return range</p>
+                  <div class="range-bar" id="return-bar">
+                    <div class="range-track">
+                      <div class="range-fill" id="return-fill"></div>
+                    </div>
+                    <div class="range-caption" id="return-caption"></div>
+                  </div>
+
+                  <p class="liquidity-note" id="liquidity-note"></p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- SIGN-UP MODAL -->
+  <div class="modal-overlay" id="signup-overlay" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="signup-heading">
+      <button class="modal-close" id="signup-close" aria-label="Close">&times;</button>
+      <p class="eyebrow">Let's get you started</p>
+      <h3 id="signup-heading">A few details first</h3>
+      <p class="modal-copy">Then straight into your questionnaire — no waiting on a callback.</p>
+      <form id="signup-form">
+        <label class="field">
+          <span>Full name</span>
+          <input type="text" name="name" required autocomplete="name">
+        </label>
+        <label class="field">
+          <span>Email address</span>
+          <input type="email" name="email" required autocomplete="email">
+        </label>
+        <button type="submit" class="btn btn-primary">Continue to questionnaire</button>
+        <p class="modal-fineprint">This is a prototype — nothing is sent anywhere or stored beyond this session.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- KUEH DETAIL MODAL -->
+  <div class="modal-overlay" id="detail-overlay" hidden>
+    <div class="modal-panel detail-panel" id="detail-panel" role="dialog" aria-modal="true">
+      <button class="modal-close" id="detail-close" aria-label="Close">&times;</button>
+      <div id="detail-body"><!-- injected by app.js --></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>Kueh — a part of <strong>kuehmachine.com</strong></p>
+      <p>Ken — a dream-builder.</p>
+    </div>
+  </footer>
+
+  <script src="./js/data.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
