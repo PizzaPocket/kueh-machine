@@ -72,7 +72,20 @@
        clientWidth read 0 earlier in a session and 15 later in the same
        one, and every centered layer shifted by exactly half that each
        time, in lockstep with each other (never against each other). */
-    html { background: var(--color-primary-strong); scroll-behavior: smooth; scrollbar-gutter: stable; }
+    /* overflow-x: hidden here, not just on body below — confirmed via CDP
+       that body's alone leaves document.documentElement.scrollWidth wider
+       than the viewport (the guide-thread SVG's deliberate offscreen run,
+       scissors-cut.js's buildGuideThreadLayer, bleeds ~35% of viewport
+       width past both edges of #timeline, which has to stay overflow:
+       visible itself so .tl-glass can sink into the next section). Body's
+       overflow-x:hidden alone still clips what's painted, but mobile touch
+       panning can rubber-band the *layout* viewport into that clipped
+       space anyway, reading as a swipe-revealed blank margin the same
+       color as the page background — exactly what body's own overflow-x:
+       hidden below was already trying to guard against for the drop-chute,
+       just not reliably enough on touch. Setting it on html too pins the
+       actual scrollable width, not just what's painted. */
+    html { background: var(--color-primary-strong); scroll-behavior: smooth; scrollbar-gutter: stable; overflow-x: hidden; }
 
     body {
       font-family: var(--font-sans);
@@ -87,7 +100,8 @@
          this, that's real horizontal overflow with nothing guarding
          against it, which can open up page-wide horizontal scroll purely
          as a side effect of decorative chute geometry, not any actual
-         content needing to scroll. */
+         content needing to scroll. See the html rule above for why this
+         alone isn't quite enough on mobile touch. */
       overflow-x: hidden;
     }
 
@@ -1127,7 +1141,7 @@
       .brief-section { padding: 60px 20px; }
       .batik-margin { display: none; } /* mobile column is too narrow to overlap without hurting legibility */
       .guide-section { padding: 60px 10px; }
-      .step-card-fill { padding: 14px 12px; gap: 10px; }
+      .step-card-fill { padding: 18px; gap: 10px; }
     }
   </style>
 </head>
