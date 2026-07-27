@@ -72,20 +72,33 @@
        clientWidth read 0 earlier in a session and 15 later in the same
        one, and every centered layer shifted by exactly half that each
        time, in lockstep with each other (never against each other). */
-    /* overflow-x: hidden here, not just on body below — confirmed via CDP
+    /* overflow-x: clip here, not just on body below — confirmed via CDP
        that body's alone leaves document.documentElement.scrollWidth wider
        than the viewport (the guide-thread SVG's deliberate offscreen run,
        scissors-cut.js's buildGuideThreadLayer, bleeds ~35% of viewport
        width past both edges of #timeline, which has to stay overflow:
        visible itself so .tl-glass can sink into the next section). Body's
-       overflow-x:hidden alone still clips what's painted, but mobile touch
+       overflow-x:clip alone still clips what's painted, but mobile touch
        panning can rubber-band the *layout* viewport into that clipped
        space anyway, reading as a swipe-revealed blank margin the same
        color as the page background — exactly what body's own overflow-x:
-       hidden below was already trying to guard against for the drop-chute,
+       clip below was already trying to guard against for the drop-chute,
        just not reliably enough on touch. Setting it on html too pins the
-       actual scrollable width, not just what's painted. */
-    html { background: var(--color-primary-strong); scroll-behavior: smooth; scrollbar-gutter: stable; overflow-x: hidden; }
+       actual scrollable width, not just what's painted.
+
+       `clip`, not `hidden`: per the CSS Overflow spec, an element with
+       overflow-x set to anything but 'visible' forces its own overflow-y
+       to compute as 'auto' if it was 'visible' — which makes html a
+       scroll container, and .site-nav's position: sticky (styles/
+       organisms/site-nav.css) stick *to that new scroll container's
+       scrollport* instead of the viewport, breaking it (confirmed via
+       CDP: with overflow-x: hidden here, .site-nav scrolled away with the
+       page instead of pinning to top: 0). `clip` doesn't trigger that
+       same-axis coupling — html's overflow-y stays 'visible', no new
+       scroll container, sticky positioning still resolves against the
+       real viewport, and document.documentElement.scrollWidth is still
+       correctly capped. */
+    html { background: var(--color-primary-strong); scroll-behavior: smooth; scrollbar-gutter: stable; overflow-x: clip; }
 
     body {
       font-family: var(--font-sans);
@@ -101,8 +114,9 @@
          against it, which can open up page-wide horizontal scroll purely
          as a side effect of decorative chute geometry, not any actual
          content needing to scroll. See the html rule above for why this
-         alone isn't quite enough on mobile touch. */
-      overflow-x: hidden;
+         alone isn't quite enough on mobile touch. `clip`, not `hidden` —
+         same sticky-nav reasoning as the html rule above. */
+      overflow-x: clip;
     }
 
     a { color: inherit; }
@@ -478,7 +492,7 @@
        Content-box means the mobile media query's width/max-width below
        (tuned assuming the old border-box math) end up a few px wider in
        practice (2× the border's own width) — negligible next to the
-       overflow-x: hidden safety net .hero's own comment already relies on
+       overflow-x: clip safety net .hero's own comment already relies on
        for this same zone. */
     .countdown-viewport {
       position: relative;
