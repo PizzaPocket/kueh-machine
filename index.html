@@ -1087,15 +1087,27 @@
     }
 
     .leveling-resource-list {
-      list-style: disc;
-      padding-left: 1.2em;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
+    /* Lucide icon (src/organisms/icons.js) standing in for the list
+       marker — display:flex on the <li> itself, not a nested wrapper, so
+       the text still reads as a plain left-aligned line, just starting
+       after the icon + gap instead of after a bullet. */
     .leveling-resource-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       font-size: 0.9rem;
       line-height: 1.6;
+    }
+    .leveling-resource-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 3px; /* optically aligns with the text's first line, not its own box center */
+      color: var(--color-text-on-surface);
     }
 
     /* === FOOTER === */
@@ -1308,7 +1320,7 @@
               <span class="step-num text-sheen">02</span>
               <div class="step-body">
                 <p class="step-heading">Create a new repository for your project</p>
-                <p class="step-text">On github.com, click New repository, give it a name, and keep it public. Skip adding a README if your project already has files.</p>
+                <p class="step-text">On github.com, click New repository, give it a name, and keep it public.</p>
               </div>
             </div>
 
@@ -1341,10 +1353,10 @@
             <div class="step-card">
               <div class="step-body">
                 <ul class="leveling-resource-list">
-                  <li><a class="step-link text-sheen" href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (lucide.dev) — the most common default Claude Code reaches for already.</li>
-                  <li><a class="step-link text-sheen" href="https://heroicons.com" target="_blank" rel="noopener">Heroicons</a> (heroicons.com) — from the Tailwind CSS team, solid and outline styles.</li>
-                  <li><a class="step-link text-sheen" href="https://phosphoricons.com" target="_blank" rel="noopener">Phosphor Icons</a> (phosphoricons.com) — six weights from thin to bold, for matching a specific tone.</li>
-                  <li><a class="step-link text-sheen" href="https://tabler.io/icons" target="_blank" rel="noopener">Tabler Icons</a> (tabler.io/icons) — thousands of icons, useful when you need something oddly specific.</li>
+                  <li><i class="leveling-resource-icon" data-lucide="layers" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (lucide.dev) — the most common default Claude Code reaches for already.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="shield" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://heroicons.com" target="_blank" rel="noopener">Heroicons</a> (heroicons.com) — from the Tailwind CSS team, solid and outline styles.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="shapes" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://phosphoricons.com" target="_blank" rel="noopener">Phosphor Icons</a> (phosphoricons.com) — six weights from thin to bold, for matching a specific tone.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="grid-3x3" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://tabler.io/icons" target="_blank" rel="noopener">Tabler Icons</a> (tabler.io/icons) — thousands of icons, useful when you need something oddly specific.</span></li>
                 </ul>
               </div>
             </div>
@@ -1354,11 +1366,14 @@
         <!-- TIP: WRITING (no step-num — a tip, not a step) -->
         <div class="leveling-group">
           <p class="leveling-group-title">Make your project sound like you wrote it</p>
-          <p class="leveling-group-intro">Claude Code's first draft of your README or project copy can default to generic, over-dramatic phrasing that reads as AI-written.</p>
+          <p class="leveling-group-intro">Claude Code's first draft of your project's copy can default to generic, over-dramatic phrasing that reads as AI-written.</p>
           <div class="steps-list">
             <div class="step-card">
               <div class="step-body">
-                <p class="step-text">Watch for tells like copious em dashes (—) standing in for periods and commas, hollow intensifiers like "genuinely" or "truly" that add emphasis without adding information, and endings that oversell what was just said. This write-up covers the specific patterns to catch and cut. <a class="step-link text-sheen" href="https://creatoreconomy.so/p/use-my-no-ai-slop-skill-to-remove-20-ai-slop-patterns" target="_blank" rel="noopener">Read the write-up</a></p>
+                <ul class="leveling-resource-list">
+                  <li><i class="leveling-resource-icon" data-lucide="notebook-pen" aria-hidden="true"></i><span>Watch for tells like copious em dashes (—) standing in for periods and commas, hollow intensifiers like "genuinely" or "truly" that add emphasis without adding information, and endings that oversell what was just said.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="book-open-text" aria-hidden="true"></i><span>This write-up covers the specific patterns to catch and cut. <a class="step-link text-sheen" href="https://creatoreconomy.so/p/use-my-no-ai-slop-skill-to-remove-20-ai-slop-patterns" target="_blank" rel="noopener">Read the write-up</a></span></li>
+                </ul>
               </div>
             </div>
           </div>

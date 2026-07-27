@@ -8,6 +8,7 @@
 // one import and one call here, not new logic in this file.
 
 import { init as initDebugDate } from './dev/debug-date.js';
+import { init as initIcons } from './organisms/icons.js';
 import { init as initKuehOfDay } from './organisms/kueh-of-day.js';
 import { init as initSiteNav } from './organisms/site-nav.js';
 import { init as initChromeAccents } from './organisms/chrome-accents.js';
@@ -23,6 +24,12 @@ import { init as initCheckinArchive } from './organisms/checkin-archive.js';
 // Date.now() override, every other organism below reads "now" via
 // Date.now() at its own init time, so this has to run before all of them.
 initDebugDate();
+// Runs once, scanning the whole document for data-lucide placeholders —
+// no ordering dependency on anything else, but placed early so any
+// organism below that builds its own data-lucide markup dynamically
+// would need its own explicit re-run (none currently do; static HTML
+// placeholders, index.html, are all createIcons needs to find).
+initIcons();
 initKuehOfDay();
 initSiteNav();
 initChromeAccents();
