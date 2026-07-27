@@ -10,9 +10,9 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: radial-gradient(ellipse at center, #C4863A 0%, #7A4A10 100%);
+  background: linear-gradient(to bottom, #FFF8E8, #F0D8A8);
   display: flex; justify-content: center; align-items: center;
-  min-height: 100vh; overflow: hidden; font-family: 'Nunito', sans-serif;
+  width: 100vw; height: 100dvh; overflow: hidden; font-family: 'Nunito', sans-serif;
 }
 
 #wrapper {
@@ -331,7 +331,7 @@ canvas { display: block; }
 #navBar.hidden { display: none; }
 .nav-tab {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; background: none; border: none; cursor: pointer;
+  gap: 2px; background: none; border: none; cursor: pointer; outline: none;
   flex: 1; height: 100%; color: #C8B080;
   font-family: 'Nunito', sans-serif; font-size: 0.60rem; font-weight: 700;
   transition: color 0.15s, background 0.15s; padding: 6px 0;
@@ -415,6 +415,17 @@ canvas { display: block; }
 }
 .tut-mi .material-icons-round { font-size: 2.4rem; color: #fff; }
 .ov-stars { display:flex; gap:6px; justify-content:center; align-items:center; margin:4px 0; }
+
+@media (max-width: 767px) {
+  #wrapper {
+    position: fixed; inset: 0;
+    width: 100% !important; height: 100% !important;
+    border-radius: 0 !important; box-shadow: none !important;
+  }
+  canvas { display: block; width: 100% !important; height: 100% !important; }
+  .overlay { border-radius: 0; }
+}
+
 </style>
 </head>
 <body>
@@ -462,11 +473,11 @@ canvas { display: block; }
     </div>
     <!-- Phase 2: Letter slides out of envelope -->
     <div id="envLetter" class="env-letter">
-      <div class="onboard-card">
-        <div id="letterText" class="card-body" style="white-space:pre-line;cursor:pointer" onclick="skipLetterTyping()"></div>
+      <div class="onboard-card" style="cursor:pointer" onclick="skipLetterTyping()">
+        <div id="letterText" class="card-body" style="white-space:pre-line;height:100%"></div>
       </div>
       <button id="letterNextBtn" class="btn" onclick="showNamingCard()"
-              style="display:none;opacity:0;transform:translateY(8px);transition:opacity 0.4s ease,transform 0.4s ease;margin-top:12px">
+              style="display:none;opacity:0;position:absolute;top:calc(50% + 149px);left:50%;transform:translateX(-50%) translateY(8px);transition:opacity 0.4s ease,transform 0.4s ease">
         Next
       </button>
     </div>
@@ -540,7 +551,6 @@ canvas { display: block; }
   <!-- Game over -->
   <div class="overlay hidden" id="gameOverOverlay">
     <div class="li-card">
-      <div class="oi oi-red"><span class="material-icons-round" style="font-size:2.2rem">sentiment_very_dissatisfied</span></div>
       <div class="ov-h1" style="color:#B03030">Aiyah!</div>
       <div class="divider"></div>
       <div class="ov-sub">You ran out of lives in the bakery...</div>
@@ -592,16 +602,63 @@ const canvas = document.getElementById('c');
 const ctx    = canvas.getContext('2d');
 const W = 400, H = 700;
 
+// gameScale/gameOffX/gameOffY: maps game coords (W×H) into physical canvas pixels.
+// On mobile the canvas fills the screen; on desktop the wrapper scales via CSS transform.
+let gameScale = 1, gameOffX = 0, gameOffY = 0;
+
+// SVG assets for level map decorations
+const imgTree     = new Image(); imgTree.src     = 'tree.svg';
+const imgTreeSnow = new Image(); imgTreeSnow.src = 'tree snow.svg';
+const imgBush     = new Image(); imgBush.src     = 'bushes.svg';
+const imgFlower1  = new Image(); imgFlower1.src  = 'flower 1.svg';
+const imgFlower2  = new Image(); imgFlower2.src  = 'flower 2.svg';
+const imgMountain = new Image(); imgMountain.src = 'snow mountain.svg';
+let _mapFlowerIdx = 0;
+const imgRock      = new Image(); imgRock.src      = 'rock.svg';
+const imgSnowPile  = new Image(); imgSnowPile.src  = 'snowpile.svg';
+const FLOWER_CONFIGS = [
+  [0,   0], [1, 320], [0, 170], [1,   0], [0, 350],
+  [1,  40], [0, 280], [1,   0], [0,  20], [1, 180], [0,  60],
+  [0, 300], [1,  60], [0, 130], [1, 270],
+];
+
 function resize() {
-  const s = Math.min(window.innerWidth / 420, window.innerHeight / 784, 1);
-  document.getElementById('wrapper').style.transform = `scale(${s})`;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const isMobile = vw < 768;
+  const wrapper  = document.getElementById('wrapper');
+
+  if (isMobile) {
+    // Canvas fills the full screen at native DPR — crisp on retina.
+    const dpr     = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width  = Math.round(vw * dpr);
+    canvas.height = Math.round(vh * dpr);
+    canvas.style.width  = vw + 'px';
+    canvas.style.height = vh + 'px';
+    // Uniform scale to fit game (W×H) centred in the canvas.
+    gameScale = Math.min(canvas.width / W, canvas.height / H);
+    gameOffX  = (canvas.width  - W * gameScale) / 2;
+    gameOffY  = (canvas.height - H * gameScale) / 2;
+    wrapper.style.transform = '';
+  } else {
+    // Desktop: fixed 400×700 canvas, CSS-transform the wrapper.
+    canvas.width  = W;
+    canvas.height = H;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    gameScale = 1; gameOffX = 0; gameOffY = 0;
+    const s = Math.min(vw / 420, vh / 784, 1);
+    wrapper.style.transform = `scale(${s})`;
+  }
 }
 window.addEventListener('resize', resize);
 resize();
 
 function getCanvasCoords(e) {
-  const r = canvas.getBoundingClientRect();
-  return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+  const r    = canvas.getBoundingClientRect();
+  // Convert CSS click position → canvas physical pixels → game coords
+  const physX = (e.clientX - r.left) * (canvas.width  / r.width);
+  const physY = (e.clientY - r.top)  * (canvas.height / r.height);
+  return { x: (physX - gameOffX) / gameScale, y: (physY - gameOffY) / gameScale };
 }
 function inBox(x, y, box) {
   return x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
@@ -624,111 +681,117 @@ const KT = {
 // ═══════════════════════════════════════════════════════
 const LEVELS = [
   // ── TIER 1: APPRENTICE ───────────────────────────────
+  // Colour unlock: L1=pandan+coconut, L2=+rose, L3=+turmeric, L4=+blue_pea, L5=+yam
+  // Layer count: L1=3, L2=3-4, L3=4, L4=4, L5=4-5
   { number:1,  name:'Apprentice I',     badge:'🧁', targetOrders:3,  targetCoins:0,    speedMult:0.75, orders:[
-    { name:'Classic Pandan',   desc:'Start with the basics!',      layers:['pandan','coconut','pandan'],                    speed:2.0, decoy:0.22 },
-    { name:'Coconut Dream',    desc:'Silky smooth coconut layers', layers:['coconut','pandan','coconut','pandan'],           speed:2.1, decoy:0.24 },
+    { name:'Classic Pandan',   desc:'Just pandan and coconut!',    layers:['pandan','coconut','pandan'],                    speed:2.0, decoy:0.15 },
+    { name:'Coconut Dream',    desc:'Coconut leads this time',     layers:['coconut','pandan','coconut'],                   speed:2.0, decoy:0.15 },
   ]},
-  { number:2,  name:'Apprentice II',    badge:'🧁', targetOrders:3,  targetCoins:60,   orders:[
-    { name:'Pandan Stack',     desc:'Stack it higher!',            layers:['pandan','coconut','pandan','coconut'],           speed:2.2, decoy:0.26 },
-    { name:'Rose Swirl',       desc:'A rosy introduction',         layers:['rose','coconut','pandan'],                      speed:2.3, decoy:0.27 },
+  { number:2,  name:'Apprentice II',    badge:'🧁', targetOrders:4,  targetCoins:60,   orders:[
+    { name:'Pandan Stack',     desc:'Stack four layers high!',     layers:['pandan','coconut','pandan','coconut'],          speed:2.2, decoy:0.20 },
+    { name:'Rose Blush',       desc:'A rosy new flavour!',         layers:['rose','coconut','pandan'],                      speed:2.3, decoy:0.22 },
+    { name:'Pretty in Pink',   desc:'Rose and coconut together',   layers:['coconut','rose','coconut'],                     speed:2.3, decoy:0.22 },
   ]},
   { number:3,  name:'Apprentice III',   badge:'🧁', targetOrders:4,  targetCoins:90,   orders:[
-    { name:'Sunny Turmeric',   desc:'Warm and golden',             layers:['turmeric','coconut','pandan'],                  speed:2.4, decoy:0.28 },
-    { name:'Blue Beginnings',  desc:'A hint of floral blue',       layers:['blue_pea','coconut','blue_pea'],                speed:2.5, decoy:0.29 },
-    { name:'Mixed Trio',       desc:'Three flavours, one kueh',    layers:['pandan','rose','coconut'],                      speed:2.6, decoy:0.30 },
+    { name:'Golden Touch',     desc:'Warm turmeric joins in!',     layers:['turmeric','coconut','pandan','coconut'],        speed:2.5, decoy:0.26 },
+    { name:'Sunny Swirl',      desc:'Turmeric meets rose',         layers:['pandan','turmeric','coconut','rose'],           speed:2.6, decoy:0.27 },
+    { name:'Warm Layers',      desc:'Three colours, four layers',  layers:['rose','turmeric','coconut','pandan'],           speed:2.7, decoy:0.28 },
   ]},
-  { number:4,  name:'Apprentice IV',    badge:'🧁', targetOrders:4,  targetCoins:120,  orders:[
-    { name:'Yam Lover',        desc:'Purple and dreamy',           layers:['yam','coconut','yam'],                          speed:2.6, decoy:0.31 },
-    { name:'Tropical Duo',     desc:'Two island favourites',       layers:['pandan','turmeric','pandan'],                   speed:2.8, decoy:0.32 },
-    { name:'Sunset Layers',    desc:'Warm colours all the way',    layers:['turmeric','rose','coconut','pandan'],            speed:3.0, decoy:0.34 },
+  { number:4,  name:'Apprentice IV',    badge:'🧁', targetOrders:5,  targetCoins:120,  orders:[
+    { name:'Blue Beginnings',  desc:'Blue pea makes an entrance!', layers:['blue_pea','coconut','blue_pea'],                speed:2.8, decoy:0.29 },
+    { name:'Tropical Mix',     desc:'Four colours at once',        layers:['pandan','turmeric','coconut','rose'],           speed:2.9, decoy:0.30 },
+    { name:'Floral Four',      desc:'Blue pea and coconut',        layers:['coconut','blue_pea','coconut','pandan'],        speed:3.0, decoy:0.31 },
   ]},
   { number:5,  name:'Apprentice V',     badge:'🧁', targetOrders:5,  targetCoins:150,  orders:[
-    { name:'Rose Garden',      desc:'Rosy and delightful',         layers:['rose','coconut','rose','coconut'],              speed:3.0, decoy:0.35 },
-    { name:'Ocean Breeze',     desc:'Blue and breezy',             layers:['blue_pea','coconut','blue_pea','coconut'],      speed:3.1, decoy:0.36 },
-    { name:'Classic Five',     desc:'Your first 5-layer kueh!',    layers:['pandan','coconut','rose','coconut','pandan'],   speed:3.2, decoy:0.37 },
+    { name:'Purple Heart',     desc:'Yam joins the family!',       layers:['yam','coconut','yam'],                          speed:3.0, decoy:0.32 },
+    { name:'Sunset Layers',    desc:'Warm colours all the way',    layers:['turmeric','rose','coconut','pandan'],           speed:3.1, decoy:0.33 },
+    { name:'Five Flavours',    desc:'Your first 5-layer kueh!',    layers:['pandan','rose','coconut','yam','pandan'],       speed:3.2, decoy:0.34 },
   ]},
   // ── TIER 2: JUNIOR BAKER ─────────────────────────────
+  // All 6 colours in play. Layer count: L6=5, L7=5-6, L8=6, L9=6-7, L10=7
   { number:6,  name:'Junior Baker I',   badge:'🍰', targetOrders:6,  targetCoins:200,  orders:[
-    { name:'Colour Burst',     desc:'Four colours!',               layers:['pandan','rose','turmeric','coconut'],           speed:3.2, decoy:0.38 },
-    { name:'Yam Delight',      desc:'Rich and creamy',             layers:['yam','coconut','yam','coconut'],               speed:3.3, decoy:0.39 },
-    { name:'Floral Dreams',    desc:'Blue and rose together',      layers:['blue_pea','rose','coconut','pandan'],           speed:3.4, decoy:0.40 },
+    { name:'Colour Burst',     desc:'All six colours — let\'s go!', layers:['pandan','rose','turmeric','yam','coconut'],                speed:3.2, decoy:0.36 },
+    { name:'Yam Delight',      desc:'Rich and purple all the way',  layers:['yam','coconut','yam','coconut','pandan'],                 speed:3.3, decoy:0.37 },
+    { name:'Floral Dream',     desc:'Blue pea steals the show',     layers:['blue_pea','rose','coconut','pandan','blue_pea'],           speed:3.4, decoy:0.38 },
   ]},
   { number:7,  name:'Junior Baker II',  badge:'🍰', targetOrders:7,  targetCoins:250,  orders:[
-    { name:'Purple Rain',      desc:'Yam-forward delight',         layers:['yam','pandan','yam','pandan'],                 speed:3.4, decoy:0.41 },
-    { name:'Sunrise Stack',    desc:'Start bright!',               layers:['turmeric','coconut','pandan','coconut'],       speed:3.5, decoy:0.42 },
-    { name:'Five Splendour',   desc:'Five colours, five layers',   layers:['rose','turmeric','pandan','blue_pea','coconut'], speed:3.6, decoy:0.43 },
+    { name:'Purple Rain',      desc:'Yam and blue intertwined',    layers:['yam','pandan','blue_pea','coconut','yam','pandan'],        speed:3.5, decoy:0.39 },
+    { name:'Sunrise Stack',    desc:'Warm colours rising high',    layers:['turmeric','coconut','pandan','rose','turmeric'],           speed:3.6, decoy:0.40 },
+    { name:'Six Splendour',    desc:'All six in one kueh!',        layers:['rose','turmeric','pandan','blue_pea','yam','coconut'],     speed:3.7, decoy:0.41 },
   ]},
-  { number:8,  name:'Junior Baker III', badge:'🍰', targetOrders:10, targetCoins:300,  orders:[
-    { name:'Ocean Blue',       desc:'Deep and serene',             layers:['blue_pea','coconut','blue_pea','yam'],          speed:3.7, decoy:0.44 },
-    { name:"Nenek's Special",  desc:"Grandma's prized recipe",     layers:['pandan','rose','coconut','turmeric','pandan'], speed:3.8, decoy:0.45 },
-    { name:'Heritage Lapis',   desc:'A classic for celebrations',  layers:['coconut','blue_pea','coconut','pandan','yam'], speed:4.0, decoy:0.46 },
+  { number:8,  name:'Junior Baker III', badge:'🍰', targetOrders:8,  targetCoins:300,  orders:[
+    { name:'Ocean Deep',       desc:'Blue pea meets yam',          layers:['blue_pea','coconut','blue_pea','yam','coconut','blue_pea'],speed:3.8, decoy:0.42 },
+    { name:"Nenek's Special",  desc:"Grandma's prized recipe",     layers:['pandan','rose','coconut','turmeric','pandan','rose'],      speed:3.9, decoy:0.43 },
+    { name:'Heritage Lapis',   desc:'A classic celebration kueh',  layers:['coconut','blue_pea','coconut','pandan','yam','coconut'],   speed:4.0, decoy:0.44 },
   ]},
-  { number:9,  name:'Junior Baker IV',  badge:'🍰', targetOrders:10, targetCoins:380,  orders:[
-    { name:'Grand Blue',       desc:'Blue pea takes the lead',     layers:['blue_pea','coconut','blue_pea','coconut','blue_pea'], speed:4.0, decoy:0.47 },
-    { name:'Yam Royale',       desc:'Yam stacked high!',           layers:['yam','rose','yam','coconut','yam'],            speed:4.1, decoy:0.48 },
-    { name:'Rainbow Five',     desc:'Every colour shines',         layers:['turmeric','rose','blue_pea','yam','pandan'],   speed:4.2, decoy:0.49 },
+  { number:9,  name:'Junior Baker IV',  badge:'🍰', targetOrders:9,  targetCoins:380,  orders:[
+    { name:'Grand Blue',       desc:'Seven layers of blue power',  layers:['blue_pea','coconut','blue_pea','coconut','blue_pea','yam','coconut'],speed:4.1, decoy:0.46 },
+    { name:'Yam Royale',       desc:'Yam stacked high!',           layers:['yam','rose','yam','coconut','yam','pandan','yam'],                  speed:4.2, decoy:0.47 },
+    { name:'Rainbow Seven',    desc:'Every colour in order',       layers:['turmeric','rose','blue_pea','yam','pandan','coconut','turmeric'],   speed:4.3, decoy:0.48 },
   ]},
   { number:10, name:'Junior Baker V',   badge:'🍰', targetOrders:10, targetCoins:450,  orders:[
-    { name:'Signature Six',    desc:'Six layers, no mercy',        layers:['pandan','rose','coconut','turmeric','blue_pea','yam'],    speed:4.3, decoy:0.50 },
-    { name:'Indigo Dream',     desc:'Blue pea all the way',        layers:['blue_pea','yam','blue_pea','coconut','blue_pea'],         speed:4.4, decoy:0.51 },
-    { name:'Grand Heritage',   desc:'A taste of tradition',        layers:['coconut','pandan','rose','yam','turmeric','coconut'],     speed:4.5, decoy:0.52 },
+    { name:'Signature Seven',  desc:'Seven layers, no mercy!',     layers:['pandan','rose','coconut','turmeric','blue_pea','yam','pandan'],     speed:4.4, decoy:0.49 },
+    { name:'Indigo Dream',     desc:'Blue pea all the way',        layers:['blue_pea','yam','blue_pea','coconut','blue_pea','rose','blue_pea'],speed:4.5, decoy:0.50 },
+    { name:'Grand Heritage',   desc:'A taste of pure tradition',   layers:['coconut','pandan','rose','yam','turmeric','coconut','rose'],        speed:4.6, decoy:0.51 },
   ]},
   // ── TIER 3: HEAD BAKER ───────────────────────────────
-  { number:11, name:'Head Baker I',     badge:'🎂', targetOrders:12, targetCoins:500,  orders:[
-    { name:'Spice Market',     desc:'Turmeric leads the way',      layers:['turmeric','rose','coconut','pandan','turmeric','coconut'], speed:4.5, decoy:0.52 },
-    { name:'Royal Six',        desc:'Six colours, one dream',      layers:['rose','blue_pea','yam','turmeric','pandan','coconut'],    speed:4.6, decoy:0.53 },
-    { name:'Purple Majesty',   desc:'Yam through and through',     layers:['yam','coconut','yam','rose','yam','coconut'],             speed:4.7, decoy:0.54 },
+  // Layer count: L11=7-8, L12=8, L13=8-9, L14=9, L15=9-10
+  { number:11, name:'Head Baker I',     badge:'🎂', targetOrders:11, targetCoins:500,  orders:[
+    { name:'Spice Market',     desc:'Turmeric demands attention',  layers:['turmeric','rose','coconut','pandan','turmeric','coconut','blue_pea'],speed:4.7, decoy:0.52 },
+    { name:'Royal Seven',      desc:'Six colours, seven layers',   layers:['rose','blue_pea','yam','turmeric','pandan','coconut','rose'],       speed:4.8, decoy:0.53 },
+    { name:'Purple Majesty',   desc:'Yam and blue entwined',       layers:['yam','coconut','yam','rose','blue_pea','coconut','yam'],            speed:4.9, decoy:0.53 },
   ]},
-  { number:12, name:'Head Baker II',    badge:'🎂', targetOrders:14, targetCoins:560,  orders:[
-    { name:'Galaxy Kueh',      desc:'Colours out of this world',   layers:['yam','blue_pea','rose','turmeric','coconut','pandan'],    speed:4.8, decoy:0.54 },
-    { name:'Bakery Pride',     desc:'Your best work yet',          layers:['pandan','rose','blue_pea','yam','turmeric','coconut'],    speed:4.9, decoy:0.55 },
-    { name:'Seven Heaven',     desc:'A full seven-layer stack!',   layers:['pandan','coconut','rose','coconut','blue_pea','coconut','pandan'], speed:5.0, decoy:0.56 },
+  { number:12, name:'Head Baker II',    badge:'🎂', targetOrders:12, targetCoins:560,  orders:[
+    { name:'Galaxy Kueh',      desc:'Colours out of this world',   layers:['yam','blue_pea','rose','turmeric','coconut','pandan','yam','blue_pea'],speed:5.0, decoy:0.54 },
+    { name:'Bakery Pride',     desc:'Your masterpiece so far',     layers:['pandan','rose','blue_pea','yam','turmeric','coconut','pandan','rose'],speed:5.1, decoy:0.55 },
+    { name:'Eight Heaven',     desc:'A full eight-layer stack!',   layers:['coconut','pandan','rose','coconut','blue_pea','coconut','yam','pandan'],speed:5.2, decoy:0.56 },
   ]},
-  { number:13, name:'Head Baker III',   badge:'🎂', targetOrders:15, targetCoins:620,  orders:[
-    { name:'Rainbow Supreme',  desc:'Every colour, every bite',    layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose'],      speed:5.1, decoy:0.57 },
-    { name:'Pandan Parade',    desc:'Pandan takes centre stage',   layers:['pandan','coconut','pandan','rose','pandan','coconut','pandan'],    speed:5.2, decoy:0.58 },
-    { name:'Anniversary Kueh', desc:'For a very special occasion', layers:['rose','pandan','blue_pea','coconut','yam','turmeric','rose'],      speed:5.3, decoy:0.58 },
+  { number:13, name:'Head Baker III',   badge:'🎂', targetOrders:13, targetCoins:620,  orders:[
+    { name:'Rainbow Supreme',  desc:'Every colour, every bite',    layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose','turmeric'],     speed:5.3, decoy:0.57 },
+    { name:'Pandan Parade',    desc:'Pandan in every other layer', layers:['pandan','rose','pandan','blue_pea','pandan','yam','pandan','coconut'],       speed:5.4, decoy:0.58 },
+    { name:'Anniversary Kueh', desc:'Nine layers for a celebration',layers:['rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea'],speed:5.5, decoy:0.58 },
   ]},
-  { number:14, name:'Head Baker IV',    badge:'🎂', targetOrders:16, targetCoins:700,  orders:[
-    { name:'Ultimate Heritage', desc:'All traditions at once',     layers:['coconut','rose','yam','blue_pea','turmeric','pandan','coconut'],  speed:5.4, decoy:0.59 },
-    { name:'Master Preview',    desc:"A taste of what's next",     layers:['blue_pea','yam','turmeric','rose','pandan','coconut','yam'],       speed:5.5, decoy:0.60 },
-    { name:'Grand Lapis',       desc:'The legendary seven-layer',  layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan'],   speed:5.6, decoy:0.60 },
+  { number:14, name:'Head Baker IV',    badge:'🎂', targetOrders:14, targetCoins:700,  orders:[
+    { name:'Ultimate Heritage', desc:'All traditions at once',     layers:['coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam'],   speed:5.6, decoy:0.59 },
+    { name:'Nine Wonders',      desc:'Nine layers of skill',       layers:['blue_pea','yam','turmeric','rose','pandan','coconut','yam','blue_pea','rose'],  speed:5.7, decoy:0.60 },
+    { name:'Grand Lapis',       desc:'The legendary nine-layer!',  layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','rose','coconut'],speed:5.8, decoy:0.60 },
   ]},
-  { number:15, name:'Head Baker V',     badge:'🎂', targetOrders:18, targetCoins:780,  orders:[
-    { name:'Eight Wonders',    desc:'Eight perfect layers',        layers:['pandan','rose','coconut','yam','blue_pea','turmeric','pandan','coconut'], speed:5.7, decoy:0.61 },
-    { name:'Platinum Lapis',   desc:'Only legends attempt this',  layers:['rose','yam','turmeric','blue_pea','pandan','coconut','rose','yam'],      speed:5.8, decoy:0.62 },
-    { name:"Master's Touch",   desc:"Show them who's boss",       layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','pandan'], speed:5.9, decoy:0.62 },
+  { number:15, name:'Head Baker V',     badge:'🎂', targetOrders:15, targetCoins:780,  orders:[
+    { name:'Ten Wonders',       desc:'Ten layers — can you do it?', layers:['pandan','rose','coconut','yam','blue_pea','turmeric','pandan','rose','coconut','yam'],    speed:5.9, decoy:0.61 },
+    { name:'Platinum Lapis',    desc:'Only legends attempt this',   layers:['rose','yam','turmeric','blue_pea','pandan','coconut','rose','yam','turmeric','blue_pea'], speed:6.0, decoy:0.62 },
+    { name:"Master's Touch",    desc:"Show them who's boss",        layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','pandan','rose','yam'],    speed:6.1, decoy:0.62 },
   ]},
   // ── TIER 4: MASTER PATISSIER ─────────────────────────
-  { number:16, name:'Master I',         badge:'👑', targetOrders:20, targetCoins:850,  orders:[
-    { name:'Deep Violet',      desc:'Yam for days',                layers:['yam','rose','yam','blue_pea','yam','coconut','yam','pandan'],           speed:6.0, decoy:0.63 },
-    { name:'Midnight Blue',    desc:'The darkest, richest kueh',   layers:['blue_pea','yam','blue_pea','coconut','blue_pea','rose','blue_pea','yam'], speed:6.1, decoy:0.63 },
-    { name:"Grandmaster's Way",desc:"Grandma's ultimate recipe",   layers:['pandan','rose','blue_pea','yam','turmeric','coconut','rose','pandan'],   speed:6.2, decoy:0.64 },
-    { name:'Golden Crown',     desc:'Turmeric at the top',         layers:['turmeric','pandan','rose','coconut','yam','blue_pea','turmeric','coconut'], speed:6.2, decoy:0.64 },
+  // Layer count: L16=10, L17=10-11, L18=11-12, L19=12, L20=12
+  { number:16, name:'Master I',         badge:'👑', targetOrders:16, targetCoins:850,  orders:[
+    { name:'Deep Violet',      desc:'Yam from bottom to top',      layers:['yam','rose','yam','blue_pea','yam','coconut','yam','pandan','yam','rose'],               speed:6.2, decoy:0.63 },
+    { name:'Midnight Blue',    desc:'The darkest, richest kueh',   layers:['blue_pea','yam','blue_pea','coconut','blue_pea','rose','blue_pea','yam','coconut'],      speed:6.3, decoy:0.63 },
+    { name:"Grandmaster's Way",desc:"Grandma's ultimate recipe",   layers:['pandan','rose','blue_pea','yam','turmeric','coconut','rose','pandan','yam','turmeric'],  speed:6.4, decoy:0.64 },
+    { name:'Golden Crown',     desc:'Turmeric reigns supreme',     layers:['turmeric','pandan','rose','coconut','yam','blue_pea','turmeric','rose','pandan','coconut'],speed:6.5, decoy:0.64 },
   ]},
-  { number:17, name:'Master II',        badge:'👑', targetOrders:25, targetCoins:1000, orders:[
-    { name:'Legendary Lapis',  desc:'Nine layers of pure legend',  layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose'],   speed:6.3, decoy:0.65 },
-    { name:'Nine Heavens',     desc:'Every flavour, nine times',   layers:['coconut','blue_pea','yam','rose','pandan','turmeric','coconut','blue_pea','yam'], speed:6.4, decoy:0.65 },
-    { name:"Chef's Tour",      desc:'A tour de force of kueh art', layers:['turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan'],  speed:6.5, decoy:0.66 },
-    { name:'Royal Banquet',    desc:'Fit for royalty',             layers:['yam','pandan','blue_pea','turmeric','rose','coconut','yam','blue_pea','pandan'],  speed:6.5, decoy:0.66 },
+  { number:17, name:'Master II',        badge:'👑', targetOrders:18, targetCoins:1000, orders:[
+    { name:'Legendary Lapis',  desc:'Eleven layers of legend!',    layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam','blue_pea'],   speed:6.6, decoy:0.65 },
+    { name:'Eleven Heavens',   desc:'All flavours, eleven deep',   layers:['coconut','blue_pea','yam','rose','pandan','turmeric','coconut','blue_pea','yam','rose','pandan'],  speed:6.7, decoy:0.65 },
+    { name:"Chef's Tour",      desc:'A tour de force of kueh',     layers:['turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut'],speed:6.8, decoy:0.66 },
+    { name:'Royal Banquet',    desc:'Fit for royalty',             layers:['yam','pandan','blue_pea','turmeric','rose','coconut','yam','blue_pea','pandan','turmeric','rose'], speed:6.9, decoy:0.66 },
   ]},
-  { number:18, name:'Master III',       badge:'👑', targetOrders:30, targetCoins:1200, orders:[
-    { name:'Decadent Ten',     desc:'Can you stack all ten?',      layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam'],       speed:6.6, decoy:0.67 },
-    { name:'Ultimate Parade',  desc:'All six types, twice over',   layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose','turmeric','pandan','blue_pea'], speed:6.7, decoy:0.67 },
-    { name:'Heritage Supreme', desc:'The finest heritage recipe',  layers:['coconut','yam','blue_pea','pandan','turmeric','rose','coconut','yam','blue_pea','pandan'],  speed:6.8, decoy:0.68 },
-    { name:'Penultimate Glory',desc:'Almost the very best…',       layers:['yam','rose','coconut','blue_pea','pandan','turmeric','yam','rose','coconut','blue_pea'],   speed:6.8, decoy:0.68 },
+  { number:18, name:'Master III',       badge:'👑', targetOrders:20, targetCoins:1200, orders:[
+    { name:'Decadent Twelve',  desc:'Twelve layers — go!',         layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam','blue_pea','turmeric'],  speed:7.0, decoy:0.67 },
+    { name:'Ultimate Parade',  desc:'All six types, twice over',   layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose','turmeric','pandan','blue_pea','yam','coconut'],  speed:7.1, decoy:0.67 },
+    { name:'Heritage Supreme', desc:'The finest heritage recipe',  layers:['coconut','yam','blue_pea','pandan','turmeric','rose','coconut','yam','blue_pea','pandan','turmeric','rose'], speed:7.2, decoy:0.68 },
+    { name:'Penultimate Glory',desc:'Almost the very best…',       layers:['yam','rose','coconut','blue_pea','pandan','turmeric','yam','rose','coconut','blue_pea','pandan','turmeric'],speed:7.3, decoy:0.68 },
   ]},
-  { number:19, name:'Master IV',        badge:'👑', targetOrders:40, targetCoins:1500, orders:[
-    { name:'Eleven Layers',    desc:'Eleven! Can you do it?',      layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose','blue_pea'],       speed:7.0, decoy:0.69 },
-    { name:'Hall of Legends',  desc:'Your name belongs here',      layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose'],      speed:7.1, decoy:0.69 },
-    { name:'Century Stack',    desc:'Ten layers of mastery',       layers:['coconut','rose','pandan','yam','blue_pea','turmeric','coconut','rose','pandan','yam'],                  speed:7.2, decoy:0.70 },
-    { name:'Penultimate Feat', desc:'One level from glory…',       layers:['turmeric','rose','blue_pea','yam','pandan','coconut','turmeric','rose','blue_pea','yam','pandan'],     speed:7.2, decoy:0.70 },
+  { number:19, name:'Master IV',        badge:'👑', targetOrders:24, targetCoins:1500, orders:[
+    { name:'Twelve Wonders',   desc:'Twelve! Are you ready?',      layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose','blue_pea','coconut'],  speed:7.5, decoy:0.69 },
+    { name:'Hall of Legends',  desc:'Your name belongs here',      layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan'],  speed:7.6, decoy:0.70 },
+    { name:'Century Stack',    desc:'The ultimate test of skill',  layers:['coconut','rose','pandan','yam','blue_pea','turmeric','coconut','rose','pandan','yam','blue_pea','turmeric'],  speed:7.7, decoy:0.70 },
+    { name:'Penultimate Feat', desc:'One level from glory…',       layers:['turmeric','rose','blue_pea','yam','pandan','coconut','turmeric','rose','blue_pea','yam','pandan','coconut'], speed:7.8, decoy:0.71 },
   ]},
-  { number:20, name:'Master Patissier', badge:'👑', targetOrders:50, targetCoins:2000, orders:[
-    { name:'The Impossible Kueh',desc:'Only the best can do this!',  layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose'],                         speed:7.5, decoy:0.72 },
-    { name:'Hall of Fame',       desc:'Grandma is watching… 👀',    layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','coconut'],   speed:7.5, decoy:0.72 },
-    { name:'The Grand Finale',   desc:'Twelve layers. One chance.', layers:['pandan','rose','yam','blue_pea','turmeric','coconut','pandan','rose','yam','blue_pea','turmeric','coconut'],    speed:8.0, decoy:0.74 },
-    { name:'Ultimate Kueh',      desc:'Stack them all. Be legend.',  layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','rose','pandan','yam','blue_pea','turmeric'],   speed:8.0, decoy:0.74 },
+  { number:20, name:'Master Patissier', badge:'👑', targetOrders:30, targetCoins:2000, orders:[
+    { name:'The Impossible Kueh',desc:'Only the best can do this!', layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose','blue_pea','coconut'],  speed:8.0, decoy:0.72 },
+    { name:'Hall of Fame',       desc:'Grandma is watching…',       layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan'],  speed:8.0, decoy:0.72 },
+    { name:'The Grand Finale',   desc:'Twelve layers. One chance.', layers:['pandan','rose','yam','blue_pea','turmeric','coconut','pandan','rose','yam','blue_pea','turmeric','coconut'],  speed:8.5, decoy:0.74 },
+    { name:'Ultimate Kueh',      desc:'Stack them all. Be legend.', layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','rose','pandan','yam','blue_pea','turmeric'],  speed:8.5, decoy:0.74 },
   ]},
 ];
 
@@ -933,6 +996,35 @@ const MOCK_SUGGESTED = [
   { name:'Mei Lin',    levelName:'Apprentice I',  id:3847, color:'#3A8C3A' },
   { name:'Arjun K',   levelName:'Apprentice II', id:9012, color:'#2C78A8' },
 ];
+
+// ── Supabase online leaderboard ───────────────────────────────────────────
+// The anon key is a PUBLIC key — it's meant to be embedded in the client and is
+// safe as long as the `scores` table has Row Level Security enabled (see the SQL
+// in the setup notes). Rows are append-only + range-checked by RLS policies.
+const SB_URL = 'https://dnzauwulqxjwtbmvqfbh.supabase.co/rest/v1';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuemF1d3VscXhqd3RibXZxZmJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTM3MTgsImV4cCI6MjEwMDU2OTcxOH0.qJCZUIoov8209WFs29HYgZ6bi9fbpwSNEV3p-D4L2F4';
+const SB_HDR = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
+
+let liveLeaderboard = [];   // top rows fetched from Supabase, rendered by the leaderboard screen
+
+// Record a run's score on the online leaderboard (fire-and-forget)
+async function submitScore(name, score) {
+  try {
+    await fetch(`${SB_URL}/scores`, {
+      method: 'POST',
+      headers: { ...SB_HDR, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ name: String(name).slice(0, 24), score: Math.max(0, Math.round(score)) })
+    });
+  } catch (e) { console.warn('[leaderboard] submit failed:', e); }
+}
+
+// Fetch the current top 10 into liveLeaderboard
+async function loadLeaderboard() {
+  try {
+    const res = await fetch(`${SB_URL}/scores?select=name,score&order=score.desc&limit=10`, { headers: SB_HDR });
+    if (res.ok) liveLeaderboard = await res.json();
+  } catch (e) { console.warn('[leaderboard] load failed:', e); }
+}
 const RECIPE_BOOKS = [
   { title:'Apprentice Bakes',  subtitle:'Levels 1 – 5',   color:'#D08020', spine:'#8A4008', filter: n => n.startsWith('Apprentice') },
   { title:'Junior Kitchen',    subtitle:'Levels 6 – 10',  color:'#3A8A2A', spine:'#1E5814', filter: n => n.startsWith('Junior') },
@@ -949,7 +1041,7 @@ const LH         = 28;
 const INIT_W     = 200;
 const PLATE_Y    = 575;
 const MOVER_Y    = 215;
-const SPEED_MULT = 1.7;
+const SPEED_MULT = 1.5;
 
 // ═══════════════════════════════════════════════════════
 //  GAME STATE
@@ -963,6 +1055,8 @@ let levelIdx        = 0;
 let orderIdxInLevel = 0;
 let layerIdx        = 0;
 let placed          = [];
+let pkgAnim         = null; // { t, layers:[{x,w,kt,y}] }
+let plateAlpha      = 1;   // fades 0→1 when new order begins
 let mover           = null;
 let moverDir        = 1;
 let moverSpd        = 2;
@@ -1058,6 +1152,9 @@ function hideAll() {
 const NAV_SHOW_STATES = new Set(['levelMap','profile','leaderboard','recipes']);
 function updateNavVisibility() {
   document.getElementById('navBar').classList.toggle('hidden', !NAV_SHOW_STATES.has(state));
+  // Match body background to current state so desktop side gaps blend in
+  const isMap = state === 'levelMap' || state === 'levelIntro' || state === 'levelComplete';
+  document.body.style.background = 'linear-gradient(to bottom, #FFF8E8, #F0D8A8)';
 }
 function addFriend() {
   const name = (prompt("Enter your friend's baker name:") || '').trim();
@@ -1076,7 +1173,7 @@ function navGo(dest) {
   unlockAudio();
   if (dest === 'play' || dest === 'levelMap') { showLevelMap(); }
   else if (dest === 'profile')     { state='profile';     hideAll(); updateNavVisibility(); updateNavActive(); }
-  else if (dest === 'leaderboard') { state='leaderboard'; hideAll(); updateNavVisibility(); updateNavActive(); }
+  else if (dest === 'leaderboard') { state='leaderboard'; loadLeaderboard(); hideAll(); updateNavVisibility(); updateNavActive(); }
   else if (dest === 'recipes')     { state='recipes'; recipesBookIdx=-1; hideAll(); updateNavVisibility(); updateNavActive(); }
 }
 
@@ -1198,7 +1295,7 @@ function showLetterNextBtn() {
   btn.style.display = 'block';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     btn.style.opacity = '1';
-    btn.style.transform = 'translateY(0)';
+    btn.style.transform = 'translateX(-50%) translateY(0)';
   }));
 }
 
@@ -1250,7 +1347,7 @@ function openNameInput() {
   const lt = document.getElementById('letterText');
   if (lt) lt.textContent = '';
   const nb = document.getElementById('letterNextBtn');
-  if (nb) { nb.style.display = 'none'; nb.style.opacity = '0'; nb.style.transform = 'translateY(8px)'; }
+  if (nb) { nb.style.display = 'none'; nb.style.opacity = '0'; nb.style.transform = 'translateX(-50%) translateY(8px)'; }
   document.getElementById('nameInputOverlay').classList.remove('hidden');
 }
 
@@ -1324,11 +1421,17 @@ function tutDemoNext() {
       tutDemoMX = -TD_W/2 - 10; tutDemoMDir = 1; tutDemoLayers = [];
     } else if (tutDemoStep === 3) {
       tutDemoMX = -TD_W/2 - 10; tutDemoMDir = 1; tutDemoLives = 3;
-      // Pre-place 2 layers so the demo looks mid-game
-      tutDemoLayers = [
-        { x: W/2, w: TD_W, kt: KT['pandan'] },
-        { x: W/2, w: TD_W - 22, kt: KT['coconut'] }
+      // Fill any missing layers using the same positions step 2's auto-tap would have produced:
+      // phase 0 (pandan): taps at W/2 → perfect (x=W/2, w=TD_W)
+      // phase 1 (coconut): taps at W/2+45 → overlap gives x=W/2+22.5, w=TD_W-45
+      const step2Defaults = [
+        { x: W/2,        w: TD_W,       kt: KT['pandan']  },
+        { x: W/2 + 22.5, w: TD_W - 45,  kt: KT['coconut'] }
       ];
+      while (tutDemoLayers.length < step2Defaults.length) {
+        const def = step2Defaults[tutDemoLayers.length];
+        tutDemoLayers.push({ x: def.x, w: def.w, kt: def.kt });
+      }
     }
     updateTutDemoCard();
   } else {
@@ -1374,7 +1477,7 @@ function startTestRound() {
   lives = 999;
   updateMusicPlayback();
   score = 0; layerIdx = 0; placed = []; particles = [];
-  moverDir = 1; moverSpd = 1.3 * SPEED_MULT;
+  moverDir = 1; moverSpd = 8.0 * SPEED_MULT;
   spawnTestMover();
   state = 'testRound';
 }
@@ -1452,6 +1555,7 @@ function beginOrder() {
   layerIdx = 0; placed = []; particles = [];
   orderBasePoints = 0; orderPerfBonus = 0;
   moverDir = 1; moverSpd = orderData().speed * SPEED_MULT * (level().speedMult ?? 1);
+  plateAlpha = 0;
   spawnMover();
   state = 'playing';
 }
@@ -1486,7 +1590,9 @@ function place() {
   if (ow <= 2) { loseLife(); return; }
 
   const perfect = Math.abs(mover.x - prev.x) < 8;
-  placed.push({ x: perfect?prev.x:(ol+or_)/2, w: perfect?prev.w:ow, kt: mover.kt });
+  const _lx = perfect ? prev.x : (ol+or_)/2, _li = placed.length;
+  placed.push({ x: _lx, w: perfect?prev.w:ow, kt: mover.kt, fallY: MOVER_Y, fallVy: 14,
+                onLand: () => burst(_lx, layerY(_li), perfect) });
   layerIdx++;
   const base = 10, perf = perfect ? 10 : 0;
   score += base + perf;
@@ -1495,7 +1601,6 @@ function place() {
   if (perfect) perfectStacksCount++;
   greenFlash = 8;
   playSound(sfxStack);
-  burst(placed[placed.length-1].x, layerY(placed.length-1), perfect);
 
   if (layerIdx >= orderData().layers.length) { finishOrder(); return; }
   moverSpd = (orderData().speed + layerIdx * 0.12) * SPEED_MULT * (level().speedMult ?? 1);
@@ -1510,9 +1615,10 @@ function placeTestRound() {
 
   if (ow <= 2) { spawnTestMover(); return; }
   const perfect = Math.abs(mover.x - prev.x) < 8;
-  placed.push({ x: perfect?prev.x:(ol+or_)/2, w: perfect?prev.w:ow, kt: mover.kt });
+  const _lx = perfect ? prev.x : (ol+or_)/2, _li = placed.length;
+  placed.push({ x: _lx, w: perfect?prev.w:ow, kt: mover.kt, fallY: MOVER_Y, fallVy: 2,
+                onLand: () => burst(_lx, layerY(_li), perfect) });
   layerIdx++;
-  burst(placed[placed.length-1].x, layerY(placed.length-1), perfect);
   playSound(sfxStack);
 
   if (layerIdx >= TUTORIAL_ORDER.layers.length) {
@@ -1560,11 +1666,14 @@ function loseLife() {
 }
 
 function finishOrder() {
-  const compBonus = 50;
-  score += compBonus;
+  score += 50;
   playSound(sfxComplete);
   updateMusicPlayback();
-  advanceOrder();
+  // Delay lets the last placed layer finish its fall animation before packaging starts
+  setTimeout(() => {
+    pkgAnim = { t: 0, layers: placed.map((l, i) => ({ x: l.x, w: l.w, kt: l.kt, y: layerY(i) })) };
+    state = 'packaging';
+  }, 380);
 }
 
 function advanceOrder() {
@@ -1613,6 +1722,8 @@ function showLevelComplete() {
   highScores[levelIdx]  = Math.max(highScores[levelIdx], levelScore);
   if (levelIdx < LEVELS.length - 1) unlockedLevels = Math.max(unlockedLevels, levelIdx + 2);
   if (lives < 3) lives++;
+
+  submitScore(bakerName, score);  // record the run total on the online leaderboard
 
   state = 'levelComplete';
   const lv     = level();
@@ -1682,7 +1793,7 @@ function drawOrderDone() {
 
   drawGameBg();
   drawPlate();
-  placed.forEach((l,i) => drawLayer(l.x, layerY(i), l.w, l.kt, false));
+  placed.forEach((l,i) => drawLayer(l.x, l.fallY ?? layerY(i), l.w, l.kt, false));
 
   // Dark overlay
   ctx.fillStyle = `rgba(0,0,0,${Math.min(T/20, 0.55)})`;
@@ -1727,17 +1838,11 @@ function drawOrderDone() {
 //  PROFILE & LEADERBOARD PAGES
 // ═══════════════════════════════════════════════════════
 function drawProfilePage() {
-  // ── Page header ───────────────────────────────────────
-  const hg = ctx.createLinearGradient(0,0,0,82);
-  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
-  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
-  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+  // ── Page header (extends to physical screen edges) ────
+  physHeaderFill();
+  physContentFill('#F5EDD5','#E8D9A8');
   ctx.fillStyle='#FFF3D0'; ctx.font="bold 26px 'Fredoka One',cursive"; ctx.textAlign='center';
   ctx.fillText('Profile', W/2, 50);
-
-  const bg = ctx.createLinearGradient(0,82,0,H);
-  bg.addColorStop(0,'#F5EDD5'); bg.addColorStop(1,'#E8D9A8');
-  ctx.fillStyle=bg; ctx.fillRect(0,82,W,H-82);
 
   // ── Baker ID Card ─────────────────────────────────────
   const cx=18, cy=92, cw=364, ch=200, cr=18;
@@ -1939,18 +2044,11 @@ function drawProfilePage() {
 }
 
 function drawLeaderboard() {
-  // ── Bakery brown header (matches all other pages) ─────
-  const hg = ctx.createLinearGradient(0,0,0,82);
-  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
-  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
-  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+  // ── Bakery brown header + cream content (extend to physical screen edges) ─
+  physHeaderFill();
+  physContentFill('#F5EDD5','#E8D9A8');
   ctx.fillStyle='#FFF3D0'; ctx.font="bold 26px 'Fredoka One',cursive"; ctx.textAlign='center';
   ctx.fillText('Leaderboard', W/2, 50);
-
-  // ── Warm cream content background (matches other pages) ─
-  const bg = ctx.createLinearGradient(0,82,0,H);
-  bg.addColorStop(0,'#F5EDD5'); bg.addColorStop(1,'#E8D9A8');
-  ctx.fillStyle=bg; ctx.fillRect(0,82,W,H-82);
 
   // ── Column headers — 12px visual gap below brown header ──
   const headY=102;  // 82 (header bottom) + 12px gap + 8px cap height
@@ -1962,7 +2060,11 @@ function drawLeaderboard() {
   ctx.beginPath(); ctx.moveTo(12,headY+6); ctx.lineTo(W-12,headY+6); ctx.stroke();
 
   // ── Data rows ─────────────────────────────────────────
-  const all=[...MOCK_LEADERBOARD,{name:bakerName,score,isMe:true}];
+  // Use the live Supabase rows when available, else fall back to the mock list.
+  // Drop any stored row under the player's own name and inject their current
+  // session score as the highlighted "me" row.
+  const lbBase = liveLeaderboard.length ? liveLeaderboard : MOCK_LEADERBOARD;
+  const all=[...lbBase.filter(e=>e.name!==bakerName),{name:bakerName,score,isMe:true}];
   all.sort((a,b)=>b.score-a.score);
 
   const rowH=54, rowGap=3, startY=116;
@@ -1994,14 +2096,18 @@ function drawLeaderboard() {
     if(isTop3){
       const sc=['#F5C000','#C8A870','#CD8020'][i];
       const ss=['#A88000','#8A6030','#8A4810'][i];
-      ctx.fillStyle=sc; ctx.beginPath();
+      ctx.save(); ctx.lineJoin='round';
+      ctx.beginPath();
       for(let k=0;k<10;k++){
-        const a=(k*Math.PI/5)-Math.PI/2, r=k%2===0?16:7;
+        const a=(k*Math.PI/5)-Math.PI/2, r=k%2===0?15:9;
         const px=48+r*Math.cos(a), py=my+r*Math.sin(a);
         k===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
       }
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle=ss; ctx.lineWidth=1.2; ctx.stroke();
+      ctx.closePath();
+      ctx.fillStyle=sc; ctx.fill();
+      ctx.strokeStyle=sc; ctx.lineWidth=5; ctx.stroke();  // rounds pointy tips
+      ctx.strokeStyle=ss; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.restore();
       ctx.fillStyle='#3A1A00'; ctx.font="bold 13px 'Fredoka One',cursive"; ctx.textAlign='center';
       ctx.fillText(i+1,48,my+5);
     } else {
@@ -2096,15 +2202,9 @@ function drawMiniStack(pvX, pvY, pvW, cardH, layers) {
 }
 
 function drawRecipePage() {
-  // ── Header ────────────────────────────────────────────
-  const hg = ctx.createLinearGradient(0,0,0,82);
-  hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
-  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
-  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
-
-  const bg = ctx.createLinearGradient(0,82,0,H);
-  bg.addColorStop(0,'#F5EDD5'); bg.addColorStop(1,'#E8D9A8');
-  ctx.fillStyle=bg; ctx.fillRect(0,82,W,H-82);
+  // ── Header + content background (extend to physical screen edges) ─
+  physHeaderFill();
+  physContentFill('#F5EDD5','#E8D9A8');
 
   // ── Book detail view ──────────────────────────────────
   if (recipesBookIdx >= 0) {
@@ -2236,16 +2336,39 @@ function drawRecipePage() {
   });
 }
 
+// "Bleed" range in game coords: content (map landscape, bakery wall/counter…)
+// extends past the 0..W column out to the physical canvas edges so there are no
+// mismatched letterbox side strips on wide/short viewports.
+function bleedX() {
+  const xL = -gameOffX / gameScale;
+  const xR = (canvas.width - gameOffX) / gameScale;
+  return { xL, xR, w: xR - xL };
+}
+
 function drawLevelMap() {
   // Smooth scroll
   mapScrollY += (mapTargetScrollY - mapScrollY) * 0.14;
   if (Math.abs(mapScrollY - mapTargetScrollY) < 0.3) mapScrollY = mapTargetScrollY;
 
+  // Fill full physical canvas with the map gradient so side/top/bottom bars match
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const _mg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  _mg.addColorStop(0,    '#C8D8E0'); _mg.addColorStop(0.18, '#C8D8C0');
+  _mg.addColorStop(0.45, '#A8CC88'); _mg.addColorStop(0.75, '#88C068');
+  _mg.addColorStop(1,    '#60A040');
+  ctx.fillStyle = _mg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
   drawMapHeader();
 
-  // Clip to content area below header
+  // Clip to content area below header — extend to the full physical width (and
+  // down to the canvas bottom) so the scrolling landscape gradient bleeds
+  // edge-to-edge instead of leaving mismatched side strips.
   ctx.save();
-  ctx.beginPath(); ctx.rect(0, 82, W, 618); ctx.clip();
+  const _bl = bleedX();
+  const _clipBot = (canvas.height - gameOffY) / gameScale;
+  ctx.beginPath(); ctx.rect(_bl.xL, 82, _bl.w, _clipBot - 82); ctx.clip();
 
   ctx.save();
   ctx.translate(0, mapScrollY - 1840);
@@ -2298,6 +2421,7 @@ function drawLevelMap() {
 }
 
 function drawMapLandscape() {
+  _mapFlowerIdx = 0;
   // Zone-based gradient background (top=snow, bottom=lush green)
   const bg = ctx.createLinearGradient(0, 0, 0, MAP_VIRTUAL_H);
   bg.addColorStop(0,    '#C8D8E0');  // top: cold grey-blue (snow zone)
@@ -2305,14 +2429,16 @@ function drawMapLandscape() {
   bg.addColorStop(0.45, '#A8CC88');  // upper forest green
   bg.addColorStop(0.75, '#88C068');  // mid meadow
   bg.addColorStop(1,    '#60A040');  // bottom lush
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, MAP_VIRTUAL_H);
+  // Bleed across the full physical width (vertical gradient → seamless sideways)
+  const _bg = bleedX();
+  ctx.fillStyle = bg; ctx.fillRect(_bg.xL, 0, _bg.w, MAP_VIRTUAL_H);
 
   // ── TOP ZONE: Snow + Mountains (y 0–620) ──────────────
   drawMountain(55,  125, 190, 200);
   drawMountain(320,  80, 170, 190);
-  drawSnowPatch( 30, 390, 110);
-  drawSnowPatch(310, 420,  90);
-  drawSnowPatch(160, 315,  70);
+  drawSnowPile( 30, 390, 110);
+  drawSnowPile(310, 420,  90);
+  drawSnowPile(160, 315,  70);
   drawPineTree( 30, 545, 52);
   drawPineTree( 80, 515, 42);
   drawPineTree(360, 530, 55);
@@ -2320,55 +2446,70 @@ function drawMapLandscape() {
   drawPineTree(180, 485, 38);
 
   // ── UPPER-MID ZONE: Forest (y 620–1130) ───────────────
-  drawMapTree( 28, 655); drawMapTree(375, 695);
+  // Trees nearest L16 (y=630) use snow variant to transition from the snow zone above
+  drawSnowTree( 28, 655); drawSnowTree(375, 695);
   drawMapTree( 55, 875); drawMapTree(355, 845);
   drawMapTree(190, 795);
   drawMapBush( 95, 765); drawMapBush(310, 740);
-  drawMapRock(155, 720); drawMapRock(265, 780);
-  drawFlowerPatch( 60, 905, '#F87070');
-  drawFlowerPatch(340, 880, '#F060B0');
+  // Rock moved left so it clears Tree(190,795) bbox x:[164,216]
+  drawMapRock(120, 710); drawMapRock(265, 780);
+  // Flower group: shifted left so x-right edge (≤27) stays clear of Tree(55,875) x-left (29)
+  drawFlowerPatch( 12, 855, '', 20);
+  drawFlowerPatch( 18, 866, '', 18);
+  drawFlowerPatch( 12, 878, '', 16);
+  // Right-edge singles moved below their adjacent trees to avoid y-overlap
+  drawFlowerPatch(372, 740, '', 22);  // was 706 — below Tree(375,695) y-bottom 699
+  drawFlowerPatch(368, 872, '', 20);  // was 822 — below Tree(355,845) y-bottom 849
 
   // ── RIVER ZONE (y 1130–1650) ──────────────────────────
   drawMapRiver(1350);
-  drawWoodenBridge(175, 1345);
+  drawWoodenBridge(175, 1350);
   drawMapTree( 22, 1200); drawMapTree(378, 1235);
   drawMapTree( 40, 1470); drawMapTree(362, 1435);
   drawMapBush(295, 1250); drawMapBush(100, 1450);
-  drawFlowerPatch( 55, 1315, '#60C0F0');
-  drawFlowerPatch(340, 1275, '#F0E040');
+  // L8/L9 area: extra bushes + rocks on edges well outside node circles
+  drawMapBush(350, 1490);  // right of L9(80,1470), below river — dist to L9 ≈206px
+  drawMapRock(335, 1545);  // right edge between L9 and L8 — dist to L8 ≈171px
+  drawMapBush( 25, 1555);  // left edge between L9 and L8 — dist to L9 ≈149px
+  drawMapRock( 18, 1630);  // left edge below L8 — dist to L8 ≈157px
+  // Flowers moved right/left to avoid Tree bboxes
+  drawFlowerPatch( 65, 1150, '', 22);  // was 38 — clears Tree(22,1200) x-right 48
+  drawFlowerPatch(380, 1255, '', 20);  // was (355,1214) — below Tree(378,1235) y-bottom 1239
+  drawFlowerPatch(302, 1458, '', 22);
 
   // ── LOWER-MID ZONE: Green fields (y 1650–2075) ────────
   drawMapTree( 30, 1710); drawMapTree(372, 1740);
   drawMapTree(120, 1940); drawMapTree(290, 1970);
   drawMapBush(185, 1830); drawMapBush( 65, 1890);
-  drawMapRock(240, 1795); drawMapRock(310, 1910);
-  drawFlowerPatch( 70, 1765, '#F87070');
-  drawFlowerPatch(340, 1750, '#F0E040');
-  drawFlowerPatch(195, 2000, '#F060B0');
+  drawMapRock(240, 1795); drawMapRock(350, 1910);  // rock moved right, clears Tree(290,1970) x:[264,316]
+  // Flower group: moved down so y-top (1718) clears Tree(30,1710) y-bottom (1714)
+  drawFlowerPatch( 20, 1730, '', 22);
+  drawFlowerPatch( 35, 1742, '', 18);
+  drawFlowerPatch( 28, 1928, '', 20);
+  drawFlowerPatch(372, 1938, '', 22);
 
   // ── BOTTOM ZONE: Start area (y 2075–2500) ─────────────
   drawMapTree( 25, 2125); drawMapTree(375, 2165);
   drawMapTree( 42, 2345); drawMapTree(370, 2360);
   drawMapBush(150, 2235); drawMapBush(275, 2265);
-  drawFlowerPatch( 65, 2345, '#F87070');
-  drawFlowerPatch(340, 2330, '#F0E040');
-  drawFlowerPatch(115, 2420, '#60C0F0');
-  drawFlowerPatch(290, 2410, '#F8A040');
+  // Flower moved left so x-right (346) clears Tree(375,2165) x-left (349)
+  drawFlowerPatch(335, 2180, '', 22);  // was (352,2148) — overlapped Tree(375,2165)
+  // Flower group moved up so y-bottom (2295/2270) clears Tree(370,2360) y-top (2297)
+  drawFlowerPatch(358, 2283, '', 20);
+  drawFlowerPatch(374, 2266, '', 16);
 }
 
 function drawMountain(cx, topY, w, h) {
-  // Shadow side
-  ctx.fillStyle = '#8090A0';
-  ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx+w/2, topY+h); ctx.lineTo(cx, topY+h); ctx.closePath(); ctx.fill();
-  // Main face
-  const g = ctx.createLinearGradient(cx-w/2, topY, cx, topY+h);
-  g.addColorStop(0,'#D0D8E0'); g.addColorStop(1,'#9AAABB');
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.moveTo(cx-w/2, topY+h); ctx.lineTo(cx, topY); ctx.lineTo(cx+w/2, topY+h); ctx.closePath(); ctx.fill();
-  // Snow cap
-  const sh = h*0.32;
-  ctx.fillStyle = '#EEF2F8';
-  ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx+w*0.22, topY+sh); ctx.lineTo(cx-w*0.18, topY+sh*0.88); ctx.closePath(); ctx.fill();
+  if (!imgMountain.complete || !imgMountain.naturalWidth) return;
+  // snow mountain.svg is 451×405 (ratio ≈ 0.899); keep that ratio, fit to given width
+  const mh = Math.round(w * 0.899);
+  ctx.drawImage(imgMountain, cx - w / 2, topY, w, mh);
+}
+
+function drawSnowPile(cx, cy, w) {
+  if (!imgSnowPile.complete || !imgSnowPile.naturalWidth) return;
+  const h = Math.round(w * 0.55);
+  ctx.drawImage(imgSnowPile, cx - w / 2, cy - h, w, h);
 }
 
 function drawSnowPatch(cx, cy, w) {
@@ -2379,71 +2520,86 @@ function drawSnowPatch(cx, cy, w) {
 }
 
 function drawPineTree(cx, baseY, size) {
-  ctx.fillStyle = '#6A4020';
-  ctx.fillRect(cx-size*0.07, baseY-size*0.28, size*0.14, size*0.3);
-  [[1.0,0],[0.75,0.3],[0.52,0.55]].forEach(([sw, yo]) => {
-    const ty = baseY - size*0.28 - size*yo;
-    ctx.fillStyle = '#1E5518';
-    ctx.beginPath(); ctx.moveTo(cx-sw*size/2, ty); ctx.lineTo(cx, ty-sw*size*0.72); ctx.lineTo(cx+sw*size/2, ty); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#2E7028';
-    ctx.beginPath(); ctx.moveTo(cx-sw*size*0.38, ty); ctx.lineTo(cx, ty-sw*size*0.56); ctx.lineTo(cx+sw*size*0.38, ty); ctx.closePath(); ctx.fill();
-  });
+  if (!imgTreeSnow.complete || !imgTreeSnow.naturalWidth) return;
+  const w = size, h = Math.round(size * 1.28);
+  ctx.drawImage(imgTreeSnow, cx - w / 2, baseY - h, w, h);
 }
 
 function drawMapBush(cx, baseY) {
-  ctx.fillStyle = '#1E6828';
-  ctx.beginPath(); ctx.arc(cx, baseY, 22, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#288038';
-  ctx.beginPath(); ctx.arc(cx-13, baseY-9, 15, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx+13, baseY-8, 14, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx, baseY-18, 13, 0, Math.PI*2); ctx.fill();
-  ctx.save(); ctx.globalAlpha=0.15; ctx.fillStyle='#fff';
-  ctx.beginPath(); ctx.ellipse(cx-4, baseY-20, 7, 4, -0.3, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
+  if (!imgBush.complete || !imgBush.naturalWidth) return;
+  const w = 58, h = Math.round(58 * 0.686);
+  ctx.drawImage(imgBush, cx - w / 2, baseY - h + 8, w, h);
 }
 
-function drawMapRock(cx, cy) {
-  ctx.fillStyle = '#8890A0';
-  ctx.beginPath(); ctx.ellipse(cx, cy, 18, 12, 0.15, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.beginPath(); ctx.ellipse(cx-5, cy-4, 7, 4, -0.3, 0, Math.PI*2); ctx.fill();
+function drawMapRock(cx, cy, w = 44) {
+  if (!imgRock.complete || !imgRock.naturalWidth) return;
+  const h = Math.round(w * 0.678); // rock.svg is 180×122
+  ctx.drawImage(imgRock, cx - w / 2, cy - h / 2, w, h);
 }
 
 function drawMapRiver(centerY) {
+  // Extend the river past the 0..W column out to the physical canvas edges
+  const { xL, xR, w } = bleedX();
   const rg = ctx.createLinearGradient(0, centerY-38, 0, centerY+38);
   rg.addColorStop(0,'#7AC8E8'); rg.addColorStop(0.5,'#50A8D0'); rg.addColorStop(1,'#7AC8E8');
   ctx.fillStyle = rg;
   ctx.beginPath();
-  ctx.moveTo(0, centerY-32);
+  ctx.moveTo(xL, centerY-32);
+  ctx.lineTo(0, centerY-32);
   ctx.bezierCurveTo(100,centerY-48, 200,centerY-18, 300,centerY-35);
   ctx.bezierCurveTo(360,centerY-42, 400,centerY-28, 400,centerY-28);
+  ctx.lineTo(xR, centerY-28);
+  ctx.lineTo(xR, centerY+32);
   ctx.lineTo(400, centerY+32);
   ctx.bezierCurveTo(300,centerY+44, 200,centerY+20, 100,centerY+40);
   ctx.bezierCurveTo(50,centerY+48, 0,centerY+32, 0,centerY+32);
+  ctx.lineTo(xL, centerY+32);
   ctx.closePath(); ctx.fill();
-  // Shimmer
-  ctx.strokeStyle='rgba(255,255,255,0.28)'; ctx.lineWidth=2.5;
-  [[25,-8],[130,-4],[240,-10],[350,-6]].forEach(([x,dy])=>{
-    ctx.beginPath(); ctx.moveTo(x, centerY+dy); ctx.lineTo(x+28, centerY+dy-4); ctx.stroke();
-  });
   // Bank grass
   ctx.fillStyle='#60A040';
-  ctx.fillRect(0, centerY-42, W, 12);
-  ctx.fillRect(0, centerY+30, W, 12);
+  ctx.fillRect(xL, centerY-42, w, 12);
+  ctx.fillRect(xL, centerY+30, w, 12);
 }
 
-function drawWoodenBridge(cx, cy) {
-  // Bridge planks across the river
-  ctx.fillStyle = '#9B6020';
-  ctx.fillRect(cx-32, cy-8, 64, 16);
-  ctx.strokeStyle='#7A4810'; ctx.lineWidth=2;
-  [-20,-6,8,22].forEach(dx => {
-    ctx.beginPath(); ctx.moveTo(cx+dx, cy-8); ctx.lineTo(cx+dx, cy+8); ctx.stroke();
-  });
-  // Rope railings
-  ctx.strokeStyle='#6A3808'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.moveTo(cx-32,cy-12); ctx.lineTo(cx+32,cy-12); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx-32,cy+12); ctx.lineTo(cx+32,cy+12); ctx.stroke();
+function drawWoodenBridge(cx, riverY) {
+  // Vertical footbridge crossing the river — rests on the green bank on each side
+  const halfW = 21;              // deck half-width (across)
+  const top = riverY - 46;       // sits on the top bank
+  const bot = riverY + 46;       // sits on the bottom bank
+  const len = bot - top;
+
+  // Soft shadow cast on the water
+  ctx.fillStyle = 'rgba(35,60,80,0.18)';
+  ctx.fillRect(cx - halfW + 3, top + 5, halfW * 2, len);
+
+  // Deck surface (planks) — gradient gives a rounded, raised look
+  const dg = ctx.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
+  dg.addColorStop(0,    '#6E4212');
+  dg.addColorStop(0.15, '#9B6828');
+  dg.addColorStop(0.5,  '#B27C3C');
+  dg.addColorStop(0.85, '#9B6828');
+  dg.addColorStop(1,    '#6E4212');
+  ctx.fillStyle = dg;
+  ctx.fillRect(cx - halfW, top, halfW * 2, len);
+
+  // Plank seams — horizontal slats, perpendicular to the crossing direction
+  ctx.strokeStyle = '#5A3406'; ctx.lineWidth = 1.5;
+  for (let y = top + 7; y < bot; y += 8) {
+    ctx.beginPath(); ctx.moveTo(cx - halfW, y); ctx.lineTo(cx + halfW, y); ctx.stroke();
+  }
+
+  // Side rails running the length of the bridge
+  ctx.fillStyle = '#7A4810';
+  ctx.fillRect(cx - halfW - 4, top, 5, len);
+  ctx.fillRect(cx + halfW - 1, top, 5, len);
+  ctx.fillStyle = 'rgba(255,220,150,0.28)';
+  ctx.fillRect(cx - halfW - 4, top, 2, len);
+  ctx.fillRect(cx + halfW - 1, top, 2, len);
+
+  // End beams resting on each bank
+  ctx.fillStyle = '#5A3006';
+  ctx.fillRect(cx - halfW - 4, top,     halfW * 2 + 8, 6);
+  ctx.fillRect(cx - halfW - 4, bot - 6, halfW * 2 + 8, 6);
 }
 
 function drawWoodenSign(cx, cy, arrowUp) {
@@ -2463,20 +2619,28 @@ function drawWoodenSign(cx, cy, arrowUp) {
 }
 
 function drawMapTree(cx, cy) {
-  ctx.fillStyle='#7A5020'; ctx.fillRect(cx-4,cy-16,8,20);
-  ctx.fillStyle='#226622'; ctx.beginPath(); ctx.arc(cx,cy-26,17,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#2E882E'; ctx.beginPath(); ctx.arc(cx-7,cy-18,12,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx+7,cy-18,12,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(cx,cy-36,13,0,Math.PI*2); ctx.fill();
+  if (!imgTree.complete || !imgTree.naturalWidth) return;
+  const w = 52, h = Math.round(52 * 1.28);
+  ctx.drawImage(imgTree, cx - w / 2, cy - h + 4, w, h);
 }
 
-function drawFlowerPatch(cx, cy, col) {
-  const off=[-8,-4,0,4,8];
-  off.forEach((dx,i)=>{
-    const fy=cy+(i%2===0?-3:3);
-    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(cx+dx,fy,3,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx+dx,fy,1.3,0,Math.PI*2); ctx.fill();
-  });
+function drawSnowTree(cx, cy) {
+  if (!imgTreeSnow.complete || !imgTreeSnow.naturalWidth) return;
+  const w = 52, h = Math.round(52 * 1.28);
+  ctx.drawImage(imgTreeSnow, cx - w / 2, cy - h + 4, w, h);
+}
+
+function drawFlowerPatch(cx, cy, col, sz = 22) {
+  const [fi, hue] = FLOWER_CONFIGS[_mapFlowerIdx % FLOWER_CONFIGS.length];
+  _mapFlowerIdx++;
+  const img = fi === 0 ? imgFlower1 : imgFlower2;
+  if (!img.complete || !img.naturalWidth) return;
+  const w = sz, h = fi === 0 ? Math.round(sz * 1.073) : Math.round(sz * 0.994);
+  ctx.save();
+  if (hue) ctx.filter = `hue-rotate(${hue}deg)`;
+  ctx.drawImage(img, cx - w / 2, cy - h / 2 - 4, w, h);
+  ctx.filter = 'none';
+  ctx.restore();
 }
 
 function drawGlossyStar(cx, cy, r, filled) {
@@ -2506,11 +2670,36 @@ function drawGlossyStar(cx, cy, r, filled) {
   }
 }
 
-function drawMapHeader() {
-  const hg = ctx.createLinearGradient(0,0,0,82);
+// Draw a full-physical-canvas-width brown header, extending from physical y=0
+// down to game y=82 (covers the top letterbox on tall mobile screens).
+function physHeaderFill() {
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const pBot = gameOffY + 82 * gameScale;
+  const hg = ctx.createLinearGradient(0, 0, 0, pBot);
   hg.addColorStop(0,'#7A4010'); hg.addColorStop(1,'#5A2C06');
-  ctx.fillStyle=hg; ctx.fillRect(0,0,W,82);
-  ctx.fillStyle='#C4A040'; ctx.fillRect(0,79,W,3);
+  ctx.fillStyle = hg;
+  ctx.fillRect(0, 0, canvas.width, pBot);
+  ctx.fillStyle = '#C4A040';
+  ctx.fillRect(0, gameOffY + 79 * gameScale, canvas.width, Math.max(3 * gameScale, 1));
+  ctx.restore();
+}
+
+// Draw full-physical-canvas-width content background from game y=82 to physical bottom.
+function physContentFill(color1, color2) {
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const pTop = gameOffY + 82 * gameScale;
+  const bg = ctx.createLinearGradient(0, pTop, 0, canvas.height);
+  bg.addColorStop(0, color1); bg.addColorStop(1, color2);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, pTop, canvas.width, canvas.height - pTop);
+  ctx.restore();
+}
+
+function drawMapHeader() {
+  physHeaderFill();
+  // Gold divider already drawn in physHeaderFill; skip the in-game one.
 
   // Level pill card (centre of header)
   const lv = LEVELS[Math.min(unlockedLevels-1, LEVELS.length-1)];
@@ -2759,21 +2948,32 @@ function drawBakeryScene(t) {
 }
 
 function drawBakeryWall(t) {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0,   '#FFF8E8');
-  g.addColorStop(0.55,'#FDECC8');
-  g.addColorStop(1,   '#F0D8A8');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Fill the full physical canvas so no letterbox gaps show on mobile
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const _bwG = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  _bwG.addColorStop(0,   '#FFF8E8');
+  _bwG.addColorStop(0.55,'#FDECC8');
+  _bwG.addColorStop(1,   '#F0D8A8');
+  ctx.fillStyle = _bwG; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
 
+  // Tile grid — bleed across the full physical width so the wall pattern reaches the edges
+  const _wb = bleedX();
   ctx.strokeStyle = 'rgba(175,128,55,0.09)'; ctx.lineWidth = 1;
-  for (let x=0; x<=W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,440); ctx.stroke(); }
-  for (let y=0; y<=440; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  for (let x=Math.floor(_wb.xL/40)*40; x<=_wb.xR; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,440); ctx.stroke(); }
+  for (let y=0; y<=440; y+=40) { ctx.beginPath(); ctx.moveTo(_wb.xL,y); ctx.lineTo(_wb.xR,y); ctx.stroke(); }
 
-  const beam = ctx.createLinearGradient(0, 0, 0, 28);
-  beam.addColorStop(0, '#A07030'); beam.addColorStop(1, '#C89840');
-  ctx.fillStyle = beam; ctx.fillRect(0, 0, W, 28);
-  ctx.fillStyle = '#8A5E20'; ctx.fillRect(0, 25, W, 4);
-  ctx.fillStyle = 'rgba(255,220,120,0.18)'; ctx.fillRect(0, 0, W, 8);
+  // Wooden beam at top — extend to full physical canvas width and up to physical top
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const _beamBot = gameOffY + 28 * gameScale;
+  const _beam = ctx.createLinearGradient(0, gameOffY, 0, _beamBot);
+  _beam.addColorStop(0, '#A07030'); _beam.addColorStop(1, '#C89840');
+  ctx.fillStyle = _beam; ctx.fillRect(0, 0, canvas.width, _beamBot);
+  ctx.fillStyle = '#8A5E20'; ctx.fillRect(0, gameOffY + 25*gameScale, canvas.width, Math.max(4*gameScale, 1));
+  ctx.fillStyle = 'rgba(255,220,120,0.18)'; ctx.fillRect(0, 0, canvas.width, Math.max(8*gameScale, 1));
+  ctx.restore();
 }
 
 function drawStringLights(t) {
@@ -2979,26 +3179,37 @@ function drawDisplayStack(cx, caseTop, caseH, layers, t) {
 }
 
 function drawBakeryCounter() {
-  const ctg = ctx.createLinearGradient(0, 378, 0, 400);
+  // Counter ledge + cabinet — extend to full physical canvas width and down to screen bottom
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const _p378 = gameOffY + 378*gameScale, _p400 = gameOffY + 400*gameScale;
+  const ctg = ctx.createLinearGradient(0, _p378, 0, _p400);
   ctg.addColorStop(0,'#C89040'); ctg.addColorStop(1,'#A07020');
-  ctx.fillStyle=ctg; ctx.fillRect(0, 378, W, 22);
-  ctx.fillStyle='#E0A840'; ctx.fillRect(0, 378, W, 5);
-  ctx.fillStyle='#886010'; ctx.fillRect(0, 397, W, 3);
-
-  const lcg = ctx.createLinearGradient(0,400,0,H);
+  ctx.fillStyle = ctg; ctx.fillRect(0, _p378, canvas.width, _p400 - _p378);
+  ctx.fillStyle = '#E0A840'; ctx.fillRect(0, _p378, canvas.width, Math.max(5*gameScale, 1));
+  ctx.fillStyle = '#886010'; ctx.fillRect(0, _p400 - 3*gameScale, canvas.width, Math.max(3*gameScale, 1));
+  const lcg = ctx.createLinearGradient(0, _p400, 0, canvas.height);
   lcg.addColorStop(0,'#C08030'); lcg.addColorStop(1,'#8B5A18');
-  ctx.fillStyle=lcg; ctx.fillRect(0,400,W,H-400);
+  ctx.fillStyle = lcg; ctx.fillRect(0, _p400, canvas.width, canvas.height - _p400);
+  ctx.restore();
 
+  // Cabinet dividers, ledge line and handles — bleed across the full physical width
+  const { xL, xR } = bleedX();
+  const _hy = (400 + (H-20)) / 2 - 5;
   ctx.strokeStyle='rgba(80,40,5,0.20)'; ctx.lineWidth=1.5;
-  [100,200,300].forEach(x => { ctx.beginPath(); ctx.moveTo(x,412); ctx.lineTo(x,H-20); ctx.stroke(); });
-  ctx.beginPath(); ctx.moveTo(0,H-20); ctx.lineTo(W,H-20); ctx.stroke();
+  for (let x=Math.ceil(xL/100)*100; x<xR; x+=100) {
+    if (x <= xL) continue;
+    ctx.beginPath(); ctx.moveTo(x,412); ctx.lineTo(x,H-20); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(xL,H-20); ctx.lineTo(xR,H-20); ctx.stroke();
 
-  [50,150,250,350].forEach(x => {
+  for (let x=Math.floor(xL/100)*100+50; x<xR-12; x+=100) {
+    if (x < xL+12) continue;
     ctx.fillStyle='#E0B050';
-    rr(x-12, (400+(H-20))/2-5, 24, 10, 5); ctx.fill();
+    rr(x-12, _hy, 24, 10, 5); ctx.fill();
     ctx.strokeStyle='#A07820'; ctx.lineWidth=1;
-    rr(x-12, (400+(H-20))/2-5, 24, 10, 5); ctx.stroke();
-  });
+    rr(x-12, _hy, 24, 10, 5); ctx.stroke();
+  }
 }
 
 function drawMenuButton(t) {
@@ -3052,13 +3263,20 @@ function drawSteamParticles(t) {
 //  DRAW: GAME SCENE
 // ═══════════════════════════════════════════════════════
 function drawGameBg() {
-  const g = ctx.createLinearGradient(0,0,0,H);
+  // Cream background — fill full physical canvas so no gaps on mobile/desktop
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
   g.addColorStop(0,'#FFF8E8'); g.addColorStop(0.65,'#FDECC8'); g.addColorStop(1,'#F5DCA8');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  // Grid lines (game coords)
   ctx.strokeStyle='rgba(175,130,55,0.09)'; ctx.lineWidth=1;
   for (let x=0;x<=W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for (let y=0;y<=H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 
+  // Bunting (game coords)
   ctx.save(); ctx.globalAlpha=0.30;
   ctx.strokeStyle='#C09040'; ctx.lineWidth=1.5;
   ctx.beginPath(); ctx.moveTo(0,26); ctx.quadraticCurveTo(W/2,56,W,26); ctx.stroke();
@@ -3071,12 +3289,18 @@ function drawGameBg() {
   }
   ctx.restore();
 
-  const cy=H-90;
-  const cg=ctx.createLinearGradient(0,cy,0,H);
+  // Counter — extend to full physical canvas width and down to screen bottom
+  const cy = H - 90;
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  const pcy = gameOffY + cy * gameScale;
+  const cg = ctx.createLinearGradient(0, pcy, 0, canvas.height);
   cg.addColorStop(0,'#D49848'); cg.addColorStop(1,'#A87028');
-  ctx.fillStyle=cg; ctx.fillRect(0,cy,W,H-cy);
-  ctx.fillStyle='#E8B058'; ctx.fillRect(0,cy,W,6);
-  ctx.fillStyle='#B88030'; ctx.fillRect(0,cy+6,W,3);
+  ctx.fillStyle = cg; ctx.fillRect(0, pcy, canvas.width, canvas.height - pcy);
+  ctx.fillStyle = '#E8B058'; ctx.fillRect(0, pcy, canvas.width, Math.max(6*gameScale, 1));
+  ctx.fillStyle = '#B88030'; ctx.fillRect(0, pcy + 6*gameScale, canvas.width, Math.max(3*gameScale, 1));
+  ctx.restore();
+  // Grain lines (game coords, drawn on top)
   for(let x=20;x<W;x+=60){
     ctx.strokeStyle='rgba(100,55,10,0.10)'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(x,cy+10); ctx.lineTo(x+20,H); ctx.stroke();
@@ -3328,7 +3552,14 @@ function drawTutDemo() {
   // Background + static elements
   drawGameBg();
   drawPlate();
-  tutDemoLayers.forEach((l, i) => drawLayer(l.x, layerY(i), l.w, l.kt, false));
+  tutDemoLayers.forEach((l, i) => {
+    const ty = layerY(i);
+    if (l.fallY !== undefined && l.fallY < ty) {
+      l.fallVy = (l.fallVy || 0) + 3;
+      l.fallY  = Math.min(l.fallY + l.fallVy, ty);
+    }
+    drawLayer(l.x, l.fallY !== undefined ? l.fallY : ty, l.w, l.kt, false);
+  });
 
   // ── Step 2: Tap to Place demo ──
   if (tutDemoStep === 2 && tutDemoPhase < 2) {
@@ -3356,7 +3587,7 @@ function drawTutDemo() {
         const perfect = Math.abs(tapActualX - prev.x) < 8;
         const nx = perfect ? prev.x : (ol + orr) / 2;
         const nw = perfect ? prev.w : ow;
-        tutDemoLayers.push({ x: nx, w: nw, kt });
+        tutDemoLayers.push({ x: nx, w: nw, kt, fallY: MOVER_Y, fallVy: 0 });
         playSound(sfxStack);
         const py = layerY(tutDemoLayers.length - 1);
         for (let p = 0; p < 12; p++) {
@@ -3495,7 +3726,21 @@ function drawTutDemo() {
 //  MAIN LOOP
 // ═══════════════════════════════════════════════════════
 function loop() {
-  ctx.clearRect(0,0,W,H);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Fill the full canvas (including mobile letterbox areas) with a gradient matching
+  // the current state so there are no visible gaps around the game area on mobile.
+  {
+    const _cw = canvas.width, _ch = canvas.height;
+    {
+      const _lb = ctx.createLinearGradient(0, 0, 0, _ch);
+      _lb.addColorStop(0, '#FFF8E8'); _lb.addColorStop(1, '#F0D8A8');
+      ctx.fillStyle = _lb;
+    }
+    ctx.fillRect(0, 0, _cw, _ch);
+  }
+  ctx.save();
+  ctx.translate(gameOffX, gameOffY);
+  ctx.scale(gameScale, gameScale);
   menuTime++;
 
   if (state === 'levelMap') {
@@ -3506,6 +3751,20 @@ function loop() {
     drawLeaderboard();
   } else if (state === 'recipes') {
     drawRecipePage();
+  } else if (state === 'packaging') {
+    pkgAnim.t++;
+    const prog = Math.min(pkgAnim.t / 40, 1);
+    const ease = prog * prog; // ease-in — accelerates as it exits
+    const ox   = -(ease * (W + 80)); // slides left off screen
+    drawGameBg();
+    ctx.save();
+    ctx.translate(ox, 0);
+    drawPlate();
+    pkgAnim.layers.forEach(l => drawLayer(l.x, l.y, l.w, l.kt, false));
+    ctx.restore();
+    tickParticles();
+    drawHUD();
+    if (pkgAnim.t >= 40) { pkgAnim = null; advanceOrder(); }
   } else if (state === 'orderDone') {
     drawOrderDone();
   } else {
@@ -3523,8 +3782,20 @@ function loop() {
       ctx.save(); ctx.translate(sx,0);
       drawGameBg();
       if(redFlash>0){ctx.fillStyle=`rgba(210,30,30,${redFlash*0.038})`;ctx.fillRect(-12,0,W+24,H);redFlash--;}
+      if (plateAlpha < 1) plateAlpha = Math.min(plateAlpha + 0.045, 1);
+      ctx.save(); ctx.globalAlpha = plateAlpha;
       drawPlate();
-      placed.forEach((l,i) => drawLayer(l.x,layerY(i),l.w,l.kt,false));
+      placed.forEach((l,i) => {
+        const ty = layerY(i);
+        const isFalling = l.fallY !== undefined && l.fallY < ty;
+        if (isFalling) {
+          l.fallVy += state === 'testRound' ? 0.8 : 4;
+          l.fallY = Math.min(l.fallY + l.fallVy, ty);
+          if (l.fallY >= ty && l.onLand) { l.onLand(); l.onLand = null; }
+        }
+        drawLayer(l.x, l.fallY !== undefined ? l.fallY : ty, l.w, l.kt, isFalling);
+      });
+      ctx.restore();
       drawAndMoveMover();
       tickParticles();
       if(greenFlash>0){ctx.fillStyle=`rgba(50,180,60,${greenFlash*0.025})`;ctx.fillRect(0,0,W,H);greenFlash--;}
@@ -3533,6 +3804,7 @@ function loop() {
     }
   }
 
+  ctx.restore(); // end game transform
   requestAnimationFrame(loop);
 }
 

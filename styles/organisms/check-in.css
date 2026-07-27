@@ -289,6 +289,21 @@ a.checkin-window:focus-visible {
   width: auto;
 }
 
+/* Li Wei's snake (images/checkin/snake-peek.gif, self-animating) — flush
+   against the window's own top-left corner, like a small round window it's
+   peeking through, echoing machines/liwei/style.css's own .snake-peek-mask
+   (a rounded-corner mask box pinned top: 0; left: 0). Only the inner
+   bottom-right corner gets rounded here, not all four — the top/left edges
+   already sit flush against the window's real corner, so rounding those
+   would just clip into empty space rather than reading as a window edge. */
+.checkin-window-decor--top-left {
+  top: 0;
+  left: 0;
+  height: 34%;
+  width: auto;
+  border-radius: 0 0 40% 0;
+}
+
 /* Ruth's string lights — hanging from the window's own top edge, blown up
    to 2x the window's own width (bulbs read as too small/fiddly at native
    scale) and centered so the overflow crops evenly off both sides rather
