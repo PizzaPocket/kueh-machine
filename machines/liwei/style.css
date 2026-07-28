@@ -972,6 +972,19 @@ canvas#game {
   letter-spacing: 0.05em;
 }
 
+.name-error {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--coral);
+  align-self: flex-start;
+  margin-top: -0.6rem;
+  margin-bottom: 0.9rem;
+}
+
+.name-error.hidden {
+  display: none;
+}
+
 .btn-confirm {
   width: 100%;
   background: #8FD400;

@@ -265,26 +265,58 @@
   }
   var playerName = getPlayerName();
 
+  // ── Player identity (localStorage) ───────────────────────────────────
+  // Separate from the display name so two players choosing the same
+  // nickname don't collide into the same leaderboard row.
+  var STORAGE_KEY_ID = "kuehLapisPlayerId";
+  function getPlayerId(){
+    try {
+      var id = localStorage.getItem(STORAGE_KEY_ID);
+      if(id) return id;
+    } catch(e){}
+    var newId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() :
+      "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c){
+        var r = Math.random()*16|0, v = c==="x" ? r : (r&0x3|0x8);
+        return v.toString(16);
+      });
+    try { localStorage.setItem(STORAGE_KEY_ID, newId); } catch(e){}
+    return newId;
+  }
+  var playerId = getPlayerId();
+
   // ── Supabase leaderboard ─────────────────────────────────────────────
   var SB_URL = "https://ezgwbhtngkimcubviwqd.supabase.co";
   var SB_KEY = "sb_publishable_7Hk4sbUM-oAhMt4Di39jtw_CtDcIY9J";
   var SB_HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
 
   function fetchLeaderboard(callback){
-    fetch(SB_URL + "/rest/v1/scores?select=name,score&order=score.desc&limit=100", { headers: SB_HEADERS })
+    fetch(SB_URL + "/rest/v1/scores?select=name,score,player_id&order=score.desc&limit=100", { headers: SB_HEADERS })
       .then(function(r){ return r.json(); })
       .then(function(data){ callback(Array.isArray(data) ? data : []); })
       .catch(function(){ callback([]); });
   }
 
+  // Checks whether `name` already belongs to a different player. Fails
+  // open (treats the name as available) if the request errors out, so a
+  // network hiccup can't lock someone out of naming themselves.
+  function isNameTaken(name, callback){
+    fetch(SB_URL + "/rest/v1/scores?select=player_id&name=eq." + encodeURIComponent(name), { headers: SB_HEADERS })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        var taken = Array.isArray(data) && data.some(function(row){ return row.player_id !== playerId; });
+        callback(taken);
+      })
+      .catch(function(){ callback(false); });
+  }
+
   var currentScoreId = null;
 
-  function submitScore(name, s, callback){
+  function submitScore(pId, name, s, callback){
     currentScoreId = null;
     fetch(SB_URL + "/rest/v1/rpc/upsert_score", {
       method: "POST",
       headers: Object.assign({}, SB_HEADERS, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ p_name: name, p_score: s })
+      body: JSON.stringify({ p_player_id: pId, p_name: name, p_score: s })
     })
     .then(function(r){ return r.json(); })
     .then(function(data){ if(data && data.id) currentScoreId = data.id; if(callback) callback(); })
@@ -305,7 +337,7 @@
 
   var viewOnlyMode = false;
 
-  function renderLeaderboard(rows, currentName, currentScore, viewOnly){
+  function renderLeaderboard(rows, currentName, currentScore, viewOnly, currentPlayerId){
     var list = document.getElementById("lbList");
     list.innerHTML = "";
 
@@ -316,7 +348,7 @@
       // inject current score into full ranking
       var inserted = false;
       for(var i=0;i<allRows.length;i++){
-        if(allRows[i].name === currentName){ allRows[i].isYou = true; allRows[i].score = Math.max(allRows[i].score, currentScore); inserted = true; break; }
+        if(allRows[i].player_id === currentPlayerId){ allRows[i].isYou = true; allRows[i].score = Math.max(allRows[i].score, currentScore); inserted = true; break; }
       }
       if(!inserted){
         for(var i=0;i<allRows.length;i++){
@@ -452,11 +484,11 @@
     document.querySelector(".bottom-btns").classList.add("hidden");
 
     if(score > 0){
-      submitScore(playerName, score, function(){
-        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score); });
+      submitScore(playerId, playerName, score, function(){
+        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
       });
     } else {
-      fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score); });
+      fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
     }
   }
 
@@ -476,6 +508,7 @@
     input.value = playerName;
     document.getElementById("charCount").textContent = playerName.length + " / 20";
     document.getElementById("btnCancelEdit").textContent = "Keep " + playerName;
+    document.getElementById("nameError").classList.add("hidden");
     document.getElementById("overlayEdit").classList.remove("hidden");
     input.focus();
   });
@@ -483,27 +516,49 @@
   document.getElementById("nameInput").addEventListener("input", function(){
     var len = this.value.length;
     document.getElementById("charCount").textContent = len + " / 20";
+    document.getElementById("nameError").classList.add("hidden");
   });
 
   document.getElementById("btnConfirmName").addEventListener("click", function(){
     var input = document.getElementById("nameInput");
     var newName = input.value.trim();
+    var nameError = document.getElementById("nameError");
     if(!newName) return;
-    playerName = newName;
-    savePlayerName(playerName);
-    document.getElementById("overlayEdit").classList.add("hidden");
-    document.getElementById("lbNameDisplay").textContent = playerName;
-    document.getElementById("overlayLb").classList.remove("hidden");
-    if(currentScoreId){
-      updateScoreName(currentScoreId, playerName, function(){
-        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score); });
-      });
-    } else {
-      fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score); });
+
+    if(newName === playerName){
+      nameError.classList.add("hidden");
+      document.getElementById("overlayEdit").classList.add("hidden");
+      document.getElementById("overlayLb").classList.remove("hidden");
+      return;
     }
+
+    var btn = this;
+    btn.disabled = true;
+    isNameTaken(newName, function(taken){
+      btn.disabled = false;
+      if(taken){
+        nameError.textContent = "That name is taken. Try another.";
+        nameError.classList.remove("hidden");
+        return;
+      }
+      nameError.classList.add("hidden");
+      playerName = newName;
+      savePlayerName(playerName);
+      document.getElementById("overlayEdit").classList.add("hidden");
+      document.getElementById("lbNameDisplay").textContent = playerName;
+      document.getElementById("overlayLb").classList.remove("hidden");
+      if(currentScoreId){
+        updateScoreName(currentScoreId, playerName, function(){
+          fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
+        });
+      } else {
+        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
+      }
+    });
   });
 
   document.getElementById("btnCancelEdit").addEventListener("click", function(){
+    document.getElementById("nameError").classList.add("hidden");
     document.getElementById("overlayEdit").classList.add("hidden");
     document.getElementById("overlayLb").classList.remove("hidden");
   });
