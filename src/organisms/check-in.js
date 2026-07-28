@@ -30,7 +30,7 @@ const CONTRIBUTORS = [
     url: '/machines/jesslyn/',
     windowDecors: [{ src: 'images/checkin/pow-jesslyn.svg', position: 'top-right' }],
   },
-  { initials: 'KC', name: 'Kaixin Cai', title: 'Songs that Walked Through a Hawker Centre', desc: "(the one that's very punny)" },
+  { initials: 'KC', name: 'Kaixin Cai', title: 'Kara-o-kueh', desc: "(the one that's very punny)" },
   {
     initials: 'KN',
     name: 'Ken Lee',

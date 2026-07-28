@@ -271,7 +271,7 @@
   var SB_HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
 
   function fetchLeaderboard(callback){
-    fetch(SB_URL + "/rest/v1/scores?select=name,score&order=score.desc&limit=20", { headers: SB_HEADERS })
+    fetch(SB_URL + "/rest/v1/scores?select=name,score&order=score.desc&limit=100", { headers: SB_HEADERS })
       .then(function(r){ return r.json(); })
       .then(function(data){ callback(Array.isArray(data) ? data : []); })
       .catch(function(){ callback([]); });

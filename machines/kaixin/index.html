@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kara-o-kueh</title>
+    <meta name="description" content="Karaoke, food-pun style. Search any song, sing along to lyrics swapped for Singapore/Malaysian food words." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="./assets/index-po79uBtP.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-C_BTTqd0.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="hero">
+        <h1 class="title"><span>KARA</span><span class="dot">•</span><span>O</span><span class="dot">•</span><span class="kueh">KUEH</span></h1>
+        <p class="tagline">sing along, food-pun style</p>
+      </header>
+
+      <section class="search-section">
+        <form id="search-form" class="search-form" autocomplete="off">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="type a song title..."
+            autocomplete="off"
+            aria-label="Search for a song"
+          />
+          <button type="submit">SEARCH</button>
+        </form>
+        <p id="search-status" class="status-message" role="status"></p>
+        <div id="search-results" class="search-results"></div>
+        <div id="lyrics-picker" class="lyrics-picker" hidden>
+          <p class="picker-label">which lyrics match the video you picked?</p>
+          <div id="lyrics-picker-options" class="lyrics-picker-options"></div>
+        </div>
+      </section>
+
+      <section class="now-playing" id="now-playing" hidden>
+        <div class="video-frame">
+          <div id="yt-player"></div>
+        </div>
+        <div class="lyrics-panel">
+          <div class="now-playing-header">
+            <p class="now-playing-label" id="now-playing-label"></p>
+            <button type="button" id="skip-song-btn">⏭ Next song</button>
+          </div>
+          <p class="lyrics-status" id="lyrics-intro-status" hidden>🎵 instrumental intro — get ready to sing!</p>
+          <div class="lyrics-display" id="lyrics-display"></div>
+          <p class="sync-hint">drifting? tap the line being sung to resync</p>
+          <div class="save-controls">
+            <button type="button" id="save-song-btn">⭐ save to a collection</button>
+            <button type="button" id="report-lyrics-btn" hidden>🚫 lyrics don't match — report</button>
+            <button type="button" id="fix-word-btn">✏️ fix a word in this song</button>
+            <div id="save-picker" class="save-picker" hidden>
+              <div id="save-picker-existing" class="save-picker-existing"></div>
+              <form id="save-picker-form" class="save-picker-form">
+                <input type="text" id="save-picker-input" placeholder="or name a new collection..." autocomplete="off" />
+                <button type="submit">save</button>
+              </form>
+            </div>
+            <div id="fix-word-picker" class="save-picker" hidden>
+              <p class="picker-label">just for this song:</p>
+              <form id="fix-word-form" class="fix-word-form">
+                <input type="text" id="fix-word-original" placeholder="word in the lyric..." autocomplete="off" />
+                <span class="fix-word-arrow">→</span>
+                <input type="text" id="fix-word-replacement" placeholder="change to..." autocomplete="off" />
+                <button type="submit">fix</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="collections-section">
+        <h2>Ready to Sing <span class="badge" id="collections-count">0</span></h2>
+        <div id="collections-list" class="collections-list"></div>
+        <p class="empty-collections" id="empty-collections">
+          no saved songs yet — try one out, then save it here so it's ready for next time
+        </p>
+        <button type="button" id="export-data-btn" class="export-data-btn">
+          ⬇ export for handoff
+        </button>
+      </section>
+
+      <section class="queue-section">
+        <h2>Up Next <span class="badge" id="queue-count">0</span></h2>
+        <ol id="queue-list" class="queue-list"></ol>
+        <p class="empty-queue" id="empty-queue">the queue's empty, search a song above to get this party started</p>
+      </section>
+
+      <footer class="site-footer">
+        <p>Kara-o-kueh — by Kaixin, for <a href="https://kuehmachine.com" target="_blank" rel="noopener">kuehmachine.com</a></p>
+      </footer>
+    </div>
+  </body>
+</html>
