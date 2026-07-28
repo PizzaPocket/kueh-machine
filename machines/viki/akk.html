@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ang Ku Kueh Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="shell">
+
+    <!-- LEFT — controls -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+
+        <header class="sidebar-head">
+          <a class="back-link" href="./index.html">← All kuehs</a>
+          <div class="eyebrow">Kueh Machine</div>
+          <h1>Ang Ku Kueh<br>Studio</h1>
+          <p class="tagline">A bite-sized rice cake pressed in a tortoise mould and steamed on a banana leaf. The red shell brings luck; the sweet filling inside is the reward.</p>
+        </header>
+
+        <!-- Colour -->
+        <section class="ctrl-section">
+          <div class="ctrl-label">Colour</div>
+          <div class="color-chip-grid" id="color-grid"></div>
+          <div id="custom-color-row"></div>
+        </section>
+
+        <!-- Effect -->
+        <section class="ctrl-section">
+          <div class="ctrl-label">Effect</div>
+          <div class="chip-row" id="effect-chips"></div>
+        </section>
+
+        <!-- Design -->
+        <section class="ctrl-section">
+          <div class="ctrl-label">Design</div>
+          <div class="chip-row" id="design-chips"></div>
+        </section>
+
+        <footer class="sidebar-foot">
+          <p class="byline">by Viki &middot; kuehmachine.com</p>
+        </footer>
+
+      </div>
+    </aside>
+
+    <!-- RIGHT — canvas -->
+    <main class="canvas-panel">
+      <div class="cta-bar">
+        <button class="cta-btn cta-btn--outline" id="btn-recipe">Generate recipe</button>
+        <button class="cta-btn cta-btn--primary" id="btn-order">Order now</button>
+      </div>
+      <canvas id="c"></canvas>
+    </main>
+
+  </div>
+
+  <!-- Recipe modal -->
+  <div class="modal-backdrop" id="recipe-modal" hidden>
+    <div class="modal">
+      <button class="modal-close" id="recipe-close">&times;</button>
+      <div id="recipe-content"></div>
+    </div>
+  </div>
+
+  <!-- Order modal -->
+  <div class="modal-backdrop" id="order-modal" hidden>
+    <div class="modal">
+      <button class="modal-close" id="order-close">&times;</button>
+      <div class="modal-eyebrow">Order now</div>
+      <h2 class="modal-title">Send your design to a bakery</h2>
+      <p class="modal-sub">Share your ang ku kueh design with a partner bakery. They'll be in touch to confirm your custom order.</p>
+      <div class="bakery-list">
+        <div class="bakery-card">
+          <div class="bakery-header">
+            <img class="bakery-logo" src="./Bakery%20logos/bengawan%20solo%20logo.webp" alt="Bengawan Solo" />
+            <div>
+              <span class="bakery-name">Bengawan Solo</span>
+              <span class="bakery-desc">Traditional Peranakan kueh since 1979</span>
+            </div>
+          </div>
+          <div class="bakery-meta">
+            <div class="bakery-meta-item">
+              <span class="meta-label">Rating</span>
+              <span class="meta-value">★ 4.5 · 2,400 reviews</span>
+            </div>
+            <div class="bakery-meta-item">
+              <span class="meta-label">Est. price</span>
+              <span class="meta-value">From $6 / 6 pcs</span>
+            </div>
+            <div class="bakery-meta-item">
+              <span class="meta-label">Min. order</span>
+              <span class="meta-value">20 pieces</span>
+            </div>
+          </div>
+        </div>
+        <div class="bakery-card">
+          <div class="bakery-header">
+            <img class="bakery-logo" src="./Bakery%20logos/thumb_OLLELLA_logo_2024_blue___gold-removebg-preview.png" alt="Ollella" />
+            <div>
+              <span class="bakery-name">Ollella</span>
+              <span class="bakery-desc">Modern take on heritage recipes</span>
+            </div>
+          </div>
+          <div class="bakery-meta">
+            <div class="bakery-meta-item">
+              <span class="meta-label">Rating</span>
+              <span class="meta-value">★ 4.6 · 890 reviews</span>
+            </div>
+            <div class="bakery-meta-item">
+              <span class="meta-label">Est. price</span>
+              <span class="meta-value">From $5 / 6 pcs</span>
+            </div>
+            <div class="bakery-meta-item">
+              <span class="meta-label">Min. order</span>
+              <span class="meta-value">12 pieces</span>
+            </div>
+          </div>
+        </div>
+        <div class="bakery-card">
+          <div class="bakery-header">
+            <img class="bakery-logo" src="./Bakery%20logos/kuehhojiak.jpeg" alt="Kueh Ho Jiak" />
+            <div>
+              <span class="bakery-name">Kueh Ho Jiak</span>
+              <span class="bakery-desc">Handmade kueh, small batches daily</span>
+            </div>
+          </div>
+          <div class="bakery-meta">
+            <div class="bakery-meta-item">
+              <span class="meta-label">Rating</span>
+              <span class="meta-value">★ 4.8 · 340 reviews</span>
+            </div>
+            <div class="bakery-meta-item">
+              <span class="meta-label">Est. price</span>
+              <span class="meta-value">From $4 / 6 pcs</span>
+            </div>
+            <div class="bakery-meta-item">
+              <span class="meta-label">Min. order</span>
+              <span class="meta-value">6 pieces</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./akk.js"></script>
+</body>
+</html>

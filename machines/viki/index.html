@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kueh Machine — Design Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./landing.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-mark">KM</span>
+      <span class="logo-name">Kueh Machine</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Hero ── -->
+    <section class="hero">
+      <p class="eyebrow">Design Studio</p>
+      <h1>What kueh would you like to design today?</h1>
+      <p class="hero-sub">Pick a kueh → Customise → Generate recipe or order directly.</p>
+
+      <nav class="quicklinks" aria-label="Choose a kueh type">
+
+        <a class="qlink" href="./lapis.html">
+          <span class="qlink-icon">
+            <img src="./Kueh%20quicklinks/Kueh%20lapis.png" alt="Kueh Lapis" />
+          </span>
+          <span class="qlink-label">Kueh Lapis</span>
+        </a>
+
+        <a class="qlink" href="./ondeh.html">
+          <span class="qlink-icon">
+            <img src="./Kueh%20quicklinks/Ondeh%20ondeh.png" alt="Ondeh Ondeh" />
+          </span>
+          <span class="qlink-label">Ondeh Ondeh</span>
+        </a>
+
+        <div class="qlink qlink--soon">
+          <span class="qlink-icon">
+            <img src="./Kueh%20quicklinks/Tutukueh.png" alt="Tutu Kueh" />
+          </span>
+          <span class="qlink-label">Tutu Kueh</span>
+          <span class="soon-badge">Coming soon</span>
+        </div>
+
+        <div class="qlink qlink--soon">
+          <span class="qlink-icon">
+            <img src="./Kueh%20quicklinks/Angkukueh.png" alt="Ang Ku Kueh" />
+          </span>
+          <span class="qlink-label">Ang Ku Kueh</span>
+          <span class="soon-badge">Coming soon</span>
+        </div>
+
+        <div class="qlink qlink--soon">
+          <span class="qlink-icon">
+            <img src="./Kueh%20quicklinks/kueh%20salat.png" alt="Kueh Salat" />
+          </span>
+          <span class="qlink-label">Kueh Salat</span>
+          <span class="soon-badge">Coming soon</span>
+        </div>
+
+      </nav>
+    </section>
+
+    <!-- ── How it works ── -->
+    <section class="how-section">
+      <h2>How it works</h2>
+      <div class="how-body">
+
+        <div class="how-image-pane">
+
+          <div class="how-step1-panel" id="how-step1-panel">
+            <div class="hs1-grid">
+              <div class="hs1-item hs1-item--dim">
+                <img src="./Kueh%20quicklinks/Ondeh%20ondeh.png" alt="Ondeh Ondeh" />
+                <span class="hs1-label">Ondeh Ondeh</span>
+              </div>
+              <div class="hs1-item hs1-item--dim">
+                <img src="./Kueh%20quicklinks/Tutukueh.png" alt="Tutu Kueh" />
+                <span class="hs1-label">Tutu Kueh</span>
+              </div>
+              <div class="hs1-item hs1-item--featured">
+                <img src="./Kueh%20quicklinks/Kueh%20lapis.png" alt="Kueh Lapis" />
+                <span class="hs1-label">Kueh Lapis</span>
+              </div>
+              <div class="hs1-item hs1-item--dim">
+                <img src="./Kueh%20quicklinks/Angkukueh.png" alt="Ang Ku Kueh" />
+                <span class="hs1-label">Ang Ku Kueh</span>
+              </div>
+              <div class="hs1-item hs1-item--dim">
+                <img src="./Kueh%20quicklinks/kueh%20salat.png" alt="Kueh Salat" />
+                <span class="hs1-label">Kueh Salat</span>
+              </div>
+            </div>
+          </div>
+
+          <img class="how-image" id="how-img"
+            src="./Customised%20kuehs/AKK%20-%20Concept%201%20.png"
+            alt="Customise the design"
+            hidden />
+
+        </div>
+
+        <ol class="how-steps" role="list">
+          <li class="how-step-item how-step-item--active">
+            <span class="how-num">01</span>
+            <span class="how-label">Pick a kueh</span>
+          </li>
+          <li class="how-step-item"
+            data-img="./Step%20images/step2.png"
+            data-alt="Customise the design">
+            <span class="how-num">02</span>
+            <span class="how-label">Customise the design</span>
+          </li>
+          <li class="how-step-item"
+            data-img="./Step%20images/step3.png"
+            data-alt="Generate recipe or order directly">
+            <span class="how-num">03</span>
+            <span class="how-label">Generate recipe or order directly</span>
+          </li>
+        </ol>
+
+      </div>
+    </section>
+
+    <!-- ── Featured bakeries ── -->
+    <section class="bakeries-section">
+      <h2>Featured bakeries</h2>
+      <div class="bakeries-grid">
+
+        <div class="bakery-tile">
+          <div class="bakery-tile-head">
+            <img class="bakery-tile-logo" src="./Bakery%20logos/bengawan%20solo%20logo.webp" alt="Bengawan Solo" />
+            <div>
+              <span class="bakery-tile-name">Bengawan Solo</span>
+              <span class="bakery-tile-desc">Traditional Peranakan kueh since 1979</span>
+            </div>
+          </div>
+          <div class="bakery-tile-meta">
+            <div class="tile-meta-row"><span class="tile-meta-label">Rating</span><span class="tile-meta-value">★ 4.5 · 2,400 reviews</span></div>
+          </div>
+        </div>
+
+        <div class="bakery-tile">
+          <div class="bakery-tile-head">
+            <img class="bakery-tile-logo" src="./Bakery%20logos/thumb_OLLELLA_logo_2024_blue___gold-removebg-preview.png" alt="Ollella" />
+            <div>
+              <span class="bakery-tile-name">Ollella</span>
+              <span class="bakery-tile-desc">Modern take on heritage recipes</span>
+            </div>
+          </div>
+          <div class="bakery-tile-meta">
+            <div class="tile-meta-row"><span class="tile-meta-label">Rating</span><span class="tile-meta-value">★ 4.6 · 890 reviews</span></div>
+          </div>
+        </div>
+
+        <div class="bakery-tile">
+          <div class="bakery-tile-head">
+            <img class="bakery-tile-logo" src="./Bakery%20logos/kuehhojiak.jpeg" alt="Kueh Ho Jiak" />
+            <div>
+              <span class="bakery-tile-name">Kueh Ho Jiak</span>
+              <span class="bakery-tile-desc">Handmade kueh, small batches daily</span>
+            </div>
+          </div>
+          <div class="bakery-tile-meta">
+            <div class="tile-meta-row"><span class="tile-meta-label">Rating</span><span class="tile-meta-value">★ 4.8 · 340 reviews</span></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Gallery ── -->
+    <section class="gallery">
+      <div class="gallery-heading">
+        <p class="gallery-eyebrow">From the machine</p>
+        <h2>What others have been kueh-tomising.</h2>
+      </div>
+
+      <div class="gallery-grid">
+
+        <a class="card" href="./lapis.html">
+          <img src="./Customised%20kuehs/AKK%20-%20Concept%201%20.png" alt="Charcoal Dragon — Ang Ku Kueh" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Charcoal Dragon</span>
+            <span class="card-type">Ang Ku Kueh</span>
+          </div>
+        </a>
+
+        <a class="card" href="./lapis.html">
+          <img src="./Customised%20kuehs/AKK%20-%20Concept%202.png" alt="Lotus Blossom — Ang Ku Kueh" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Lotus Blossom</span>
+            <span class="card-type">Ang Ku Kueh</span>
+          </div>
+        </a>
+
+        <a class="card" href="./lapis.html">
+          <img src="./Customised%20kuehs/Ondeh%20ondeh%20-%20Concept%201.png" alt="Pastel Cloud — Ondeh Ondeh" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Pastel Cloud</span>
+            <span class="card-type">Ondeh Ondeh</span>
+          </div>
+        </a>
+
+        <a class="card" href="./lapis.html">
+          <img src="./Customised%20kuehs/a63eed75-be13-4e74-919d-dc6663ae95d8.png" alt="Ocean Garden — Tutu Kueh" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Ocean Garden</span>
+            <span class="card-type">Tutu Kueh</span>
+          </div>
+        </a>
+
+        <a class="card" href="./lapis.html">
+          <img src="./Customised%20kuehs/d2de534b-4c61-4bc1-96a1-26a097712519.png" alt="Cherry Blossom — Huat Kueh" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Cherry Blossom</span>
+            <span class="card-type">Huat Kueh</span>
+          </div>
+        </a>
+
+        <a class="card" href="./lapis.html">
+          <img src="./Customised%20kuehs/19f1c0d1-1cbe-445a-a5f0-a9f889030190.png" alt="Cinnamon Glaze — Kueh Bahulu" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Cinnamon Glaze</span>
+            <span class="card-type">Kueh Bahulu</span>
+          </div>
+        </a>
+
+        <a class="card card--wide" href="./lapis.html">
+          <img src="./Customised%20kuehs/fa8ab5b5-73ef-4c3b-a9c0-e8da4e602bf0.png" alt="Garden Rolls — Kueh Dadar" loading="lazy"/>
+          <div class="card-overlay">
+            <span class="card-name">Garden Rolls</span>
+            <span class="card-type">Kueh Dadar</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>by Viki &middot; kuehmachine.com</p>
+  </footer>
+
+  <script>
+    const howImg    = document.getElementById('how-img');
+    const howPanel  = document.getElementById('how-step1-panel');
+    const steps     = document.querySelectorAll('.how-step-item');
+
+    function showPanel() {
+      howImg.style.opacity = '0';
+      setTimeout(() => { howImg.hidden = true; }, 220);
+      howPanel.hidden = false;
+    }
+
+    function showImage(src, alt) {
+      howPanel.hidden = true;
+      howImg.style.opacity = '0';
+      howImg.src = src;
+      howImg.alt = alt;
+      howImg.hidden = false;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        howImg.style.opacity = '1';
+      }));
+    }
+
+    steps.forEach((item, i) => {
+      item.addEventListener('click', () => {
+        steps.forEach(s => s.classList.remove('how-step-item--active'));
+        item.classList.add('how-step-item--active');
+        if (i === 0) { showPanel(); } else { showImage(item.dataset.img, item.dataset.alt); }
+      });
+    });
+  </script>
+</body>
+</html>

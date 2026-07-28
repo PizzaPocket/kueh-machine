@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 1200px;
+      height: 800px;
+      overflow: hidden;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #ede8df;
+    }
+
+    body {
+      position: relative;
+    }
+
+    /* ── Modal shell ── */
+    .m {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 28px 28px 32px;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: 0 24px 64px rgba(26,21,16,0.3);
+    }
+
+    .m-close {
+      position: absolute;
+      top: 14px; right: 14px;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(26,21,16,0.12);
+      background: #faf8f4;
+      color: rgba(26,21,16,0.45);
+      font-size: 0.88rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .m-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #b8712a;
+      margin-bottom: 6px;
+    }
+
+    .m-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: #1a1510;
+      margin-bottom: 5px;
+      line-height: 1.2;
+    }
+
+    .m-sub {
+      font-size: 0.8rem;
+      color: rgba(26,21,16,0.48);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    /* ── Recipe modal ── */
+    .recipe { }
+
+    .r-section {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.60rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(26,21,16,0.48);
+      margin: 16px 0 8px;
+    }
+
+    .r-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .r-list li { font-size: 0.82rem; color: #1a1510; }
+
+    .r-colours { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+    .r-colours li {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.82rem; color: #1a1510;
+    }
+
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      border: 1px solid rgba(26,21,16,0.12);
+    }
+
+    .r-steps { padding-left: 16px; display: flex; flex-direction: column; gap: 6px; }
+    .r-steps li { font-size: 0.80rem; color: #1a1510; line-height: 1.56; }
+
+    /* ── Order modal ── */
+    .order { }
+
+    .b-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .b-card {
+      padding: 14px 16px;
+      border: 1.5px solid rgba(26,21,16,0.1);
+      border-radius: 12px;
+      background: #faf8f4;
+    }
+
+    .b-card--on { border-color: #b8712a; }
+
+    .b-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+
+    .b-logo {
+      width: 42px; height: 42px;
+      object-fit: contain;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid rgba(26,21,16,0.1);
+      padding: 3px;
+    }
+
+    .b-name { display: block; font-size: 0.86rem; font-weight: 600; color: #1a1510; }
+    .b-desc { display: block; font-size: 0.70rem; color: rgba(26,21,16,0.34); margin-top: 2px; }
+
+    .b-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(26,21,16,0.1);
+    }
+
+    .b-mi { display: flex; flex-direction: column; gap: 2px; }
+
+    .b-ml {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.57rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(26,21,16,0.48);
+    }
+
+    .b-mv { font-size: 0.82rem; font-weight: 600; color: #1a1510; }
+  </style>
+</head>
+<body>
+
+  <!-- Recipe modal: behind, left, slightly lower -->
+  <div class="m recipe" style="position:absolute; width:490px; left:152px; top:70px; z-index:1;">
+    <div class="m-close">×</div>
+    <div class="m-eyebrow">Recipe</div>
+    <h2 class="m-title">Classic Kueh Lapis</h2>
+    <p class="m-sub">9 layers · Makes one 7-inch square tray</p>
+
+    <div class="r-section">Ingredients</div>
+    <ul class="r-list">
+      <li>250g rice flour</li>
+      <li>125g tapioca starch</li>
+      <li>500ml full-fat coconut milk</li>
+      <li>200g caster sugar</li>
+      <li>½ tsp fine salt</li>
+      <li>Neutral oil, for greasing</li>
+    </ul>
+
+    <div class="r-section">Colourings</div>
+    <ul class="r-colours">
+      <li><span class="dot" style="background:#c94050"></span><strong>Red</strong>&nbsp;— red food colouring (3 layers)</li>
+      <li><span class="dot" style="background:#4a7c5e"></span><strong>Pandan</strong>&nbsp;— pandan extract or blended pandan juice (3 layers)</li>
+      <li><span class="dot" style="background:#e8d5b0"></span><strong>Coconut</strong>&nbsp;— plain (uncoloured) (3 layers)</li>
+    </ul>
+
+    <div class="r-section">Method</div>
+    <ol class="r-steps">
+      <li>Grease a 7-inch square pan and line the base with baking paper.</li>
+      <li>Whisk rice flour, tapioca starch, coconut milk, sugar, and salt until smooth. Strain through a fine sieve.</li>
+      <li>Divide batter into 3 equal portions (~167ml each). Stir in colourings: <strong>Red → Pandan → Coconut</strong>.</li>
+      <li>Bring steamer to a rolling boil. Preheat the empty pan inside for 2 minutes.</li>
+    </ol>
+  </div>
+
+  <!-- Order modal: in front, overlapping recipe by ~80px on its left edge -->
+  <div class="m order" style="position:absolute; width:490px; left:557px; top:25px; z-index:2;">
+    <div class="m-close">×</div>
+    <div class="m-eyebrow">Order now</div>
+    <h2 class="m-title">Send your design to a bakery</h2>
+    <p class="m-sub">Share your kueh lapis design with a partner bakery. They'll be in touch to confirm your custom order.</p>
+
+    <div class="b-list">
+
+      <div class="b-card b-card--on">
+        <div class="b-head">
+          <img class="b-logo" src="../Bakery logos/bengawan solo logo.webp" alt="Bengawan Solo" />
+          <div>
+            <span class="b-name">Bengawan Solo</span>
+            <span class="b-desc">Traditional Peranakan kueh since 1979</span>
+          </div>
+        </div>
+        <div class="b-meta">
+          <div class="b-mi"><span class="b-ml">Rating</span><span class="b-mv">★ 4.5 · 2,400 reviews</span></div>
+          <div class="b-mi"><span class="b-ml">Est. price</span><span class="b-mv">From $13 / 6 pcs</span></div>
+          <div class="b-mi"><span class="b-ml">Min. order</span><span class="b-mv">20 pieces</span></div>
+        </div>
+      </div>
+
+      <div class="b-card">
+        <div class="b-head">
+          <img class="b-logo" src="../Bakery logos/thumb_OLLELLA_logo_2024_blue___gold-removebg-preview.png" alt="Ollella" />
+          <div>
+            <span class="b-name">Ollella</span>
+            <span class="b-desc">Modern take on heritage recipes</span>
+          </div>
+        </div>
+        <div class="b-meta">
+          <div class="b-mi"><span class="b-ml">Rating</span><span class="b-mv">★ 4.6 · 890 reviews</span></div>
+          <div class="b-mi"><span class="b-ml">Est. price</span><span class="b-mv">From $11 / 6 pcs</span></div>
+          <div class="b-mi"><span class="b-ml">Min. order</span><span class="b-mv">12 pieces</span></div>
+        </div>
+      </div>
+
+      <div class="b-card">
+        <div class="b-head">
+          <img class="b-logo" src="../Bakery logos/kuehhojiak.jpeg" alt="Kueh Ho Jiak" />
+          <div>
+            <span class="b-name">Kueh Ho Jiak</span>
+            <span class="b-desc">Handmade kueh, small batches daily</span>
+          </div>
+        </div>
+        <div class="b-meta">
+          <div class="b-mi"><span class="b-ml">Rating</span><span class="b-mv">★ 4.8 · 340 reviews</span></div>
+          <div class="b-mi"><span class="b-ml">Est. price</span><span class="b-mv">From $9 / 6 pcs</span></div>
+          <div class="b-mi"><span class="b-ml">Min. order</span><span class="b-mv">6 pieces</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

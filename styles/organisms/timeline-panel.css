@@ -42,9 +42,15 @@
 /* .sc-post-cut — added by scissors-cut.js's own maybeRemoveScissorsForNewDay
    once the scissors are actually removed (the day after the cut, not the
    moment it happens — see that function's own comment for why the timing
-   matters). Reverts padding-top to its original size now that the extra
-   room above the panel isn't holding anything anymore. */
-.timeline-section.sc-post-cut {
+   matters). .scissors-archived — added by checkin-archive.js the day
+   after check-in, independently of whether scissors-cut.js's own
+   real-time animated sequence ever actually played in this pageview (it
+   just hides the sc- elements directly via CSS, see index.html's own
+   comment). Both mean the same thing — the scissors are gone — so both
+   revert padding-top to its original size now that the extra room above
+   the panel isn't holding anything anymore. */
+.timeline-section.sc-post-cut,
+.timeline-section.scissors-archived {
   padding-top: 64px;
 }
 

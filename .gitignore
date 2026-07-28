@@ -2,3 +2,10 @@ wip/
 .DS_Store
 node_modules/
 dist/
+# Kaixin's Kara-o-kueh (machines/kaixin) is a Vite project — dist/ here is
+# the actual built output the site serves (vercel.json rewrites /kaixin/
+# to it), not a throwaway build artifact, so it needs to be committed.
+!machines/kaixin/dist/
+.env
+.env.local
+.env.*.local

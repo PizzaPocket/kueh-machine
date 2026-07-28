@@ -302,6 +302,18 @@ a.checkin-window:focus-visible {
   width: auto;
 }
 
+/* Viki's Ang Ku Kueh illustration (images/checkin/akk-viki.png, cropped
+   from her own quicklinks icon at machines/viki/Kueh quicklinks/
+   Angkukueh.png) — resting on the window's own bottom edge, toward the
+   left, the mirror of Amy's bottom-right bird so the two don't read as
+   the same corner repeated down the row list. */
+.checkin-window-decor--bottom-left {
+  left: 6%;
+  bottom: 0;
+  height: 65%;
+  width: auto;
+}
+
 /* Li Wei's snake (images/checkin/snake-peek.gif, self-animating) — flush
    against the window's own top-left corner, like a small round window it's
    peeking through, echoing machines/liwei/style.css's own .snake-peek-mask

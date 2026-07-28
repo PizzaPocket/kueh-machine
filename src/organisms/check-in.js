@@ -64,7 +64,14 @@ const CONTRIBUTORS = [
   },
   { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)" },
   { initials: 'SO', name: 'Sophia Himawan', desc: "(the one that's a ___)" },
-  { initials: 'VI', name: 'Viki Yap', desc: "(the one that turns your kueh ideas into reality)" },
+  {
+    initials: 'VI',
+    name: 'Viki Yap',
+    title: 'Kueh Machine Design Studio',
+    desc: "(the one that turns your kueh ideas into reality)",
+    url: '/machines/viki/',
+    windowDecors: [{ src: 'images/checkin/akk-viki.png', position: 'bottom-left' }],
+  },
 ];
 
 const AVATAR_HEIGHT = 52; // matches .checkin-avatar's own CSS (check-in.css)
