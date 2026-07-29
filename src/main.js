@@ -47,10 +47,18 @@ initScissorsCut();
 // After initTimelinePanel — measures .tl-spring-track's own live position
 // as one of its two anchor points, so the panel's rig has to exist first.
 initDropChute();
-// Last — a pure CSS-class toggle (.is-archived/.scissors-archived), so it
-// has no ordering dependency on anything above; runs after so it reads as
-// a final cleanup pass over what those already built.
-initCheckinArchive();
 // Independent of everything above — just its own aria-hidden toggle on
 // #randomiser, gated on the same CHECKIN_UTC deadline as scissors-cut.js.
+// Before initCheckinArchive — see that call's own comment on why it needs
+// to run last, after #randomiser exists, not before.
 initRandomiser();
+// Last — a pure CSS-class toggle (.is-archived/.scissors-archived), so it
+// has no ordering dependency on anything above; runs after so it reads as
+// a final cleanup pass over what those already built. In particular this
+// has to come after initRandomiser: on/after the day-after-check-in gate,
+// both CHECKIN_UTC and GATE_UTC have already passed, so initRandomiser
+// would otherwise reveal #randomiser (build its rivets, wire up its
+// postMessage handshake) a moment before this immediately re-hides it via
+// .is-archived — harmless, but pure wasted work, and the wrong read order
+// for "cleanup pass over what's already built."
+initCheckinArchive();

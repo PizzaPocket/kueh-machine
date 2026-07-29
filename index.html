@@ -988,10 +988,12 @@
     /* === POST-CHECK-IN ARCHIVE (src/organisms/checkin-archive.js flips
        these on the day after check-in) — Leveling Up itself needs no
        gating: it's plain always-visible markup below, same as Getting
-       Started. Only Check In (and the Timeline's scissors-cut apparatus
-       that reveals it) get archived, not deleted, so both can be restored
-       for a future incarnation of the site. === */
-    #check-in.is-archived { display: none; }
+       Started. Check In, the Randomiser (which only makes sense alongside
+       a live check-in), and the Timeline's scissors-cut apparatus that
+       reveals Check In all get archived, not deleted, so all three can be
+       restored for a future incarnation of the site. === */
+    #check-in.is-archived,
+    #randomiser.is-archived { display: none; }
 
     /* scissors-cut.js's rendered elements — .sc-scissors-wrap covers the
        blade images, rivets, and mobile cut-string/grommets (all appended
