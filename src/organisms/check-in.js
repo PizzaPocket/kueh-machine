@@ -18,9 +18,16 @@ import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 // far (Amy, Jesslyn, Kaixin, Kevin, Ruth, Samantha, Viki) carry a real tagline;
 // everyone else's desc stays "___" until their project lands — see
 // scripts/add-contributor.mjs.
+//
+// randomiserKey: the matching entry in randomiser.html's own `names` array
+// (first names, a couple abbreviated — "Sam" for Samantha, "Liwei" for Li
+// Wei) — undefined for Geraldine and Nicole, who aren't in that list since
+// they have nothing to present this check-in. reorderRows() (below) uses
+// this to match the widget's drawn order back to a row, and sorts anyone
+// without a key to the bottom.
 const CONTRIBUTORS = [
-  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one that's a ___)" },
-  { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/machines/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }] },
+  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one that's a ___)", randomiserKey: 'Amanda' },
+  { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/machines/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }], randomiserKey: 'Amy' },
   { initials: 'GE', name: 'Geraldine Chua', desc: "(the one that's a ___)" },
   {
     initials: 'JN',
@@ -29,8 +36,15 @@ const CONTRIBUTORS = [
     desc: "(the one that's a birthday budget planner)",
     url: '/machines/jesslyn/',
     windowDecors: [{ src: 'images/checkin/pow-jesslyn.svg', position: 'top-right' }],
+    randomiserKey: 'Jesslyn',
   },
-  { initials: 'KC', name: 'Kaixin Cai', title: 'Kara-o-kueh', desc: "(the one that's very punny)" },
+  // url: '/kaixin/', not '/machines/kaixin/' like everyone else — her
+  // project is the one Vite-built contributor page (see .gitignore's own
+  // comment on machines/kaixin/dist/), so the short route is the one
+  // vercel.json actually rewrites to the built dist/index.html. The plain
+  // /machines/kaixin/ path serves the unbuilt Vite source index.html
+  // instead (./src/main.js, never bundled) — not the working app.
+  { initials: 'KC', name: 'Kaixin Cai', title: 'Kara-o-kueh', desc: "(the one that's very punny)", url: '/kaixin/', randomiserKey: 'Kaixin' },
   {
     initials: 'KN',
     name: 'Ken Lee',
@@ -38,8 +52,9 @@ const CONTRIBUTORS = [
     desc: "(the one you pull, reveal, and collect)",
     url: '/machines/ken/',
     windowDecors: [{ src: 'images/checkin/ondeh-ken.svg', position: 'bottom-right-crop' }],
+    randomiserKey: 'Ken',
   },
-  { initials: 'KD', name: 'Kevin Dreher', desc: "(the one that's a Singlish translation app)" },
+  { initials: 'KD', name: 'Kevin Dreher', desc: "(the one that's a Singlish translation app)", randomiserKey: 'Kevin' },
   {
     initials: 'LW',
     name: 'Li Wei Lim',
@@ -47,9 +62,10 @@ const CONTRIBUTORS = [
     desc: "(the one that's a snake game)",
     url: '/machines/liwei/',
     windowDecors: [{ src: 'images/checkin/snake-peek.gif', position: 'top-left' }],
+    randomiserKey: 'Liwei',
   },
-  { initials: 'MJ', name: 'Mei Jun Chew', desc: "(the one that's a taste of home)" },
-  { initials: 'NA', name: 'Natalia Lionardy', title: 'Care Island', desc: "(the one where you watch today's scene come alive)", url: '/machines/natalia/' },
+  { initials: 'MJ', name: 'Mei Jun Chew', desc: "(the one that's a taste of home)", randomiserKey: 'Mei Jun' },
+  { initials: 'NA', name: 'Natalia Lionardy', title: 'Care Island', desc: "(the one where you watch today's scene come alive)", url: '/machines/natalia/', randomiserKey: 'Natalia' },
   { initials: 'NE', name: 'Nicole Ng', desc: "(the one that's a ___)" },
   {
     initials: 'RY',
@@ -61,9 +77,10 @@ const CONTRIBUTORS = [
       { src: 'images/checkin/string-lights.svg', position: 'top', inline: true },
       { src: 'images/checkin/steam.svg', position: 'bottom', inline: true },
     ],
+    randomiserKey: 'Ruth',
   },
-  { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)" },
-  { initials: 'SO', name: 'Sophia Himawan', desc: "(the one that's a ___)" },
+  { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)", randomiserKey: 'Sam' },
+  { initials: 'SO', name: 'Sophia Himawan', desc: "(the one that's a ___)", randomiserKey: 'Sophia' },
   {
     initials: 'VI',
     name: 'Viki Yap',
@@ -71,6 +88,7 @@ const CONTRIBUTORS = [
     desc: "(the one that turns your kueh ideas into reality)",
     url: '/machines/viki/',
     windowDecors: [{ src: 'images/checkin/akk-viki.png', position: 'bottom-left' }],
+    randomiserKey: 'Viki',
   },
 ];
 
@@ -363,6 +381,7 @@ function buildRow(contributor, index) {
   const row = document.createElement('div');
   row.className = 'container checkin-row';
   if (index % 2 === 1) row.classList.add('checkin-row-reverse');
+  if (contributor.randomiserKey) row.dataset.randomiserKey = contributor.randomiserKey;
 
   // One of the Kueh of the Day icon templates (src/atoms/kueh-icon.js),
   // each in that specific kueh's own color palette rather than a shared
@@ -441,18 +460,144 @@ function marginWireOptions(mount) {
   };
 }
 
+// Module-scope so reorderRows/scheduleReorder (below) can reach them
+// without re-querying — populated once by init(), which always runs (src/
+// main.js) before src/organisms/randomiser.js could ever call reorderRows
+// in response to a postMessage from the widget.
+let checkinSectionEl = null;
+let collapseEl = null;
+const rowByKey = new Map();
+
 export function init() {
   const checkin = document.getElementById('check-in');
   const collapse = checkin && checkin.querySelector('.check-in-collapse');
   if (!collapse) return;
+  checkinSectionEl = checkin;
+  collapseEl = collapse;
 
   collapse.appendChild(buildSeam());
   CONTRIBUTORS.forEach((contributor, i) => {
-    collapse.appendChild(buildRow(contributor, i));
+    const row = buildRow(contributor, i);
+    collapse.appendChild(row);
     collapse.appendChild(buildSeam());
+    if (contributor.randomiserKey) rowByKey.set(contributor.randomiserKey, row);
   });
 
   checkin.querySelectorAll('.checkin-margin').forEach((mount) => {
     scheduleWireReveal(mount, null, marginWireOptions(mount));
   });
 }
+
+// Called by src/organisms/randomiser.js when the Randomiser widget
+// (embedded iframe, randomiser.html) posts the order it just drew. `order`
+// is an array of randomiserKey strings. Rows for anyone not in `order`
+// (Geraldine, Nicole — see CONTRIBUTORS' own comment) sort to the bottom,
+// in their original relative order.
+//
+// Reordering moves each .checkin-row element itself, not a CSS `order`
+// (`.check-in-collapse` is a plain block, not flex/grid — restructuring it
+// into one to use `order` would risk the stacking-context behavior this
+// file's own comments go to some length to explain) — landing each row
+// back in a fixed seam "slot" (:scope > .checkin-seam, which never moves)
+// keeps every seam a direct child of .check-in-collapse throughout, same
+// as .checkin-seam:last-child (styles/organisms/check-in.css) needs.
+//
+// Animated via FLIP: record every row's rect before moving anything (an
+// incremental measure-then-move-then-measure-next would read already-
+// shifted layout for whatever hasn't moved yet), do all the DOM moves,
+// then invert each row by its own start/end delta and transition back to
+// identity.
+function reorderRows(order) {
+  if (!collapseEl || !rowByKey.size) return;
+
+  const seams = Array.from(collapseEl.querySelectorAll(':scope > .checkin-seam'));
+  const rows = Array.from(collapseEl.querySelectorAll(':scope > .checkin-row'));
+  if (!seams.length || !rows.length) return;
+
+  const presenting = order.map((key) => rowByKey.get(key)).filter(Boolean);
+  const presentingSet = new Set(presenting);
+  const notPresenting = rows.filter((row) => !presentingSet.has(row));
+  const newOrder = [...presenting, ...notPresenting];
+
+  const firstRects = new Map(rows.map((row) => [row, row.getBoundingClientRect()]));
+
+  newOrder.forEach((row, i) => {
+    collapseEl.insertBefore(row, seams[i + 1] ?? null);
+    // Keeps the alternating left/right leading edge (styles/organisms/
+    // check-in.css's .checkin-row-reverse) tied to each row's new visual
+    // position rather than its original one, so the zigzag still reads as
+    // alternating after a reorder instead of two same-side rows landing
+    // next to each other.
+    row.classList.toggle('checkin-row-reverse', i % 2 === 1);
+  });
+
+  // 1400ms + a small per-row stagger (40ms per new-order position, capped
+  // at 400ms so a 15-row reorder doesn't drag out past a couple seconds) —
+  // a single simultaneous 650ms move read as "already over" before it
+  // registered as a reorder rather than a jump cut; slower and staggered
+  // reads as rows visibly sorting themselves, one after another.
+  newOrder.forEach((row, i) => {
+    const first = firstRects.get(row);
+    const last = row.getBoundingClientRect();
+    const deltaY = first.top - last.top;
+    if (!deltaY) return;
+
+    row.style.transition = 'none';
+    row.style.transform = `translateY(${deltaY}px)`;
+    void row.offsetHeight; // force reflow so the transform above actually applies before the next frame reverses it
+
+    const delay = Math.min(i * 40, 400);
+    requestAnimationFrame(() => {
+      row.style.transition = `transform 1400ms cubic-bezier(0.3, 0.7, 0.4, 1) ${delay}ms`;
+      row.style.transform = '';
+    });
+  });
+}
+
+// The widget (down in #randomiser, well below Check In) posts its order
+// the moment it draws one — reordering immediately would play the whole
+// animation off-screen, behind the visitor's back, while they're still
+// looking at the widget. Instead the order is held until #check-in itself
+// scrolls into view, so scrolling up to look at Check In IS what triggers
+// the sort. isCheckinVisible is tracked continuously (not just read once)
+// so a re-shuffle drawn while Check In is ALREADY in view (no new
+// intersection event to react to, since nothing about its visibility
+// changed) still applies right away instead of getting stuck waiting for
+// a scroll that isn't coming.
+let pendingOrder = null;
+let isCheckinVisible = false;
+let reorderObserver = null;
+
+function ensureReorderObserver() {
+  if (reorderObserver || !checkinSectionEl) return;
+  reorderObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        isCheckinVisible = entry.isIntersecting;
+        if (isCheckinVisible && pendingOrder) {
+          reorderRows(pendingOrder);
+          pendingOrder = null;
+        }
+      });
+    },
+    { threshold: 0.3 }
+  );
+  reorderObserver.observe(checkinSectionEl);
+}
+
+function scheduleReorder(order) {
+  ensureReorderObserver();
+  if (isCheckinVisible) {
+    reorderRows(order);
+    pendingOrder = null;
+  } else {
+    pendingOrder = order;
+  }
+}
+
+window.addEventListener('message', (event) => {
+  if (event.data?.type !== 'kueh-randomiser:order' || !Array.isArray(event.data.order)) return;
+  const frame = document.querySelector('#randomiser .randomiser-frame');
+  if (!frame || event.source !== frame.contentWindow) return;
+  scheduleReorder(event.data.order);
+});

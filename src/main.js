@@ -19,6 +19,7 @@ import { init as initTimelinePanel } from './organisms/timeline-panel.js';
 import { init as initScissorsCut } from './organisms/scissors-cut.js';
 import { init as initDropChute } from './organisms/drop-chute.js';
 import { init as initCheckinArchive } from './organisms/checkin-archive.js';
+import { init as initRandomiser } from './organisms/randomiser.js';
 
 // First — a no-op unless the URL has ?debug=1, but when it does apply a
 // Date.now() override, every other organism below reads "now" via
@@ -50,3 +51,6 @@ initDropChute();
 // has no ordering dependency on anything above; runs after so it reads as
 // a final cleanup pass over what those already built.
 initCheckinArchive();
+// Independent of everything above — just its own aria-hidden toggle on
+// #randomiser, gated on the same CHECKIN_UTC deadline as scissors-cut.js.
+initRandomiser();

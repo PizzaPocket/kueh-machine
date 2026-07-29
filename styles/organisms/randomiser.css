@@ -1,0 +1,93 @@
+/* Organism: the Randomiser section, right after Check In. Gated by
+   src/organisms/randomiser.js — hidden via [aria-hidden="true"] until the
+   29 July 2pm SGT check-in deadline, same moment scissors-cut.js reveals
+   #check-in itself.
+
+   The widget inside is an <iframe src="randomiser.html">, not inlined
+   markup — that file is Kaixin's self-contained page (own colour system,
+   own html/body/header/button resets) and iframing it keeps those broad
+   element-selector resets from leaking into the rest of this site.
+
+   Background is .matte-metal-surface (styles/atoms.css), same chrome-panel
+   treatment as Kueh of the Day and the Timeline, applied as a class in
+   index.html rather than a background rule here. position: relative +
+   overflow-x: hidden is for the .metal-rivet-row-* rows below (src/
+   organisms/randomiser.js, same buildRivetRow atom those other two
+   sections use) — see .kueh-of-day-section (styles/organisms/
+   kueh-of-day.css) for the same reasoning. */
+
+.randomiser-section {
+  position: relative;
+  overflow-x: hidden;
+  padding: 80px 32px;
+  text-align: center;
+}
+
+.randomiser-section[aria-hidden="true"] {
+  display: none;
+}
+
+.randomiser-section .metal-rivet-row-top,
+.randomiser-section .metal-rivet-row-bottom {
+  position: absolute;
+  left: 32px;
+  right: 32px;
+}
+
+.randomiser-section .metal-rivet-row-top {
+  top: 14px;
+}
+
+.randomiser-section .metal-rivet-row-bottom {
+  bottom: 14px;
+}
+
+/* Same 439px breakpoint math as .kueh-of-day-section's own rivet rows
+   (styles/organisms/kueh-of-day.css) — below the width where 5 dots at
+   .metal-rivet-row's 85px gap floor plus this container's 64px inset
+   (32px each side) no longer fit, space-between collapses to flex-start
+   instead of spreading evenly, so switch to a centered fixed-width box
+   that can overflow both edges symmetrically instead. */
+@media (max-width: 438px) {
+  .randomiser-section .metal-rivet-row-top,
+  .randomiser-section .metal-rivet-row-bottom {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+
+/* Sizing lives here, on the unclipped outer wrapper — box-shadow has to
+   sit on an element clip-path (below) never touches, since clip-path
+   removes anything painted outside its own path, shadows included. See
+   index.html's own comment on this markup for the full two-wrapper
+   reasoning. */
+.randomiser-frame-shadow {
+  width: 100%;
+  max-width: 780px;
+  height: 640px;
+  margin: 0 auto;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* No border-radius — src/organisms/randomiser.js's attachRetroShapeClip
+   call reshapes this into the site's superellipse "retro rectangle" via
+   clip-path instead (src/atoms/retro-shape.js), same silhouette as the
+   Kueh of the Day / Check In windows. */
+.randomiser-frame-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.randomiser-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .randomiser-frame-shadow {
+    height: 760px;
+  }
+}

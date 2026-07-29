@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="styles/organisms/drop-chute.css">
   <link rel="stylesheet" href="styles/organisms/scissors-cut.css">
   <link rel="stylesheet" href="styles/organisms/check-in.css">
+  <link rel="stylesheet" href="styles/organisms/randomiser.css">
   <style>
     /* === TOKENS ===
        Color tokens live in styles/tokens.css (semantic names, daily-themed
@@ -1430,6 +1431,37 @@
       <div class="container checkin-header">
         <p class="section-label">Check In</p>
         <h2 class="section-title">Work in progress</h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- RANDOMISER — revealed by src/organisms/randomiser.js at the same
+       2pm SGT check-in deadline scissors-cut.js uses to reveal Check In
+       above. The widget itself (Kaixin's, wip/Randomiser.html copied to
+       /randomiser.html since wip/ is gitignored) is iframed rather than
+       inlined: it ships its own full-page resets (html, body, header,
+       button, ...) under its own distinct colour system, which would
+       clobber the rest of this page's styling if pasted in directly. -->
+  <section id="randomiser" class="randomiser-section matte-metal-surface" aria-hidden="true">
+    <!-- Two nested wrappers, not one, around the iframe:
+         .randomiser-frame-shadow carries the box-shadow and stays
+         unclipped — clip-path (below) clips away anything painted outside
+         its own path, box-shadow included, so a shape and a shadow can't
+         both live on the same clipped element.
+         .randomiser-frame-wrap is what src/organisms/randomiser.js's
+         attachRetroShapeClip call actually reshapes — the iframe itself,
+         not this wrapper, since that atom appends a defs-only <svg> as a
+         child of whatever it's attached to, and an iframe only renders
+         that as light-DOM fallback content, not guaranteed to behave like
+         a normal element's children. -->
+    <div class="randomiser-frame-shadow">
+      <div class="randomiser-frame-wrap">
+        <iframe
+          class="randomiser-frame"
+          src="randomiser.html"
+          title="The Kueh Drop — check-in order randomiser"
+          loading="lazy"
+        ></iframe>
       </div>
     </div>
   </section>

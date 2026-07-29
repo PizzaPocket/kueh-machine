@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Kueh Drop</title>
+<!-- Syne, same weights as index.html's own <link> — this file is a
+     separate HTML document (embedded via <iframe>, see
+     src/organisms/randomiser.js), so it needs its own @font-face
+     declarations rather than inheriting the parent page's. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream: #FBF1E1;
+    --pandan: #4B7A51;
+    --pandan-dark: #33582F;
+    --caramel: #A9642A;
+    --caramel-dark: #7C4519;
+    --ink: #2E2417;
+    /* Overwritten at runtime by src/organisms/randomiser.js, which posts
+       today's --color-accent (src/tokens/colors.js's rotating kueh-of-the-
+       day palette) in once this document signals it's ready — see the
+       postMessage handshake at the bottom of this file. This hex is just
+       the fallback for a direct, non-embedded open of this file. --accent-
+       dark derives from --accent via color-mix so it only has to be set
+       once, not paired with a hand-picked dark variant on every update. */
+    --accent: #3E86A8;
+    --accent-dark: color-mix(in srgb, var(--accent) 78%, black);
+    --accent-shadow: color-mix(in srgb, var(--accent) 55%, black);
+    /* Separate from --accent (kept on the button only) — --color-accent
+       itself is a light, pastel tone by design (src/tokens/colors.js: the
+       whole "accent" tier sits at ~85% lightness), which reads fine as a
+       button fill but too low-contrast against this page's own cream
+       background for text. --color-primary-strong is the same day's
+       palette but the site's own bold/high-contrast tier — used the same
+       way for text elsewhere (index.html's .brief-link, for one). */
+    --header-accent: #2C6684;
+    --table: #E3C79C;
+    --table-dark: #C9A46C;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-display: "Syne", var(--font-sans);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  body{
+    background:
+      radial-gradient(circle at 20% 10%, #fff7e9 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, #ffe9d1 0%, transparent 40%),
+      var(--cream);
+    font-family: var(--font-sans);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.2vh 5vw 2vh;
+  }
+
+  .app-shell{
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .app-shell.shake{ animation: shake 0.32s ease; }
+
+  @keyframes shake{
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-6px, 3px); }
+    40% { transform: translate(5px, -4px); }
+    60% { transform: translate(-4px, 2px); }
+    80% { transform: translate(3px, -2px); }
+  }
+
+  header{ text-align: center; margin-bottom: 0.9rem; }
+
+  .eyebrow{
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--pandan-dark);
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+    margin: 0 0 0.3rem;
+    letter-spacing: -0.01em;
+  }
+
+  h1 .accent{ color: var(--header-accent); font-style: italic; }
+
+  .subtitle{ color: #6b5a44; font-size: 0.95rem; margin: 0; }
+
+  main{ width: 100%; margin-top: 0.6rem; }
+
+  /* ================= SCENE (crossfades between side view and top-down) ================= */
+  .scene-wrap{
+    position: relative;
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    height: clamp(320px, 38vw, 400px);
+    perspective: 900px;
+  }
+
+  .side-view, .top-view{
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.42s ease, transform 0.42s ease, filter 0.42s ease;
+  }
+
+  .side-view{ opacity: 1; transform: scale(1); filter: blur(0); }
+
+  .top-view{
+    opacity: 0;
+    transform: scale(0.92);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+
+  .scene-wrap.top-active .side-view{
+    opacity: 0;
+    transform: scale(1.1);
+    filter: blur(7px);
+    pointer-events: none;
+  }
+
+  .scene-wrap.top-active .top-view{
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+    pointer-events: auto;
+  }
+
+  /* ---- side view: table edge + bowl ---- */
+  .table-edge{
+    position: absolute;
+    left: 4%;
+    right: 4%;
+    bottom: 0;
+    height: 28px;
+    background: linear-gradient(180deg, var(--table) 0%, var(--table-dark) 100%);
+    border-radius: 14px 14px 20px 20px;
+    box-shadow: 0 10px 0 rgba(120, 90, 50, 0.15);
+  }
+
+  .bowl{
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    width: 230px;
+    height: 128px;
+    transform: translateX(-50%);
+  }
+
+  .bowl .body, .bowl-front .body{
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    width: 186px;
+    height: 104px;
+    border-radius: 0 0 92px 92px / 0 0 72px 72px;
+    background: linear-gradient(180deg, #FFFBF3 0%, #F1DCB4 100%);
+    box-shadow: inset 0 -14px 20px rgba(120, 80, 40, 0.18), 0 8px 10px rgba(60, 40, 20, 0.15);
+  }
+
+  .bowl .rim{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 230px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, var(--caramel) 0%, var(--caramel-dark) 100%);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+  }
+
+  .bowl .mouth{
+    position: absolute;
+    top: 8px;
+    left: 16px;
+    width: 198px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 45% 35%, #7A5334 0%, #3E2A1A 75%);
+  }
+
+  /* layered above the kueh: a body duplicate (the bowl is fairly shallow, so most
+     of a sunk kueh needs the body itself to hide it, not just the rim) plus the
+     near half of the rim. No mouth copy here on purpose -- that stays visible
+     as a thin dark sliver peeking around the kueh, which is what sells "inside". */
+  .bowl-front{
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    width: 230px;
+    height: 128px;
+    transform: translateX(-50%);
+    z-index: 35;
+    pointer-events: none;
+  }
+
+  .bowl-front .rim-crescent{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 230px;
+    height: 36px;
+    border-radius: 50%;
+    clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%);
+    background: linear-gradient(180deg, var(--caramel) 0%, var(--caramel-dark) 100%);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+  }
+
+  .splash-layer{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .splash-ring{
+    position: absolute;
+    width: 70px;
+    height: 26px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.85);
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0;
+  }
+
+  .splash-ring.go{
+    animation: splashOut 0.75s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+  }
+
+  @keyframes splashOut{
+    0%   { transform: translate(-50%, -50%) scale(0.25); opacity: 0.9; }
+    100% { transform: translate(-50%, -50%) scale(3.4); opacity: 0; }
+  }
+
+  /* ---- kueh block: flat "extruded" shape (front / top / side) via clip-path ----
+     reused for both the big falling kueh and every confetti bit, sized by --bw/--bh */
+  .kueh-drop{
+    position: absolute;
+    top: -280px;
+    left: 50%;
+    width: 122px;
+    height: 161px;
+    z-index: 30;
+    opacity: 0;
+    transform: translateX(-50%) scale(0.32) rotate(-8deg);
+    filter: drop-shadow(0 8px 5px rgba(30, 20, 10, 0.3));
+    --bw: 100px;
+    --bh: 130px;
+  }
+
+  .kb{ position: relative; width: 100%; height: 100%; }
+
+  .kb-front{
+    position: absolute;
+    left: 0;
+    top: calc(var(--bh) * 0.24);
+    width: var(--bw);
+    height: var(--bh);
+    border-radius: 10% 10% 4% 4%;
+    overflow: hidden;
+    border: 1.5px solid rgba(25, 18, 12, 0.28);
+    background: linear-gradient(180deg,
+      #F76C6C 0% 14.29%, #FFB562 14.29% 28.57%, #FFE066 28.57% 42.86%,
+      #8FD694 42.86% 57.14%, #6EC6E8 57.14% 71.43%, #7C83FD 71.43% 85.71%,
+      #C689E8 85.71% 100%);
+  }
+
+  .kb-side{
+    position: absolute;
+    left: var(--bw);
+    top: 0;
+    width: calc(var(--bw) * 0.22);
+    height: calc(var(--bh) * 1.24);
+    clip-path: polygon(0% 19.4%, 0% 100%, 100% 80.6%, 100% 0%);
+    filter: brightness(0.62) saturate(1.05);
+    background: linear-gradient(180deg,
+      #F76C6C 0% 14.29%, #FFB562 14.29% 28.57%, #FFE066 28.57% 42.86%,
+      #8FD694 42.86% 57.14%, #6EC6E8 57.14% 71.43%, #7C83FD 71.43% 85.71%,
+      #C689E8 85.71% 100%);
+  }
+
+  .kb-top{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(var(--bw) * 1.22);
+    height: calc(var(--bh) * 0.24);
+    clip-path: polygon(0% 100%, 82% 100%, 100% 0%, 18% 0%);
+    background:
+      linear-gradient(125deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 34%),
+      linear-gradient(160deg, #FFFDF6 0%, #FDEFD2 55%, #F7DCA8 100%);
+  }
+
+  .kb-gloss{
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 80%, rgba(255,255,255,0.14) 100%);
+    pointer-events: none;
+  }
+
+  .kueh-drop.falling{
+    animation: kuehFall 0.68s cubic-bezier(0.3, 0.4, 0.4, 1) forwards;
+  }
+
+  .kueh-drop.sink{
+    animation: kuehSinkWrap 0.5s ease forwards;
+  }
+
+  @keyframes kuehFall{
+    0%   { top: -280px; opacity: 0; transform: translateX(-50%) scale(0.32) rotate(-10deg); }
+    15%  { opacity: 1; }
+    55%  { transform: translateX(-50%) scale(1) rotate(2deg); }
+    100% { top: var(--fall-end, -28px); opacity: 1; transform: translateX(-50%) scale(var(--landed-scale, 0.6)) rotate(0deg); }
+  }
+
+  @keyframes kuehSinkWrap{
+    0%   { transform: translateX(-50%) scale(var(--landed-scale, 0.6)) rotate(0deg); opacity: 1; }
+    30%  { transform: translateX(-50%) scale(calc(var(--landed-scale, 0.6) * 1.2), calc(var(--landed-scale, 0.6) * 0.7)) translateY(4px); opacity: 1; }
+    100% { transform: translateX(-50%) scale(calc(var(--landed-scale, 0.6) * 0.3), calc(var(--landed-scale, 0.6) * 0.27)) translateY(30px); opacity: 0; }
+  }
+
+  /* ---- top-down view: table + names (no bowl here at all) ---- */
+  .table-top{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 30px;
+    padding: 36px 20px 20px;
+    background: var(--cream);
+    box-shadow: 0 14px 0 #EAD9B8;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .grid{
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  /* ---- names as little two-tone kueh nameplates, not rings ----
+     .card stays unclipped (so the badge can hang over the top edge);
+     .plate carries the clipping, border and two-tone banding. */
+  .card{
+    position: relative;
+    order: var(--pos, 0);
+    opacity: 0;
+    transform: scale(0.25) translateY(20px);
+  }
+
+  .card .plate{
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid rgba(25, 18, 12, 0.22);
+    box-shadow: 0 7px 12px rgba(20, 40, 55, 0.25);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card .plate::before{
+    content: "";
+    display: block;
+    height: 32%;
+    background: var(--ring-color, var(--pandan));
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
+  }
+
+  .card .plate::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 24%);
+    pointer-events: none;
+  }
+
+  .card.popping{
+    animation: cardPopSettle 0.62s cubic-bezier(0.3, 0.9, 0.4, 1) forwards;
+    animation-delay: var(--delay, 0ms);
+  }
+
+  @keyframes cardPopSettle{
+    0%   { opacity: 0; transform: scale(0.25) translateY(22px); }
+    55%  { opacity: 1; transform: scale(1.12) translateY(-8px); }
+    78%  { transform: scale(0.94) translateY(2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .card .name-wrap{
+    flex: 1;
+    background: linear-gradient(180deg, #FFFDF6 0%, #FBF1DD 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4% 10%;
+  }
+
+  .card .name{
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  .card .badge{
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--caramel);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.28);
+    opacity: 0;
+    z-index: 3;
+    transform: translate(-50%, 0) scale(0.4);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .card.revealed .badge{ opacity: 1; transform: translate(-50%, 0) scale(1); }
+
+  /* ---- flying confetti kueh bits ---- */
+  .confetti-field{
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 25;
+  }
+
+  .bit{
+    position: absolute;
+    top: var(--oy);
+    left: var(--ox);
+    opacity: 0;
+    animation: bitArc var(--dur) forwards;
+    animation-delay: var(--bd, 0ms);
+  }
+
+  @keyframes bitArc{
+    0%   {
+      transform: translate(0, 0) rotate(0deg);
+      opacity: 1;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    38%  {
+      transform: translate(var(--mx), var(--my)) rotate(var(--mrot));
+      opacity: 1;
+      animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    }
+    100% {
+      transform: translate(var(--ex), var(--ey)) rotate(var(--erot));
+      opacity: 0;
+    }
+  }
+
+  .bit .kb{
+    width: calc(var(--bw) * 1.22);
+    height: calc(var(--bh) * 1.24);
+  }
+
+  .ondeh-ball{
+    width: var(--sz);
+    height: var(--sz);
+    border-radius: 50%;
+    border: 1.5px solid rgba(20, 45, 50, 0.2);
+    background:
+      radial-gradient(circle at 32% 30%, rgba(255,255,255,0.9) 0 14%, transparent 15%),
+      radial-gradient(circle at 65% 58%, rgba(255,255,255,0.85) 0 12%, transparent 13%),
+      radial-gradient(circle at 42% 78%, rgba(255,255,255,0.8) 0 11%, transparent 12%),
+      radial-gradient(circle at 120% -20%, #7FC77C, #4C8A49 70%);
+    box-shadow: 0 3px 6px rgba(30,50,60,0.3);
+  }
+
+  .controls{
+    margin-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  button#shuffleBtn{
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+    border: none;
+    padding: 0.95rem 2.3rem;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--accent-shadow);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  button#shuffleBtn:active{ transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-shadow); }
+  button#shuffleBtn:disabled{ opacity: 0.6; cursor: default; }
+
+  .hint{ font-size: 0.85rem; color: #8a7a63; }
+
+  button.reset-link{
+    font-family: inherit;
+    font-size: 0.8rem;
+    color: #a3937a;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+  }
+  button.reset-link:hover{ color: var(--caramel-dark); }
+
+  footer{ margin-top: 1rem; font-size: 0.8rem; color: #a3937a; text-align: center; }
+</style>
+</head>
+<body>
+
+  <div class="app-shell" id="appShell">
+    <header>
+      <div class="eyebrow">Who goes first?</div>
+      <h1>The Kueh <span class="accent">Drop</span></h1>
+      <p class="subtitle">One rainbow kueh plops into the bowl. What flies out onto the table is the order.</p>
+    </header>
+
+    <main>
+      <div class="scene-wrap" id="sceneWrap">
+
+        <div class="side-view" id="sideView">
+          <div class="table-edge"></div>
+          <div class="bowl" id="bowl">
+            <div class="body"></div>
+            <div class="rim"></div>
+            <div class="mouth" id="bowlMouth"></div>
+          </div>
+          <div class="kueh-drop" id="kuehDrop">
+            <div class="kb">
+              <div class="kb-top"></div>
+              <div class="kb-side"></div>
+              <div class="kb-front">
+                <div class="kb-gloss"></div>
+              </div>
+            </div>
+          </div>
+          <div class="bowl-front">
+            <div class="body"></div>
+            <div class="rim-crescent"></div>
+          </div>
+          <div class="splash-layer" id="splashLayer"></div>
+        </div>
+
+        <div class="top-view" id="topView">
+          <div class="table-top" id="tableTop">
+            <div class="grid" id="grid"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="controls">
+        <button id="shuffleBtn">Shake it up</button>
+        <span class="hint" id="hint">Click to drop the kueh into the bowl</span>
+        <button id="resetBtn" class="reset-link">Reset to empty bowl</button>
+      </div>
+    </main>
+
+    <footer>set up by Kaixin, for the 29 July check-in</footer>
+  </div>
+
+  <div class="confetti-field" id="confettiField"></div>
+
+  <script>
+    const names = [
+      "Amanda", "Amy", "Kaixin", "Jesslyn", "Ken", "Kevin",
+      "Mei Jun", "Liwei", "Natalia", "Sam", "Sophia", "Ruth", "Viki"
+    ];
+
+    const rainbow = ["#F76C6C", "#FFB562", "#FFE066", "#8FD694", "#6EC6E8", "#7C83FD", "#C689E8"];
+    const ringColors = ["#F76C6C", "#FFB562", "#FFE066", "#8FD694", "#6EC6E8", "#7C83FD", "#C689E8", "#F2A6C7"];
+
+    const grid = document.getElementById("grid");
+    const sceneWrap = document.getElementById("sceneWrap");
+    const sideView = document.getElementById("sideView");
+    const bowl = document.getElementById("bowl");
+    const bowlMouth = document.getElementById("bowlMouth");
+    const tableTop = document.getElementById("tableTop");
+    const splashLayer = document.getElementById("splashLayer");
+    const shuffleBtn = document.getElementById("shuffleBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const kuehDrop = document.getElementById("kuehDrop");
+    const appShell = document.getElementById("appShell");
+    const confettiField = document.getElementById("confettiField");
+    const hint = document.getElementById("hint");
+
+    const cardEls = new Map();
+
+    names.forEach((name, i) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.setProperty("--ring-color", ringColors[i % ringColors.length]);
+      card.innerHTML = `<div class="badge"></div><div class="plate"><div class="name-wrap"><div class="name">${name}</div></div></div>`;
+      grid.appendChild(card);
+      cardEls.set(name, card);
+    });
+
+    function shuffledOrder(arr){
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function shakeScreen(){
+      appShell.classList.add("shake");
+      setTimeout(() => appShell.classList.remove("shake"), 320);
+    }
+
+    const LANDED_SCALE = 0.6; // must match --landed-scale fallback in the CSS keyframes
+
+    function positionKuehForDrop(){
+      // offsetTop/offsetHeight are layout metrics, unaffected by transform -- unlike
+      // getBoundingClientRect, this stays correct even if side-view is still mid-transition
+      // out of the top-down crossfade (e.g. right as a reshuffle click fires).
+      const mouthCenterY = bowl.offsetTop + bowlMouth.offsetTop + bowlMouth.offsetHeight * 0.4;
+
+      // the block shrinks to LANDED_SCALE by the time it lands (see kuehFall),
+      // and CSS transforms scale around the element's own center, so figure out
+      // where the *visual* top edge ends up, not the unscaled layout box.
+      const unscaledH = kuehDrop.offsetHeight;
+      const scaledH = unscaledH * LANDED_SCALE;
+      const aboveFraction = 0.18; // how much of the shrunk block still peeks above the rim
+      const visualTop = mouthCenterY - aboveFraction * scaledH;
+      const targetTop = visualTop - unscaledH / 2 + scaledH / 2;
+
+      kuehDrop.style.setProperty("--fall-end", targetTop + "px");
+      kuehDrop.style.setProperty("--landed-scale", LANDED_SCALE);
+    }
+
+    function spawnSplashRings(x, y){
+      const parentRect = sideView.getBoundingClientRect();
+      const localX = x - parentRect.left;
+      const localY = y - parentRect.top;
+
+      [0, 100, 200].forEach((delay) => {
+        const ring = document.createElement("div");
+        ring.className = "splash-ring";
+        ring.style.left = localX + "px";
+        ring.style.top = localY + "px";
+        splashLayer.appendChild(ring);
+        setTimeout(() => ring.classList.add("go"), delay);
+        setTimeout(() => ring.remove(), delay + 800);
+      });
+    }
+
+    function spawnKuehBits(originX, originY, count){
+      // weighted so most of the confetti is stripey rainbow lapis, with salat and
+      // the green ondeh balls as a lighter garnish rather than a third each
+      const kinds = ["lapis", "lapis", "lapis", "salat", "salat", "ondeh"];
+
+      for (let i = 0; i < count; i++){
+        const kind = kinds[Math.floor(Math.random() * kinds.length)];
+        const bit = document.createElement("div");
+        bit.className = "bit";
+
+        const angle = (Math.random() * Math.PI) + Math.PI; // upward-biased spread
+        const riseDist = 130 + Math.random() * 220;
+        const mx = Math.cos(angle) * riseDist * 0.65;
+        const my = Math.sin(angle) * riseDist - 60;
+        const ex = mx + (Math.random() * 130 - 65);
+        const ey = my + 320 + Math.random() * 170;
+
+        const size = 24 + Math.random() * 18;
+        const dur = 1.1 + Math.random() * 0.6;
+        const bd = Math.random() * 160;
+        const mrot = (Math.random() > 0.5 ? 1 : -1) * (100 + Math.random() * 160);
+        const erot = mrot + (Math.random() > 0.5 ? 1 : -1) * (140 + Math.random() * 160);
+
+        bit.style.setProperty("--ox", originX + "px");
+        bit.style.setProperty("--oy", originY + "px");
+        bit.style.setProperty("--mx", mx + "px");
+        bit.style.setProperty("--my", my + "px");
+        bit.style.setProperty("--ex", ex + "px");
+        bit.style.setProperty("--ey", ey + "px");
+        bit.style.setProperty("--dur", dur + "s");
+        bit.style.setProperty("--bd", bd + "ms");
+        bit.style.setProperty("--mrot", mrot + "deg");
+        bit.style.setProperty("--erot", erot + "deg");
+
+        if (kind === "ondeh"){
+          bit.style.setProperty("--sz", size + "px");
+          const ball = document.createElement("div");
+          ball.className = "ondeh-ball";
+          bit.appendChild(ball);
+        } else {
+          bit.style.setProperty("--bw", size + "px");
+          bit.style.setProperty("--bh", (size * 1.2) + "px");
+
+          const kb = document.createElement("div");
+          kb.className = "kb";
+          const top = document.createElement("div"); top.className = "kb-top";
+          const side = document.createElement("div"); side.className = "kb-side";
+          const front = document.createElement("div"); front.className = "kb-front";
+
+          if (kind === "lapis"){
+            const c1 = rainbow[Math.floor(Math.random() * rainbow.length)];
+            const c2 = rainbow[Math.floor(Math.random() * rainbow.length)];
+            const c3 = rainbow[Math.floor(Math.random() * rainbow.length)];
+            const grad = `linear-gradient(180deg, ${c1} 0% 33%, ${c2} 33% 66%, ${c3} 66% 100%)`;
+            front.style.background = grad;
+            side.style.background = grad;
+          } else { // salat
+            const base = "linear-gradient(180deg, #6FAE5C 0% 55%, #FBF6E9 55% 100%)";
+            front.style.background = `radial-gradient(circle at 30% 78%, #8FBEE0 0 10%, transparent 11%), radial-gradient(circle at 62% 85%, #8FBEE0 0 8%, transparent 9%), ${base}`;
+            side.style.background = base;
+          }
+
+          kb.appendChild(top);
+          kb.appendChild(side);
+          kb.appendChild(front);
+          bit.appendChild(kb);
+        }
+
+        confettiField.appendChild(bit);
+        setTimeout(() => bit.remove(), dur * 1000 + bd + 150);
+      }
+    }
+
+    function revealNames(originX, originY){
+      const order = shuffledOrder(names);
+      order.forEach((name, i) => cardEls.get(name).style.setProperty("--pos", i));
+
+      // Tells the parent page (index.html, embedding this in an iframe)
+      // the drawn order, so the Check In rows above can sort themselves to
+      // match -- see src/organisms/check-in.js's own message listener.
+      // '*' targetOrigin: this is just a list of first names, nothing
+      // sensitive, and it keeps this file working unchanged whether it's
+      // served from localhost during dev or the real production domain.
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: "kueh-randomiser:order", order }, "*");
+      }
+
+      void grid.offsetHeight; // reflow so the new grid order is measurable
+
+      const dists = new Map();
+      let maxDist = 1;
+
+      cardEls.forEach((card, name) => {
+        const r = card.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dist = Math.hypot(cx - originX, cy - originY);
+        dists.set(name, dist);
+        if (dist > maxDist) maxDist = dist;
+
+        card.classList.remove("popping", "revealed");
+        card.querySelector(".badge").textContent = order.indexOf(name) + 1;
+      });
+
+      void grid.offsetHeight;
+
+      cardEls.forEach((card, name) => {
+        const delay = (dists.get(name) / maxDist) * 260 + Math.random() * 140;
+        card.style.setProperty("--delay", delay + "ms");
+
+        card.addEventListener("animationend", function onPop(e){
+          if (e.animationName !== "cardPopSettle") return;
+          card.removeEventListener("animationend", onPop);
+          card.classList.add("revealed");
+        }, { once: true });
+
+        card.classList.add("popping");
+      });
+    }
+
+    let currentRun = 0;
+
+    function resetScene(){
+      currentRun++; // invalidates any in-flight runDrop timeouts from a prior click
+
+      sceneWrap.classList.remove("top-active");
+      cardEls.forEach((card) => card.classList.remove("popping", "revealed"));
+
+      kuehDrop.classList.remove("falling", "sink");
+      kuehDrop.style.opacity = "0";
+
+      confettiField.innerHTML = "";
+      splashLayer.innerHTML = "";
+
+      shuffleBtn.disabled = false;
+      shuffleBtn.textContent = "Shake it up";
+      hint.textContent = "Click to drop the kueh into the bowl";
+    }
+
+    function runDrop(){
+      const myRun = ++currentRun;
+
+      shuffleBtn.disabled = true;
+      hint.textContent = "";
+
+      sceneWrap.classList.remove("top-active");
+      cardEls.forEach((card) => card.classList.remove("popping", "revealed"));
+
+      positionKuehForDrop();
+
+      kuehDrop.classList.remove("sink");
+      kuehDrop.style.opacity = "1";
+      kuehDrop.classList.add("falling");
+
+      kuehDrop.addEventListener("animationend", function onFall(e){
+        if (e.animationName !== "kuehFall") return;
+        kuehDrop.removeEventListener("animationend", onFall);
+        if (myRun !== currentRun) return;
+
+        const rect = kuehDrop.getBoundingClientRect();
+        const impactX = rect.left + rect.width / 2;
+        const impactY = rect.top + rect.height * 0.78;
+
+        shakeScreen();
+        spawnSplashRings(impactX, impactY);
+        spawnKuehBits(impactX, impactY, 20);
+
+        kuehDrop.classList.remove("falling");
+        kuehDrop.classList.add("sink");
+
+        setTimeout(() => {
+          if (myRun !== currentRun) return;
+          kuehDrop.style.opacity = "0";
+          kuehDrop.classList.remove("sink");
+        }, 520);
+
+        // let the splash read in side view before the camera cuts to top-down
+        setTimeout(() => {
+          if (myRun !== currentRun) return;
+          sceneWrap.classList.add("top-active");
+        }, 420);
+
+        // once we're looking down at the table, names and a few more bits land
+        setTimeout(() => {
+          if (myRun !== currentRun) return;
+          const tableRect = tableTop.getBoundingClientRect();
+          const originX = tableRect.left + tableRect.width / 2;
+          const originY = tableRect.top + tableRect.height * 0.15;
+          revealNames(originX, originY);
+          spawnKuehBits(originX, originY, 14);
+        }, 420 + 460);
+
+        setTimeout(() => {
+          if (myRun !== currentRun) return;
+          shuffleBtn.disabled = false;
+          shuffleBtn.textContent = "Shake it up again";
+          hint.textContent = "That's the running order for the check-in";
+        }, 420 + 460 + 1300);
+      }, { once: true });
+    }
+
+    shuffleBtn.addEventListener("click", runDrop);
+    resetBtn.addEventListener("click", resetScene);
+
+    // Theme handshake with the parent page (src/organisms/randomiser.js) —
+    // this file has no access to that page's CSS custom properties on its
+    // own, so it asks for today's kueh-of-day palette rather than staying
+    // pinned to the hardcoded --accent/--header-accent fallbacks above.
+    // Posting "ready" (rather than the parent guessing from this iframe's
+    // own "load" event) means it works regardless of which side's script
+    // finishes setting up its listener first.
+    if (window.parent !== window) {
+      window.addEventListener("message", (event) => {
+        if (event.data?.type !== "kueh-randomiser:theme" || event.source !== window.parent) return;
+        if (event.data.accent) document.documentElement.style.setProperty("--accent", event.data.accent);
+        if (event.data.headerAccent) document.documentElement.style.setProperty("--header-accent", event.data.headerAccent);
+      });
+      window.parent.postMessage({ type: "kueh-randomiser:ready" }, "*");
+    }
+  </script>
+</body>
+</html>
