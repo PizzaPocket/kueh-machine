@@ -1,0 +1,1836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Opts out of the browser's own automatic scroll-position restoration
+       on reload. Without this, each refresh restores whatever scroll
+       position was in effect right before it — and the Syne web font
+       swapping in late (display=swap, see the stylesheet link below) can
+       nudge the page down a few px via Chrome's scroll anchoring
+       (compensating for the reflow its own metrics cause). Left on its
+       default ('auto'), that small nudge gets *restored* on the next
+       refresh, then nudged again on top of that — a small cumulative
+       downward drift with every reload. Set as early as possible (before
+       any stylesheet/script) so it's in effect before the browser makes
+       its own restoration decision for this load. -->
+  <script>if ('scrollRestoration' in history) history.scrollRestoration = 'manual';</script>
+  <title>Kueh Machine</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/atoms.css">
+  <link rel="stylesheet" href="styles/molecules.css">
+  <link rel="stylesheet" href="styles/organisms/kueh-of-day.css">
+  <link rel="stylesheet" href="styles/organisms/site-nav.css">
+  <link rel="stylesheet" href="styles/organisms/timeline-panel.css">
+  <link rel="stylesheet" href="styles/organisms/drop-chute.css">
+  <link rel="stylesheet" href="styles/organisms/scissors-cut.css">
+  <link rel="stylesheet" href="styles/organisms/check-in.css">
+  <style>
+    /* === TOKENS ===
+       Color tokens live in styles/tokens.css (semantic names, daily-themed
+       by src/organisms/kueh-of-day.js). Everything else — radius, type,
+       spacing — stays here since it never changes with the day's kueh. */
+    :root {
+      --radius-card:        12px;
+      --radius-interactive:  8px;
+      --radius-pill:      9999px;
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-display: "Syne", var(--font-sans);
+      --font-mono: "SF Mono", "Monaco", "Cascadia Code", "Courier New", monospace;
+
+      /* Typographic scale */
+      --type-heading:    clamp(1.625rem, 3.5vw, 2.25rem);
+      --type-subheading: 1.125rem;
+
+      /* Leading */
+      --leading-display: 0.95;
+      --leading-heading: 1.15;
+
+      /* Tracking */
+      --tracking-display: -0.03em;
+      --tracking-heading: -0.025em;
+      --tracking-counter: -0.04em;
+
+      --max-width: 880px;
+    }
+
+    /* === RESET === */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* scrollbar-gutter: stable — reserves the vertical scrollbar's space
+       permanently, whether or not a scrollbar is actually showing at any
+       given moment. Without it, every centered element on the page
+       (the water-clock viewport/rims, its own liquid/background fill, the
+       drop) shifts by half the scrollbar's width whenever the page
+       crosses the threshold of needing one — confirmed directly: the same
+       delta between window.innerWidth and document.documentElement.
+       clientWidth read 0 earlier in a session and 15 later in the same
+       one, and every centered layer shifted by exactly half that each
+       time, in lockstep with each other (never against each other). */
+    /* overflow-x: clip here, not just on body below — confirmed via CDP
+       that body's alone leaves document.documentElement.scrollWidth wider
+       than the viewport (the guide-thread SVG's deliberate offscreen run,
+       scissors-cut.js's buildGuideThreadLayer, bleeds ~35% of viewport
+       width past both edges of #timeline, which has to stay overflow:
+       visible itself so .tl-glass can sink into the next section). Body's
+       overflow-x:clip alone still clips what's painted, but mobile touch
+       panning can rubber-band the *layout* viewport into that clipped
+       space anyway, reading as a swipe-revealed blank margin the same
+       color as the page background — exactly what body's own overflow-x:
+       clip below was already trying to guard against for the drop-chute,
+       just not reliably enough on touch. Setting it on html too pins the
+       actual scrollable width, not just what's painted.
+
+       `clip`, not `hidden`: per the CSS Overflow spec, an element with
+       overflow-x set to anything but 'visible' forces its own overflow-y
+       to compute as 'auto' if it was 'visible' — which makes html a
+       scroll container, and .site-nav's position: sticky (styles/
+       organisms/site-nav.css) stick *to that new scroll container's
+       scrollport* instead of the viewport, breaking it (confirmed via
+       CDP: with overflow-x: hidden here, .site-nav scrolled away with the
+       page instead of pinning to top: 0). `clip` doesn't trigger that
+       same-axis coupling — html's overflow-y stays 'visible', no new
+       scroll container, sticky positioning still resolves against the
+       real viewport, and document.documentElement.scrollWidth is still
+       correctly capped. */
+    html { background: var(--color-primary-strong); scroll-behavior: smooth; scrollbar-gutter: stable; overflow-x: clip; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-surface);
+      color: var(--color-text-on-surface);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      /* The drop-chute (src/organisms/drop-chute.js) is a document-
+         positioned, absolutely-placed element built from waypoints with a
+         wide side-to-side swing (X_JITTER) — on some viewport widths its
+         own container can extend past the right edge of the page. Without
+         this, that's real horizontal overflow with nothing guarding
+         against it, which can open up page-wide horizontal scroll purely
+         as a side effect of decorative chute geometry, not any actual
+         content needing to scroll. See the html rule above for why this
+         alone isn't quite enough on mobile touch. `clip`, not `hidden` —
+         same sticky-nav reasoning as the html rule above. */
+      overflow-x: clip;
+    }
+
+    a { color: inherit; }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* === REVEAL MOTION === */
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.55s ease, transform 0.55s ease;
+      }
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; }
+      html { scroll-behavior: auto; }
+    }
+
+    /* === HERO + COUNTDOWN (combined, above fold) === */
+    .hero {
+      /* Establishes a real stacking context (with no other visual side
+         effects, unlike a transform trick) — needed since .hero no longer
+         carries the `reveal` class (that used to apply `transform:
+         translateY(0)` once revealed, which — even at a no-op 0px — still
+         creates a stacking context per spec, same as .timeline-section's
+         own transform does for the same reason). Without one here, the
+         water clock's own background/liquid fill layers
+         (.retro-shape-fill, styles/organisms/kueh-of-day.css — shared
+         with the Kueh of the Day windows) carry `z-index: -1`, meant to
+         tuck them just behind their own window's content — relying on
+         *some* ancestor stacking context to contain that negative
+         z-index. With none, it escaped all the way to the document root,
+         painting behind .hero's own background entirely instead of behind
+         just the countdown window's own content — read as "the water
+         clock's own background color is gone, I just see .hero's". */
+      isolation: isolate;
+      /* Same noise-grain texture as .matte-metal-surface (styles/atoms.css)
+         — the exact feTurbulence recipe, tiled and blended via multiply —
+         layered over the flat theme color instead of swapping in that
+         panel's own metal-tinted gradient underneath (this is the day's
+         theme-color surface, not a metal panel; only the grain belongs
+         here, not the cool/warm-tinted color stops). */
+      background-color: var(--color-primary-strong);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      background-blend-mode: multiply;
+      /* Bottom padding grown from the original 64 to 140 — room for the
+         drop-chute (src/organisms/drop-chute.js) to stay entirely within
+         this section instead of spilling into .brief-section. Paired
+         with dropping the old tagline paragraph and nudging the title's
+         own margin-bottom down below (both free up space higher in the
+         section), the section's *overall* height stays close to where
+         it was — the freed space just moves from mid-section to the
+         bottom, where the chute actually needs it. */
+      padding: 72px 32px 140px;
+      text-align: center;
+    }
+
+    .kueh-slice {
+      width: 72px;
+      margin: 0 auto 32px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow:
+        0 10px 32px rgba(0, 0, 0, 0.28),
+        0 2px 6px rgba(0, 0, 0, 0.18);
+    }
+
+    .kueh-layer { height: 11px; width: 100%; }
+    .l1  { background: var(--color-primary-strong); }
+    .l2  { background: var(--color-surface); }
+    .l3  { background: var(--color-primary); }
+    .l4  { background: var(--color-surface); }
+    .l5  { background: var(--color-accent); }
+    .l6  { background: var(--color-surface); }
+    .l7  { background: var(--color-primary-strong); }
+    .l8  { background: var(--color-surface); }
+    .l9  { background: var(--color-highlight); }
+    .l10 { background: var(--color-surface); }
+    .l11 { background: var(--color-primary); }
+    .l12 { background: var(--color-surface); }
+    .l13 { background: var(--color-primary-strong); }
+    .l14 { background: var(--color-surface-tint); }
+
+    /* Retheme with the rest of the page (see src/organisms/kueh-of-day.js) —
+       the "Kueh" title's layered gradient uses the same semantic tokens as
+       everything else, so it reflects the day's kueh too.
+
+       Band transitions are soft (a ~2% blend zone at each color change)
+       rather than hard cuts, and rather than a filter: blur() on the whole
+       element — blur applies after background-clip: text has already
+       clipped the gradient to the glyph shapes, so it softens the letter
+       edges right along with the color bands, which reads as out-of-focus
+       text rather than a soft fill. Blending directly in the gradient
+       definition keeps the letter silhouettes perfectly crisp (no filter
+       involved at all) while still softening just the color transitions. */
+    .layered-k {
+      font-weight: 800;
+      /* position: relative — same reason .chrome-text-fill needs it:
+         "Kueh" now sits in a .chrome-text-wrap alongside its own
+         .chrome-text-rim (behind it, absolutely positioned), and only a
+         *positioned* sibling participates in DOM-order paint stacking
+         against another positioned element. Without this, the
+         static-position fill would paint in the earlier "in-flow
+         non-positioned content" step and the rim would paint over it
+         instead of peeking out only around the glyph edges. */
+      position: relative;
+      background: linear-gradient(to bottom,
+        var(--color-highlight)      0%,
+        var(--color-highlight)      29%,
+        var(--color-surface-tint)   31%,
+        var(--color-surface-tint)   34%,
+        var(--color-surface)        36%,
+        var(--color-surface)        39%,
+        var(--color-primary-soft)   41%,
+        var(--color-primary-soft)   44%,
+        var(--color-primary)        46%,
+        var(--color-primary)        49%,
+        var(--color-accent)         51%,
+        var(--color-accent)         54%,
+        var(--color-surface-tint)   56%,
+        var(--color-surface-tint)   59%,
+        var(--color-surface)        61%,
+        var(--color-surface)        64%,
+        var(--color-primary-soft)   66%,
+        var(--color-primary-soft)   69%,
+        var(--color-primary)        71%,
+        var(--color-primary)        100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      /* Fixed per breakpoint (mobile ≤640px below, in-between 641-1023px
+         further below), not a fluid vw-based clamp() — 3 deliberate sizes
+         read as more predictable/controllable than continuous scaling,
+         and sidesteps the old system's own edge cases (independent
+         clamp()s here and on .cd-number/.cd-sep hitting their ceilings at
+         slightly different viewport widths, and a visible size snap right
+         at the old 640/641 mobile/desktop handoff). This value (desktop,
+         ≥1024px) matches what the old formula rendered at exactly 1024px. */
+      font-size: 6.4rem;
+      font-weight: 600;
+      letter-spacing: var(--tracking-display);
+      color: var(--color-surface);
+      line-height: var(--leading-display);
+      /* Was 10px, spacing before the old tagline paragraph (now removed
+         — see .hero's own comment) — this is the title-to-countdown-clock
+         gap directly now, so a bit more than that tight tagline-spacing
+         value reads better without the tagline as a visual step between
+         them. */
+      margin-bottom: 24px;
+    }
+
+    /* Both wordmark halves get the same double-rim "housing" treatment —
+       each sits in its own .chrome-text-wrap with *two* .chrome-text-rim
+       copies behind it (a thin inner one at the base --chrome-angle, a
+       thick outer one 55° offset, same "two rings, deliberately
+       different" idea as housing-frame.js's own accent ring), so "Kueh"
+       (organic, layered, .layered-k) and "Machine" (brushed chrome,
+       .chrome-text-fill) share the same double-metal outline even though
+       their own fills — and their rims' own color source — differ.
+       .chrome-text-rim--themed pulls from the day's --color-primary-strong;
+       .chrome-text-rim--metal pulls from the neutral --metal-base every other rim on the
+       site defaults to. "Kueh" is --themed on both its rims; "Machine"
+       splits the two — its outer (thicker) rim is --themed too, its inner
+       one stays --metal — so "Machine" reads as brushed chrome with a
+       day-tinted edge, rather than either wordmark being one uniform
+       color source. Both are real conic-gradients (computeConicChromeLayers,
+       chrome-metal.js —
+       same helper every other chrome rim on the site uses), set in JS
+       (src/organisms/chrome-accents.js) rather than a CSS linear-gradient
+       — a text-clipped conic-gradient sweeps as one coherent band across
+       the whole word instead of a flat diagonal streak. Static/non-
+       reactive (a fixed --chrome-angle, not registered for cursor
+       rotation) since each rim sits directly behind a separate solid-
+       color fill layer at an exact pixel alignment — a moving rim would
+       read as a rendering glitch rather than a reflection, the two layers
+       visibly drifting apart as one rotates and the other doesn't.
+
+       Text can't take a literal border, and -webkit-text-stroke only
+       accepts a solid color (no gradient) — there's no native way to give
+       text a gradient-filled outline. This fakes one by stacking three
+       copies of the same word: the two .chrome-text-rim copies sit
+       behind, filled with their gradient via background-clip:text and
+       widened with text-stroke (background-clip clips the stroke too, so
+       the whole widened glyph shows the gradient); the fill layer
+       (.chrome-text-fill/.layered-k) sits on top, normal-width. Only each
+       rim's own extra width peeks out around whatever's in front of it,
+       reading as metal outlines. */
+    .chrome-text-wrap {
+      position: relative;
+      display: inline-block;
+    }
+    .chrome-text-rim {
+      position: absolute;
+      /* Wider than the wrap's own exact bounds horizontally (not inset: 0)
+         — the 3px text-stroke below bleeds outward from each glyph's
+         edge, and at inset: 0 the rightmost letter's stroke had nowhere
+         to render without touching the box edge, clipping its tip.
+         top/bottom stay at 0: expanding those too made the rim's box
+         taller than the fill layer's, which shifted how the text
+         vertically centered within it — a visible offset between the
+         two layers that had nothing to do with the clipping fix. */
+      /* em, not a fixed px, for both this and the text-stroke below — the
+         wordmark's own font-size (.hero-title) is clamp(4.5rem, 10vw,
+         7rem), so it shrinks on a narrow viewport; a fixed px rim stayed
+         the same physical width regardless, reading as proportionally
+         thicker against the smaller glyphs on mobile than it did at
+         desktop's max size. em ties both to the *inherited* font-size
+         instead, so they shrink/grow together with the text.
+         -0.0536em (not -0.0357em): widened alongside the 0.0402em
+         text-stroke below so the wider bleed still has room to render
+         without clipping the rightmost letter's tip — see the original
+         -4px-vs-3px-stroke note this replaced, same reasoning, just
+         rescaled for the thicker stroke. Both em values are the original
+         tuned px amounts (6px/4.5px) divided by 112px — the font-size
+         .hero-title computes to at its own clamp() ceiling (7rem, i.e.
+         desktop width), which is what these were visually tuned against. */
+      inset: 0 -0.0536em;
+      /* background-image is set in JS (src/organisms/chrome-accents.js),
+         not here — every .chrome-text-rim instance now gets a real
+         conic-gradient (computeConicChromeLayers, chrome-metal.js) keyed
+         by whichever color-source modifier it carries (--themed or
+         --metal, below); no CSS fallback, same as every other conic-
+         chrome element on the site (.btn-rim, .tab-group-rim, …). */
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      /* 0.0402em (4.5px at the 112px reference size, see inset's own
+         comment above), not a smaller stroke — a text-stroke straddles
+         the glyph's true outline (half inside, half outside), and
+         whatever sits on top of this rim has no stroke of its own,
+         covering exactly to that outline — so only the outward half of
+         this ever shows. 4.5px puts that visible sliver at ~2.25px,
+         matching .rim-matte-inner + .rim-matte-inner-glint's combined
+         band width (1.5px + 0.75px) elsewhere, at that same reference
+         size. */
+      -webkit-text-stroke: 0.0402em transparent;
+    }
+    /* "Kueh"'s rims duplicate .layered-k's own font-weight: 800 (they'd
+       otherwise fall back to .hero-title's 600) — a rim is a same-text
+       copy sized/positioned to trace the fill layer's exact glyph edges,
+       so any weight mismatch between the two misaligns the outline
+       against the letterforms it's supposed to trace, not just look
+       thinner. "Machine"'s rims skip this — .chrome-text-fill stays at
+       the inherited 600, so its rims do too. */
+    .chrome-text-rim--bold {
+      font-weight: 800;
+    }
+    /* Color-source markers read by chrome-accents.js to pick which
+       darkVar/lightVar pair a given .chrome-text-rim gets (see that
+       file's own KUEH_RIM_ and MACHINE_RIM_ constants) — --themed for the
+       day's theme color, --metal for the neutral metal-base. Every rim
+       carries exactly one; which one is per-rim, not per-word — "Kueh"
+       carries --themed on both its layers, "Machine" splits them
+       (--themed on its thick outer rim, --metal on its thin inner one).
+       Whether a given rim is the thin inner layer or the thick outer one
+       (and therefore which --chrome-angle it gets) is read from whether
+       it also carries .chrome-text-rim--outer, below — entirely
+       independent of which color-source class it carries. No CSS rule
+       needed for either marker, since chrome-accents.js selects by class
+       name and sets background-image directly. */
+    /* A second, thicker rim layer sitting behind (earlier in DOM than)
+       the thin inner rim — same "two rings, deliberately different" idea
+       as housing-frame.js's own accent ring (accentAngle: 55deg, offset
+       from the main ring's own angle "so the two conic-gradients visibly
+       disagree with each other rather than lining up into what would
+       just read as one thicker band"); chrome-accents.js gives any
+       element carrying this class that same 55° --chrome-angle offset.
+       inset/text-stroke scaled up from the base rim's own -0.0536em/
+       0.0402em by the same ratio, so the wider stroke still has room to
+       render without clipping the rightmost letter's tip — em here for
+       the same reason as the base rim (see its own comment): ties the
+       thicker outer rim's width to the wordmark's own font-size too, so
+       it shrinks in step with the inner rim on a narrow viewport instead
+       of staying a fixed px width while the text around it shrinks. */
+    .chrome-text-rim--outer {
+      inset: 0 -0.125em;
+      -webkit-text-stroke: 0.09375em transparent;
+    }
+    .chrome-text-fill {
+      position: relative;
+      /* Same fill recipe as .matte-metal-surface (styles/atoms.css) —
+         noise-grain texture blended over a soft highlight + the same
+         cool/warm-tinted panel gradient — clipped to the glyphs instead
+         of painted across a whole section. background-size uses 100%
+         100% rather than .matte-metal-surface's viewport-relative 100vh
+         (that sizing exists so a resizing *section* doesn't restretch
+         its gradient — irrelevant here, where the box is just the fixed
+         text itself), so the highlight/gradient bands land consistently
+         within the word regardless of its rendered size. */
+      background-color: color-mix(in srgb, var(--metal-base) 24%, white);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 90% 70% at 22% 15%, rgba(255, 255, 255, 0.22), transparent 60%),
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--metal-base-cool) 30%, white) 0%,
+          color-mix(in srgb, var(--metal-base) 24%, white) 32%,
+          color-mix(in srgb, var(--color-accent) 18%, color-mix(in srgb, var(--metal-base) 24%, white)) 55%,
+          color-mix(in srgb, var(--metal-base-warm) 30%, white) 76%,
+          color-mix(in srgb, var(--metal-base) 24%, white) 100%
+        );
+      background-repeat: repeat, no-repeat, no-repeat;
+      background-size: 100px 100px, 100% 100%, 100% 100%;
+      background-blend-mode: multiply, soft-light, normal;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+
+    /* Countdown "water clock": a plain rectangle, two stacked flat-color
+       layers — .countdown-window-bg and .countdown-liquid (the latter
+       masked to a bottom-up "water level" via --liquid-fill, set every
+       tick by the countdown script below). Both paint themselves with a
+       plain CSS background-color below — no procedural shape, SVG, or
+       clip-path needed for a plain rectangle. No cast shadow off the
+       liquid's own edge (dropped separately). Outlined with a single
+       chrome stroke — a real border-image, its gradient set by
+       src/organisms/countdown-clock.js (computeConicChromeLayers,
+       chrome-metal.js), same tint as the "Kueh" wordmark's own rims; see
+       that module's own comment for why this is a plain border rather
+       than another housing-frame.js wrapper. The drop (.countdown-drop
+       below) grows and releases from the window's own bottom edge, at
+       horizontal center.
+
+       --countdown-bg-color/--countdown-liquid-color are the single place
+       to retune either color — both layers' background-color below and
+       .countdown-drop further down all read these two custom properties
+       rather than each hardcoding (and re-explaining) a token of their
+       own, so swapping a color is one edit here instead of several. */
+    :root {
+      --countdown-bg-color: var(--color-highlight-soft); /* instruction row 6's background */
+      --countdown-liquid-color: var(--color-accent); /* .brief-section's background ("What is Kueh Machine?") */
+    }
+
+    /* Height is purely content-driven (no min-height) — the box is exactly
+       the digit grid's own height plus this padding, so it stays snug at
+       any font size/breakpoint instead of a fixed height that's oversized
+       for some and cramped for others. Top/bottom padding equal (no more
+       funnel body below the digits to reserve extra bottom room for) so
+       the content reads centered in the shape.
+
+       border-width/style live here since they're fixed, breakpoint-tiered
+       values like every other measurement on this page — countdown-clock.js
+       sets border-image (the gradient + its border-image-slice: 1, the
+       "wrap this generated gradient around the border area" idiom — see
+       that module's own comment) via the full shorthand, so it's the only
+       part that needs JS. border-color: transparent is the fallback shown
+       before that JS runs (or if it never does) — an invisible border
+       rather than a flash of whatever the default border color would be.
+
+       box-sizing: content-box overrides this file's own global *,
+       *::before, *::after border-box reset, specifically so the stroke
+       reads as an *outer* frame bled outward past the fill — with the
+       reset's own border-box, the border eats inward out of the padding/
+       fill area instead, shrinking the window rather than framing it.
+       Content-box means the mobile media query's width/max-width below
+       (tuned assuming the old border-box math) end up a few px wider in
+       practice (2× the border's own width) — negligible next to the
+       overflow-x: clip safety net .hero's own comment already relies on
+       for this same zone. */
+    .countdown-viewport {
+      position: relative;
+      display: inline-block;
+      box-sizing: content-box;
+      padding: 16px 48px;
+      margin-bottom: 12px; /* trailing space before the hero's own bottom padding */
+      border: 8px solid transparent;
+    }
+
+    .countdown-window-bg,
+    .countdown-liquid {
+      position: absolute;
+      inset: 0;
+    }
+
+    .countdown-window-bg {
+      background: var(--countdown-bg-color);
+    }
+
+    .countdown-liquid {
+      background: var(--countdown-liquid-color);
+      -webkit-mask-image: linear-gradient(to top,
+        black 0%, black var(--liquid-fill, 50%),
+        transparent var(--liquid-fill, 50%));
+      mask-image: linear-gradient(to top,
+        black 0%, black var(--liquid-fill, 50%),
+        transparent var(--liquid-fill, 50%));
+    }
+
+    /* Thin darker band right at the water's current surface — reads the
+       exact same --liquid-fill custom property as .countdown-liquid's own
+       mask above (set via countdown-clock.js's `surface` div), so it
+       tracks the surface, ripple wobble included, automatically. The first
+       gradient stop being "transparent" below the band rather than an
+       explicit 0% start is deliberate: with no earlier stop, a CSS gradient
+       extends that same color backward to 0% on its own. */
+    .countdown-liquid-surface {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      --surface-color: color-mix(in srgb, var(--countdown-liquid-color) 90%, black);
+      --surface-thickness: 3px;
+      background: linear-gradient(to top,
+        transparent calc(var(--liquid-fill, 50%) - var(--surface-thickness)),
+        var(--surface-color) calc(var(--liquid-fill, 50%) - var(--surface-thickness)),
+        var(--surface-color) var(--liquid-fill, 50%),
+        transparent var(--liquid-fill, 50%));
+    }
+
+    /* Countdown grid: 4 units */
+    .countdown-grid {
+      position: relative;
+      z-index: 1;
+      display: inline-grid;
+      grid-template-columns: repeat(7, auto);
+      gap: 0 24px;
+      text-align: center;
+    }
+
+    .cd-unit {}
+
+    /* All three read against both --countdown-bg-color and
+       --countdown-liquid-color (defined above .countdown-viewport), so
+       they share one token verified (by script, across every seeded kueh)
+       to hold 4.5:1+ against the current pairing of those two —
+       colorTextOnSurfaceMuted is NOT safe here, since it's only
+       calibrated against colorSurface/colorSurfaceTint. Re-check contrast
+       if either --countdown-*-color is retuned to a darker token. */
+    .cd-number {
+      display: block;
+      font-family: var(--font-display);
+      /* Fixed per breakpoint (mobile ≤640px, in-between 641-1023px —
+         both further below), not a fluid vw-based clamp() — see
+         .hero-title's own comment for why. This value (desktop, ≥1024px)
+         is what the old overflow-safe formula ((available width) / 6.9,
+         see git history) computed at exactly 1024px, its narrowest point
+         in this zone — safe at any wider desktop width too, since more
+         width only means more room. */
+      font-size: 6.38rem;
+      font-weight: 700;
+      letter-spacing: var(--tracking-counter);
+      color: var(--color-text-on-surface);
+      line-height: 1;
+      /* font-variant-numeric: tabular-nums is a no-op here — Syne
+         (--font-display) doesn't implement the 'tnum' OpenType feature,
+         so digits still render at their own proportional widths. Without
+         a fixed-width reserve, .cd-unit's grid column (grid-template-
+         columns: repeat(7, auto) on .countdown-grid) re-measures on every
+         tick, nudging the whole countdown sideways whenever a narrower/
+         wider digit swaps in. min-width reserves room for the widest
+         plausible 2-digit pair up front so the column stays put;
+         text-align: center (inherited from .countdown-grid) keeps
+         narrower numbers centered in that reserved space. */
+      font-variant-numeric: tabular-nums;
+      min-width: 2.2ch;
+    }
+
+    .cd-label {
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--color-text-on-surface);
+      margin-top: 6px;
+    }
+
+    .cd-sep {
+      /* Fixed per breakpoint, same reasoning/derivation as .cd-number's
+         own comment — tied to its value × 0.6, same relationship the
+         in-between/mobile rules further below also use. */
+      font-size: 3.83rem;
+      font-weight: 300;
+      color: var(--color-text-on-surface);
+      line-height: 1;
+      padding-top: 4px;
+      align-self: start;
+      margin-top: 6px;
+    }
+
+    /* Grows in place at the window's bottom edge over each ten-second decade
+       (--drop-progress set once per second by updateDrop() below, eased
+       between those discrete updates by the transition) then falls on the
+       exact tick the seconds display reaches a multiple of ten — see
+       updateDrop's own comment for why that timing (not a plain 10s
+       interval) matters. transform-origin: top so scaling from 0 to 1
+       reads as the droplet emerging from a fixed point at the edge and
+       swelling downward, not growing from its own center. */
+    .countdown-drop {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      margin-left: -6px;
+      border-radius: 50%;
+      /* Round highlight offset toward the top, like light catching the
+         top of a bead of liquid — layered over the base liquid color, not
+         replacing it. */
+      background:
+        radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
+        var(--countdown-liquid-color);
+      pointer-events: none;
+      z-index: 999;
+      transform-origin: top center;
+      transform: scale(var(--drop-progress, 0));
+      transition: transform 1s linear;
+    }
+
+    /* Little air bubbles rising from the bottom edge right as a drop releases
+       (src/atoms/liquid-bubbles.js, spawnBubbleBurst) — appended straight
+       into #js-countdown-liquid, so its own bottom-up mask-image
+       (--liquid-fill, above) clips each bubble the instant it rises past
+       the current water level for free. z-index: 1 (same reasoning as
+       .countdown-grid, below) keeps them above the liquid's own fill SVG,
+       which paints itself at z-index: -1 (.retro-shape-fill). Radial
+       highlight distinct from the flat liquid color is what reads as an
+       air bubble rather than another droplet of the liquid itself. */
+    .countdown-liquid-bubble {
+      position: absolute;
+      z-index: 1;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.15) 60%, rgba(255, 255, 255, 0) 75%);
+      box-shadow: inset 0 0 1px rgba(255, 255, 255, 0.6);
+      pointer-events: none;
+    }
+
+    /* === SECTION CHROME === */
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--color-text-on-surface);
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: var(--type-heading);
+      font-weight: 700;
+      letter-spacing: var(--tracking-heading);
+      color: var(--color-text-on-surface);
+      line-height: var(--leading-heading);
+    }
+
+    /* === BRIEF === */
+    .brief-section {
+      position: relative;
+      background: var(--color-accent);
+      padding: 80px 32px;
+      overflow: hidden; /* .batik-margin bleeds past the section's own edges on all four sides by design */
+    }
+
+    .brief-inner {
+      position: relative;
+      z-index: 1; /* stays above .batik-margin at any overlap, text never fights the artwork */
+      max-width: 54ch;
+      margin-inline: auto;
+    }
+
+    /* Batik margin strips: always shown down to the mobile breakpoint —
+       on a narrow-but-not-mobile viewport they'll sit partly behind the
+       text column (z-index above) and bleed off all four screen/section
+       edges (negative inset on every side), which reads as a natural
+       full-bleed composition rather than something that needs to fit
+       strictly within the margin's own whitespace.
+
+       left/right ease from -60px (mild bleed, plenty of margin room)
+       toward -180px as the viewport narrows past 1200px, so less of the
+       artwork reaches in over the text the tighter the column gets — a
+       fixed -60px stayed put all the way down to the 640px cutoff, which
+       read as creeping further into the text the narrower the page got
+       instead of easing out of its way. top/bottom stay a flat -60px
+       bleed — the section's own height doesn't compress the way its width
+       does, so there's no equivalent "creeping into content" risk there. */
+    .batik-margin {
+      position: absolute;
+      z-index: 0;
+      top: -60px;
+      bottom: -60px;
+      width: 220px;
+      pointer-events: none;
+    }
+
+    .batik-margin-left { left: clamp(-180px, calc(-60px - (1200px - 100vw) * 0.2143), -60px); }
+    .batik-margin-right { right: clamp(-180px, calc(-60px - (1200px - 100vw) * 0.2143), -60px); }
+
+    .batik-margin .batik-pattern {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .brief-heading {
+      font-family: var(--font-display);
+      font-size: var(--type-heading);
+      font-weight: 700;
+      letter-spacing: var(--tracking-heading);
+      line-height: var(--leading-heading);
+      color: var(--color-primary-strong);
+      margin-bottom: 20px;
+    }
+
+    .brief-link { color: var(--color-primary-strong); text-decoration: underline; }
+    .brief-link:hover { opacity: 0.75; }
+
+    .brief-text {
+      font-size: clamp(1rem, 2vw, 1.125rem);
+      font-weight: 400;
+      line-height: 1.75;
+      color: var(--color-text-on-surface);
+    }
+
+    /* === TIMELINE === now styles/organisms/timeline-panel.css */
+
+    /* === GETTING STARTED === */
+    .guide-section {
+      position: relative;
+      overflow: hidden; /* trims .guide-batik's bleed flush at the section edge, same as .brief-section */
+      padding: 80px 32px;
+      background: var(--color-surface-tint);
+    }
+
+    /* Keeps the label/heading/intro/step-cards above .guide-batik at any
+       overlap — same z-index split as .brief-inner vs .batik-margin. */
+    .guide-section .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* The full-bleed batik layer moved here from its own experimental
+       section (killed) — sits behind the step-cards, only visible through
+       the gaps between them and the side/bottom bleed, rather than behind
+       the section's own heading/intro at the top. `top` is a fixed offset
+       tuned to land just below .guide-intro, roughly where .steps-list
+       begins, so the pattern (and the IntersectionObserver reveal that
+       depends on it scrolling into view, see batik-accents.js) starts
+       showing up around the same time the rows themselves do. */
+    .guide-batik {
+      position: absolute;
+      z-index: 0;
+      top: 235px;
+      left: -60px;
+      right: -60px;
+      bottom: -60px;
+      pointer-events: none;
+    }
+
+    .guide-batik .batik-pattern {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .guide-intro {
+      margin-top: 20px;
+      max-width: 580px;
+      font-size: 0.9375rem;
+      color: var(--color-text-on-surface);
+      line-height: 1.7;
+    }
+
+    .steps-list {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Liquid chrome edge (src/organisms/chrome-accents.js) — each card gets
+       its own independently-randomized glints, which is what actually
+       solves 8 rows looking like one mechanically repeated flourish (real
+       per-element randomness, not a shared pattern trying to fake it).
+       .step-card is now the outer metal band (applyLayeredConicChrome,
+       src/tokens/chrome-metal.js) — chrome-accents.js moves each card's
+       original children into a new .step-card-fill div nested inside the
+       auto-inserted .chrome-rim-glint band, so the layout/padding that
+       used to live here moved there too. Fill color is a custom property
+       (--step-fill-color, set per nth-child below) rather than a literal
+       background, so it can inherit down through the two nested chrome
+       bands to .step-card-fill without needing to know about them.
+       border-radius here is only the :focus-visible fallback shape for
+       browsers that don't clip an element's own outline to its clip-path
+       (same convention as .btn-small/.tab, styles/atoms.css) — the real
+       shape is the retro-rectangle clip-path chrome-accents.js attaches to
+       this, its glint band, and .step-card-fill. box-shadow would get
+       clipped away with it (it draws around the full rectangular
+       border-box regardless of clip-path), so this is a filter:
+       drop-shadow instead, same recipe as .btn-rim. */
+    .step-card {
+      border-radius: var(--radius-card);
+      padding: 1.5px;
+      filter: drop-shadow(0 4px 20px rgba(0,0,0,0.09)) drop-shadow(0 1px 4px rgba(0,0,0,0.06));
+    }
+
+    .step-card-fill {
+      display: flex;
+      align-items: baseline;
+      gap: 22px;
+      padding: 22px 26px;
+      border-radius: inherit;
+      background: var(--step-fill-color);
+    }
+
+    .steps-list > .step-card:nth-child(1) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(2) { --step-fill-color: var(--color-primary-soft); }
+    .steps-list > .step-card:nth-child(3) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(4) { --step-fill-color: var(--color-accent); }
+    .steps-list > .step-card:nth-child(5) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(6) { --step-fill-color: var(--color-highlight-soft); }
+    .steps-list > .step-card:nth-child(7) { --step-fill-color: var(--color-surface); }
+    .steps-list > .step-card:nth-child(8) { --step-fill-color: var(--color-primary-soft); }
+
+    .step-num {
+      font-family: var(--font-display);
+      font-size: var(--type-subheading);
+      font-weight: 700;
+      letter-spacing: var(--tracking-heading);
+      flex-shrink: 0;
+      width: 24px;
+      --sheen-base: var(--color-text-on-surface);
+    }
+
+    .step-body { flex: 1; min-width: 0; }
+
+    .step-heading {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .step-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .step-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      align-self: center;
+    }
+
+    .spark {
+      font-style: normal;
+      color: var(--color-primary-strong);
+      line-height: 1;
+    }
+    .spark-sm { font-size: 22px; }
+    .spark-lg { font-size: 30px; }
+
+    .step-link {
+      --sheen-base: var(--color-primary-strong);
+      font-weight: 600;
+      text-decoration: underline;
+      /* text-decoration-color explicitly, not currentColor (the default)
+         — .text-sheen sets color: transparent to reveal the gradient
+         fill, and the underline would disappear right along with it if
+         left to inherit that same transparent value. */
+      text-decoration-color: var(--color-primary-strong);
+      text-underline-offset: 2px;
+      text-decoration-thickness: 1px;
+    }
+    .step-link:hover {
+      --sheen-base: var(--color-primary);
+      text-decoration-color: var(--color-primary);
+    }
+
+    /* File card — shaped to the retro-rectangle silhouette
+       (attachRetroShapeClip + SMALL_RETRO_SHAPE_OPTS, chrome-accents.js),
+       same small-control shape as .btn/.tab. border-radius is only the
+       :focus-visible fallback for browsers that don't clip an outline to
+       clip-path.
+
+       .file-card is now the outer rim band, the old 1px border's replacement
+       — a straight CSS border doesn't follow a clip-path'd corner's curve
+       (it just gets cut off at an angle), so instead the border color is
+       this element's own background, showing through as a thin ring in the
+       gap between its clip-path and the inner .file-card-fill's (its
+       padding below sets that ring's thickness) — same rim/fill nesting
+       .step-card/.step-card-fill and .btn-rim/.btn use, just a flat color
+       instead of a chrome gradient. */
+    .file-card {
+      display: inline-flex;
+      background: var(--color-surface-border);
+      border-radius: var(--radius-interactive);
+      padding: 1.5px;
+      text-decoration: none;
+      margin-top: 14px;
+      max-width: 280px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
+      transition: background 0.15s;
+    }
+    .file-card:hover {
+      background: var(--color-primary);
+    }
+
+    .file-card-fill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+      background: var(--color-surface);
+      border-radius: inherit;
+      padding: 10px 14px;
+      transition: background 0.15s;
+    }
+    .file-card:hover .file-card-fill {
+      background: var(--color-surface-tint);
+    }
+
+    .fc-icon { color: var(--color-primary); flex-shrink: 0; }
+    .fc-info { flex: 1; min-width: 0; }
+    .fc-name { font-size: 0.9rem; font-weight: 600; --sheen-base: var(--color-text-on-surface); display: block; }
+    .fc-meta { font-size: 0.8rem; color: var(--color-text-on-surface); display: block; }
+    .fc-dl   { color: var(--color-text-on-surface); flex-shrink: 0; }
+
+    /* Code pills */
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+    kbd {
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-style: normal;
+      background: var(--color-surface-tint);
+      color: var(--color-text-on-surface);
+      border: 1px solid var(--color-surface-border);
+      border-radius: var(--radius-interactive);
+      padding: 2px 7px;
+      white-space: nowrap;
+      display: inline-block;
+      line-height: 1.5;
+    }
+
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: var(--color-surface-tint);
+      color: var(--color-primary-strong);
+      border: 1px solid var(--color-surface-border);
+      border-radius: var(--radius-pill);
+      padding: 3px 11px;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    /* === POST-CHECK-IN ARCHIVE (src/organisms/checkin-archive.js flips
+       these on the day after check-in) — Leveling Up itself needs no
+       gating: it's plain always-visible markup below, same as Getting
+       Started. Only Check In (and the Timeline's scissors-cut apparatus
+       that reveals it) get archived, not deleted, so both can be restored
+       for a future incarnation of the site. === */
+    #check-in.is-archived { display: none; }
+
+    /* scissors-cut.js's rendered elements — .sc-scissors-wrap covers the
+       blade images, rivets, and mobile cut-string/grommets (all appended
+       as its children); the rest are appended directly to #timeline. */
+    #timeline.scissors-archived .sc-scissors-wrap,
+    #timeline.scissors-archived .sc-cut-string,
+    #timeline.scissors-archived .sc-guide-grommet-row,
+    #timeline.scissors-archived .sc-guide-thread-layer,
+    #timeline.scissors-archived .sc-chip-knob {
+      display: none;
+    }
+
+    .nav-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 0.625rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--color-primary-strong);
+      background: var(--color-accent);
+      border-radius: var(--radius-pill);
+      vertical-align: middle;
+    }
+
+    /* Distinct base color from Getting Started's --color-surface-tint, so
+       the two sections read as visually separate even reusing the same
+       .guide-section layout. --color-primary-soft is brief-section's own
+       background color too (swapped between the two sections along with
+       --color-accent) — data-batik-surface="tinted" (on the mounts below,
+       the default the batik system already uses for a colored/saturated
+       background) is what keeps the pattern's stroke/dots reading
+       correctly against it, same as brief-section's own mounts. */
+    #leveling-up { background: var(--color-primary-soft); }
+
+    /* Same collision as the batik stroke above, hitting a different
+       component: the shared nth-child fill cycle (further up, under
+       "GETTING STARTED") puts --color-primary-soft at positions 2 and 8,
+       which any .steps-list on the page can land a card on. That's
+       invisible against guide-section's own --color-surface-tint
+       background, but blends straight into this section's own
+       --color-primary-soft one (position 2 is the one actually hit today —
+       every walkthrough here has a step 02). Scoped to #leveling-up
+       specifically, not changed at the shared rule, so guide-section's
+       own cards are untouched. */
+    #leveling-up .steps-list > .step-card:nth-child(2) { --step-fill-color: var(--color-highlight-soft); }
+
+    /* Each walkthrough/tip is its own title + one-liner, then its own
+       .steps-list nested below — restarting the 01/02.. numbering per
+       group, since Netlify Drop and GitHub are two separate skills, not
+       one continuous flow. The generic .steps-list rule (40px margin-top,
+       for guide-section's single top-level list) would double up with
+       this wrapper's own gap, so the nested override below tightens it. */
+    .leveling-groups {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 44px;
+    }
+    /* .pill (defined above, under "Code pills" — otherwise unused on the
+       page) doubles here as the "n00b level" badge, sitting right above
+       its group's title. font-family: .pill's own --font-mono is for
+       actual code and isn't otherwise rendered anywhere on the page (no
+       <kbd>, no other .pill), so a plain label stays on the two type
+       families the rest of the page already uses. border/border-radius:
+       swaps the plain rounded-pill shape for the same small-control
+       retro-rectangle superellipse .btn/.tab/.file-card use — same shape
+       as the Overview/Recipe toggle. chrome-accents.js attaches the
+       actual clip-path; border: none because a straight CSS border
+       doesn't follow a clip-path'd corner (see .file-card's own comment
+       for the same fix), and .n00b-pill already paints its own flat
+       background so no rim/fill split is needed, just the clip. */
+    .n00b-pill {
+      font-family: var(--font-sans);
+      margin-bottom: 8px;
+      border: none;
+      border-radius: var(--radius-interactive);
+    }
+
+    .leveling-group-title {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--color-text-on-surface);
+    }
+    .leveling-group-intro {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--color-text-on-surface);
+    }
+    .leveling-group .steps-list {
+      margin-top: 16px;
+    }
+
+    .leveling-resource-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    /* Lucide icon (src/organisms/icons.js) standing in for the list
+       marker — display:flex on the <li> itself, not a nested wrapper, so
+       the text still reads as a plain left-aligned line, just starting
+       after the icon + gap instead of after a bullet. */
+    .leveling-resource-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .leveling-resource-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 3px; /* optically aligns with the text's first line, not its own box center */
+      color: var(--color-text-on-surface);
+    }
+
+    /* === FOOTER === */
+    .site-footer {
+      padding: 28px 32px;
+      background: var(--color-primary-strong);
+      text-align: center;
+    }
+    .site-footer p {
+      font-size: 0.8125rem;
+      color: var(--color-text-on-primary);
+    }
+
+    /* === RESPONSIVE === */
+    /* In-between zone of the hero title/countdown clock's 3-fixed-
+       breakpoint scheme (see .hero-title's own comment, above, for why
+       this replaced fluid vw-based clamp() scaling). All three values are
+       what the old fluid formulas computed at 768px (a common tablet
+       width) — a representative middle-of-zone reference, not the zone's
+       narrowest edge (641px): that edge value read as barely bigger than
+       mobile's own fixed size, with the real jump in size all crammed
+       into the in-between → desktop handoff instead of reading as an
+       actual "medium" step between the two. body's own overflow-x:hidden
+       is the safety net for the (mostly theoretical — 641-700px landscape
+       phones/phablets are rare) narrow end of this zone. */
+    @media (min-width: 641px) and (max-width: 1023px) {
+      .hero-title { font-size: 4.8rem; }
+      /* 20% below the 768px-derived value above (4.06rem/2.44rem) — the
+         768px reference read a bit too big in practice. */
+      .cd-number { font-size: 3.25rem; }
+      .cd-sep { font-size: 1.95rem; }
+    }
+    @media (max-width: 640px) {
+      .container { padding: 0 10px; }
+      .hero { padding: 48px 10px 150px; } /* trimmed back down 40px — no longer coupled to the chute's own height (drop-chute.js's mobile chute height is now a fixed constant, not derived from this element's live bottom edge), so this is free to change without squashing the chute */
+      /* Stretched wide (most of the screen, just a little side margin)
+         rather than shrink-wrapped to the digit content like desktop.
+         max-width caps how far the clock stretches as this zone's viewport
+         approaches 640px (calc(100vw - 56px) alone would let it grow to
+         ~580px there) — 400px (down from 432px/36px margin, read a touch
+         too wide) still kicks in before ~580px, just later. */
+      .countdown-viewport { width: calc(100vw - 56px); max-width: 400px; padding: 10px 8px; border-width: 4px; }
+      .countdown-grid { gap: 0 6px; }
+      /* Fixed per breakpoint, same 3-breakpoint scheme as .hero-title/
+         .cd-number/.cd-sep's own comments (further above) explain — base
+         value is what the old overflow-safe fluid formula computed at
+         375px (a common phone width, used as the mobile zone's reference
+         rather than its narrowest edge since .hero-title has no matching
+         overflow constraint to stay conservative for), then bumped ~20%
+         larger (two successive ~10% rounds, read too small), then back
+         down 15% (read too big at that point). */
+      .hero-title { font-size: 4.63rem; }
+      /* .cd-number/.cd-sep further reduced 10% from 2.64rem/1.58rem —
+         read too big on mobile even after the tuning above. */
+      .cd-number { font-size: 2.38rem; }
+      .cd-sep { font-size: 1.42rem; }
+      .brief-section { padding: 60px 20px; }
+      .batik-margin { display: none; } /* mobile column is too narrow to overlap without hurting legibility */
+      .guide-section { padding: 60px 10px; }
+      .step-card-fill { padding: 18px; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SITE NAV -->
+  <nav class="site-nav" aria-label="Section navigation">
+    <div class="site-nav-inner">
+      <a href="#leveling-up" data-nav-target="leveling-up" class="text-sheen">Leveling Up<span class="nav-badge">NEW</span></a>
+      <a href="#timeline" data-nav-target="timeline" class="text-sheen">Timeline</a>
+      <a href="#brief" data-nav-target="brief" class="text-sheen">Brief</a>
+    </div>
+  </nav>
+
+  <!-- HERO + COUNTDOWN -->
+  <!-- No `reveal` class here, deliberately — .hero is already >8% visible
+       at scroll position 0, so the IntersectionObserver below would fire
+       essentially instantly on every load, playing the fade/translateY(20px)
+       entrance transition for content that was never actually offscreen
+       to begin with. That read as the page "scrolling into place" on
+       every single refresh (it wasn't scrolling — .hero itself was
+       sliding up under the sticky nav). Reveal-on-scroll only makes sense
+       for the sections further down the page. -->
+  <section class="hero">
+<h1 class="hero-title"><span class="chrome-text-wrap"><span class="chrome-text-rim chrome-text-rim--bold chrome-text-rim--outer chrome-text-rim--themed" aria-hidden="true">Kueh</span><span class="chrome-text-rim chrome-text-rim--bold chrome-text-rim--themed" aria-hidden="true">Kueh</span><span class="layered-k">Kueh</span></span> <span class="chrome-text-wrap"><span class="chrome-text-rim chrome-text-rim--outer chrome-text-rim--themed" aria-hidden="true">Machine</span><span class="chrome-text-rim chrome-text-rim--metal" aria-hidden="true">Machine</span><span class="chrome-text-fill">Machine</span></span></h1>
+    <div class="countdown-viewport">
+      <div class="countdown-window-bg" aria-hidden="true"></div>
+      <div class="countdown-liquid" id="js-countdown-liquid" aria-hidden="true"></div>
+      <div class="countdown-grid" role="timer" aria-label="Countdown to showcase on 26 August 2026">
+        <div class="cd-unit">
+          <span class="cd-number" id="js-days">—</span>
+          <span class="cd-label">Days</span>
+        </div>
+        <div class="cd-sep" aria-hidden="true">:</div>
+        <div class="cd-unit">
+          <span class="cd-number" id="js-hours">—</span>
+          <span class="cd-label">Hours</span>
+        </div>
+        <div class="cd-sep" aria-hidden="true">:</div>
+        <div class="cd-unit">
+          <span class="cd-number" id="js-minutes">—</span>
+          <span class="cd-label">Min</span>
+        </div>
+        <div class="cd-sep" aria-hidden="true">:</div>
+        <div class="cd-unit">
+          <span class="cd-number" id="js-seconds">—</span>
+          <span class="cd-label">Sec</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KUEH OF THE DAY -->
+  <section id="kueh-of-day" class="kueh-of-day-section matte-metal-surface reveal">
+    <div class="container">
+      <div class="kod-mount"></div>
+    </div>
+  </section>
+
+  <!-- LEVELING UP — live now, same as Getting Started below it; no
+       gating of its own. (src/organisms/checkin-archive.js only archives
+       #check-in and the Timeline's scissors apparatus, the day after
+       check-in.) Netlify Drop and GitHub each get their own walkthrough
+       (own title, one-liner, and numbered sub-steps, restarting at 01)
+       since they're two independent skills, not one continuous flow. The
+       two tips below them follow the same title + one-liner shape but
+       their row has no step-num — a tip isn't a step to complete. -->
+  <section id="leveling-up" class="guide-section reveal">
+    <!-- Margin strips, not the full-bleed layer guide-section uses — text
+         sits directly on this section's own colored background (unlike
+         guide-section's step-cards, which give the full-bleed layer gaps
+         to peek through), so the pattern stays clear of the reading
+         column, same approach as .brief-section's own margins.
+
+         data-batik-height is NOT the actual rendered height — batik-
+         pattern.js's SVG stretches its viewBox to cover whatever box the
+         CSS gives it (preserveAspectRatio="xMidYMid slice"), so this
+         value only matters relative to the mount's real measured height:
+         too small and every motif gets zoomed up to cover the extra
+         height, rendering huge. brief-section's own margins are tuned to
+         "800" because that section's mount renders at ~780px (a ~1:1
+         ratio); this section is much longer (two walkthroughs plus two
+         tips, not one intro block) and its mount renders at ~2100px, so
+         height/clusters are scaled up to match that same ~1:1 ratio and
+         land motifs back at their intended size and density (100 height
+         units per cluster, same as brief-section's own 800/8). Re-tune
+         both if this section's content length changes meaningfully. -->
+    <div class="batik-mount batik-margin batik-margin-left" data-batik-group="leveling-margins" data-batik-surface="tinted" data-batik-width="220" data-batik-height="2100" data-batik-clusters="21" data-batik-scale="0.85" aria-hidden="true"></div>
+    <div class="batik-mount batik-margin batik-margin-right" data-batik-group="leveling-margins" data-batik-surface="tinted" data-batik-width="220" data-batik-height="2100" data-batik-clusters="21" data-batik-scale="0.85" aria-hidden="true"></div>
+    <div class="container">
+      <p class="section-label">Leveling up</p>
+      <h2 class="section-title">Skills worth picking up next</h2>
+      <p class="guide-intro">You've already got Claude Code and VS Code building something real. Here are a few more skills and tools worth exploring as you keep building this month.</p>
+
+      <div class="leveling-groups">
+
+        <!-- NETLIFY DROP — led by the outcome (a real link to test on your
+             phone), with the tool name as the prescription, not the headline. -->
+        <div class="leveling-group">
+          <p class="pill n00b-pill">n00b level I</p>
+          <p class="leveling-group-title">Put a live link in your pocket</p>
+          <p class="leveling-group-intro">A real address on the open internet, not just something running on your laptop: test it on an actual phone, or send the link to anyone and have them open it themselves. Start with Netlify Drop.</p>
+          <div class="steps-list">
+
+            <!-- 01 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">01</span>
+              <div class="step-body">
+                <p class="step-heading">Open Netlify Drop and drag your folder in</p>
+                <p class="step-text">Go to the page below and drag your whole project folder onto it. Netlify uploads it and hands you back a live URL you can open on your phone right away. <a class="step-link text-sheen" href="https://app.netlify.com/drop" target="_blank" rel="noopener">Open Netlify Drop</a></p>
+              </div>
+              <div class="step-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2"><g transform="translate(9.167 9.167) scale(11.5703)"><clipPath id="netlify-icon-clip"><path d="M0 0h42.667v42.667H0z"/></clipPath><g clip-path="url(#netlify-icon-clip)"><path d="M23.99 24.43h-5.317l-.44-.44v-5.317l.44-.44h5.316l.442.44v5.316l-.442.442z" fill="#014847" fill-rule="nonzero"/><g fill="#05bdba" fill-rule="nonzero"><path d="M12.928 32.441h-.452l-2.255-2.254v-.448l3.447-3.451 2.388.004.319.315v2.388l-3.447 3.446zM10.221 12.928v-.452l2.255-2.255h.452l3.447 3.447v2.384l-.319.323h-2.388l-3.447-3.447zM13.395 23.25H.273L0 22.974v-3.287l.273-.275h13.122l.273.275v3.287l-.273.274zM42.393 23.25H29.272l-.273-.275v-3.287l.273-.275h13.121l.274.275v3.287l-.274.274zM19.417 13.395V3.553l.275-.273h3.287l.274.273v9.842l-.274.273h-3.287l-.275-.273zM19.417 39.11v-9.84l.275-.275h3.287l.274.274v9.84l-.274.274h-3.287l-.275-.274z"/></g></g></g></svg>
+              </div>
+            </div>
+
+            <!-- 02 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">02</span>
+              <div class="step-body">
+                <p class="step-heading">Create a free account to keep the link</p>
+                <p class="step-text">A dropped site without an account expires after a while. Sign up for free and claim the site, then drag an updated folder onto the same link whenever you make changes.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- GITHUB + GITHUB PAGES — same outcome-first framing. -->
+        <div class="leveling-group">
+          <p class="pill n00b-pill">n00b level II</p>
+          <p class="leveling-group-title">Never lose your work, and auto-publish every change</p>
+          <p class="leveling-group-intro">Real version control, the way professional teams track every change, plus free hosting that updates itself every time you push. Start with GitHub and GitHub Pages.</p>
+          <div class="steps-list">
+
+            <!-- 01 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">01</span>
+              <div class="step-body">
+                <p class="step-heading">Create a GitHub account</p>
+                <p class="step-text">Create a free account if you don't have one already. <a class="step-link text-sheen" href="https://github.com/signup" target="_blank" rel="noopener">Sign up for GitHub</a></p>
+              </div>
+              <div class="step-icon" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8C0 11.54 2.29 14.53 5.47 15.59C5.87 15.66 6.02 15.42 6.02 15.21C6.02 15.02 6.01 14.39 6.01 13.72C4 14.09 3.48 13.23 3.32 12.78C3.23 12.55 2.84 11.84 2.5 11.65C2.22 11.5 1.82 11.13 2.49 11.12C3.12 11.11 3.57 11.7 3.72 11.94C4.44 13.15 5.59 12.81 6.05 12.6C6.12 12.08 6.33 11.73 6.56 11.53C4.78 11.33 2.92 10.64 2.92 7.58C2.92 6.71 3.23 5.99 3.74 5.43C3.66 5.23 3.38 4.41 3.82 3.31C3.82 3.31 4.49 3.1 6.02 4.13C6.66 3.95 7.34 3.86 8.02 3.86C8.7 3.86 9.38 3.95 10.02 4.13C11.55 3.09 12.22 3.31 12.22 3.31C12.66 4.41 12.38 5.23 12.3 5.43C12.81 5.99 13.12 6.7 13.12 7.58C13.12 10.65 11.25 11.33 9.47 11.53C9.76 11.78 10.01 12.26 10.01 13.01C10.01 14.08 10 14.94 10 15.21C10 15.42 10.15 15.67 10.55 15.59C13.71 14.53 16 11.53 16 8C16 3.58 12.42 0 8 0Z" transform="scale(64)" fill="var(--color-primary-strong)"/></svg>
+              </div>
+            </div>
+
+            <!-- 02 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">02</span>
+              <div class="step-body">
+                <p class="step-heading">Create a new repository for your project</p>
+                <p class="step-text">On github.com, click New repository, give it a name, and keep it public.</p>
+              </div>
+            </div>
+
+            <!-- 03 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">03</span>
+              <div class="step-body">
+                <p class="step-heading">Give Claude Code the repository's URL and ask it to push</p>
+                <p class="step-text">On your new repository's page, click the green Code button and copy the URL. Paste that into Claude Code and ask it to push your project there, it'll set that as your project's remote and handle the rest. Or use VS Code's Source Control panel to stage, commit, and push by hand.</p>
+              </div>
+            </div>
+
+            <!-- 04 -->
+            <div class="step-card">
+              <span class="step-num text-sheen">04</span>
+              <div class="step-body">
+                <p class="step-heading">Turn on GitHub Pages</p>
+                <p class="step-text">In your repository, go to Settings, then Pages, and set the source to your main branch. GitHub publishes your project at username.github.io/repo-name within a minute or two, and every push after that updates it automatically.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TIP: ICON LIBRARIES (no step-num — a tip, not a step) -->
+        <div class="leveling-group">
+          <p class="leveling-group-title">Ditch the emoji, use real icon sets</p>
+          <p class="leveling-group-intro">Emoji as icons is one of the fastest tells that a project's still in prototype mode.</p>
+          <div class="steps-list">
+            <div class="step-card">
+              <div class="step-body">
+                <ul class="leveling-resource-list">
+                  <li><i class="leveling-resource-icon" data-lucide="layers" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://lucide.dev" target="_blank" rel="noopener">Lucide</a> (lucide.dev) — the most common default Claude Code reaches for already.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="shield" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://heroicons.com" target="_blank" rel="noopener">Heroicons</a> (heroicons.com) — from the Tailwind CSS team, solid and outline styles.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="shapes" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://phosphoricons.com" target="_blank" rel="noopener">Phosphor Icons</a> (phosphoricons.com) — six weights from thin to bold, for matching a specific tone.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="grid-3x3" aria-hidden="true"></i><span><a class="step-link text-sheen" href="https://tabler.io/icons" target="_blank" rel="noopener">Tabler Icons</a> (tabler.io/icons) — thousands of icons, useful when you need something oddly specific.</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIP: WRITING (no step-num — a tip, not a step) -->
+        <div class="leveling-group">
+          <p class="leveling-group-title">Make your project sound like you wrote it</p>
+          <p class="leveling-group-intro">Claude Code's first draft of your project's copy can default to generic, over-dramatic phrasing that reads as AI-written.</p>
+          <div class="steps-list">
+            <div class="step-card">
+              <div class="step-body">
+                <ul class="leveling-resource-list">
+                  <li><i class="leveling-resource-icon" data-lucide="notebook-pen" aria-hidden="true"></i><span>Watch for tells like copious em dashes (—) standing in for periods and commas, hollow intensifiers like "genuinely" or "truly" that add emphasis without adding information, and endings that oversell what was just said.</span></li>
+                  <li><i class="leveling-resource-icon" data-lucide="book-open-text" aria-hidden="true"></i><span>This write-up covers the specific patterns to catch and cut. <a class="step-link text-sheen" href="https://creatoreconomy.so/p/use-my-no-ai-slop-skill-to-remove-20-ai-slop-patterns" target="_blank" rel="noopener">Read the write-up</a></span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section id="timeline" class="timeline-section matte-metal-surface reveal">
+    <div class="container">
+      <p class="section-label">Timeline</p>
+      <h2 class="section-title"></h2>
+      <div class="tl-body">
+        <div class="tl-mount"></div>
+
+        <div class="tl-labels">
+          <div class="tl-label tl-label-left">
+            <p class="tl-label-date">24 June</p>
+            <p class="tl-label-name">Kick-off meeting</p>
+            <p class="tl-label-time">2:00 PM SGT<br>First look at the project</p>
+          </div>
+          <div class="tl-label tl-label-mid">
+            <p class="tl-label-date">29 July</p>
+            <p class="tl-label-name">Check-in meeting</p>
+            <p class="tl-label-time">2:00 PM SGT<br>Show what you have</p>
+          </div>
+          <div class="tl-label tl-label-right">
+            <p class="tl-label-date">26 August</p>
+            <p class="tl-label-name">Showcase &amp; submission</p>
+            <p class="tl-label-time">2:00 PM SGT<br>Present and hand off</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECK IN — revealed by src/organisms/scissors-cut.js once the
+       Timeline string is cut; the row list below the header is built by
+       src/organisms/check-in.js. No .reveal class: this section's reveal
+       is the height-grow itself, not the page's shared opacity/translateY
+       scroll-fade. -->
+  <section id="check-in" class="check-in-section" aria-hidden="true">
+    <!-- Wire-bundle margin strips (src/atoms/wire-bundle.js via
+         src/organisms/check-in.js's own init()) — same role/positioning
+         idea as .batik-margin-left/-right flanking the brief section
+         above, just filled in by check-in.js rather than batik-accents.js
+         since the pattern here (colored cabling, not a batik motif) is
+         specific to this section. -->
+    <div class="checkin-margin checkin-margin-left" aria-hidden="true"></div>
+    <div class="checkin-margin checkin-margin-right" aria-hidden="true"></div>
+    <div class="check-in-collapse">
+      <div class="container checkin-header">
+        <p class="section-label">Check In</p>
+        <h2 class="section-title">Work in progress</h2>
+      </div>
+    </div>
+  </section>
+
+  <!-- BRIEF -->
+  <section id="brief" class="brief-section reveal">
+    <div class="batik-mount batik-margin batik-margin-left" data-batik-group="brief-margins" data-batik-surface="accent" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
+    <div class="brief-inner">
+      <h2 class="brief-heading">What is Kueh Machine?</h2>
+      <p class="brief-text">Well, it's a random phrase. Kueh is handmade and cultural, machine is systematic and mechanical, and the tension between them is the brief. Take it anywhere: something directly about kueh or machines, something that treats the name as texture or rhythm, something poetic and personal, or something that deliberately pushes against it. There is no wrong interpretation. There should be a thread, however loose.<br><br>This is a team L&amp;D project built around making. Each person builds their own small app or website using Claude Code — their own individual interpretation of "Kueh Machine" — getting hands-on experience with tools that are changing what designers can do. Every person's piece comes together into one collective Kueh Machine, live at <a href="https://www.kuehmachine.com" class="brief-link">www.kuehmachine.com</a>.</p>
+    </div>
+    <div class="batik-mount batik-margin batik-margin-right" data-batik-group="brief-margins" data-batik-surface="accent" data-batik-width="220" data-batik-height="800" data-batik-clusters="8" data-batik-scale="0.85" aria-hidden="true"></div>
+
+  </section>
+
+  <!-- GETTING STARTED -->
+  <section id="guide" class="guide-section reveal">
+    <div class="batik-mount guide-batik" data-batik-surface="plain" data-batik-width="1400" data-batik-height="900" data-batik-clusters="46" aria-hidden="true"></div>
+    <div class="container">
+      <p class="section-label">Getting started</p>
+      <h2 class="section-title">Set up your workspace for this project</h2>
+      <p class="guide-intro">The steps below get VS Code and the Claude Code extension running on your machine. Step 5 is the important one: you'll drop in a project file that tells Claude what you're building, so you can start a conversation and it already has the context.</p>
+      <div class="steps-list">
+
+        <!-- 01 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">01</span>
+          <div class="step-body">
+            <p class="step-heading">Download VS Code</p>
+            <p class="step-text">Get the editor from Microsoft. It's free and runs on Mac and Windows. <a class="step-link text-sheen" href="https://code.visualstudio.com/" target="_blank" rel="noopener">Download VS Code</a></p>
+          </div>
+          <div class="step-icon" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <mask id="vsc-mask" mask-type="alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M70.9119 99.3171C72.4869 99.9307 74.2828 99.8914 75.8725 99.1264L96.4608 89.2197C98.6242 88.1787 100 85.9892 100 83.5872V16.4133C100 14.0113 98.6243 11.8218 96.4609 10.7808L75.8725 0.873756C73.7862 -0.130129 71.3446 0.11576 69.5135 1.44695C69.252 1.63711 69.0028 1.84943 68.769 2.08341L29.3551 38.0415L12.1872 25.0096C10.589 23.7965 8.35363 23.8959 6.86933 25.2461L1.36303 30.2549C-0.452552 31.9064 -0.454633 34.7627 1.35853 36.417L16.2471 50.0001L1.35853 63.5832C-0.454633 65.2374 -0.452552 68.0938 1.36303 69.7453L6.86933 74.7541C8.35363 76.1043 10.589 76.2037 12.1872 74.9905L29.3551 61.9587L68.769 97.9167C69.3925 98.5406 70.1246 99.0104 70.9119 99.3171ZM75.0152 27.2989L45.1091 50.0001L75.0152 72.7012V27.2989Z" fill="white"/>
+              </mask>
+              <g mask="url(#vsc-mask)">
+                <path d="M96.4614 10.7962L75.8569 0.875542C73.4719 -0.272773 70.6217 0.211611 68.75 2.08333L1.29858 63.5832C-0.515693 65.2373 -0.513607 68.0937 1.30308 69.7452L6.81272 74.754C8.29793 76.1042 10.5347 76.2036 12.1338 74.9905L93.3609 13.3699C96.086 11.3026 100 13.2462 100 16.6667V16.4275C100 14.0265 98.6246 11.8378 96.4614 10.7962Z" fill="#0065A9"/>
+                <path d="M96.4614 89.2038L75.8569 99.1245C73.4719 100.273 70.6217 99.7884 68.75 97.9167L1.29858 36.4169C-0.515693 34.7627 -0.513607 31.9063 1.30308 30.2548L6.81272 25.246C8.29793 23.8958 10.5347 23.7964 12.1338 25.0095L93.3609 86.6301C96.086 88.6974 100 86.7538 100 83.3334V83.5726C100 85.9735 98.6246 88.1622 96.4614 89.2038Z" fill="#007ACC"/>
+                <path d="M75.8578 99.1263C73.4721 100.274 70.6219 99.7885 68.75 97.9166C71.0564 100.223 75 98.5895 75 95.3278V4.67213C75 1.41039 71.0564 -0.223106 68.75 2.08329C70.6219 0.211402 73.4721 -0.273666 75.8578 0.873633L96.4587 10.7807C98.6234 11.8217 100 14.0112 100 16.4132V83.5871C100 85.9891 98.6234 88.1786 96.4586 89.2196L75.8578 99.1263Z" fill="#1F9CF0"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 02 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">02</span>
+          <div class="step-body">
+            <p class="step-heading">Open the Extensions panel</p>
+            <p class="step-text">In VS Code, click the Extensions icon in the left sidebar. It looks like this:</p>
+          </div>
+          <div class="step-icon" aria-hidden="true">
+            <svg class="icon-sheen" width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M34.0342 1.01758C34.5895 0.916023 35.9432 1.25844 36.3838 1.58984C38.2505 2.99386 40.0187 4.8684 41.6533 6.55859C43.5538 8.52398 46.5686 10.4697 46.4062 13.4717C46.2622 16.1332 43.6594 17.4557 42.0459 19.2539C41.0279 20.3535 39.9204 21.5816 38.8291 22.5928C40.0687 22.6878 41.3064 23.0655 42.2041 23.9609C43.5774 25.3308 43.5657 26.7809 43.5762 28.5645L43.5752 35.6211C43.575 37.3444 43.6842 39.2719 43.375 40.9541C43.114 42.3735 41.6254 44.0461 40.1484 44.2227C37.3732 44.5541 34.4308 44.4242 31.626 44.4238L15.4346 44.4209C12.7479 44.4135 10.0396 44.4888 7.35547 44.376C5.12553 44.2824 3.42128 42.9419 3.16797 40.6455C2.94269 38.6021 3.01049 36.5315 3.01074 34.4678L3.01465 24.8867L3.00977 14.1729C3.00952 12.0498 2.95339 9.86158 3.11719 7.74902C3.21185 6.52782 3.62114 5.51404 4.60938 4.71973C5.15512 4.28211 5.80241 3.98852 6.49121 3.86621C8.07953 3.57945 12.0612 3.74931 13.8174 3.71289C15.9365 3.66893 18.61 3.68913 20.7539 3.79199C21.8384 3.84411 23.1928 4.54789 23.8789 5.45605C24.537 6.32167 24.8159 7.4174 24.6514 8.49219C27.0525 6.35822 29.3137 3.51881 31.9053 1.61719C32.4319 1.23076 33.3861 1.0942 34.0342 1.01758ZM5.84863 25.4551C5.83664 27.6633 5.61181 40.1114 6.07227 40.9688C6.88862 41.5713 8.98146 41.4603 10.0078 41.4434C13.9355 41.3786 17.9222 41.5289 21.8438 41.4229C21.7991 39.5692 21.7893 37.6595 21.8135 35.8057C21.8581 32.3763 21.7297 28.8895 21.8428 25.4648L11.1865 25.4629C9.56891 25.4623 7.4313 25.5273 5.84863 25.4551ZM38.9893 25.4795C34.2675 25.4691 29.5157 25.4144 24.792 25.4727C24.6773 26.2608 24.7519 29.5088 24.7529 30.5303L24.7617 41.4404L34.4551 41.4395C36.0574 41.4395 37.7931 41.4888 39.3887 41.3809C39.7305 41.3577 39.9934 41.238 40.2568 41.0176C41.0522 39.572 40.2961 29.7548 40.5859 27.5498C40.7256 26.4873 40.1551 25.3776 38.9893 25.4795ZM34.165 3.69336C33.5846 3.90721 33.1302 4.1858 32.6504 4.57422C31.31 5.65945 25.4699 11.4574 24.8721 12.792C24.7539 13.0562 24.7213 13.2613 24.8301 13.5332C25.0014 13.9615 25.336 14.3791 25.6416 14.7217C26.9062 16.1394 28.3937 17.4344 29.7578 18.7637C30.7053 19.687 31.5864 20.6966 32.5615 21.5879C32.9474 21.9407 33.4531 22.4417 33.9434 22.6377C34.0485 22.6797 34.1508 22.7032 34.2637 22.707C34.6096 22.5497 34.9095 22.3883 35.1973 22.1348C36.1996 21.2512 37.0333 20.1879 37.9727 19.2393C39.5754 17.6206 41.2917 16.0679 42.8184 14.3809C43.0887 14.082 43.443 13.701 43.5889 13.3242C43.6399 13.1924 43.5889 13.0929 43.5312 12.9697C43.0637 11.9708 36.8875 5.62003 35.7568 4.62598C35.3606 4.27755 34.9604 3.93714 34.4531 3.76367C34.3568 3.73075 34.2669 3.70382 34.165 3.69336ZM24.6787 17.917C24.8592 19.1045 24.7575 21.3657 24.7627 22.6475C26.2375 22.653 27.9305 22.6982 29.3877 22.626C28.7862 21.9164 25.2335 18.0794 24.6787 17.917ZM20.3828 6.69727C16.5296 6.54575 12.6529 6.67745 8.79492 6.6416C8.27735 6.63685 7.68901 6.64371 7.17773 6.67969C6.17376 6.90339 5.88922 7.14576 5.85156 8.2334C5.78471 10.1628 5.84484 12.0995 5.83105 14.0303C5.86443 16.8902 5.79445 19.7959 5.84473 22.6475L20.2998 22.6553L21.8496 22.6406C21.7736 21.399 21.8114 19.8162 21.8115 18.5547L21.8154 11.5459C21.8159 10.5042 21.8675 8.60798 21.7695 7.61914C21.3711 7.09996 21.1036 6.72566 20.3828 6.69727Z" fill="var(--color-primary-strong)"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 03 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">03</span>
+          <div class="step-body">
+            <p class="step-heading">Search "Claude Code" and install the extension</p>
+            <p class="step-text">Find the extension by Anthropic and install it. <a class="step-link text-sheen" href="https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code" target="_blank" rel="noopener">Open in Marketplace</a></p>
+          </div>
+          <div class="step-icon" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 134 134" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="67" cy="67" r="67" fill="#D97757"/>
+              <path d="M36.6 83.5L56.3 72.5L56.6 71.5L56.3 71H55.3L52 70.8L40.8 70.5L31 70L21.5 69.5L19.1 69L17 66L17.2 64.5L19.2 63.2L22.1 63.4L28.4 63.9L37.9 64.5L44.8 64.9L55 66.1H56.6L56.8 65.4L56.3 65L55.9 64.6L46 58L35.4 51L29.8 46.9L26.8 44.9L25.3 42.9L24.7 38.7L27.4 35.7L31.1 36L32 36.2L35.7 39.1L43.7 45.2L54 53L55.5 54.2L56.1 53.8L56.2 53.5L55.5 52.4L50 42L44 31.6L41.3 27.3L40.6 24.7C40.3 23.7 40.2 22.7 40.2 21.7L43.2 17.5L45 17L49.2 17.6L50.8 19L53.4 25L57.5 34.3L64 46.9L66 50.7L67 54.1L67.3 55.1H68V54.6L68.5 47.4L69.5 38.7L70.5 27.5L70.8 24.3L72.4 20.5L75.4 18.5L78 19.6L80 22.5L79.7 24.3L78.6 32L76 44.1L74.5 52.3H75.4L76.4 51.2L80.5 45.8L87.4 37.2L90.4 33.7L94 30L96.3 28.2H100.6L103.7 32.9L102.3 37.8L97.9 43.4L94.2 48.1L88.9 55.2L85.7 60.9L86 61.3H86.7L98.7 58.7L105.1 57.6L112.7 56.3L116.2 57.9L116.6 59.5L115.2 62.9L107 64.9L97.4 66.9L83.1 70.2L82.9 70.3L83.1 70.6L89.5 71.2L92.3 71.4H99.1L111.7 72.4L115 74.4L116.9 77.1L116.6 79.1L111.5 81.7L104.7 80.1L88.7 76.3L83.3 75H82.5V75.4L87.1 79.9L95.4 87.4L106 97.1L106.5 99.5L105.2 101.5L103.8 101.3L94.6 94.3L91 91.3L83 84.5H82.5V85.2L84.3 87.9L94.1 102.6L94.6 107.1L93.9 108.5L91.3 109.5L88.6 108.9L82.8 100.9L76.8 91.9L72.1 83.7L71.6 84.1L68.7 114.3L67.4 115.8L64.4 117L61.9 115L60.5 112L61.9 105.8L63.5 97.8L64.8 91.4L66 83.5L66.7 80.9V80.7H66L60 89L51 101.3L43.8 108.9L42.1 109.6L39.1 108.1L39.4 105.3L41 103L51 90.2L57 82.3L61 77.7L60.9 77.2H60.6L34.2 94.4L29.5 95L27.5 93L27.7 90L28.7 89L36.7 83.5H36.6Z" fill="#FAF9F5"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 04 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">04</span>
+          <div class="step-body">
+            <p class="step-heading">Sign in with your Claude account</p>
+            <p class="step-text">VS Code will prompt you when the extension loads. Use your Anthropic account. If you don't have one, create one at claude.ai first.</p>
+          </div>
+        </div>
+
+        <!-- 05 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">05</span>
+          <div class="step-body">
+            <p class="step-heading">Create a project folder and drop CLAUDE.md into it</p>
+            <p class="step-text">Make a new folder anywhere on your computer (your Desktop works fine). Download CLAUDE.md below and move it into that folder. This file gives Claude its instructions for your project.</p>
+            <a class="file-card" href="files/CLAUDE.md" download="CLAUDE.md">
+              <span class="fc-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M11 2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-6-6Z"/>
+                  <path d="M11 2v6h6"/>
+                </svg>
+              </span>
+              <div class="fc-info">
+                <span class="fc-name text-sheen">CLAUDE.md</span>
+                <span class="fc-meta">Text file · 4 KB</span>
+              </div>
+              <span class="fc-dl">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M8 2v8M5 7l3 3 3-3"/>
+                  <line x1="2" y1="13" x2="14" y2="13"/>
+                </svg>
+              </span>
+            </a>
+          </div>
+        </div>
+
+        <!-- 06 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">06</span>
+          <div class="step-body">
+            <p class="step-heading">Open your project folder in VS Code</p>
+            <p class="step-text">In VS Code, go to File, then Open Folder, and select the project folder you just created.</p>
+          </div>
+        </div>
+
+        <!-- 07 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">07</span>
+          <div class="step-body">
+            <p class="step-heading">Click the Spark icon in the left sidebar</p>
+            <p class="step-text">Look for the <svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle"><path d="M19.6 66.5L39.3 55.5L39.6 54.5L39.3 54H38.3L35 53.8L23.8 53.5L14 53L4.5 52.5L2.1 52L0 49L0.2 47.5L2.2 46.2L5.1 46.4L11.4 46.9L20.9 47.5L27.8 47.9L38 49.1H39.6L39.8 48.4L39.3 48L38.9 47.6L29 41L18.4 34L12.8 29.9L9.8 27.9L8.3 25.9L7.7 21.7L10.4 18.7L14.1 19L15 19.2L18.7 22.1L26.7 28.2L37 36L38.5 37.2L39.1 36.8L39.2 36.5L38.5 35.4L33 25L27 14.6L24.3 10.3L23.6 7.7C23.3 6.7 23.2 5.7 23.2 4.7L26.2 0.5L28 0L32.2 0.6L33.8 2L36.4 8L40.5 17.3L47 29.9L49 33.7L50 37.1L50.3 38.1H51V37.6L51.5 30.4L52.5 21.7L53.5 10.5L53.8 7.3L55.4 3.5L58.4 1.5L61 2.6L63 5.5L62.7 7.3L61.6 15L59 27.1L57.5 35.3H58.4L59.4 34.2L63.5 28.8L70.4 20.2L73.4 16.7L77 13L79.3 11.2H83.6L86.7 15.9L85.3 20.8L80.9 26.4L77.2 31.1L71.9 38.2L68.7 43.9L69 44.3H69.7L81.7 41.7L88.1 40.6L95.7 39.3L99.2 40.9L99.6 42.5L98.2 45.9L90 47.9L80.4 49.9L66.1 53.2L65.9 53.3L66.1 53.6L72.5 54.2L75.3 54.4H82.1L94.7 55.4L98 57.4L99.9 60.1L99.6 62.1L94.5 64.7L87.7 63.1L71.7 59.3L66.3 58H65.5V58.4L70.1 62.9L78.4 70.4L89 80.1L89.5 82.5L88.2 84.5L86.8 84.3L77.6 77.3L74 74.3L66 67.5H65.5V68.2L67.3 70.9L77.1 85.6L77.6 90.1L76.9 91.5L74.3 92.5L71.6 91.9L65.8 83.9L59.8 74.9L55.1 66.7L54.6 67.1L51.7 97.3L50.4 98.8L47.4 100L44.9 98L43.5 95L44.9 88.8L46.5 80.8L47.8 74.4L49 66.5L49.7 63.9V63.7H49L43 72L34 84.3L26.8 91.9L25.1 92.6L22.1 91.1L22.4 88.3L24 86L34 73.2L40 65.3L44 60.7L43.9 60.2H43.6L17.2 77.4L12.5 78L10.5 76L10.7 73L11.7 72L19.7 66.5H19.6Z" fill="#D97757"/></svg> icon in the sidebar. Click it to open the Claude panel.</p>
+          </div>
+          <div class="step-icon" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.6 66.5L39.3 55.5L39.6 54.5L39.3 54H38.3L35 53.8L23.8 53.5L14 53L4.5 52.5L2.1 52L0 49L0.2 47.5L2.2 46.2L5.1 46.4L11.4 46.9L20.9 47.5L27.8 47.9L38 49.1H39.6L39.8 48.4L39.3 48L38.9 47.6L29 41L18.4 34L12.8 29.9L9.8 27.9L8.3 25.9L7.7 21.7L10.4 18.7L14.1 19L15 19.2L18.7 22.1L26.7 28.2L37 36L38.5 37.2L39.1 36.8L39.2 36.5L38.5 35.4L33 25L27 14.6L24.3 10.3L23.6 7.7C23.3 6.7 23.2 5.7 23.2 4.7L26.2 0.5L28 0L32.2 0.6L33.8 2L36.4 8L40.5 17.3L47 29.9L49 33.7L50 37.1L50.3 38.1H51V37.6L51.5 30.4L52.5 21.7L53.5 10.5L53.8 7.3L55.4 3.5L58.4 1.5L61 2.6L63 5.5L62.7 7.3L61.6 15L59 27.1L57.5 35.3H58.4L59.4 34.2L63.5 28.8L70.4 20.2L73.4 16.7L77 13L79.3 11.2H83.6L86.7 15.9L85.3 20.8L80.9 26.4L77.2 31.1L71.9 38.2L68.7 43.9L69 44.3H69.7L81.7 41.7L88.1 40.6L95.7 39.3L99.2 40.9L99.6 42.5L98.2 45.9L90 47.9L80.4 49.9L66.1 53.2L65.9 53.3L66.1 53.6L72.5 54.2L75.3 54.4H82.1L94.7 55.4L98 57.4L99.9 60.1L99.6 62.1L94.5 64.7L87.7 63.1L71.7 59.3L66.3 58H65.5V58.4L70.1 62.9L78.4 70.4L89 80.1L89.5 82.5L88.2 84.5L86.8 84.3L77.6 77.3L74 74.3L66 67.5H65.5V68.2L67.3 70.9L77.1 85.6L77.6 90.1L76.9 91.5L74.3 92.5L71.6 91.9L65.8 83.9L59.8 74.9L55.1 66.7L54.6 67.1L51.7 97.3L50.4 98.8L47.4 100L44.9 98L43.5 95L44.9 88.8L46.5 80.8L47.8 74.4L49 66.5L49.7 63.9V63.7H49L43 72L34 84.3L26.8 91.9L25.1 92.6L22.1 91.1L22.4 88.3L24 86L34 73.2L40 65.3L44 60.7L43.9 60.2H43.6L17.2 77.4L12.5 78L10.5 76L10.7 73L11.7 72L19.7 66.5H19.6Z" fill="#D97757"/></svg>
+          </div>
+        </div>
+
+        <!-- 08 -->
+        <div class="step-card">
+          <span class="step-num text-sheen">08</span>
+          <div class="step-body">
+            <p class="step-heading">Start chatting with Claude Code</p>
+            <p class="step-text">Type in the Claude panel and describe what you want to build. Claude has already read the instructions from the file you dropped in. Tell it what you're making and go from there.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <p>&copy; <span id="footer-year"></span> Wealth Design Team</p>
+  </footer>
+
+  <script>
+    // === COUNTDOWN (SGT = UTC+8, ticks every second) ===
+    var TARGET_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // Aug 26 2026 06:00 UTC = 14:00 SGT
+    var PROJECT_START_UTC = Date.UTC(2026, 5, 24); // June 24 2026 kickoff
+
+    function pad(n) {
+      return n < 10 ? '0' + n : '' + n;
+    }
+
+    // Water level = time remaining, not elapsed: full at PROJECT_START_UTC,
+    // drained to empty by TARGET_UTC. Factored out of updateLiquidFill so
+    // rippleLiquid (below) can read the same real level its brief
+    // released-drop wobble oscillates on top of.
+    function remainingPct() {
+      var totalMs = TARGET_UTC - PROJECT_START_UTC;
+      var elapsedMs = Date.now() - PROJECT_START_UTC;
+      return 100 - Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+    }
+
+    function updateLiquidFill() {
+      var el = document.getElementById('js-countdown-liquid');
+      if (!el) return;
+      el.style.setProperty('--liquid-fill', remainingPct() + '%');
+    }
+
+    // A brief damped oscillation on top of the real liquid level, right as
+    // a drop detaches (updateDrop's phase === 0, below) — not a true wavy-
+    // surface simulation (the liquid is a flat mask-image edge, not a
+    // textured surface a real height-field ripple could distort), but the
+    // level visibly dipping and bobbing back level is roughly the real
+    // physical effect anyway, and needs no canvas.
+    //
+    // `intensity` scales the amplitude only (duration/decay/frequency stay
+    // put) — the same wave shape at a fraction of the size, so the small
+    // per-bubble wobble triggered on 'liquid:bubble-pop' below still reads
+    // as the same material settling, just barely. Calls can overlap (a
+    // burst's several bubbles each pop at their own staggered time, well
+    // after the drop's own full-size ripple has decayed) — each call just
+    // drives the same --liquid-fill property independently, so an overlap
+    // reads as one call's wave winning a given frame rather than the two
+    // summing, but at these small pop amplitudes that's not visible.
+    function rippleLiquid(intensity) {
+      var el = document.getElementById('js-countdown-liquid');
+      if (!el) return;
+      var scale = intensity === undefined ? 1 : intensity;
+      var start = performance.now();
+
+      // A single fixed-amplitude, fixed-frequency damped sine, identical
+      // on every single release all countdown long, read as mechanical
+      // rather than organic. Randomizing amplitude/duration/frequency per
+      // call, and summing in a second, smaller decaying wave at an
+      // unrelated frequency (so the two drift in and out of phase instead
+      // of reinforcing every cycle, like a real surface settling from a
+      // couple of superimposed ripple modes at once) breaks that
+      // regularity without changing the overall rAF/decay approach.
+      var amplitude = (1.7 + Math.random() * 1.1) * scale; // 1.7-2.8 percentage points at full intensity (was 0.9-1.5)
+      var duration = 780 + Math.random() * 260; // 780-1040ms
+      var decay = 3.6 + Math.random() * 1.2;
+      var freq1 = 2.6 + Math.random() * 0.8; // cycles over the full duration
+      var freq2 = freq1 * (1.6 + Math.random() * 0.5); // unrelated to freq1, not a clean harmonic
+      var phase2 = Math.random() * Math.PI * 2;
+
+      (function step(now) {
+        var t = (now - start) / duration;
+        if (t >= 1) {
+          updateLiquidFill(); // hand back to the normal per-second updater
+          return;
+        }
+        var envelope = amplitude * Math.exp(-decay * t);
+        var wave = envelope * (
+          0.75 * Math.sin(t * freq1 * 2 * Math.PI) +
+          0.25 * Math.sin(t * freq2 * 2 * Math.PI + phase2)
+        );
+        el.style.setProperty('--liquid-fill', (remainingPct() + wave) + '%');
+        requestAnimationFrame(step);
+      })(start);
+    }
+
+    // A much smaller echo of the same wobble, timed to each bubble
+    // reaching the surface and popping (src/atoms/liquid-bubbles.js
+    // dispatches this the instant a bubble's rise finishes) — the drop's
+    // own release already triggers the full-size ripple above; this is
+    // the little aftershock as the bubbles it kicked loose reach the top
+    // one by one, staggered over the next second or two.
+    window.addEventListener('liquid:bubble-pop', function () {
+      rippleLiquid(0.3);
+    });
+
+    // === COUNTDOWN DRIP ===
+    // Appended to document.body, not inside .hero — a sibling of .hero,
+    // not a descendant of it, so .hero's own `transform` (from
+    // .reveal/.reveal.visible) has no effect on this element's containing
+    // block either way (that hijack only reaches actual DOM descendants
+    // of the transformed element). .countdown-drop is `position: absolute`
+    // with document coordinates (not `fixed` with viewport coordinates,
+    // as this used to be) so it scrolls with the page like everything
+    // else, rather than staying pinned to a screen position while the
+    // window it's supposed to be growing out of scrolls away underneath
+    // it.
+    var dropEl = null;
+
+    function positionDrop(el) {
+      // .countdown-window-bg, not .countdown-viewport itself — the latter's
+      // own getBoundingClientRect() is its *border* box, which now extends
+      // past the actual window fill (countdown-clock.js's chrome
+      // border-image is an outer stroke, box-sizing: content-box, index.html
+      // — see that rule's own comment). .countdown-window-bg is
+      // position: absolute; inset: 0 with no border of its own, so its box
+      // is exactly the fill's true edge regardless of how thick the outer
+      // stroke is.
+      var windowBg = document.querySelector('.countdown-window-bg');
+      if (!windowBg) return;
+      var rect = windowBg.getBoundingClientRect();
+      el.style.left = (rect.left + rect.width / 2 + window.scrollX) + 'px';
+      // Nudged up a few px from the window's true bottom edge so the
+      // drop grows out of just above it rather than hanging right at/
+      // below it.
+      el.style.top = (rect.bottom - 2 + window.scrollY) + 'px';
+    }
+
+    // Otherwise the drop only ever gets repositioned once per second,
+    // as a side effect of updateDrop's own countdown tick (below) — during
+    // an active window resize, it just sits at whatever screen position
+    // was last computed (up to ~1s stale) until that next tick happens to
+    // fire, with no relation to when the resize itself actually settles.
+    // positionDrop is cheap (one getBoundingClientRect + two style
+    // writes), so there's no need to debounce this — it can just run on
+    // every resize event directly.
+    window.addEventListener('resize', function () {
+      if (dropEl) positionDrop(dropEl);
+    });
+
+    // Grows in place at the window's bottom edge over each ten-second decade
+    // (--drop-progress, eased between per-second updates by .countdown-drop's
+    // own CSS transition), then falls the instant the displayed seconds
+    // value itself reaches a multiple of ten (50, 40, 30...) — tied to the
+    // same `seconds` value updateCountdown already computes every tick,
+    // rather than an independent setInterval(fn, 10000), so the release
+    // always lands in visible sync with the seconds display hitting a
+    // round ten instead of drifting against it.
+    function updateDrop(seconds) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      if (!dropEl) {
+        dropEl = document.createElement('div');
+        dropEl.className = 'countdown-drop';
+        document.body.appendChild(dropEl);
+      }
+      positionDrop(dropEl);
+
+      var phase = seconds % 10; // 9 down to 0 within each decade
+      dropEl.style.setProperty('--drop-progress', ((10 - phase) / 10).toFixed(3));
+
+      if (phase === 0) {
+        rippleLiquid();
+        dropEl.remove();
+        dropEl = null; // next tick builds a fresh drop for the next decade
+        // Hands off immediately — drop-chute.js's own spawnFallToChute
+        // (chute:ball-released) spawns its own ball at this exact spout
+        // position and owns the whole fall from here: straight down until
+        // it meets the chute at whatever point the chute's curve happens
+        // to cross underneath it, then rolls. Used to animate its own
+        // straight fall the full window.innerHeight and just vanish,
+        // before the chute existed.
+        window.dispatchEvent(new CustomEvent('chute:ball-released'));
+      }
+    }
+
+    function updateCountdown() {
+      var diff = TARGET_UTC - Date.now();
+      updateLiquidFill();
+
+      if (diff <= 0) {
+        document.getElementById('js-days').textContent    = '00';
+        document.getElementById('js-hours').textContent   = '00';
+        document.getElementById('js-minutes').textContent = '00';
+        document.getElementById('js-seconds').textContent = '00';
+        return;
+      }
+
+      var totalSeconds = Math.floor(diff / 1000);
+      var days    = Math.floor(totalSeconds / 86400);
+      var hours   = Math.floor((totalSeconds % 86400) / 3600);
+      var minutes = Math.floor((totalSeconds % 3600) / 60);
+      var seconds = totalSeconds % 60;
+
+      document.getElementById('js-days').textContent    = days;
+      document.getElementById('js-hours').textContent   = pad(hours);
+      document.getElementById('js-minutes').textContent = pad(minutes);
+      document.getElementById('js-seconds').textContent = pad(seconds);
+      updateDrop(seconds);
+
+      setTimeout(updateCountdown, 1000);
+    }
+
+    updateCountdown();
+
+    // === SCROLL REVEAL ===
+    (function () {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.querySelectorAll('.reveal').forEach(function (el) {
+          el.classList.add('visible');
+        });
+        return;
+      }
+
+      var THRESHOLD = 0.08;
+
+      function visibleFraction(el) {
+        var rect = el.getBoundingClientRect();
+        if (rect.height <= 0) return 0;
+        var visibleTop = Math.max(rect.top, 0);
+        var visibleBottom = Math.min(rect.bottom, window.innerHeight);
+        return Math.max(0, visibleBottom - visibleTop) / rect.height;
+      }
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: THRESHOLD });
+
+      document.querySelectorAll('.reveal').forEach(function (el) {
+        // Any section already at/past the observer's own threshold before
+        // the user has scrolled at all (a short section right below a
+        // tall hero, say, or just a tall viewport) would otherwise still
+        // get the full animated fade/slide-in — the observer's very first
+        // check fires immediately for something already intersecting,
+        // indistinguishable from a genuine scroll-into-view. Snap those
+        // straight to the revealed state with transitions disabled for
+        // that one assignment, rather than animating in content that was
+        // never actually offscreen to begin with. Sections genuinely
+        // below the fold still observe normally and reveal-on-scroll as
+        // usual.
+        if (visibleFraction(el) >= THRESHOLD) {
+          el.style.transition = 'none';
+          el.classList.add('visible');
+          void el.offsetHeight; // force reflow so transition:none is actually applied before it's cleared
+          el.style.transition = '';
+          return;
+        }
+        observer.observe(el);
+      });
+    })();
+
+
+  document.getElementById('footer-year').textContent = new Date().getFullYear();
+  </script>
+  <script type="module" src="src/main.js"></script>
+
+</body>
+</html>
