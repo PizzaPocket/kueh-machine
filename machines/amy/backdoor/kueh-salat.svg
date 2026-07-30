@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Illustration of Kueh Salat">
+  <rect x="22" y="30" width="76" height="60" rx="6" fill="#FBF6EC" stroke="#5B3A29" stroke-width="3" />
+  <path d="M22 60 L98 60 L98 36 Q98 30 92 30 L28 30 Q22 30 22 36 Z" fill="#8FBF7F" stroke="#5B3A29" stroke-width="3" />
+  <circle cx="40" cy="42" r="1.6" fill="#5B3A29" opacity="0.4" />
+  <circle cx="58" cy="48" r="1.6" fill="#5B3A29" opacity="0.4" />
+  <circle cx="76" cy="40" r="1.6" fill="#5B3A29" opacity="0.4" />
+  <circle cx="84" cy="50" r="1.6" fill="#5B3A29" opacity="0.4" />
+</svg>

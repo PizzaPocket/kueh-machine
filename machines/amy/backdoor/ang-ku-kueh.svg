@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Illustration of Ang Ku Kueh">
+  <rect x="20" y="86" width="80" height="12" rx="4" fill="#8FBF7F" stroke="#5B3A29" stroke-width="2" />
+  <path d="M28 90 C24 60 34 34 60 30 C86 34 96 60 92 90 C80 98 40 98 28 90 Z" fill="#D97B66" stroke="#5B3A29" stroke-width="3" />
+  <path d="M42 40 C50 34 70 34 78 40" fill="none" stroke="#5B3A29" stroke-width="2" opacity="0.5" />
+  <path d="M36 54 C48 46 72 46 84 54" fill="none" stroke="#5B3A29" stroke-width="2" opacity="0.5" />
+</svg>

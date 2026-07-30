@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Capsule-open frame animation (hand-drawn frames)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Oxygen&family=Patrick+Hand&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/style.css" />
+<style>
+  /* prototype-only layout, everything else (fonts, --ink/--cream vars,
+     .control-btn) comes straight from Amy's real stylesheet above */
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.75rem;
+    padding: 2rem 1rem;
+  }
+
+  .capsule-frame {
+    position: relative;
+    width: min(60vw, 300px);
+    height: min(60vw, 300px);
+    cursor: pointer;
+  }
+  .layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .layer svg { width: 100%; height: 100%; display: block; }
+
+  .kueh-wrap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 60%;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+    pointer-events: none;
+  }
+  .kueh-wrap svg { width: 100%; height: 100%; display: block; }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+  }
+  .panel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .panel-label {
+    font-family: "Oxygen", sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    width: 4.2rem;
+    text-align: right;
+  }
+
+  .swatch-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 3px solid var(--ink);
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--ink);
+    transition: transform 0.15s ease;
+  }
+  .swatch-btn:hover { transform: translateY(-2px); }
+  .swatch-btn:active { transform: translateY(1px); box-shadow: none; }
+  .swatch-btn.active { outline: 3px solid var(--coral); outline-offset: 2px; }
+
+  .kueh-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 3px solid var(--ink);
+    background: var(--cream-light);
+    padding: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--ink);
+    transition: transform 0.15s ease;
+  }
+  .kueh-btn svg { width: 100%; height: 100%; display: block; }
+  .kueh-btn:hover { transform: translateY(-2px); }
+  .kueh-btn:active { transform: translateY(1px); box-shadow: none; }
+  .kueh-btn.active { outline: 3px solid var(--coral); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<!--
+  Real hand-drawn frames (capsule-front-1..4.svg, capsule-inner-2..4.svg —
+  no inner-1, the capsule is fully closed at frame 1). Three layers
+  stacked on the z-axis only, back to front: inner -> kueh -> front. No
+  vertical repositioning of any layer — each frame's own artwork already
+  defines the opening, this is pure stacking order.
+-->
+
+<div class="capsule-frame" id="capsule">
+  <div class="layer" id="innerLayer"></div>
+  <div class="kueh-wrap" id="kuehWrap"></div>
+  <div class="layer" id="frontLayer"></div>
+</div>
+
+<div class="panel">
+  <div class="panel-row">
+    <span class="panel-label">Color</span>
+    <button class="swatch-btn active" id="colorGold" style="background:#BCA076" title="Gold" aria-label="Gold"></button>
+    <button class="swatch-btn" id="colorBlue" style="background:#758CA3" title="Blue" aria-label="Blue"></button>
+    <button class="swatch-btn" id="colorRed" style="background:#DD7B68" title="Red" aria-label="Red"></button>
+  </div>
+  <div class="panel-row" id="kuehRow">
+    <span class="panel-label">Kueh</span>
+    <!-- kueh thumbnail buttons injected here -->
+  </div>
+  <button class="control-btn" id="toggleBtn" type="button">
+    <span id="toggleLabel">Open</span>
+  </button>
+</div>
+
+<script>
+  var CAPSULE_HEX = { gold: "#BCA076", blue: "#758CA3", red: "#DD7B68" };
+  var KUEH_LIST = [
+    { id: "onde-onde", label: "Onde Onde", file: "onde-onde.svg" },
+    { id: "ang-ku-kueh", label: "Ang Ku Kueh", file: "ang-ku-kueh.svg" },
+    { id: "kueh-lapis", label: "Kueh Lapis", file: "kueh-lapis.svg" },
+    { id: "kueh-salat", label: "Kueh Salat", file: "kueh-salat.svg" },
+    { id: "kueh-dadar", label: "Kueh Dadar", file: "kueh-dadar.svg" }
+  ];
+  var KUEH_SCALE = [0, 0.5, 0.8, 1];     // indexed by frame-1
+
+  var frontLayer = document.getElementById("frontLayer");
+  var innerLayer = document.getElementById("innerLayer");
+  var kuehWrap = document.getElementById("kuehWrap");
+  var capsule = document.getElementById("capsule");
+  var toggleBtn = document.getElementById("toggleBtn");
+  var toggleLabel = document.getElementById("toggleLabel");
+  var kuehRow = document.getElementById("kuehRow");
+
+  var capsuleTemplates = {};   // "front1".."front4", "inner2".."inner4" -> raw svg text
+  var kuehTemplates = {};      // kueh id -> raw svg text
+
+  var currentColor = "gold";
+  var currentKuehIndex = 0;
+  var currentFrame = 1;
+  var animating = false;
+
+  function recolor(svgText) {
+    return svgText.replace(/#BCA076/gi, CAPSULE_HEX[currentColor]);
+  }
+
+  function renderFrame(n) {
+    currentFrame = n;
+    frontLayer.innerHTML = recolor(capsuleTemplates["front" + n]);
+
+    if (n === 1) {
+      innerLayer.style.visibility = "hidden";
+      kuehWrap.style.transform = "translate(-50%, -50%) scale(0)";
+    } else {
+      innerLayer.style.visibility = "visible";
+      innerLayer.innerHTML = recolor(capsuleTemplates["inner" + n]);
+      kuehWrap.style.transform = "translate(-50%, -50%) scale(" + KUEH_SCALE[n - 1] + ")";
+    }
+    renderKueh();
+  }
+
+  function renderKueh() {
+    kuehWrap.innerHTML = kuehTemplates[KUEH_LIST[currentKuehIndex].id];
+  }
+
+  function setColor(color) {
+    currentColor = color;
+    ["colorGold", "colorBlue", "colorRed"].forEach(function (id) {
+      document.getElementById(id).classList.toggle("active", id === "color" + color[0].toUpperCase() + color.slice(1));
+    });
+    renderFrame(currentFrame);
+  }
+
+  function setKueh(index) {
+    currentKuehIndex = index;
+    Array.prototype.forEach.call(kuehRow.querySelectorAll(".kueh-btn"), function (btn, i) {
+      btn.classList.toggle("active", i === index);
+    });
+    renderKueh();
+  }
+
+  function stepThrough(sequence, delay, onDone) {
+    animating = true;
+    sequence.forEach(function (frameNum, idx) {
+      setTimeout(function () { renderFrame(frameNum); }, idx * delay);
+    });
+    setTimeout(function () {
+      animating = false;
+      if (onDone) onDone();
+    }, (sequence.length - 1) * delay + 40);
+  }
+
+  var isOpen = false;
+  function toggleOpen() {
+    if (animating) return;
+    if (!isOpen) {
+      toggleLabel.textContent = "Opening...";
+      stepThrough([1, 2, 3, 4], 220, function () {
+        isOpen = true;
+        toggleLabel.textContent = "Close";
+      });
+    } else {
+      toggleLabel.textContent = "Closing...";
+      stepThrough([4, 3, 2, 1], 180, function () {
+        isOpen = false;
+        toggleLabel.textContent = "Open";
+      });
+    }
+  }
+
+  capsule.addEventListener("click", toggleOpen);
+  toggleBtn.addEventListener("click", toggleOpen);
+  document.getElementById("colorGold").addEventListener("click", function () { setColor("gold"); });
+  document.getElementById("colorBlue").addEventListener("click", function () { setColor("blue"); });
+  document.getElementById("colorRed").addEventListener("click", function () { setColor("red"); });
+
+  var capsuleFiles = ["front1", "front2", "front3", "front4", "inner2", "inner3", "inner4"];
+  var capsuleFetches = capsuleFiles.map(function (key) {
+    var file = "capsule-" + key.replace(/(\D+)(\d)/, "$1-$2") + ".svg";
+    return fetch(file).then(function (r) { return r.text(); }).then(function (text) {
+      capsuleTemplates[key] = text;
+    });
+  });
+  var kuehFetches = KUEH_LIST.map(function (k) {
+    return fetch(k.file).then(function (r) { return r.text(); }).then(function (text) {
+      kuehTemplates[k.id] = text;
+    });
+  });
+
+  Promise.all(capsuleFetches.concat(kuehFetches)).then(function () {
+    KUEH_LIST.forEach(function (k, i) {
+      var btn = document.createElement("button");
+      btn.className = "kueh-btn" + (i === 0 ? " active" : "");
+      btn.type = "button";
+      btn.title = k.label;
+      btn.setAttribute("aria-label", k.label);
+      btn.innerHTML = kuehTemplates[k.id];
+      btn.addEventListener("click", function () { setKueh(i); });
+      kuehRow.appendChild(btn);
+    });
+    renderFrame(1);
+  });
+</script>
+</body>
+</html>
