@@ -1,0 +1,700 @@
+:root {
+  --cream: #f6ecd9;
+  --brown: #5c3d2e;
+  --ink: #2b2320;
+  --terracotta: #d97a5c;
+  --sage: #8ca47c;
+  --pink: #f2b6c6;
+  --berry: #c1495c;
+  --white: #fffaf0;
+  --sky: #8fb8d4;
+  --mustard: #eab649;
+  --mustard-light: #f3dfae;
+  --lavender: #b6a6ca;
+  --mint: #a9cdae;
+  --sky-bg: #52beff;
+  --panel-beige: #f3eae1;
+  --header-lavender: #f0c9fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--sky-bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.title, .panel-title, h2, h3 {
+  font-family: "Press Start 2P", monospace;
+}
+
+/* ---------- shared world background ---------- */
+
+.world-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--sky-bg);
+  overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  left: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+  animation: cloud-drift linear infinite;
+}
+
+.cloud--1 { top: 4%; width: 460px; animation-duration: 70s; animation-delay: -7s; }
+.cloud--2 { top: 9%; width: 380px; animation-duration: 60s; animation-delay: -24s; }
+.cloud--3 { top: 56%; width: 340px; animation-duration: 65s; animation-delay: -42s; }
+.cloud--4 { top: 44%; width: 300px; animation-duration: 55s; animation-delay: -47s; }
+
+@keyframes cloud-drift {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100vw); }
+}
+
+.grass {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  aspect-ratio: 1920 / 297;
+  background-image: url("../assets/p1-grass.png");
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+
+.ambient-cat {
+  position: absolute;
+  bottom: 11%;
+  image-rendering: pixelated;
+  animation: cat-idle ease-in-out infinite;
+}
+
+.ambient-cat--1 { left: 5%; height: 150px; animation-duration: 4.5s; }
+.ambient-cat--2 { left: 24%; height: 190px; animation-duration: 3.8s; animation-delay: -1.2s; }
+.ambient-cat--3 { right: 6%; height: 230px; animation-duration: 4.2s; animation-delay: -2.4s; }
+
+@keyframes cat-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-1deg); }
+}
+
+body.app-active .ambient-cat {
+  display: none;
+}
+
+/* ---------- screen system ---------- */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  cursor: pointer;
+}
+
+.screen.active {
+  display: flex;
+}
+
+.pixel-title {
+  font-family: "Press Start 2P", monospace;
+  color: #fff;
+  text-shadow: 3px 3px 0 rgba(20, 60, 100, 0.4), 6px 6px 0 rgba(20, 60, 100, 0.2);
+  line-height: 1.5;
+  margin: 0 0 2rem;
+}
+
+.pixel-title--hero {
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+}
+
+.tap-prompt {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+  color: #fff;
+  text-shadow: 2px 2px 0 rgba(20, 60, 100, 0.4);
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+
+/* ---------- screen 2: intro ---------- */
+
+body.screen-intro-active .ambient-cat {
+  display: none;
+}
+
+#screen-intro.active {
+  display: block;
+  padding: 0;
+}
+
+.intro-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.mascot {
+  position: absolute;
+  bottom: 0;
+  left: 14%;
+  height: 75vh;
+  image-rendering: pixelated;
+}
+
+.speech-col {
+  position: absolute;
+  top: 21vh;
+  left: 44%;
+  width: min(430px, 32vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.speech-bubble {
+  position: relative;
+  width: min(430px, 32vw);
+  aspect-ratio: 1756 / 886;
+  background-image: url("../assets/p2-bubble.png");
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+
+.speech-bubble p {
+  position: absolute;
+  top: 37px;
+  bottom: 37px;
+  left: 45px;
+  right: 33px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.78rem;
+  line-height: 1.9;
+  color: var(--ink);
+  text-align: left;
+}
+
+/* ---------- screen 3: how this works ---------- */
+
+body.screen-how-active .ambient-cat {
+  display: none;
+}
+
+.how-boxes {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1000px;
+  margin: 0 0 2.5rem;
+  cursor: default;
+}
+
+.how-box {
+  background-image: url("../assets/p3-bubble.png");
+  background-size: 100% 100%;
+  box-sizing: border-box;
+  padding: 21px 21px 26px;
+  width: 300px;
+  aspect-ratio: 1832 / 916;
+  display: flex;
+  align-items: center;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.68rem;
+  line-height: 1.8;
+}
+
+/* ---------- screen 4: main app ---------- */
+
+#screen-app.active {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 1.25rem 2rem 2rem;
+  cursor: default;
+}
+
+.app-title {
+  font-size: 1.6rem;
+  margin: 0 0 1.25rem;
+  flex-shrink: 0;
+}
+
+.app {
+  display: flex;
+  align-items: stretch;
+  gap: 2rem;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 1400px;
+}
+
+.map-frame,
+.feed-panel {
+  position: relative;
+}
+
+.map-frame {
+  flex: 1;
+}
+
+.feed-panel {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.panel-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 4px solid var(--ink);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.2);
+  isolation: isolate;
+}
+
+.panel-header {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: center;
+  padding: 1.1rem;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  background: var(--panel-beige);
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+.edge-cat {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.edge-cat--peek { top: -41px; left: 24px; height: 58px; }
+.edge-cat--bl { bottom: -18px; left: 0px; height: 68px; }
+.edge-cat--br1 { bottom: 4px; right: 66px; height: 76px; }
+.edge-cat--br2 { bottom: 4px; right: 4px; height: 80px; }
+.edge-cat--top { top: -68px; right: 14px; height: 88px; }
+.edge-cat--br3 { bottom: -10px; right: -10px; height: 84px; }
+
+/* ---------- sightings feed sidebar ---------- */
+
+.feed-header {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  padding: 1.1rem 0.5rem;
+  background: var(--header-lavender);
+  flex-shrink: 0;
+}
+
+.feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.feed-empty {
+  font-size: 0.8rem;
+  text-align: center;
+  opacity: 0.6;
+  margin-top: 1rem;
+}
+
+.feed-item {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 0.6rem;
+  background: var(--white);
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 0.5rem;
+  cursor: pointer;
+  transform: rotate(var(--tilt, -1deg));
+}
+
+.feed-item:nth-child(even) {
+  --tilt: 1deg;
+}
+
+.feed-item:hover {
+  animation: purr-wiggle 0.28s ease-in-out infinite;
+}
+
+@keyframes purr-wiggle {
+  0%, 100% { transform: rotate(var(--tilt, -1deg)); }
+  25% { transform: rotate(calc(var(--tilt, -1deg) - 2deg)) translateX(-1px); }
+  75% { transform: rotate(calc(var(--tilt, -1deg) + 2deg)) translateX(1px); }
+}
+
+.feed-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border: 2px solid var(--ink);
+  flex-shrink: 0;
+  background: var(--cream);
+}
+
+.feed-thumb-fallback {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 2px solid var(--ink);
+  background: var(--pink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.feed-text {
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.feed-text strong {
+  display: block;
+  font-size: 0.8rem;
+}
+
+/* ---------- pixel panel look ---------- */
+
+.panel,
+.pixel-btn {
+  border: 4px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  clip-path: polygon(
+    0 8px, 8px 8px, 8px 0,
+    calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px,
+    100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%,
+    8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px)
+  );
+}
+
+/* ---------- modal ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(58, 42, 32, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.panel {
+  position: relative;
+  background-color: var(--white);
+  background-image: radial-gradient(rgba(52, 40, 30, 0.06) 1px, transparent 1px);
+  background-size: 14px 14px;
+  padding: 1.75rem;
+  max-width: 420px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.panel-title {
+  font-size: 1rem;
+  margin: 0 0 1.25rem;
+  color: var(--terracotta);
+}
+
+.close-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+/* ---------- forms ---------- */
+
+form label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+form input,
+form select {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.6rem;
+  font-size: 0.95rem;
+  border: 3px solid var(--ink);
+  background: var(--cream);
+  font-family: inherit;
+}
+
+.pixel-btn {
+  display: inline-block;
+  background: var(--sage);
+  color: var(--ink);
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.75rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.pixel-btn:active {
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: translate(4px, 4px);
+}
+
+.pixel-btn.small {
+  font-size: 0.65rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--header-lavender);
+  color: var(--ink);
+}
+
+.add-name-section input,
+.add-sighting-section input {
+  margin-bottom: 0.6rem;
+}
+
+hr {
+  border: none;
+  border-top: 3px dashed var(--brown);
+  margin: 1.5rem 0;
+}
+
+/* ---------- cat profile content ---------- */
+
+.cat-photo-frame {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.cat-photo {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border: 4px solid var(--ink);
+  display: block;
+}
+
+
+.cat-names {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.cat-name-heading {
+  font-family: "Press Start 2P", monospace;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.cat-name-heading--primary {
+  font-size: 1.3rem;
+}
+
+.cat-name-credit {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  opacity: 0.75;
+}
+
+.credit-underline {
+  text-decoration: underline;
+}
+
+.discovered-by {
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--ink);
+  opacity: 0.75;
+  margin: 0.4rem 0 0.75rem;
+}
+
+.vibe-tag {
+  display: inline-block;
+  background: var(--sage);
+  color: var(--ink);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.8rem;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+.sighting-entry {
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 0.6rem 0;
+  border-bottom: 2px dotted var(--brown);
+}
+
+.sighting-entry:last-child {
+  border-bottom: none;
+}
+
+.sighting-quote {
+  margin: 0 0 0.3rem;
+  font-style: italic;
+}
+
+.sighting-credit {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.sighting-empty {
+  font-style: normal;
+}
+
+/* ---------- custom leaflet pin ---------- */
+
+.pixel-pin {
+  width: 30px;
+  height: 30px;
+  background: var(--terracotta);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 2px 2px 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+/* ---------- cluster badges ---------- */
+
+.pixel-cluster {
+  width: 36px;
+  height: 36px;
+  background: var(--berry);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 2px 2px 0 var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pixel-cluster span {
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.7rem;
+  color: var(--white);
+}
+
+/* ---------- map pin popup (quick preview) ---------- */
+
+.leaflet-popup-content-wrapper {
+  background: var(--white);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-popup-tip {
+  background: var(--white);
+  border: 3px solid var(--ink);
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px;
+  text-align: center;
+}
+
+.pin-popup-name {
+  display: block;
+  font-family: "Press Start 2P", monospace;
+  font-size: 0.7rem;
+  color: var(--ink);
+  text-decoration: underline;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+}
+
+.pin-popup-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--panel-beige);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-popup-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pin-popup-photo-fallback {
+  font-size: 1.6rem;
+}
+

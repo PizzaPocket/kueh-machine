@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cat Scan</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+<link rel="stylesheet" href="./css/style.css?v=20">
+</head>
+<body>
+
+<div class="world-bg" aria-hidden="true">
+  <img class="cloud cloud--1" src="./assets/p1-cloud-1.png" alt="">
+  <img class="cloud cloud--2" src="./assets/p1-cloud-2.png" alt="">
+  <img class="cloud cloud--3" src="./assets/p1-cloud-3.png" alt="">
+  <img class="cloud cloud--4" src="./assets/p1-cloud-1.png" alt="">
+  <div class="grass"></div>
+  <img class="ambient-cat ambient-cat--1" src="./assets/p1-cat-3.png" alt="">
+  <img class="ambient-cat ambient-cat--2" src="./assets/p1-cat-2.png" alt="">
+  <img class="ambient-cat ambient-cat--3" src="./assets/p1-cat-1.png" alt="">
+</div>
+
+<!-- Screen 1: Title -->
+<section id="screen-title" class="screen active">
+  <h1 class="pixel-title pixel-title--hero">CAT SCAN</h1>
+  <button id="title-advance" class="tap-prompt">CLICK TO EXPLORE</button>
+</section>
+
+<!-- Screen 2: Intro -->
+<section id="screen-intro" class="screen">
+  <div class="intro-scene">
+    <img class="mascot" src="./assets/p2-cat.png?v=2" alt="Cat Scan mascot">
+    <div class="speech-col">
+      <div class="speech-bubble">
+        <p id="intro-typed" class="typed-text"></p>
+      </div>
+      <button id="intro-advance" class="tap-prompt">CLICK TO CONTINUE</button>
+    </div>
+  </div>
+</section>
+
+<!-- Screen 3: How This Works -->
+<section id="screen-how" class="screen">
+  <h1 class="pixel-title">HOW THIS WORKS</h1>
+  <div class="how-boxes">
+    <div class="how-box">Spot a cat?<br>Tap the map right where you found them.</div>
+    <div class="how-box">Snap a photo, give them a name. If someone's already found them, add your name for them too.</div>
+    <div class="how-box">Nothing to report? Browse the cats your neighbors have already found.</div>
+  </div>
+  <button id="how-advance" class="tap-prompt">LET'S BEGIN!</button>
+</section>
+
+<!-- Screen 4: Main app -->
+<section id="screen-app" class="screen">
+  <h1 class="pixel-title app-title">CAT SCAN</h1>
+
+  <main class="app">
+    <div class="map-frame">
+      <img class="edge-cat edge-cat--peek" src="./assets/p4-cat-white-peek.png" alt="">
+      <div class="panel-inner">
+        <div class="panel-header">CLICK THE MAP TO<br>LOG A CAT!</div>
+        <div class="panel-body">
+          <div id="map"></div>
+        </div>
+      </div>
+      <img class="edge-cat edge-cat--bl" src="./assets/p4-cat-grey-lying.png" alt="">
+      <img class="edge-cat edge-cat--br1" src="./assets/p4-cat-orange-heart.png" alt="">
+      <img class="edge-cat edge-cat--br2" src="./assets/p4-cat-grey-sitting.png" alt="">
+    </div>
+
+    <aside class="feed-panel">
+      <img class="edge-cat edge-cat--top" src="./assets/p4-cat-orange-lookback.png" alt="">
+      <div class="panel-inner">
+        <div class="feed-header">LATEST<br>SIGHTINGS</div>
+        <div class="panel-body">
+          <ul id="feed-list" class="feed-list"></ul>
+        </div>
+      </div>
+      <img class="edge-cat edge-cat--br3" src="./assets/p4-cat-brown-lying.png" alt="">
+    </aside>
+  </main>
+
+  <!-- Add / spot a cat -->
+  <div id="add-cat-modal" class="modal hidden">
+    <div class="panel">
+      <button class="close-btn" data-close="add-cat-modal">✕</button>
+      <h2 class="panel-title">New sighting!</h2>
+
+      <form id="add-cat-form">
+        <label>
+          A name for this cat
+          <input type="text" id="cat-name-input" placeholder="e.g. Uncle Roti" required>
+        </label>
+
+        <label>
+          Vibe check
+          <select id="cat-vibe-input">
+            <option value="friendly">😺 Friendly</option>
+            <option value="diva">💅 Diva</option>
+            <option value="shy">🙈 Shy</option>
+            <option value="food-motivated">🍖 Food-motivated</option>
+            <option value="mysterious">🕵️ Mysterious</option>
+          </select>
+        </label>
+
+        <label>
+          Photo (optional)
+          <input type="file" id="cat-photo-input" accept="image/*">
+        </label>
+
+        <label>
+          Your name (credited as discoverer)
+          <input type="text" id="discoverer-name-input" placeholder="e.g. Sophia" required>
+        </label>
+
+        <button type="submit" class="pixel-btn">Add to the map</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cat profile -->
+  <div id="cat-profile-modal" class="modal hidden">
+    <div class="panel">
+      <button class="close-btn" data-close="cat-profile-modal">✕</button>
+
+      <div id="cat-profile-content"></div>
+
+      <hr>
+
+      <div class="add-name-section">
+        <h3>Got a different name for them?</h3>
+        <form id="add-name-form">
+          <input type="text" id="new-name-input" placeholder="e.g. The Mayor" required>
+          <input type="text" id="new-name-by-input" placeholder="Your name" required>
+          <button type="submit" class="pixel-btn small">Add name</button>
+        </form>
+      </div>
+
+      <div class="add-sighting-section">
+        <h3>Spotted them recently?</h3>
+        <form id="add-sighting-form">
+          <input type="text" id="new-sighting-input" placeholder="e.g. Napping outside the kopitiam" required>
+          <input type="text" id="new-sighting-by-input" placeholder="Your name" required>
+          <button type="submit" class="pixel-btn small">Add sighting</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="./js/onboarding.js?v=5"></script>
+<script src="./js/app.js?v=7"></script>
+</body>
+</html>

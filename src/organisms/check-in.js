@@ -14,10 +14,10 @@ import { revealWireBundle } from '../atoms/wire-bundle.js';
 import { renderKuehSvg, accentForKueh } from '../atoms/kueh-icon.js';
 import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 
-// Full team roster, alphabetical by first name. Seven real submissions so
-// far (Amy, Jesslyn, Kaixin, Kevin, Ruth, Samantha, Viki) carry a real tagline;
-// everyone else's desc stays "___" until their project lands — see
-// scripts/add-contributor.mjs.
+// Full team roster, alphabetical by first name. Nine real submissions so
+// far (Amanda, Amy, Jesslyn, Kaixin, Kevin, Ruth, Samantha, Sophia, Viki)
+// carry a real tagline; everyone else's desc stays "___" until their
+// project lands — see scripts/add-contributor.mjs.
 //
 // randomiserKey: the matching entry in randomiser.html's own `names` array
 // (first names, a couple abbreviated — "Sam" for Samantha, "Liwei" for Li
@@ -26,7 +26,7 @@ import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 // this to match the widget's drawn order back to a row, and sorts anyone
 // without a key to the bottom.
 const CONTRIBUTORS = [
-  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one that's a ___)", randomiserKey: 'Amanda' },
+  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one where a bear serves up your placeholder content)", url: '/machines/amanda/', randomiserKey: 'Amanda' },
   { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/machines/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }], randomiserKey: 'Amy' },
   { initials: 'GE', name: 'Geraldine Chua', desc: "(the one that's a ___)" },
   {
@@ -80,7 +80,7 @@ const CONTRIBUTORS = [
     randomiserKey: 'Ruth',
   },
   { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)", randomiserKey: 'Sam' },
-  { initials: 'SO', name: 'Sophia Himawan', desc: "(the one that's a ___)", randomiserKey: 'Sophia' },
+  { initials: 'SO', name: 'Sophia Himawan', title: 'Cat Scan', desc: "(the one that's a shared map for spotting neighborhood cats)", url: '/machines/sophia/', randomiserKey: 'Sophia' },
   {
     initials: 'VI',
     name: 'Viki Yap',

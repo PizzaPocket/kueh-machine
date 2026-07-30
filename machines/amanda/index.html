@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beary's Kueh Shop — UX Placeholder Generator</title>
+  <link rel="icon" type="image/png" href="./assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <div class="hero-full" role="img" aria-label="Beary's Kueh Shop — Beary the bear in cafe apron and cap, holding out a slice of pandan kueh behind the counter">
+    <button class="hero-cta" id="heroCta">
+      <span class="cta-star star-1" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L22 9.2l-5.4 4.7L18.2 21 12 17.3 5.8 21l1.6-7.1L2 9.2l7.4-.6z" fill="#F6C445" stroke="#3D2B1F" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="cta-star star-2" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L22 9.2l-5.4 4.7L18.2 21 12 17.3 5.8 21l1.6-7.1L2 9.2l7.4-.6z" fill="#F6C445" stroke="#3D2B1F" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="cta-star star-3" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L22 9.2l-5.4 4.7L18.2 21 12 17.3 5.8 21l1.6-7.1L2 9.2l7.4-.6z" fill="#F6C445" stroke="#3D2B1F" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="cta-star star-4" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L22 9.2l-5.4 4.7L18.2 21 12 17.3 5.8 21l1.6-7.1L2 9.2l7.4-.6z" fill="#F6C445" stroke="#3D2B1F" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="cta-star star-5" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L22 9.2l-5.4 4.7L18.2 21 12 17.3 5.8 21l1.6-7.1L2 9.2l7.4-.6z" fill="#F6C445" stroke="#3D2B1F" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </span>
+      What can Beary help you with today?
+    </button>
+  </div>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+
+  <div class="bottom-sheet" id="bottomSheet" aria-hidden="true">
+    <div class="sheet-inner">
+      <button class="sheet-close" id="sheetClose" aria-label="Close">✕</button>
+
+      <div class="sheet-content">
+        <div class="picker-view" id="pickerView">
+          <h2 class="picker-title">What kueh would you like?</h2>
+          <p class="sheet-subtitle">Let Beary know what to serve you!</p>
+
+          <div class="picker-grid">
+            <button class="picker-card" data-category="photobook">
+              <span class="picker-art" id="pickerArtPhotobook"></span>
+              <span class="picker-label">Photo Book</span>
+            </button>
+            <button class="picker-card" data-category="icons">
+              <span class="picker-art" id="pickerArtIcons"></span>
+              <span class="picker-label">Cute Icons</span>
+            </button>
+            <button class="picker-card" data-category="story">
+              <span class="picker-art" id="pickerArtStory"></span>
+              <span class="picker-label">Story Time</span>
+            </button>
+            <button class="picker-card" data-category="build">
+              <span class="picker-art" id="pickerArtBuild"></span>
+              <span class="picker-label">Build your Kueh!</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="detail-view" id="detailView" hidden>
+          <div class="detail-header">
+            <button class="home-btn" id="homeBtn" aria-label="Back to kueh picker">
+              <img src="./assets/favicon.png" alt="">
+            </button>
+            <nav class="type-tabs" id="categoryTabs" role="tablist" aria-label="Placeholder content category">
+              <button class="tab-btn" data-category="photobook" role="tab">Photo Book</button>
+              <button class="tab-btn" data-category="icons" role="tab">Cute Icons</button>
+              <button class="tab-btn" data-category="story" role="tab">Story Time</button>
+              <button class="tab-btn" data-category="build" role="tab">Build your Kueh!</button>
+            </nav>
+          </div>
+
+          <hr class="tab-divider">
+
+          <div id="categoryContent"><!-- rendered per category by script.js --></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>Beary's Kueh Shop — built by Amanda for <span class="kuehmachine">kuehmachine.com</span></p>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
