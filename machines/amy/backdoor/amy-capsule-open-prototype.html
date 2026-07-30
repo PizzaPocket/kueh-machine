@@ -96,6 +96,11 @@
   .kueh-btn:hover { transform: translateY(-2px); }
   .kueh-btn:active { transform: translateY(1px); box-shadow: none; }
   .kueh-btn.active { outline: 3px solid var(--coral); outline-offset: 2px; }
+
+  a.control-btn {
+    text-decoration: none;
+    color: inherit;
+  }
 </style>
 </head>
 <body>
@@ -128,6 +133,9 @@
   <button class="control-btn" id="toggleBtn" type="button">
     <span id="toggleLabel">Open</span>
   </button>
+  <a class="control-btn" href="./capsule-open-integration-kit.zip" download>
+    <span>Download package</span>
+  </a>
 </div>
 
 <script>
