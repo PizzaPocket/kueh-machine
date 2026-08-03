@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tile motif — 2x4 + generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #150F0A;
+    --bg-elevated: #211710;
+    --ink: #F5EEE2;
+    --ink-soft: #B8A98F;
+    --gold: #F5C24B;
+    --coral: #E8604B;
+    --border: rgba(245, 238, 226, 0.12);
+    --serif: "Fraunces", Georgia, serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4.5rem;
+    padding: 3.5rem 1rem;
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--gold);
+    margin: 0;
+    text-align: center;
+  }
+  .tile-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 120px);
+    grid-template-rows: repeat(2, 120px);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    filter: saturate(0.4);
+  }
+  .tile-grid img { width: 120px; height: 120px; display: block; }
+
+  .generated-grid {
+    width: 480px;
+    height: 240px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background-repeat: repeat;
+    background-size: 120px 120px;
+  }
+
+  .btn {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 15px 30px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    margin-top: 1.25rem;
+    transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary {
+    background: var(--coral);
+    color: #1A0F0A;
+    box-shadow: 0 0 0 1px rgba(232,96,75,0.4), 0 0 24px rgba(232,96,75,0.35);
+  }
+  .btn-primary:hover { background: #ED725F; transform: translateY(-2px); }
+  .btn-primary:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+
+<section>
+  <h1>Gatcha-Kueh tile motif</h1>
+  <div class="tile-grid">
+    <img src="./tile.svg" alt="" /><img src="./tile.svg" alt="" /><img src="./tile.svg" alt="" /><img src="./tile.svg" alt="" />
+    <img src="./tile.svg" alt="" /><img src="./tile.svg" alt="" /><img src="./tile.svg" alt="" /><img src="./tile.svg" alt="" />
+  </div>
+</section>
+
+<section>
+  <h1>Peranakan tile generator</h1>
+  <div class="generated-grid" id="generatedGrid"></div>
+  <button class="btn btn-primary" id="generateBtn" type="button">Generate Tiles</button>
+</section>
+
+<script>
+  function rand(min, max) { return min + Math.random() * (max - min); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  // Palettes tuned to read like real Peranakan tilework (cream/terracotta/teal,
+  // black/gold/jade, pink/cobalt/yellow, marigold scrollwork, indigo azulejo)
+  // plus one pulled from Ken's own site palette so it can still feel native
+  // to his project.
+  var PALETTES = [
+    { name: "Teal Gold",       bg: "#F3EEE0", frame: "#C98A3B", medallion: ["#8B3A3A", "#F3EEE0"], corner: "#2E7D6B", line: "#2A2118" },
+    { name: "Peranakan Ink",   bg: "#FBF8EF", frame: "#D9A441", medallion: ["#1D1710", "#3F8F5F"], corner: "#C1553B", line: "#1D1710" },
+    { name: "Pink Bloom",      bg: "#E9F3F7", frame: "#3446A8", medallion: ["#F2C230", "#3FAF8B"], corner: "#D98FD0", line: "#20205A" },
+    { name: "Night Market",    bg: "#241812", frame: "#F5C24B", medallion: ["#E8604B", "#5FAE71"], corner: "#F0879E", line: "rgba(245,238,226,0.5)" },
+    { name: "Sunset Clay",     bg: "#F6ECD9", frame: "#B4552F", medallion: ["#8B3A3A", "#D9A441"], corner: "#3E8E7E", line: "#2A2118" },
+    { name: "Marigold Scroll", bg: "#E8A93A", frame: "#FBF3E1", medallion: ["#FBF3E1", "#C1552E"], corner: "#FBF3E1", line: "#8A4A1E" },
+    { name: "Terracotta Cross",bg: "#E8B23A", frame: "#C1552E", medallion: ["#3B1F2B", "#C1372B"], corner: "#C1552E", line: "#5C2E12" },
+    { name: "Azulejo Blue",    bg: "#F5F3ED", frame: "#2B4C9B", medallion: ["#2B4C9B", "#F5F3ED"], corner: "#2B4C9B", line: "#1D3166" }
+  ];
+
+  function medallionQuatrefoil(mA, mB) {
+    return (
+      '<g fill="' + mA + '">' +
+      '<circle cx="60" cy="60" r="9"/>' +
+      '<ellipse cx="60" cy="37" rx="6" ry="15"/>' +
+      '<ellipse cx="60" cy="83" rx="6" ry="15"/>' +
+      '<ellipse cx="37" cy="60" rx="15" ry="6"/>' +
+      '<ellipse cx="83" cy="60" rx="15" ry="6"/>' +
+      '</g>' +
+      '<circle cx="60" cy="60" r="4" fill="' + mB + '"/>'
+    );
+  }
+
+  function medallionStarburst(mA, mB) {
+    return (
+      '<g fill="' + mA + '">' +
+      '<ellipse cx="60" cy="38" rx="6" ry="14"/>' +
+      '<ellipse cx="60" cy="82" rx="6" ry="14"/>' +
+      '<ellipse cx="38" cy="60" rx="14" ry="6"/>' +
+      '<ellipse cx="82" cy="60" rx="14" ry="6"/>' +
+      '</g>' +
+      '<g fill="' + mB + '">' +
+      '<ellipse cx="44" cy="44" rx="6" ry="13" transform="rotate(45 44 44)"/>' +
+      '<ellipse cx="76" cy="76" rx="6" ry="13" transform="rotate(45 76 76)"/>' +
+      '<ellipse cx="76" cy="44" rx="6" ry="13" transform="rotate(-45 76 44)"/>' +
+      '<ellipse cx="44" cy="76" rx="6" ry="13" transform="rotate(-45 44 76)"/>' +
+      '</g>' +
+      '<circle cx="60" cy="60" r="8" fill="' + mA + '"/>' +
+      '<circle cx="60" cy="60" r="4" fill="' + mB + '"/>'
+    );
+  }
+
+  function medallionClover(mA, mB) {
+    return (
+      '<g fill="' + mA + '" stroke="' + mB + '" stroke-width="2">' +
+      '<circle cx="48" cy="48" r="11"/>' +
+      '<circle cx="72" cy="48" r="11"/>' +
+      '<circle cx="48" cy="72" r="11"/>' +
+      '<circle cx="72" cy="72" r="11"/>' +
+      '</g>' +
+      '<circle cx="60" cy="60" r="6" fill="' + mB + '"/>'
+    );
+  }
+
+  function medallionDiamondStar(mA, mB) {
+    return (
+      '<polygon points="60,42 78,60 60,78 42,60" fill="' + mA + '"/>' +
+      '<g fill="' + mB + '">' +
+      '<polygon points="60,28 67,48 53,48"/>' +
+      '<polygon points="60,92 67,72 53,72"/>' +
+      '<polygon points="28,60 48,67 48,53"/>' +
+      '<polygon points="92,60 72,67 72,53"/>' +
+      '</g>'
+    );
+  }
+
+  // Reusable scroll/comma blob (a big circle with a small trailing circle
+  // along a given angle) — building block for the mandala-style rosette and
+  // the corner flourishes, echoing the paisley scrollwork on real tiles.
+  function commaShape(cx, cy, angle, color, scale) {
+    scale = scale || 1;
+    var rad = (angle * Math.PI) / 180;
+    var bx = cx + Math.cos(rad) * 9 * scale;
+    var by = cy + Math.sin(rad) * 9 * scale;
+    var sx = cx + Math.cos(rad) * 16 * scale;
+    var sy = cy + Math.sin(rad) * 16 * scale;
+    return (
+      '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="' + (5.5 * scale).toFixed(1) + '" fill="' + color + '"/>' +
+      '<circle cx="' + sx.toFixed(1) + '" cy="' + sy.toFixed(1) + '" r="' + (2.5 * scale).toFixed(1) + '" fill="' + color + '"/>'
+    );
+  }
+
+  // A scalloped clover boundary made from four overlapping circles — used
+  // either as a filled backdrop (behind the pommee cross) or as a stroked
+  // outline frame on its own (the blue-and-white azulejo look).
+  function quatrefoilShape(color, filled) {
+    var attrs = filled
+      ? 'fill="' + color + '"'
+      : 'fill="none" stroke="' + color + '" stroke-width="4"';
+    return (
+      '<g ' + attrs + '>' +
+      '<circle cx="60" cy="30" r="26"/><circle cx="90" cy="60" r="26"/>' +
+      '<circle cx="60" cy="90" r="26"/><circle cx="30" cy="60" r="26"/>' +
+      '</g>'
+    );
+  }
+
+  function medallionPommeeCross(mA, mB) {
+    return (
+      quatrefoilShape("#FBF6EC", true) +
+      '<g fill="' + mA + '">' +
+      '<rect x="54" y="24" width="12" height="26" rx="6"/>' +
+      '<rect x="54" y="70" width="12" height="26" rx="6"/>' +
+      '<rect x="24" y="54" width="26" height="12" rx="6"/>' +
+      '<rect x="70" y="54" width="26" height="12" rx="6"/>' +
+      '<circle cx="60" cy="60" r="8"/>' +
+      '</g>' +
+      '<g fill="' + mB + '">' +
+      '<circle cx="60" cy="26" r="4"/><circle cx="60" cy="94" r="4"/>' +
+      '<circle cx="26" cy="60" r="4"/><circle cx="94" cy="60" r="4"/>' +
+      '<circle cx="60" cy="60" r="3"/>' +
+      '</g>'
+    );
+  }
+
+  function medallionScrollRosette(mA, mB) {
+    var s = '<circle cx="60" cy="60" r="22" fill="' + mB + '"/>';
+    for (var i = 0; i < 8; i++) {
+      s += commaShape(60, 60, i * 45, mA);
+    }
+    s += '<circle cx="60" cy="60" r="7" fill="' + mA + '"/>';
+    s += '<circle cx="60" cy="60" r="3" fill="' + mB + '"/>';
+    return s;
+  }
+
+  function medallionStarInClover(mA, mB) {
+    return quatrefoilShape(mA, false) + medallionDiamondStar(mA, mB);
+  }
+
+  var MEDALLIONS = [
+    medallionQuatrefoil,
+    medallionStarburst,
+    medallionClover,
+    medallionDiamondStar,
+    medallionPommeeCross,
+    medallionScrollRosette,
+    medallionStarInClover
+  ];
+
+  function cornerDots(color) {
+    return (
+      '<g fill="' + color + '">' +
+      '<circle cx="16" cy="16" r="4"/><circle cx="104" cy="16" r="4"/>' +
+      '<circle cx="16" cy="104" r="4"/><circle cx="104" cy="104" r="4"/>' +
+      '</g>'
+    );
+  }
+
+  function cornerPetals(color) {
+    return (
+      '<g fill="' + color + '">' +
+      '<ellipse cx="14" cy="14" rx="5" ry="11" transform="rotate(45 14 14)"/>' +
+      '<ellipse cx="106" cy="14" rx="5" ry="11" transform="rotate(-45 106 14)"/>' +
+      '<ellipse cx="14" cy="106" rx="5" ry="11" transform="rotate(-45 14 106)"/>' +
+      '<ellipse cx="106" cy="106" rx="5" ry="11" transform="rotate(45 106 106)"/>' +
+      '</g>'
+    );
+  }
+
+  function cornerScrolls(color) {
+    return (
+      commaShape(20, 20, 45, color, 0.8) +
+      commaShape(100, 20, 135, color, 0.8) +
+      commaShape(20, 100, -45, color, 0.8) +
+      commaShape(100, 100, -135, color, 0.8)
+    );
+  }
+
+  var CORNERS = [null, cornerDots, cornerPetals, cornerScrolls];
+
+  var FRAME_STYLES = ["diamond", "doubleDiamond", "quatrefoilOutline", "flat"];
+
+  // A full rosette centered exactly ON a point, meant to be drawn once per
+  // tile corner. SVG clips anything outside the 0-120 viewBox for free, so
+  // each corner only ever shows its own quarter — but four adjacent tiles
+  // (plain repeats of the same image) each contribute their matching
+  // quarter, and together they reconstruct one whole medallion sitting on
+  // top of the grout line where the tiles meet. That's the same trick real
+  // tile sets use — the tile in isolation looks off-center, tiled it isn't.
+  function cornerRosette(cx, cy, mA, mB) {
+    var s = '<circle cx="' + cx + '" cy="' + cy + '" r="27" fill="' + mB + '"/>';
+    for (var i = 0; i < 8; i++) {
+      s += commaShape(cx, cy, i * 45, mA, 1.15);
+    }
+    s += '<circle cx="' + cx + '" cy="' + cy + '" r="9" fill="' + mA + '"/>';
+    s += '<circle cx="' + cx + '" cy="' + cy + '" r="4" fill="' + mB + '"/>';
+    return s;
+  }
+
+  function generateCornerDropTile(p) {
+    var corners = [[0, 0], [120, 0], [0, 120], [120, 120]];
+    var edgeMids = [[60, 0], [60, 120], [0, 60], [120, 60]];
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">';
+    s += '<rect width="120" height="120" fill="' + p.bg + '"/>';
+    s += '<g stroke="' + p.frame + '" stroke-width="3" fill="none" opacity="0.6">';
+    s += '<path d="M0,0 L120,120 M120,0 L0,120"/>';
+    s += '</g>';
+    s += '<rect x="1" y="1" width="118" height="118" fill="none" stroke="' + p.line + '" stroke-width="1.5" opacity="0.5"/>';
+    corners.forEach(function (c) {
+      s += cornerRosette(c[0], c[1], p.medallion[0], p.medallion[1]);
+    });
+    edgeMids.forEach(function (e) {
+      s += '<circle cx="' + e[0] + '" cy="' + e[1] + '" r="6" fill="' + p.corner + '"/>';
+    });
+    s += '</svg>';
+    return s;
+  }
+
+  function generateTileSvg() {
+    var p = pick(PALETTES);
+
+    // ~1 in 3 tiles use the "corner-drop" composition instead of a
+    // self-contained centered medallion — see generateCornerDropTile().
+    if (Math.random() < 0.35) {
+      return generateCornerDropTile(p);
+    }
+
+    var medallionFn = pick(MEDALLIONS);
+    var cornerFn = pick(CORNERS);
+    var frameStyle = pick(FRAME_STYLES);
+
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">';
+    s += '<rect width="120" height="120" fill="' + p.bg + '"/>';
+
+    if (frameStyle === "doubleDiamond") {
+      s += '<polygon points="60,1 119,60 60,119 1,60" fill="' + p.frame + '"/>';
+      s += '<polygon points="60,16 104,60 60,104 16,60" fill="' + p.bg + '"/>';
+      s += '<polygon points="60,24 96,60 60,96 24,60" fill="' + p.frame + '" opacity="0.55"/>';
+    } else if (frameStyle === "diamond") {
+      s += '<polygon points="60,3 117,60 60,117 3,60" fill="' + p.frame + '"/>';
+    } else if (frameStyle === "quatrefoilOutline") {
+      s += quatrefoilShape(p.frame, false);
+    }
+    // "flat" adds no lattice at all — the medallion carries the tile alone,
+    // like the solid-gold scrollwork tile.
+
+    s += '<rect x="1" y="1" width="118" height="118" fill="none" stroke="' + p.line + '" stroke-width="1.5" opacity="0.5"/>';
+    s += medallionFn(p.medallion[0], p.medallion[1]);
+    if (cornerFn) s += cornerFn(p.corner);
+    s += '</svg>';
+    return s;
+  }
+
+  function paintGeneratedGrid() {
+    var svg = generateTileSvg();
+    var uri = "data:image/svg+xml," + encodeURIComponent(svg);
+    document.getElementById("generatedGrid").style.backgroundImage = 'url("' + uri + '")';
+  }
+
+  document.getElementById("generateBtn").addEventListener("click", paintGeneratedGrid);
+  paintGeneratedGrid();
+</script>
+</body>
+</html>
