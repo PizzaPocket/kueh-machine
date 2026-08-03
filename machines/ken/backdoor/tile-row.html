@@ -192,15 +192,13 @@
 
   // Reusable scroll/paisley flourish — a single curved teardrop with a
   // curling inner hook, the same silhouette as the scrollwork on real
-  // tiles, standing in for the previous two-circle "comma" placeholder.
+  // tiles. An attempt at hand-drawn paisley scrollwork here (guessed bezier
+  // control points, no real construction behind them) just came out as a
+  // squiggle, not scrollwork — reusing the petal shape instead, which
+  // actually held up as clean floral linework.
   function commaShape(cx, cy, angle, color, scale) {
     scale = scale || 1;
-    var d =
-      "M0,0 C9,-3 12,-10 8,-16 C5,-21 -3,-20 -4,-14 C-5,-9 -1,-6 3,-9 C5,-11 4,-14 1,-13";
-    return (
-      '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + (3.5 * scale).toFixed(1) +
-      '" stroke-linecap="round" transform="translate(' + cx + "," + cy + ") rotate(" + angle + ") scale(" + scale + ')"/>'
-    );
+    return '<path d="' + petal(cx, cy, angle, 14 * scale, 6 * scale) + '" fill="' + color + '"/>';
   }
 
   // A scalloped clover boundary made from four overlapping circles — used
