@@ -123,33 +123,49 @@
     { name: "Azulejo Blue",    bg: "#F5F3ED", frame: "#2B4C9B", medallion: ["#2B4C9B", "#F5F3ED"], corner: "#2B4C9B", line: "#1D3166" }
   ];
 
+  // A curvy, pointed petal (two mirrored cubic-bezier bulges meeting at a
+  // tip) instead of a plain ellipse — the building block for every flower
+  // motif below. Drawn radiating outward from (cx,cy) at the given angle
+  // (0 = straight up), so a ring of these at 90/45-degree steps reads as
+  // real floral linework rather than a compass rose of ellipses.
+  function petal(cx, cy, angleDeg, len, width) {
+    var rad = (angleDeg * Math.PI) / 180;
+    var dx = Math.sin(rad), dy = -Math.cos(rad);
+    var px = -dy, py = dx;
+    var tipX = cx + dx * len, tipY = cy + dy * len;
+    var c1x = cx + px * width + dx * len * 0.32, c1y = cy + py * width + dy * len * 0.32;
+    var c2x = cx + px * width * 0.65 + dx * len * 0.82, c2y = cy + py * width * 0.65 + dy * len * 0.82;
+    var c3x = cx - px * width * 0.65 + dx * len * 0.82, c3y = cy - py * width * 0.65 + dy * len * 0.82;
+    var c4x = cx - px * width + dx * len * 0.32, c4y = cy - py * width + dy * len * 0.32;
+    return (
+      "M" + cx.toFixed(1) + "," + cy.toFixed(1) +
+      " C" + c1x.toFixed(1) + "," + c1y.toFixed(1) + " " + c2x.toFixed(1) + "," + c2y.toFixed(1) + " " + tipX.toFixed(1) + "," + tipY.toFixed(1) +
+      " C" + c3x.toFixed(1) + "," + c3y.toFixed(1) + " " + c4x.toFixed(1) + "," + c4y.toFixed(1) + " " + cx.toFixed(1) + "," + cy.toFixed(1) +
+      " Z"
+    );
+  }
+
+  function petalRing(cx, cy, count, offsetDeg, len, width, color) {
+    var s = '<g fill="' + color + '">';
+    for (var i = 0; i < count; i++) {
+      s += '<path d="' + petal(cx, cy, offsetDeg + (360 / count) * i, len, width) + '"/>';
+    }
+    s += "</g>";
+    return s;
+  }
+
   function medallionQuatrefoil(mA, mB) {
     return (
-      '<g fill="' + mA + '">' +
-      '<circle cx="60" cy="60" r="9"/>' +
-      '<ellipse cx="60" cy="37" rx="6" ry="15"/>' +
-      '<ellipse cx="60" cy="83" rx="6" ry="15"/>' +
-      '<ellipse cx="37" cy="60" rx="15" ry="6"/>' +
-      '<ellipse cx="83" cy="60" rx="15" ry="6"/>' +
-      '</g>' +
+      petalRing(60, 60, 4, 0, 23, 13, mA) +
+      '<circle cx="60" cy="60" r="9" fill="' + mA + '"/>' +
       '<circle cx="60" cy="60" r="4" fill="' + mB + '"/>'
     );
   }
 
   function medallionStarburst(mA, mB) {
     return (
-      '<g fill="' + mA + '">' +
-      '<ellipse cx="60" cy="38" rx="6" ry="14"/>' +
-      '<ellipse cx="60" cy="82" rx="6" ry="14"/>' +
-      '<ellipse cx="38" cy="60" rx="14" ry="6"/>' +
-      '<ellipse cx="82" cy="60" rx="14" ry="6"/>' +
-      '</g>' +
-      '<g fill="' + mB + '">' +
-      '<ellipse cx="44" cy="44" rx="6" ry="13" transform="rotate(45 44 44)"/>' +
-      '<ellipse cx="76" cy="76" rx="6" ry="13" transform="rotate(45 76 76)"/>' +
-      '<ellipse cx="76" cy="44" rx="6" ry="13" transform="rotate(-45 76 44)"/>' +
-      '<ellipse cx="44" cy="76" rx="6" ry="13" transform="rotate(-45 44 76)"/>' +
-      '</g>' +
+      petalRing(60, 60, 4, 0, 22, 12, mA) +
+      petalRing(60, 60, 4, 45, 19, 9, mB) +
       '<circle cx="60" cy="60" r="8" fill="' + mA + '"/>' +
       '<circle cx="60" cy="60" r="4" fill="' + mB + '"/>'
     );
@@ -158,11 +174,11 @@
   function medallionClover(mA, mB) {
     return (
       '<g fill="' + mA + '" stroke="' + mB + '" stroke-width="2">' +
-      '<circle cx="48" cy="48" r="11"/>' +
-      '<circle cx="72" cy="48" r="11"/>' +
-      '<circle cx="48" cy="72" r="11"/>' +
-      '<circle cx="72" cy="72" r="11"/>' +
-      '</g>' +
+      '<path d="' + petal(60, 60, 45, 24, 15) + '"/>' +
+      '<path d="' + petal(60, 60, 135, 24, 15) + '"/>' +
+      '<path d="' + petal(60, 60, 225, 24, 15) + '"/>' +
+      '<path d="' + petal(60, 60, 315, 24, 15) + '"/>' +
+      "</g>" +
       '<circle cx="60" cy="60" r="6" fill="' + mB + '"/>'
     );
   }
@@ -170,28 +186,20 @@
   function medallionDiamondStar(mA, mB) {
     return (
       '<polygon points="60,42 78,60 60,78 42,60" fill="' + mA + '"/>' +
-      '<g fill="' + mB + '">' +
-      '<polygon points="60,28 67,48 53,48"/>' +
-      '<polygon points="60,92 67,72 53,72"/>' +
-      '<polygon points="28,60 48,67 48,53"/>' +
-      '<polygon points="92,60 72,67 72,53"/>' +
-      '</g>'
+      petalRing(60, 60, 4, 0, 22, 8, mB)
     );
   }
 
-  // Reusable scroll/comma blob (a big circle with a small trailing circle
-  // along a given angle) — building block for the mandala-style rosette and
-  // the corner flourishes, echoing the paisley scrollwork on real tiles.
+  // Reusable scroll/paisley flourish — a single curved teardrop with a
+  // curling inner hook, the same silhouette as the scrollwork on real
+  // tiles, standing in for the previous two-circle "comma" placeholder.
   function commaShape(cx, cy, angle, color, scale) {
     scale = scale || 1;
-    var rad = (angle * Math.PI) / 180;
-    var bx = cx + Math.cos(rad) * 9 * scale;
-    var by = cy + Math.sin(rad) * 9 * scale;
-    var sx = cx + Math.cos(rad) * 16 * scale;
-    var sy = cy + Math.sin(rad) * 16 * scale;
+    var d =
+      "M0,0 C9,-3 12,-10 8,-16 C5,-21 -3,-20 -4,-14 C-5,-9 -1,-6 3,-9 C5,-11 4,-14 1,-13";
     return (
-      '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="' + (5.5 * scale).toFixed(1) + '" fill="' + color + '"/>' +
-      '<circle cx="' + sx.toFixed(1) + '" cy="' + sy.toFixed(1) + '" r="' + (2.5 * scale).toFixed(1) + '" fill="' + color + '"/>'
+      '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="' + (3.5 * scale).toFixed(1) +
+      '" stroke-linecap="round" transform="translate(' + cx + "," + cy + ") rotate(" + angle + ") scale(" + scale + ')"/>'
     );
   }
 
