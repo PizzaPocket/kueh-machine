@@ -60,6 +60,17 @@ canvas { display: block; }
 }
 .name-input:focus { border-color: #C4863A; }
 .name-input::placeholder { color: #C4A870; }
+.name-input.input-error { border-color: #C4402A; background: rgba(255,225,222,0.9); }
+.name-input.input-error:focus { border-color: #C4402A; }
+#authFormSignup, #authFormLogin, #authFormGuest { text-align: center; }
+.auth-heading { font-family: 'Fredoka One', cursive; font-size: 1.4rem; color: #6B3A10; text-align: center; }
+.auth-field { margin-top: 16px; }
+.btn.auth-field { margin-top: 16px; } /* wins over .btn's own margin-top via higher specificity */
+.auth-error { min-height: 16px; font-size: 0.78rem; color: #C4402A; font-weight: 700; margin-top: 10px; text-align: left; }
+.auth-switch { font-size: 0.82rem; color: #7A5530; text-align: center; margin-top: 26px; }
+.auth-switch a { color: #C4863A; font-weight: 700; text-decoration: none; }
+.auth-switch a:hover { text-decoration: underline; }
+.auth-switch-muted { opacity: 0.7; font-size: 0.76rem; margin-top: 2px; }
 
 #tutorialGateOverlay { background: rgba(16, 5, 0, 0.60); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 #tutorialOverlay     { background: transparent; pointer-events: none; justify-content: center; padding-bottom: 0; }
@@ -379,6 +390,9 @@ canvas { display: block; }
   padding-bottom: 10px; border-bottom: 1px solid rgba(196,134,58,0.25);
 }
 .ap-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.ap-row.hidden { display:none; }
+.ap-account { display:flex; flex-direction:column; gap:10px; }
+.ap-account.hidden { display:none; }
 .ap-label { font-family:'Nunito',sans-serif; font-size:0.95rem; color:#6B3A10; font-weight:700; }
 .ap-range { width:100%; accent-color:#C4863A; cursor:pointer; height:6px; }
 #audioPanel input[type=checkbox] { accent-color:#C4863A; width:20px; height:20px; cursor:pointer; }
@@ -450,6 +464,11 @@ canvas { display: block; }
     <div class="ap-row"><span class="ap-label">Sound FX</span><input type="checkbox" id="chkSfx" checked onchange="onSfxToggle()"></div>
     <input type="range" id="volSfx" min="0" max="100" value="70" class="ap-range" oninput="onVolSfxChange(this.value)">
     <div class="ap-row"><span class="ap-label">Vibration</span><input type="checkbox" id="chkVibrate" checked onchange="onVibrateToggle()"></div>
+    <div class="ap-divider hidden" id="apAccountDivider"></div>
+    <div class="ap-account hidden" id="apAccountRow">
+      <span class="ap-label">Account: <span id="apAccountName" style="font-weight:400"></span></span>
+      <button class="ap-act-btn ap-act-exit" style="padding:14px 6px;font-size:1.1rem" onclick="logOut()">Log Out</button>
+    </div>
     <div class="ap-divider hidden" id="apDivider"></div>
     <div class="ap-game-actions hidden" id="apGameActions">
       <button class="ap-act-btn ap-act-retry" onclick="retryFromSettings()">↺ Retry</button>
@@ -481,15 +500,43 @@ canvas { display: block; }
         Next
       </button>
     </div>
-    <!-- Phase 3: Name input popup -->
+    <!-- Phase 3: Account creation / login / guest -->
     <div id="namingCard" class="name-popup">
       <div class="onboard-card">
-        <div class="name-label">What shall the customers call you?</div>
-        <input class="name-input" id="bakerNameInput" type="text"
-               maxlength="20" placeholder="Baker ___" autocomplete="off" />
-        <button class="btn" onclick="confirmName()" style="margin-top:4px">
-          Start your journey
-        </button>
+        <!-- Sign up (default) -->
+        <div id="authFormSignup">
+          <div class="auth-heading">Create Account</div>
+          <input class="name-input auth-field" id="suUsername" type="text"
+                 maxlength="20" placeholder="Username" autocomplete="off" />
+          <input class="name-input auth-field" id="suPassword" type="password"
+                 maxlength="40" placeholder="Password (min 12 characters)" autocomplete="new-password" />
+          <div class="auth-error" id="authErrorSignup"></div>
+          <button class="btn auth-field" id="suSubmitBtn" onclick="handleSignUp()">Sign Up</button>
+          <div class="auth-switch">Already have an account? <a href="#" onclick="showAuthMode('login');return false;">Log In</a></div>
+          <div class="auth-switch auth-switch-muted"><a href="#" onclick="showAuthMode('guest');return false;">Skip — play as guest</a></div>
+        </div>
+        <!-- Log in -->
+        <div id="authFormLogin" style="display:none">
+          <div class="auth-heading">Log In</div>
+          <input class="name-input auth-field" id="liUsername" type="text"
+                 maxlength="20" placeholder="Username" autocomplete="off" />
+          <input class="name-input auth-field" id="liPassword" type="password"
+                 maxlength="40" placeholder="Password" autocomplete="current-password" />
+          <div class="auth-error" id="authErrorLogin"></div>
+          <button class="btn auth-field" id="liSubmitBtn" onclick="handleLogIn()">Log In</button>
+          <div class="auth-switch">Need an account? <a href="#" onclick="showAuthMode('signup');return false;">Sign Up</a></div>
+          <div class="auth-switch auth-switch-muted"><a href="#" onclick="showAuthMode('guest');return false;">Skip — play as guest</a></div>
+        </div>
+        <!-- Guest (original flow — no account, progress stays on this device) -->
+        <div id="authFormGuest" style="display:none">
+          <div class="name-label">What shall the customers call you?</div>
+          <input class="name-input" id="bakerNameInput" type="text"
+                 maxlength="20" placeholder="Baker ___" autocomplete="off" />
+          <button class="btn" onclick="confirmName()" style="margin-top:4px">
+            Start your journey
+          </button>
+          <div class="auth-switch"><a href="#" onclick="showAuthMode('signup');return false;">Create an account instead</a></div>
+        </div>
       </div>
     </div>
   </div>
@@ -533,6 +580,7 @@ canvas { display: block; }
       <div id="liName"   class="ov-h1" style="font-size:1.6rem;white-space:nowrap"></div>
       <div class="divider"></div>
       <div id="liOrders" class="ov-sub"></div>
+      <div id="liHighScore" class="ov-sub" style="font-weight:700;color:#8A5A1A"></div>
       <div id="liPips"   class="level-pips" style="display:none"></div>
       <button class="btn" id="levelIntroBtnStart">Let's Bake!</button>
     </div>
@@ -608,14 +656,12 @@ let gameScale = 1, gameOffX = 0, gameOffY = 0;
 
 // SVG assets for level map decorations
 const imgTree     = new Image(); imgTree.src     = 'tree.svg';
-const imgTreeSnow = new Image(); imgTreeSnow.src = 'tree snow.svg';
 const imgBush     = new Image(); imgBush.src     = 'bushes.svg';
 const imgFlower1  = new Image(); imgFlower1.src  = 'flower 1.svg';
 const imgFlower2  = new Image(); imgFlower2.src  = 'flower 2.svg';
-const imgMountain = new Image(); imgMountain.src = 'snow mountain.svg';
 let _mapFlowerIdx = 0;
 const imgRock      = new Image(); imgRock.src      = 'rock.svg';
-const imgSnowPile  = new Image(); imgSnowPile.src  = 'snowpile.svg';
+const imgCloudBig  = new Image(); imgCloudBig.src  = 'big cloud.svg';
 const FLOWER_CONFIGS = [
   [0,   0], [1, 320], [0, 170], [1,   0], [0, 350],
   [1,  40], [0, 280], [1,   0], [0,  20], [1, 180], [0,  60],
@@ -683,111 +729,111 @@ const LEVELS = [
   // ── TIER 1: APPRENTICE ───────────────────────────────
   // Colour unlock: L1=pandan+coconut, L2=+rose, L3=+turmeric, L4=+blue_pea, L5=+yam
   // Layer count: L1=3, L2=3-4, L3=4, L4=4, L5=4-5
-  { number:1,  name:'Apprentice I',     badge:'🧁', targetOrders:3,  targetCoins:0,    speedMult:0.75, orders:[
+  { number:1,  name:'Apprentice I',     badge:'🧁', targetOrders:3,  targetCoins:0,    speedMult:1.2, orders:[
     { name:'Classic Pandan',   desc:'Just pandan and coconut!',    layers:['pandan','coconut','pandan'],                    speed:2.0, decoy:0.15 },
     { name:'Coconut Dream',    desc:'Coconut leads this time',     layers:['coconut','pandan','coconut'],                   speed:2.0, decoy:0.15 },
   ]},
-  { number:2,  name:'Apprentice II',    badge:'🧁', targetOrders:4,  targetCoins:60,   orders:[
+  { number:2,  name:'Apprentice II',    badge:'🧁', targetOrders:4,  targetCoins:60,   speedMult:1.26, orders:[
     { name:'Pandan Stack',     desc:'Stack four layers high!',     layers:['pandan','coconut','pandan','coconut'],          speed:2.2, decoy:0.20 },
     { name:'Rose Blush',       desc:'A rosy new flavour!',         layers:['rose','coconut','pandan'],                      speed:2.3, decoy:0.22 },
     { name:'Pretty in Pink',   desc:'Rose and coconut together',   layers:['coconut','rose','coconut'],                     speed:2.3, decoy:0.22 },
   ]},
-  { number:3,  name:'Apprentice III',   badge:'🧁', targetOrders:4,  targetCoins:90,   orders:[
+  { number:3,  name:'Apprentice III',   badge:'🧁', targetOrders:4,  targetCoins:90,   speedMult:1.23, orders:[
     { name:'Golden Touch',     desc:'Warm turmeric joins in!',     layers:['turmeric','coconut','pandan','coconut'],        speed:2.5, decoy:0.26 },
     { name:'Sunny Swirl',      desc:'Turmeric meets rose',         layers:['pandan','turmeric','coconut','rose'],           speed:2.6, decoy:0.27 },
     { name:'Warm Layers',      desc:'Three colours, four layers',  layers:['rose','turmeric','coconut','pandan'],           speed:2.7, decoy:0.28 },
   ]},
-  { number:4,  name:'Apprentice IV',    badge:'🧁', targetOrders:5,  targetCoins:120,  orders:[
+  { number:4,  name:'Apprentice IV',    badge:'🧁', targetOrders:5,  targetCoins:120,  speedMult:1.21, orders:[
     { name:'Blue Beginnings',  desc:'Blue pea makes an entrance!', layers:['blue_pea','coconut','blue_pea'],                speed:2.8, decoy:0.29 },
     { name:'Tropical Mix',     desc:'Four colours at once',        layers:['pandan','turmeric','coconut','rose'],           speed:2.9, decoy:0.30 },
     { name:'Floral Four',      desc:'Blue pea and coconut',        layers:['coconut','blue_pea','coconut','pandan'],        speed:3.0, decoy:0.31 },
   ]},
-  { number:5,  name:'Apprentice V',     badge:'🧁', targetOrders:5,  targetCoins:150,  orders:[
+  { number:5,  name:'Apprentice V',     badge:'🧁', targetOrders:5,  targetCoins:150,  speedMult:1.19, orders:[
     { name:'Purple Heart',     desc:'Yam joins the family!',       layers:['yam','coconut','yam'],                          speed:3.0, decoy:0.32 },
     { name:'Sunset Layers',    desc:'Warm colours all the way',    layers:['turmeric','rose','coconut','pandan'],           speed:3.1, decoy:0.33 },
     { name:'Five Flavours',    desc:'Your first 5-layer kueh!',    layers:['pandan','rose','coconut','yam','pandan'],       speed:3.2, decoy:0.34 },
   ]},
   // ── TIER 2: JUNIOR BAKER ─────────────────────────────
   // All 6 colours in play. Layer count: L6=5, L7=5-6, L8=6, L9=6-7, L10=7
-  { number:6,  name:'Junior Baker I',   badge:'🍰', targetOrders:6,  targetCoins:200,  orders:[
+  { number:6,  name:'Junior Baker I',   badge:'🍰', targetOrders:6,  targetCoins:200,  speedMult:1.18, orders:[
     { name:'Colour Burst',     desc:'All six colours — let\'s go!', layers:['pandan','rose','turmeric','yam','coconut'],                speed:3.2, decoy:0.36 },
     { name:'Yam Delight',      desc:'Rich and purple all the way',  layers:['yam','coconut','yam','coconut','pandan'],                 speed:3.3, decoy:0.37 },
     { name:'Floral Dream',     desc:'Blue pea steals the show',     layers:['blue_pea','rose','coconut','pandan','blue_pea'],           speed:3.4, decoy:0.38 },
   ]},
-  { number:7,  name:'Junior Baker II',  badge:'🍰', targetOrders:7,  targetCoins:250,  orders:[
+  { number:7,  name:'Junior Baker II',  badge:'🍰', targetOrders:7,  targetCoins:250,  speedMult:1.17, orders:[
     { name:'Purple Rain',      desc:'Yam and blue intertwined',    layers:['yam','pandan','blue_pea','coconut','yam','pandan'],        speed:3.5, decoy:0.39 },
     { name:'Sunrise Stack',    desc:'Warm colours rising high',    layers:['turmeric','coconut','pandan','rose','turmeric'],           speed:3.6, decoy:0.40 },
     { name:'Six Splendour',    desc:'All six in one kueh!',        layers:['rose','turmeric','pandan','blue_pea','yam','coconut'],     speed:3.7, decoy:0.41 },
   ]},
-  { number:8,  name:'Junior Baker III', badge:'🍰', targetOrders:8,  targetCoins:300,  orders:[
+  { number:8,  name:'Junior Baker III', badge:'🍰', targetOrders:8,  targetCoins:300,  speedMult:1.15, orders:[
     { name:'Ocean Deep',       desc:'Blue pea meets yam',          layers:['blue_pea','coconut','blue_pea','yam','coconut','blue_pea'],speed:3.8, decoy:0.42 },
     { name:"Nenek's Special",  desc:"Grandma's prized recipe",     layers:['pandan','rose','coconut','turmeric','pandan','rose'],      speed:3.9, decoy:0.43 },
     { name:'Heritage Lapis',   desc:'A classic celebration kueh',  layers:['coconut','blue_pea','coconut','pandan','yam','coconut'],   speed:4.0, decoy:0.44 },
   ]},
-  { number:9,  name:'Junior Baker IV',  badge:'🍰', targetOrders:9,  targetCoins:380,  orders:[
+  { number:9,  name:'Junior Baker IV',  badge:'🍰', targetOrders:9,  targetCoins:380,  speedMult:1.14, orders:[
     { name:'Grand Blue',       desc:'Seven layers of blue power',  layers:['blue_pea','coconut','blue_pea','coconut','blue_pea','yam','coconut'],speed:4.1, decoy:0.46 },
     { name:'Yam Royale',       desc:'Yam stacked high!',           layers:['yam','rose','yam','coconut','yam','pandan','yam'],                  speed:4.2, decoy:0.47 },
     { name:'Rainbow Seven',    desc:'Every colour in order',       layers:['turmeric','rose','blue_pea','yam','pandan','coconut','turmeric'],   speed:4.3, decoy:0.48 },
   ]},
-  { number:10, name:'Junior Baker V',   badge:'🍰', targetOrders:10, targetCoins:450,  orders:[
+  { number:10, name:'Junior Baker V',   badge:'🍰', targetOrders:10, targetCoins:450,  speedMult:1.13, orders:[
     { name:'Signature Seven',  desc:'Seven layers, no mercy!',     layers:['pandan','rose','coconut','turmeric','blue_pea','yam','pandan'],     speed:4.4, decoy:0.49 },
     { name:'Indigo Dream',     desc:'Blue pea all the way',        layers:['blue_pea','yam','blue_pea','coconut','blue_pea','rose','blue_pea'],speed:4.5, decoy:0.50 },
     { name:'Grand Heritage',   desc:'A taste of pure tradition',   layers:['coconut','pandan','rose','yam','turmeric','coconut','rose'],        speed:4.6, decoy:0.51 },
   ]},
   // ── TIER 3: HEAD BAKER ───────────────────────────────
   // Layer count: L11=7-8, L12=8, L13=8-9, L14=9, L15=9-10
-  { number:11, name:'Head Baker I',     badge:'🎂', targetOrders:11, targetCoins:500,  orders:[
+  { number:11, name:'Head Baker I',     badge:'🎂', targetOrders:11, targetCoins:500,  speedMult:1.12, orders:[
     { name:'Spice Market',     desc:'Turmeric demands attention',  layers:['turmeric','rose','coconut','pandan','turmeric','coconut','blue_pea'],speed:4.7, decoy:0.52 },
     { name:'Royal Seven',      desc:'Six colours, seven layers',   layers:['rose','blue_pea','yam','turmeric','pandan','coconut','rose'],       speed:4.8, decoy:0.53 },
     { name:'Purple Majesty',   desc:'Yam and blue entwined',       layers:['yam','coconut','yam','rose','blue_pea','coconut','yam'],            speed:4.9, decoy:0.53 },
   ]},
-  { number:12, name:'Head Baker II',    badge:'🎂', targetOrders:12, targetCoins:560,  orders:[
+  { number:12, name:'Head Baker II',    badge:'🎂', targetOrders:12, targetCoins:560,  speedMult:1.12, orders:[
     { name:'Galaxy Kueh',      desc:'Colours out of this world',   layers:['yam','blue_pea','rose','turmeric','coconut','pandan','yam','blue_pea'],speed:5.0, decoy:0.54 },
     { name:'Bakery Pride',     desc:'Your masterpiece so far',     layers:['pandan','rose','blue_pea','yam','turmeric','coconut','pandan','rose'],speed:5.1, decoy:0.55 },
     { name:'Eight Heaven',     desc:'A full eight-layer stack!',   layers:['coconut','pandan','rose','coconut','blue_pea','coconut','yam','pandan'],speed:5.2, decoy:0.56 },
   ]},
-  { number:13, name:'Head Baker III',   badge:'🎂', targetOrders:13, targetCoins:620,  orders:[
+  { number:13, name:'Head Baker III',   badge:'🎂', targetOrders:13, targetCoins:620,  speedMult:1.11, orders:[
     { name:'Rainbow Supreme',  desc:'Every colour, every bite',    layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose','turmeric'],     speed:5.3, decoy:0.57 },
     { name:'Pandan Parade',    desc:'Pandan in every other layer', layers:['pandan','rose','pandan','blue_pea','pandan','yam','pandan','coconut'],       speed:5.4, decoy:0.58 },
     { name:'Anniversary Kueh', desc:'Nine layers for a celebration',layers:['rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea'],speed:5.5, decoy:0.58 },
   ]},
-  { number:14, name:'Head Baker IV',    badge:'🎂', targetOrders:14, targetCoins:700,  orders:[
+  { number:14, name:'Head Baker IV',    badge:'🎂', targetOrders:14, targetCoins:700,  speedMult:1.11, orders:[
     { name:'Ultimate Heritage', desc:'All traditions at once',     layers:['coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam'],   speed:5.6, decoy:0.59 },
     { name:'Nine Wonders',      desc:'Nine layers of skill',       layers:['blue_pea','yam','turmeric','rose','pandan','coconut','yam','blue_pea','rose'],  speed:5.7, decoy:0.60 },
     { name:'Grand Lapis',       desc:'The legendary nine-layer!',  layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','rose','coconut'],speed:5.8, decoy:0.60 },
   ]},
-  { number:15, name:'Head Baker V',     badge:'🎂', targetOrders:15, targetCoins:780,  orders:[
+  { number:15, name:'Head Baker V',     badge:'🎂', targetOrders:15, targetCoins:780,  speedMult:1.10, orders:[
     { name:'Ten Wonders',       desc:'Ten layers — can you do it?', layers:['pandan','rose','coconut','yam','blue_pea','turmeric','pandan','rose','coconut','yam'],    speed:5.9, decoy:0.61 },
     { name:'Platinum Lapis',    desc:'Only legends attempt this',   layers:['rose','yam','turmeric','blue_pea','pandan','coconut','rose','yam','turmeric','blue_pea'], speed:6.0, decoy:0.62 },
     { name:"Master's Touch",    desc:"Show them who's boss",        layers:['coconut','blue_pea','rose','pandan','yam','turmeric','coconut','pandan','rose','yam'],    speed:6.1, decoy:0.62 },
   ]},
   // ── TIER 4: MASTER PATISSIER ─────────────────────────
   // Layer count: L16=10, L17=10-11, L18=11-12, L19=12, L20=12
-  { number:16, name:'Master I',         badge:'👑', targetOrders:16, targetCoins:850,  orders:[
+  { number:16, name:'Master I',         badge:'👑', targetOrders:16, targetCoins:850,  speedMult:1.09, orders:[
     { name:'Deep Violet',      desc:'Yam from bottom to top',      layers:['yam','rose','yam','blue_pea','yam','coconut','yam','pandan','yam','rose'],               speed:6.2, decoy:0.63 },
     { name:'Midnight Blue',    desc:'The darkest, richest kueh',   layers:['blue_pea','yam','blue_pea','coconut','blue_pea','rose','blue_pea','yam','coconut'],      speed:6.3, decoy:0.63 },
     { name:"Grandmaster's Way",desc:"Grandma's ultimate recipe",   layers:['pandan','rose','blue_pea','yam','turmeric','coconut','rose','pandan','yam','turmeric'],  speed:6.4, decoy:0.64 },
     { name:'Golden Crown',     desc:'Turmeric reigns supreme',     layers:['turmeric','pandan','rose','coconut','yam','blue_pea','turmeric','rose','pandan','coconut'],speed:6.5, decoy:0.64 },
   ]},
-  { number:17, name:'Master II',        badge:'👑', targetOrders:18, targetCoins:1000, orders:[
+  { number:17, name:'Master II',        badge:'👑', targetOrders:18, targetCoins:1000, speedMult:1.09, orders:[
     { name:'Legendary Lapis',  desc:'Eleven layers of legend!',    layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam','blue_pea'],   speed:6.6, decoy:0.65 },
     { name:'Eleven Heavens',   desc:'All flavours, eleven deep',   layers:['coconut','blue_pea','yam','rose','pandan','turmeric','coconut','blue_pea','yam','rose','pandan'],  speed:6.7, decoy:0.65 },
     { name:"Chef's Tour",      desc:'A tour de force of kueh',     layers:['turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut'],speed:6.8, decoy:0.66 },
     { name:'Royal Banquet',    desc:'Fit for royalty',             layers:['yam','pandan','blue_pea','turmeric','rose','coconut','yam','blue_pea','pandan','turmeric','rose'], speed:6.9, decoy:0.66 },
   ]},
-  { number:18, name:'Master III',       badge:'👑', targetOrders:20, targetCoins:1200, orders:[
+  { number:18, name:'Master III',       badge:'👑', targetOrders:20, targetCoins:1200, speedMult:1.08, orders:[
     { name:'Decadent Twelve',  desc:'Twelve layers — go!',         layers:['pandan','coconut','rose','yam','blue_pea','turmeric','pandan','coconut','rose','yam','blue_pea','turmeric'],  speed:7.0, decoy:0.67 },
     { name:'Ultimate Parade',  desc:'All six types, twice over',   layers:['rose','turmeric','pandan','blue_pea','yam','coconut','rose','turmeric','pandan','blue_pea','yam','coconut'],  speed:7.1, decoy:0.67 },
     { name:'Heritage Supreme', desc:'The finest heritage recipe',  layers:['coconut','yam','blue_pea','pandan','turmeric','rose','coconut','yam','blue_pea','pandan','turmeric','rose'], speed:7.2, decoy:0.68 },
     { name:'Penultimate Glory',desc:'Almost the very best…',       layers:['yam','rose','coconut','blue_pea','pandan','turmeric','yam','rose','coconut','blue_pea','pandan','turmeric'],speed:7.3, decoy:0.68 },
   ]},
-  { number:19, name:'Master IV',        badge:'👑', targetOrders:24, targetCoins:1500, orders:[
+  { number:19, name:'Master IV',        badge:'👑', targetOrders:24, targetCoins:1500, speedMult:1.08, orders:[
     { name:'Twelve Wonders',   desc:'Twelve! Are you ready?',      layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose','blue_pea','coconut'],  speed:7.5, decoy:0.69 },
     { name:'Hall of Legends',  desc:'Your name belongs here',      layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan'],  speed:7.6, decoy:0.70 },
     { name:'Century Stack',    desc:'The ultimate test of skill',  layers:['coconut','rose','pandan','yam','blue_pea','turmeric','coconut','rose','pandan','yam','blue_pea','turmeric'],  speed:7.7, decoy:0.70 },
     { name:'Penultimate Feat', desc:'One level from glory…',       layers:['turmeric','rose','blue_pea','yam','pandan','coconut','turmeric','rose','blue_pea','yam','pandan','coconut'], speed:7.8, decoy:0.71 },
   ]},
-  { number:20, name:'Master Patissier', badge:'👑', targetOrders:30, targetCoins:2000, orders:[
+  { number:20, name:'Master Patissier', badge:'👑', targetOrders:30, targetCoins:2000, speedMult:1.07, orders:[
     { name:'The Impossible Kueh',desc:'Only the best can do this!', layers:['pandan','yam','turmeric','rose','blue_pea','coconut','pandan','yam','turmeric','rose','blue_pea','coconut'],  speed:8.0, decoy:0.72 },
     { name:'Hall of Fame',       desc:'Grandma is watching…',       layers:['blue_pea','coconut','yam','turmeric','rose','pandan','blue_pea','coconut','yam','turmeric','rose','pandan'],  speed:8.0, decoy:0.72 },
     { name:'The Grand Finale',   desc:'Twelve layers. One chance.', layers:['pandan','rose','yam','blue_pea','turmeric','coconut','pandan','rose','yam','blue_pea','turmeric','coconut'],  speed:8.5, decoy:0.74 },
@@ -834,10 +880,10 @@ const MAP_NODES = [
 // Stars: [always, 2-star threshold, 3-star threshold]
 // Thresholds set so 2★ requires solid play (~55% max), 3★ requires near-perfect (~80% max)
 const STAR_THRESHOLDS = [
-  [1,  200,  320], [1,  280,  440], [1,  400,  620], [1,  520,  810], [1,  650,  990], // 1-5
-  [1,  870, 1320], [1, 1090, 1650], [1, 1310, 1990], [1, 1660, 2510], [1, 1970, 2980], // 6-10
-  [1, 2190, 3310], [1, 2460, 3720], [1, 2720, 4110], [1, 3070, 4640], [1, 3420, 5170], // 11-15
-  [1, 3730, 5640], [1, 4390, 6640], [1, 5270, 7970], [1, 6590, 9970], [1, 8790,13290], // 16-20
+  [1,   200,   290], [1,   290,   420], [1,   310,   460], [1,   370,   540], [1,   380,   550], // 1-5
+  [1,   540,   790], [1,   690,  1010], [1,   820,  1200], [1,  1030,  1500], [1,  1140,  1670], // 6-10
+  [1,  1250,  1840], [1,  1510,  2220], [1,  1690,  2470], [1,  1930,  2830], [1,  2250,  3300], // 11-15
+  [1,  2350,  3450], [1,  2920,  4280], [1,  3480,  5100], [1,  4180,  6120], [1,  5220,  7660], // 16-20
 ];
 
 // Customer personas — drawn with canvas
@@ -981,17 +1027,6 @@ function drawCustomerPortrait(cx, cy, r, idx) {
 // Tutorial practice order (3 layers so completion feels real)
 const TUTORIAL_ORDER = { layers:['pandan','coconut','pandan'], speed:1.6, decoy:0.0 };
 
-// Mock leaderboard entries
-const MOCK_LEADERBOARD = [
-  { name:'Siti Rahayu', score:4200 },
-  { name:'Ahmad Faiz',  score:3850 },
-  { name:'Priya S',     score:3200 },
-  { name:'Wei Ming',    score:2800 },
-  { name:'Fatimah',     score:2100 },
-  { name:'Raj Kumar',   score:1950 },
-  { name:'Mei Lin',     score:1780 },
-  { name:'Zara Ali',    score:1620 },
-];
 const MOCK_SUGGESTED = [
   { name:'Mei Lin',    levelName:'Apprentice I',  id:3847, color:'#3A8C3A' },
   { name:'Arjun K',   levelName:'Apprentice II', id:9012, color:'#2C78A8' },
@@ -1018,10 +1053,10 @@ async function submitScore(name, score) {
   } catch (e) { console.warn('[leaderboard] submit failed:', e); }
 }
 
-// Fetch the current top 10 into liveLeaderboard
+// Fetch the current top 20 into liveLeaderboard
 async function loadLeaderboard() {
   try {
-    const res = await fetch(`${SB_URL}/scores?select=name,score&order=score.desc&limit=10`, { headers: SB_HDR });
+    const res = await fetch(`${SB_URL}/scores?select=name,score&order=score.desc&limit=20`, { headers: SB_HDR });
     if (res.ok) liveLeaderboard = await res.json();
   } catch (e) { console.warn('[leaderboard] load failed:', e); }
 }
@@ -1042,6 +1077,12 @@ const INIT_W     = 200;
 const PLATE_Y    = 575;
 const MOVER_Y    = 215;
 const SPEED_MULT = 1.5;
+// Recipe book detail view — round back-button geometry, mirrored to match
+// #audioBtn exactly (top:15px, right:10px, 52px diameter → same size, same
+// vertical position, mirrored to the left edge).
+const RECIPE_BACK_R  = 26;
+const RECIPE_BACK_CX = 10 + RECIPE_BACK_R;
+const RECIPE_BACK_CY = 15 + RECIPE_BACK_R;
 
 // ═══════════════════════════════════════════════════════
 //  GAME STATE
@@ -1060,6 +1101,12 @@ let plateAlpha      = 1;   // fades 0→1 when new order begins
 let mover           = null;
 let moverDir        = 1;
 let moverSpd        = 2;
+// Delta-time multiplier for the mover's per-frame movement, so its speed stays
+// smooth and consistent even when the actual frame rate dips or fluctuates
+// (previously it moved a fixed amount every frame regardless of elapsed time,
+// which reads as glitchy/inconsistent whenever a frame takes longer than usual).
+let lastFrameTime   = null;
+let frameDt         = 1;
 let particles       = [];
 let shakeT          = 0;
 let redFlash        = 0;
@@ -1074,6 +1121,10 @@ let levelStars      = Array(20).fill(0);
 let highScores      = Array(20).fill(0);
 let unlockedLevels  = 1;
 let levelStartScore = 0;
+// Account "points" = sum of the player's best score per level, not the raw
+// running counter — so replaying an already-mastered level doesn't inflate
+// the leaderboard total.
+const totalScore = () => highScores.reduce((a, b) => a + b, 0);
 
 // Order done canvas animation
 let orderDoneAnimT  = 0;
@@ -1115,6 +1166,14 @@ let mapDragStartY    = null;
 let mapDragScrollStart = 0;
 let mapDragDist      = 0;
 
+// Leaderboard scroll state
+let lbScrollY        = 0;
+let lbTargetScrollY  = 0;
+let lbScrollMax      = 0;
+let lbDragStartY     = null;
+let lbDragScrollStart = 0;
+let lbDragDist       = 0;
+
 // Cloud state
 const clouds = [
   { wx:0, x: 10, y: 22, w: 55, spd: 0.10 },
@@ -1122,6 +1181,186 @@ const clouds = [
   { wx:1, x:-20, y: 18, w: 50, spd: 0.09 },
   { wx:1, x: 55, y: 30, w: 42, spd: 0.08 },
 ];
+
+// ═══════════════════════════════════════════════════════
+//  ACCOUNT PERSISTENCE
+//  Local layer (localStorage) always keeps progress on this device.
+//  If the player has an account (username+password, via Supabase RPCs),
+//  a session token additionally syncs that same progress to the server so
+//  it follows them to another browser/device.
+// ═══════════════════════════════════════════════════════
+const SAVE_KEY    = 'kuehSave_v1';
+const SESSION_KEY = 'kuehSession';
+let sessionToken  = localStorage.getItem(SESSION_KEY) || null;
+
+function saveProgress() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      bakerName, hasOnboarded, unlockedLevels, levelStars, highScores,
+      score, collectedRecipes, friends,
+    }));
+  } catch (e) { console.warn('[save] failed:', e); }
+  pushProfileToServer();
+}
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (typeof d.bakerName === 'string' && d.bakerName) bakerName = d.bakerName;
+    if (typeof d.hasOnboarded === 'boolean') hasOnboarded = d.hasOnboarded;
+    if (typeof d.unlockedLevels === 'number') unlockedLevels = d.unlockedLevels;
+    if (Array.isArray(d.levelStars) && d.levelStars.length === 20) levelStars = d.levelStars;
+    if (Array.isArray(d.highScores) && d.highScores.length === 20) highScores = d.highScores;
+    if (typeof d.score === 'number') score = d.score;
+    if (Array.isArray(d.collectedRecipes)) collectedRecipes = d.collectedRecipes;
+    if (Array.isArray(d.friends)) friends = d.friends;
+  } catch (e) { console.warn('[load] failed:', e); }
+}
+
+// ── Account RPCs (Supabase) — username+password, no email ─────────────────
+async function rpc(name, body) {
+  const res = await fetch(`${SB_URL}/rpc/${name}`, {
+    method: 'POST',
+    headers: { ...SB_HDR, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err.message || 'Something went wrong').replace(/^.*?:\s*/, ''));
+  }
+  return res.json();
+}
+
+function applyServerProfile(p) {
+  if (!p) return;
+  if (p.baker_name) bakerName = p.baker_name;
+  if (typeof p.unlocked_levels === 'number') unlockedLevels = p.unlocked_levels;
+  if (Array.isArray(p.level_stars) && p.level_stars.length === 20) levelStars = p.level_stars;
+  if (Array.isArray(p.high_scores) && p.high_scores.length === 20) highScores = p.high_scores;
+  if (typeof p.score === 'number') score = p.score;
+  if (Array.isArray(p.collected_recipes)) collectedRecipes = p.collected_recipes;
+  if (Array.isArray(p.friends)) friends = p.friends;
+}
+
+async function fetchAndApplyProfile() {
+  if (!sessionToken) return;
+  try {
+    const p = await rpc('load_profile', { p_token: sessionToken });
+    applyServerProfile(p);
+  } catch (e) { console.warn('[profile] load failed:', e); }
+}
+
+function pushProfileToServer() {
+  if (!sessionToken) return;
+  rpc('save_profile', {
+    p_token: sessionToken,
+    p_data: { bakerName, unlockedLevels, levelStars, highScores, score, collectedRecipes, friends },
+  }).catch(e => console.warn('[profile] save failed:', e));
+}
+
+async function completeOnboarding(skipTutorialGate = false) {
+  hasOnboarded = true;
+  saveProgress();
+  hideAll();
+  if (skipTutorialGate) { showLevelMap(); return; }
+  state = 'tutorialGate';
+  document.getElementById('tutGateName').textContent = `First time baking, ${bakerName}?`;
+  document.getElementById('tutorialGateOverlay').classList.remove('hidden');
+}
+
+let authMode = 'signup';
+function showAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('authFormSignup').style.display = mode === 'signup' ? '' : 'none';
+  document.getElementById('authFormLogin').style.display  = mode === 'login'  ? '' : 'none';
+  document.getElementById('authFormGuest').style.display   = mode === 'guest'  ? '' : 'none';
+  const focusId = mode === 'signup' ? 'suUsername' : mode === 'login' ? 'liUsername' : 'bakerNameInput';
+  setTimeout(() => document.getElementById(focusId)?.focus(), 50);
+}
+
+// Returns an error message for a weak password, or '' if it's strong enough.
+const COMMON_WEAK_PASSWORDS = [
+  'password', '123456', 'qwerty', 'letmein', 'admin', 'welcome',
+  'abcdef', 'iloveyou', 'trustno1', 'baker123', 'football', 'dragon',
+];
+function passwordIssue(pw) {
+  if (pw.length < 12) return 'Password must be at least 12 characters.';
+  if (/^(.)\1+$/.test(pw)) return 'Too easy — avoid repeating the same character.';
+  const codes = Array.from(pw.toLowerCase(), c => c.charCodeAt(0));
+  const isRun = codes.every((c, i) => c - codes[0] === i) || codes.every((c, i) => codes[0] - c === i);
+  if (isRun) return 'Too easy — avoid simple runs like "abcdefg…" or "12345…".';
+  const lower = pw.toLowerCase();
+  if (COMMON_WEAK_PASSWORDS.some(w => lower.includes(w))) return 'Too easy — avoid common words like "password" or "qwerty".';
+  const variety = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter(re => re.test(pw)).length;
+  if (variety < 2) return 'Too easy — mix in letters, numbers, or symbols.';
+  return '';
+}
+document.getElementById('suPassword').addEventListener('input', function () {
+  const issue = this.value ? passwordIssue(this.value) : '';
+  this.classList.toggle('input-error', !!issue);
+  document.getElementById('authErrorSignup').textContent = issue;
+});
+
+async function handleSignUp() {
+  const username = document.getElementById('suUsername').value.trim();
+  const password = document.getElementById('suPassword').value;
+  const pwEl = document.getElementById('suPassword');
+  const errEl = document.getElementById('authErrorSignup');
+  const btn = document.getElementById('suSubmitBtn');
+  errEl.textContent = '';
+  if (username.length < 3) { errEl.textContent = 'Username must be at least 3 characters.'; return; }
+  const pwIssue = passwordIssue(password);
+  if (pwIssue) { errEl.textContent = pwIssue; pwEl.classList.add('input-error'); return; }
+  btn.disabled = true; btn.textContent = 'Signing up…';
+  try {
+    const token = await rpc('signup', { p_username: username, p_password: password });
+    sessionToken = token;
+    localStorage.setItem(SESSION_KEY, token);
+    bakerName = username;
+    await completeOnboarding();
+  } catch (e) {
+    errEl.textContent = e.message || 'Could not create account.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign Up';
+  }
+}
+
+async function handleLogIn() {
+  const username = document.getElementById('liUsername').value.trim();
+  const password = document.getElementById('liPassword').value;
+  const errEl = document.getElementById('authErrorLogin');
+  const btn = document.getElementById('liSubmitBtn');
+  errEl.textContent = '';
+  if (!username || !password) { errEl.textContent = 'Enter your username and password.'; return; }
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    const token = await rpc('login', { p_username: username, p_password: password });
+    sessionToken = token;
+    localStorage.setItem(SESSION_KEY, token);
+    bakerName = username;
+    await fetchAndApplyProfile();
+    // Existing progress on this account — skip the "first time baking?" gate.
+    const hasRecord = unlockedLevels > 1 || score > 0 || levelStars.some(s => s > 0);
+    await completeOnboarding(hasRecord);
+  } catch (e) {
+    errEl.textContent = e.message || 'Incorrect username or password.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log In';
+  }
+}
+
+function logOut() {
+  sessionToken = null;
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SAVE_KEY);
+  bakerName = 'Baker'; hasOnboarded = false; unlockedLevels = 1;
+  levelStars = Array(20).fill(0); highScores = Array(20).fill(0);
+  score = 0; collectedRecipes = []; friends = [];
+  closeAudioPanel();
+  goToMenu();
+}
 
 // ═══════════════════════════════════════════════════════
 //  HELPERS
@@ -1161,6 +1400,7 @@ function addFriend() {
   if (name.length >= 2) {
     const id = Math.floor(Math.random() * 9000) + 1000;
     friends.push({ name: name.slice(0, 16), id, level: 1 });
+    saveProgress();
   }
 }
 
@@ -1184,9 +1424,35 @@ const sfxStack    = document.getElementById('sfxStack');
 const sfxComplete = document.getElementById('sfxComplete');
 const sfxClick    = document.getElementById('sfxClick');
 
+// iOS Safari ignores HTMLMediaElement.volume (it's pinned at 1 and only the hardware
+// buttons change it), so per-track volume has to go through a Web Audio GainNode instead.
+let audioCtx    = null;
+let musicGain   = null;
+let sfxGain     = null;
+
+function initAudioGraph() {
+  if (audioCtx) return;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return; // no Web Audio support — falls back to element defaults (volume 1)
+  audioCtx = new Ctx();
+
+  const volMusicEl = document.getElementById('volMusic');
+  musicGain = audioCtx.createGain();
+  musicGain.gain.value = (volMusicEl ? +volMusicEl.value : 10) / 100;
+  audioCtx.createMediaElementSource(bgMusic).connect(musicGain).connect(audioCtx.destination);
+
+  sfxGain = audioCtx.createGain();
+  sfxGain.gain.value = sfxVolume;
+  [sfxMistake, sfxStack, sfxComplete, sfxClick].forEach(sfx => {
+    audioCtx.createMediaElementSource(sfx).connect(sfxGain).connect(audioCtx.destination);
+  });
+}
+
 function unlockAudio() {
   if (audioUnlocked) return;
   audioUnlocked = true;
+  initAudioGraph();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   // Prime every SFX element during this user gesture so browsers (incl. iOS Safari)
   // allow them to play later without another gesture.
   [sfxMistake, sfxStack, sfxComplete, sfxClick].forEach(sfx => {
@@ -1199,13 +1465,14 @@ function unlockAudio() {
 }
 function playSound(sfx) {
   if (!sfxEnabled || !audioUnlocked) return;
-  sfx.volume = sfxVolume;
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   sfx.currentTime = 0;
   sfx.play().catch(()=>{});
 }
 function playClick() { unlockAudio(); playSound(sfxClick); }
 function updateMusicPlayback() {
   const gameplayStates = new Set(['playing','testRound','dead']);
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   if (!musicEnabled || !audioUnlocked || gameplayStates.has(state)) bgMusic.pause();
   else bgMusic.play().catch(()=>{});
 }
@@ -1222,6 +1489,9 @@ function toggleAudioPanel() {
     const inGame = state === 'playing' || state === 'testRound';
     document.getElementById('apDivider').classList.toggle('hidden', !inGame);
     document.getElementById('apGameActions').classList.toggle('hidden', !inGame);
+    document.getElementById('apAccountDivider').classList.toggle('hidden', !sessionToken);
+    document.getElementById('apAccountRow').classList.toggle('hidden', !sessionToken);
+    if (sessionToken) document.getElementById('apAccountName').textContent = bakerName;
   }
 }
 function retryFromSettings() {
@@ -1245,10 +1515,12 @@ function onSfxToggle() {
   sfxEnabled = document.getElementById('chkSfx').checked;
 }
 function onVolMusicChange(val) {
-  bgMusic.volume = val / 100;
+  if (musicGain) musicGain.gain.value = val / 100;
+  else bgMusic.volume = val / 100; // fallback when Web Audio isn't available
 }
 function onVolSfxChange(val) {
   sfxVolume = val / 100;
+  if (sfxGain) sfxGain.gain.value = sfxVolume;
 }
 function onVibrateToggle() {
   vibrateEnabled = document.getElementById('chkVibrate').checked;
@@ -1307,7 +1579,7 @@ function showNamingCard() {
   nc.style.display = 'flex';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     nc.classList.add('visible');
-    setTimeout(() => document.getElementById('bakerNameInput').focus(), 400);
+    showAuthMode('signup');
   }));
 }
 
@@ -1351,19 +1623,30 @@ function openNameInput() {
   document.getElementById('nameInputOverlay').classList.remove('hidden');
 }
 
+// Sequential Baker1, Baker2, … name for anyone who skips typing their name.
+// Persisted in localStorage so repeated skips on this device never reuse a number.
+function nextGuestBakerName() {
+  const n = parseInt(localStorage.getItem('kuehGuestCounter') || '0', 10) + 1;
+  localStorage.setItem('kuehGuestCounter', String(n));
+  return `Baker${n}`;
+}
+
 function confirmName() {
   const val = document.getElementById('bakerNameInput').value.trim();
-  bakerName    = val.length >= 2 ? val : 'Baker';
-  hasOnboarded = true;
-  hideAll();
-  state = 'tutorialGate';
-  document.getElementById('tutGateName').textContent = `First time baking, ${bakerName}?`;
-  document.getElementById('tutorialGateOverlay').classList.remove('hidden');
+  // No real name given — either left blank or just typed the generic "baker" —
+  // so assign a unique Baker1, Baker2, … guest name instead.
+  const isGeneric = val.length < 2 || val.toLowerCase() === 'baker';
+  bakerName = isGeneric ? nextGuestBakerName() : val;
+  completeOnboarding();
 }
 
 document.getElementById('bakerNameInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmName();
 });
+document.getElementById('suUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleSignUp(); });
+document.getElementById('suPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleSignUp(); });
+document.getElementById('liUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogIn(); });
+document.getElementById('liPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogIn(); });
 
 // ── Tutorial Demo state ───────────────────────────────
 let tutDemoStep  = 1;   // 1=ReadOrder, 2=TapToPlace, 3=WatchLives
@@ -1460,6 +1743,7 @@ function showTestRoundIntro() {
   document.getElementById('liName').textContent   = "Let's Practice!";
   document.getElementById('liOrders').textContent =
     `Stack ${TUTORIAL_ORDER.layers.map(id=>KT[id].name).join(' → ')} to complete your practice order.`;
+  document.getElementById('liHighScore').textContent = '';
   const pipsElTR = document.getElementById('liPips');
   pipsElTR.style.display = 'flex';
   pipsElTR.innerHTML = TUTORIAL_ORDER.layers.map(id=>`<span style="background:${KT[id].mid};width:12px;height:12px;border-radius:50%;display:inline-block;margin:2px"></span>`).join('');
@@ -1519,6 +1803,7 @@ function goToMenu() {
 function startOver() {
   lives = 3; score = 0; levelIdx = 0; levelStartScore = 0;
   isTestRound = false;
+  saveProgress();
   hideAll();
   showLevelMap();
 }
@@ -1531,10 +1816,9 @@ function showLevelIntro() {
   document.getElementById('liIcon').style.display  = 'none';
   document.getElementById('liLvlTag').textContent  = `Level ${lv.number}`;
   document.getElementById('liName').textContent    = lv.name;
-  document.getElementById('liOrders').textContent =
-    lv.targetCoins > 0
-      ? `Complete ${lv.targetOrders} orders · Earn ${lv.targetCoins} pts`
-      : `Complete ${lv.targetOrders} orders`;
+  document.getElementById('liOrders').textContent = `Complete ${lv.targetOrders} orders`;
+  const hs = highScores[levelIdx];
+  document.getElementById('liHighScore').textContent = hs > 0 ? `Highest Score: ${hs} pts` : '';
   document.getElementById('liPips').style.display = 'none';
   document.getElementById('liCloseBtn').style.display = '';
   const btn = document.getElementById('levelIntroBtnStart');
@@ -1589,7 +1873,10 @@ function place() {
 
   if (ow <= 2) { loseLife(); return; }
 
-  const perfect = Math.abs(mover.x - prev.x) < 8;
+  // Levels 1-5 get a much more forgiving "perfect" window, so the double-points
+  // bonus (and therefore overall score) is easier to earn while still learning.
+  const perfectTol = levelIdx < 5 ? 18 : 8;
+  const perfect = Math.abs(mover.x - prev.x) < perfectTol;
   const _lx = perfect ? prev.x : (ol+or_)/2, _li = placed.length;
   placed.push({ x: _lx, w: perfect?prev.w:ow, kt: mover.kt, fallY: MOVER_Y, fallVy: 14,
                 onLand: () => burst(_lx, layerY(_li), perfect) });
@@ -1602,8 +1889,8 @@ function place() {
   greenFlash = 8;
   playSound(sfxStack);
 
-  if (layerIdx >= orderData().layers.length) { finishOrder(); return; }
-  moverSpd = (orderData().speed + layerIdx * 0.12) * SPEED_MULT * (level().speedMult ?? 1);
+  if (layerIdx >= orderData().layers.length) { mover = null; finishOrder(); return; }
+  moverSpd = orderData().speed * SPEED_MULT * (level().speedMult ?? 1);
   spawnMover();
 }
 
@@ -1638,6 +1925,7 @@ function showTestRoundComplete() {
   document.getElementById('liLvlTag').textContent = `Wah, ${bakerName}!`;
   document.getElementById('liName').textContent   = "You're a Natural!";
   document.getElementById('liOrders').textContent = "Ready to serve real customers. Welcome to the bakery!";
+  document.getElementById('liHighScore').textContent = '';
   const pipsElTC = document.getElementById('liPips');
   pipsElTC.style.display = 'flex';
   pipsElTC.innerHTML = '<div style="display:flex;gap:6px;justify-content:center">' + [0,1,2].map(()=>'<span class="material-icons-round" style="color:#FFD600;font-size:1.8rem">star</span>').join('') + '</div>';
@@ -1723,7 +2011,8 @@ function showLevelComplete() {
   if (levelIdx < LEVELS.length - 1) unlockedLevels = Math.max(unlockedLevels, levelIdx + 2);
   if (lives < 3) lives++;
 
-  submitScore(bakerName, score);  // record the run total on the online leaderboard
+  saveProgress();
+  submitScore(bakerName, totalScore());  // best-per-level total, not the raw running score
 
   state = 'levelComplete';
   const lv     = level();
@@ -2044,6 +2333,10 @@ function drawProfilePage() {
 }
 
 function drawLeaderboard() {
+  // Smooth scroll (same easing pattern as the level map)
+  lbScrollY += (lbTargetScrollY - lbScrollY) * 0.2;
+  if (Math.abs(lbScrollY - lbTargetScrollY) < 0.3) lbScrollY = lbTargetScrollY;
+
   // ── Bakery brown header + cream content (extend to physical screen edges) ─
   physHeaderFill();
   physContentFill('#F5EDD5','#E8D9A8');
@@ -2060,20 +2353,44 @@ function drawLeaderboard() {
   ctx.beginPath(); ctx.moveTo(12,headY+6); ctx.lineTo(W-12,headY+6); ctx.stroke();
 
   // ── Data rows ─────────────────────────────────────────
-  // Use the live Supabase rows when available, else fall back to the mock list.
-  // Drop any stored row under the player's own name and inject their current
-  // session score as the highlighted "me" row.
-  const lbBase = liveLeaderboard.length ? liveLeaderboard : MOCK_LEADERBOARD;
-  const all=[...lbBase.filter(e=>e.name!==bakerName),{name:bakerName,score,isMe:true}];
+  // Real Supabase rows only — no placeholder names. Drop any stored row under
+  // the player's own name and inject their current session score as the
+  // highlighted "me" row.
+  const all=[...liveLeaderboard.filter(e=>e.name!==bakerName),{name:bakerName,score:totalScore(),isMe:true}];
   all.sort((a,b)=>b.score-a.score);
+  const top = all.slice(0, 20);
+  const myRank = all.findIndex(e => e.isMe) + 1;
 
-  const rowH=54, rowGap=3, startY=116;
+  const rowH=54, rowGap=3;
   // Warm bakery tones: golden amber, sage, warm peach
   const top3Fills=['#F5D888','#C8E898','#F5C0A0'];
   const top3Borders=['rgba(196,160,40,0.55)','rgba(100,160,60,0.45)','rgba(200,100,60,0.40)'];
 
-  all.slice(0,9).forEach((e,i)=>{
-    const ey=startY+i*(rowH+rowGap), isMe=e.isMe, isTop3=i<3;
+  // Scrollable list region sits between the column headers and the pinned
+  // "You" summary bar above the nav bar.
+  // On mobile the canvas fills the screen and the 64px nav bar overlays its
+  // own bottom slice, so that slice must be reserved here. On desktop the
+  // canvas is a fixed 400×700 box and the nav bar sits in its own 64px strip
+  // *below* the canvas (#wrapper is 400×764) — nothing to reserve for it.
+  const navOverlaysCanvas = window.innerWidth < 768;
+  const navH = navOverlaysCanvas ? 64 : 0;
+  const listTop = headY + 14;                 // 116 — just below the divider
+  const youBarH = 62, youBarGap = 26;
+  const youBarY = H - navH - youBarGap - youBarH;
+  const listBottom = youBarY - 8;
+  const listH = listBottom - listTop;
+  const contentH = top.length * (rowH + rowGap) - rowGap;
+  lbScrollMax = Math.max(0, contentH - listH);
+  lbScrollY = Math.max(0, Math.min(lbScrollMax, lbScrollY));
+  lbTargetScrollY = Math.max(0, Math.min(lbScrollMax, lbTargetScrollY));
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, listTop, W, listH); ctx.clip();
+  ctx.save();
+  ctx.translate(0, listTop - lbScrollY);
+
+  top.forEach((e,i)=>{
+    const ey=i*(rowH+rowGap), isMe=e.isMe, isTop3=i<3;
     const my=ey+rowH/2;
 
     // Row background
@@ -2142,6 +2459,44 @@ function drawLeaderboard() {
     ctx.font=`bold ${isTop3||isMe?16:15}px 'Fredoka One',cursive`; ctx.textAlign='right';
     ctx.fillText(e.score.toLocaleString(),368,my+5);
   });
+
+  ctx.restore(); // undo translate
+  ctx.restore(); // undo clip
+
+  // ── Pinned "You" section — always visible above the nav bar, showing your
+  // rank and score regardless of scroll position or whether you're inside
+  // the visible top 20. ──
+  ctx.save(); ctx.globalAlpha = 0.22;
+  ctx.fillStyle = '#000';
+  rr(16 + 3, youBarY + 4, W - 32, youBarH, 14); ctx.fill();
+  ctx.restore();
+  const yg = ctx.createLinearGradient(0, youBarY, 0, youBarY + youBarH);
+  yg.addColorStop(0, '#7A4010'); yg.addColorStop(1, '#4A2208');
+  ctx.fillStyle = yg;
+  rr(16, youBarY, W - 32, youBarH, 14); ctx.fill();
+  ctx.strokeStyle = '#C4A040'; ctx.lineWidth = 2;
+  rr(17, youBarY + 1, W - 34, youBarH - 2, 13); ctx.stroke();
+  ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = '#fff';
+  rr(22, youBarY + 5, W - 44, youBarH * 0.4, 10); ctx.fill();
+  ctx.restore();
+
+  const ybMy = youBarY + youBarH / 2;
+  // Rank badge
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.beginPath(); ctx.arc(46, ybMy, 18, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,224,160,0.55)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#FFE8A0'; ctx.font = "bold 14px 'Fredoka One',cursive"; ctx.textAlign = 'center';
+  ctx.fillText(myRank > 0 ? `#${myRank}` : '—', 46, ybMy + 5);
+
+  // "YOU"
+  ctx.fillStyle = '#FFE8A0'; ctx.font = "bold 19px 'Fredoka One',cursive"; ctx.textAlign = 'left';
+  ctx.fillText('You', 74, ybMy + 7);
+
+  // Score
+  ctx.fillStyle = 'rgba(255,210,100,0.65)'; ctx.font = "bold 9px 'Nunito',sans-serif"; ctx.textAlign = 'right';
+  ctx.fillText('POINTS', W - 30, ybMy - 9);
+  ctx.fillStyle = '#FFE8A0'; ctx.font = "bold 17px 'Fredoka One',cursive"; ctx.textAlign = 'right';
+  ctx.fillText(totalScore().toLocaleString(), W - 30, ybMy + 8);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2212,11 +2567,23 @@ function drawRecipePage() {
     ctx.fillStyle='#FFF3D0'; ctx.font="bold 22px 'Fredoka One',cursive"; ctx.textAlign='center';
     ctx.fillText(bk.title, W/2, 50);
 
-    // Back button
-    ctx.fillStyle='rgba(255,240,190,0.22)'; rr(10,18,62,28,12); ctx.fill();
-    ctx.strokeStyle='rgba(255,220,100,0.45)'; ctx.lineWidth=1; rr(10.5,18.5,61,27,11.5); ctx.stroke();
-    ctx.fillStyle='#FFE890'; ctx.font="bold 11px 'Nunito',sans-serif"; ctx.textAlign='center';
-    ctx.fillText('< Back', 41, 36);
+    // Back button — round icon button matching the settings (gear) button style
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,0.40)'; ctx.shadowBlur=10; ctx.shadowOffsetY=3;
+    const bkg = ctx.createLinearGradient(RECIPE_BACK_CX-RECIPE_BACK_R, RECIPE_BACK_CY-RECIPE_BACK_R, RECIPE_BACK_CX+RECIPE_BACK_R, RECIPE_BACK_CY+RECIPE_BACK_R);
+    bkg.addColorStop(0, 'rgba(120,65,12,0.90)'); bkg.addColorStop(1, 'rgba(80,38,6,0.90)');
+    ctx.fillStyle = bkg;
+    ctx.beginPath(); ctx.arc(RECIPE_BACK_CX, RECIPE_BACK_CY, RECIPE_BACK_R, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle='rgba(230,185,80,0.70)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(RECIPE_BACK_CX, RECIPE_BACK_CY, RECIPE_BACK_R, 0, Math.PI*2); ctx.stroke();
+    // Left-pointing chevron
+    ctx.strokeStyle='#FFD890'; ctx.lineWidth=2.6; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(RECIPE_BACK_CX+7, RECIPE_BACK_CY-9);
+    ctx.lineTo(RECIPE_BACK_CX-7, RECIPE_BACK_CY);
+    ctx.lineTo(RECIPE_BACK_CX+7, RECIPE_BACK_CY+9);
+    ctx.stroke();
 
     const bookRecipes = collectedRecipes.filter(r => bk.filter(r.levelName));
     if (bookRecipes.length === 0) {
@@ -2273,63 +2640,65 @@ function drawRecipePage() {
     const t = totals[bi];
     const pct = (t.total > 0) ? t.collected/t.total : 0;
 
-    ctx.save(); ctx.shadowColor='rgba(80,40,0,0.10)'; ctx.shadowBlur=14; ctx.shadowOffsetY=3;
-    ctx.fillStyle = bk.locked ? '#E8E0D0' : '#FFFDF5';
-    rr(bx,by,cardW,cardH,14); ctx.fill(); ctx.restore();
-    ctx.strokeStyle='rgba(196,160,70,0.24)'; ctx.lineWidth=1.2; rr(bx+0.6,by+0.6,cardW-1.2,cardH-1.2,14); ctx.stroke();
+    const coverTop = bk.locked ? '#B0A890' : bk.color;
+    const coverBot = bk.locked ? '#8A8270' : bk.spine;
 
-    // Left spine
-    ctx.save(); ctx.beginPath(); rr(bx,by,cardW,cardH,14); ctx.clip();
-    ctx.fillStyle = bk.locked ? '#888' : bk.spine;
-    ctx.fillRect(bx,by,10,cardH);
-    ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#fff'; ctx.fillRect(bx,by,10,cardH/2); ctx.restore();
+    // Drop shadow behind the whole book
+    ctx.save(); ctx.shadowColor='rgba(60,30,0,0.28)'; ctx.shadowBlur=12; ctx.shadowOffsetY=4;
+    ctx.fillStyle = coverBot; rr(bx,by,cardW,cardH,12); ctx.fill(); ctx.restore();
+
+    // Cover — gradient fill with a sheen across the top, like a closed hardcover book.
+    ctx.save(); ctx.beginPath(); rr(bx,by,cardW,cardH,12); ctx.clip();
+    const cg = ctx.createLinearGradient(bx,by,bx,by+cardH);
+    cg.addColorStop(0, coverTop); cg.addColorStop(1, coverBot);
+    ctx.fillStyle = cg; ctx.fillRect(bx,by,cardW,cardH);
+    ctx.fillStyle='rgba(255,255,255,0.14)'; ctx.fillRect(bx,by,cardW,cardH*0.35);
     ctx.restore();
+    ctx.strokeStyle='rgba(50,26,0,0.30)'; ctx.lineWidth=1.2; rr(bx+0.6,by+0.6,cardW-1.2,cardH-1.2,12); ctx.stroke();
 
     if (bk.locked) {
-      ctx.save(); ctx.globalAlpha=0.50; ctx.fillStyle='#C8C0B0';
-      ctx.beginPath(); rr(bx,by,cardW,cardH,14); ctx.clip();
-      ctx.fillRect(bx,by,cardW,cardH); ctx.restore();
-      ctx.fillStyle='rgba(80,50,10,0.35)'; ctx.font="bold 28px 'Fredoka One',cursive"; ctx.textAlign='center';
-      ctx.fillText('?', bx+cardW/2+4, by+cardH/2+8);
-      ctx.fillStyle='rgba(80,50,10,0.42)'; ctx.font="bold 10px 'Nunito',sans-serif";
-      ctx.fillText('Coming soon', bx+cardW/2+4, by+cardH/2+28);
+      ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font="bold 28px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText('?', bx+cardW/2, by+cardH/2+8);
+      ctx.fillStyle='rgba(255,255,255,0.65)'; ctx.font="bold 10px 'Nunito',sans-serif";
+      ctx.fillText('Coming soon', bx+cardW/2, by+cardH/2+28);
       return;
     }
 
-    const tx2=bx+18;
-    // Title
-    ctx.fillStyle='#3A1A06'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='left';
+    const tx2=bx+16;
+    // Title, embossed on the cover
+    ctx.fillStyle='#fff'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='left';
     let title=bk.title;
-    while(ctx.measureText(title).width>cardW-26 && title.length>4) title=title.slice(0,-1);
+    while(ctx.measureText(title).width>cardW-32 && title.length>4) title=title.slice(0,-1);
     if(title!==bk.title) title+='…';
-    ctx.fillText(title, tx2, by+28);
+    ctx.fillText(title, tx2, by+30);
 
     // Subtitle
-    ctx.fillStyle='rgba(100,60,16,0.48)'; ctx.font="11px 'Nunito',sans-serif";
-    ctx.fillText(bk.subtitle, tx2, by+44);
+    ctx.fillStyle='rgba(255,255,255,0.72)'; ctx.font="11px 'Nunito',sans-serif";
+    ctx.fillText(bk.subtitle, tx2, by+46);
 
-    // Progress bar at bottom with 14px bottom padding
-    const barPad=14, barH=10, barW=cardW-26;
-    const barX=tx2, barY=by+cardH-barPad-barH;
+    // Stats "label" — a cream sticker near the bottom of the cover
+    const labelX=bx+10, labelY=by+cardH-66, labelW=cardW-20, labelH=56, padIn=10;
+    ctx.save(); ctx.shadowColor='rgba(0,0,0,0.18)'; ctx.shadowBlur=6; ctx.shadowOffsetY=2;
+    ctx.fillStyle='rgba(255,253,245,0.97)'; rr(labelX,labelY,labelW,labelH,10); ctx.fill(); ctx.restore();
 
-    // Large collected count — anchored 8px above progress bar
-    ctx.fillStyle=bk.color; ctx.font="bold 36px 'Fredoka One',cursive"; ctx.textAlign='left';
+    const numTx=labelX+padIn;
+    ctx.fillStyle=bk.color; ctx.font="bold 28px 'Fredoka One',cursive"; ctx.textAlign='left';
     const numW = ctx.measureText(`${t.collected}`).width;
-    ctx.fillText(`${t.collected}`, tx2, barY-8);
+    ctx.fillText(`${t.collected}`, numTx, labelY+31);
 
-    // "/ N recipes" small beside the number
-    ctx.fillStyle='rgba(100,60,16,0.38)'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='left';
-    ctx.fillText(`/ ${t.total}`, tx2+numW+5, barY-20);
-    ctx.fillText('recipes', tx2+numW+5, barY-8);
+    ctx.fillStyle='rgba(100,60,16,0.45)'; ctx.font="bold 9px 'Nunito',sans-serif"; ctx.textAlign='left';
+    ctx.fillText(`/ ${t.total}`, numTx+numW+4, labelY+16);
+    ctx.fillText('recipes', numTx+numW+4, labelY+27);
 
-    // Pct label right-aligned, same baseline as "recipes"
-    ctx.fillStyle=bk.color; ctx.font="bold 11px 'Nunito',sans-serif"; ctx.textAlign='right';
-    ctx.fillText(Math.round(pct*100)+'%', barX+barW, barY-8);
-    ctx.fillStyle='rgba(140,100,40,0.14)'; rr(barX,barY,barW,barH,5); ctx.fill();
+    ctx.fillStyle=bk.color; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='right';
+    ctx.fillText(Math.round(pct*100)+'%', labelX+labelW-padIn, labelY+16);
+
+    const barW2=labelW-2*padIn, barX2=numTx, barY2=labelY+labelH-padIn-8;
+    ctx.fillStyle='rgba(140,100,40,0.16)'; rr(barX2,barY2,barW2,8,4); ctx.fill();
     if (pct > 0) {
-      const pg = ctx.createLinearGradient(barX,0,barX+barW*pct,0);
+      const pg = ctx.createLinearGradient(barX2,0,barX2+barW2*pct,0);
       pg.addColorStop(0,bk.color+'CC'); pg.addColorStop(1,bk.spine);
-      ctx.fillStyle=pg; rr(barX,barY,Math.max(10,barW*pct),barH,5); ctx.fill();
+      ctx.fillStyle=pg; rr(barX2,barY2,Math.max(8,barW2*pct),8,4); ctx.fill();
     }
 
     if (t.total > 0) recipesBookBtns.push({ x:bx, y:by, w:cardW, h:cardH, idx:bi });
@@ -2381,73 +2750,37 @@ function drawLevelMap() {
   ctx.restore(); // undo translate
 
   ctx.restore(); // undo clip
-
-  // Current level card — pinned above nav bar (screen space, not translated)
-  const cardW = 220, cardH = 44, cardX = W/2 - cardW/2, cardY = 636;
-  // Card shadow
-  ctx.save(); ctx.globalAlpha = 0.22;
-  ctx.fillStyle = '#000';
-  rr(cardX+3, cardY+4, cardW, cardH, 14); ctx.fill();
-  ctx.restore();
-  // Card background
-  const cg = ctx.createLinearGradient(cardX, cardY, cardX, cardY+cardH);
-  cg.addColorStop(0, '#7A4010'); cg.addColorStop(1, '#4A2208');
-  ctx.fillStyle = cg;
-  rr(cardX, cardY, cardW, cardH, 14); ctx.fill();
-  // Gold border
-  ctx.strokeStyle = '#C4A040'; ctx.lineWidth = 2;
-  rr(cardX+1, cardY+1, cardW-2, cardH-2, 13); ctx.stroke();
-  // Top sheen
-  ctx.save(); ctx.globalAlpha = 0.14; ctx.fillStyle = '#fff';
-  rr(cardX+6, cardY+5, cardW-12, cardH*0.42, 10); ctx.fill();
-  ctx.restore();
-
-  const lv = LEVELS[Math.min(unlockedLevels-1, LEVELS.length-1)];
-  if (unlockedLevels < LEVELS.length) {
-    // "Current Level" eyebrow
-    ctx.fillStyle = 'rgba(255,210,100,0.65)';
-    ctx.font = "bold 9px 'Nunito',sans-serif"; ctx.textAlign = 'center';
-    ctx.fillText('CURRENT LEVEL', W/2, cardY + 15);
-    // Level number + name
-    ctx.fillStyle = '#FFE8A0';
-    ctx.font = "bold 18px 'Fredoka One',cursive"; ctx.textAlign = 'center';
-    ctx.fillText(`Level ${unlockedLevels}  ·  ${lv.name}`, W/2, cardY + 34);
-  } else {
-    ctx.fillStyle = '#FFE8A0';
-    ctx.font = "bold 16px 'Fredoka One',cursive"; ctx.textAlign = 'center';
-    ctx.fillText('All 20 levels unlocked!', W/2, cardY + 28);
-  }
-
 }
 
 function drawMapLandscape() {
   _mapFlowerIdx = 0;
-  // Zone-based gradient background (top=snow, bottom=lush green)
+  // Zone-based gradient background — forest green throughout
   const bg = ctx.createLinearGradient(0, 0, 0, MAP_VIRTUAL_H);
-  bg.addColorStop(0,    '#C8D8E0');  // top: cold grey-blue (snow zone)
-  bg.addColorStop(0.18, '#C8D8C0');  // grey-green transition
-  bg.addColorStop(0.45, '#A8CC88');  // upper forest green
+  bg.addColorStop(0,    '#B8D4A0');  // top: soft forest green
+  bg.addColorStop(0.18, '#B0D090');  // upper forest
+  bg.addColorStop(0.45, '#A8CC88');  // forest green
   bg.addColorStop(0.75, '#88C068');  // mid meadow
   bg.addColorStop(1,    '#60A040');  // bottom lush
   // Bleed across the full physical width (vertical gradient → seamless sideways)
   const _bg = bleedX();
   ctx.fillStyle = bg; ctx.fillRect(_bg.xL, 0, _bg.w, MAP_VIRTUAL_H);
 
-  // ── TOP ZONE: Snow + Mountains (y 0–620) ──────────────
-  drawMountain(55,  125, 190, 200);
-  drawMountain(320,  80, 170, 190);
-  drawSnowPile( 30, 390, 110);
-  drawSnowPile(310, 420,  90);
-  drawSnowPile(160, 315,  70);
-  drawPineTree( 30, 545, 52);
-  drawPineTree( 80, 515, 42);
-  drawPineTree(360, 530, 55);
-  drawPineTree(310, 500, 40);
-  drawPineTree(180, 485, 38);
+  // Big cloud over Level 20's node — signals it's the final level.
+  // Stretched across the full bleed width so it floods edge-to-edge on any viewport.
+  const _cloudB = bleedX();
+  drawBigCloud((_cloudB.xL + _cloudB.xR) / 2, 70, _cloudB.w);
+
+  // ── TOP ZONE: Forest (y 0–620) ────────────────────────
+  drawMapTree( 55, 200); drawMapTree(320, 170);
+  drawMapRock( 30, 260); drawMapBush(310, 290);
+  drawMapTree(160, 320);
+  drawMapTree( 30, 460); drawMapTree(360, 450);
+  drawMapBush( 80, 430); drawMapRock(310, 420);
+  drawMapTree( 80, 545); drawMapTree(310, 530);
+  drawMapBush(180, 505);
 
   // ── UPPER-MID ZONE: Forest (y 620–1130) ───────────────
-  // Trees nearest L16 (y=630) use snow variant to transition from the snow zone above
-  drawSnowTree( 28, 655); drawSnowTree(375, 695);
+  drawMapTree( 28, 655); drawMapTree(375, 695);
   drawMapTree( 55, 875); drawMapTree(355, 845);
   drawMapTree(190, 795);
   drawMapBush( 95, 765); drawMapBush(310, 740);
@@ -2491,7 +2824,7 @@ function drawMapLandscape() {
   // ── BOTTOM ZONE: Start area (y 2075–2500) ─────────────
   drawMapTree( 25, 2125); drawMapTree(375, 2165);
   drawMapTree( 42, 2345); drawMapTree(370, 2360);
-  drawMapBush(150, 2235); drawMapBush(275, 2265);
+  drawMapRock(150, 2235); drawMapBush(275, 2265);
   // Flower moved left so x-right (346) clears Tree(375,2165) x-left (349)
   drawFlowerPatch(335, 2180, '', 22);  // was (352,2148) — overlapped Tree(375,2165)
   // Flower group moved up so y-bottom (2295/2270) clears Tree(370,2360) y-top (2297)
@@ -2499,36 +2832,17 @@ function drawMapLandscape() {
   drawFlowerPatch(374, 2266, '', 16);
 }
 
-function drawMountain(cx, topY, w, h) {
-  if (!imgMountain.complete || !imgMountain.naturalWidth) return;
-  // snow mountain.svg is 451×405 (ratio ≈ 0.899); keep that ratio, fit to given width
-  const mh = Math.round(w * 0.899);
-  ctx.drawImage(imgMountain, cx - w / 2, topY, w, mh);
-}
-
-function drawSnowPile(cx, cy, w) {
-  if (!imgSnowPile.complete || !imgSnowPile.naturalWidth) return;
-  const h = Math.round(w * 0.55);
-  ctx.drawImage(imgSnowPile, cx - w / 2, cy - h, w, h);
-}
-
-function drawSnowPatch(cx, cy, w) {
-  ctx.fillStyle = 'rgba(240,244,250,0.82)';
-  ctx.beginPath(); ctx.ellipse(cx, cy, w/2, w*0.22, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(cx-w*0.22, cy-w*0.06, w*0.2, w*0.12, 0, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(cx+w*0.24, cy-w*0.04, w*0.18, w*0.1, 0, 0, Math.PI*2); ctx.fill();
-}
-
-function drawPineTree(cx, baseY, size) {
-  if (!imgTreeSnow.complete || !imgTreeSnow.naturalWidth) return;
-  const w = size, h = Math.round(size * 1.28);
-  ctx.drawImage(imgTreeSnow, cx - w / 2, baseY - h, w, h);
-}
-
 function drawMapBush(cx, baseY) {
   if (!imgBush.complete || !imgBush.naturalWidth) return;
   const w = 58, h = Math.round(58 * 0.686);
   ctx.drawImage(imgBush, cx - w / 2, baseY - h + 8, w, h);
+}
+
+function drawBigCloud(cx, cy, w) {
+  if (!imgCloudBig.complete || !imgCloudBig.naturalWidth) return;
+  // big cloud.svg is 1040×521 (ratio ≈ 0.501); keep that ratio, fit to given width
+  const h = Math.round(w * 0.501);
+  ctx.drawImage(imgCloudBig, cx - w / 2, cy - h / 2, w, h);
 }
 
 function drawMapRock(cx, cy, w = 44) {
@@ -2622,12 +2936,6 @@ function drawMapTree(cx, cy) {
   if (!imgTree.complete || !imgTree.naturalWidth) return;
   const w = 52, h = Math.round(52 * 1.28);
   ctx.drawImage(imgTree, cx - w / 2, cy - h + 4, w, h);
-}
-
-function drawSnowTree(cx, cy) {
-  if (!imgTreeSnow.complete || !imgTreeSnow.naturalWidth) return;
-  const w = 52, h = Math.round(52 * 1.28);
-  ctx.drawImage(imgTreeSnow, cx - w / 2, cy - h + 4, w, h);
 }
 
 function drawFlowerPatch(cx, cy, col, sz = 22) {
@@ -3371,7 +3679,7 @@ function drawAndMoveMover() {
   if (!mover) return;
   const active = state==='playing' || state==='testRound';
   if (!active) return;
-  mover.x += moverSpd * mover.dir;
+  mover.x += moverSpd * mover.dir * frameDt;
   const exitR = mover.dir>0 && mover.x-mover.w/2>W+5;
   const exitL = mover.dir<0 && mover.x+mover.w/2<-5;
   if (exitR||exitL) {
@@ -3402,7 +3710,7 @@ function drawHUD() {
   }
   ctx.globalAlpha=1;
 
-  if (state!=='playing' && state!=='testRound') return;
+  if (!['playing','testRound','packaging'].includes(state)) return;
 
   // ── helpers shared by both modes ──────────────────────
   function drawChips(layers, chipY) {
@@ -3726,6 +4034,12 @@ function drawTutDemo() {
 //  MAIN LOOP
 // ═══════════════════════════════════════════════════════
 function loop() {
+  // Elapsed-time multiplier (1.0 == a normal 60fps frame), clamped so a long
+  // pause (tab backgrounded, etc.) doesn't teleport the mover on return.
+  const _now = performance.now();
+  frameDt = lastFrameTime === null ? 1 : Math.min((_now - lastFrameTime) / 16.6667, 3);
+  lastFrameTime = _now;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // Fill the full canvas (including mobile letterbox areas) with a gradient matching
   // the current state so there are no visible gaps around the game area on mobile.
@@ -3816,7 +4130,11 @@ canvas.addEventListener('mousemove', e => {
   menuMouseX = c.x; menuMouseY = c.y;
   if (state === 'levelMap' && mapDragStartY !== null) {
     mapDragDist = c.y - mapDragStartY;
-    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapDragScrollStart - mapDragDist));
+    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapDragScrollStart + mapDragDist));
+  }
+  if (state === 'leaderboard' && lbDragStartY !== null) {
+    lbDragDist = c.y - lbDragStartY;
+    lbTargetScrollY = Math.max(0, Math.min(lbScrollMax, lbDragScrollStart - lbDragDist));
   }
 });
 
@@ -3824,6 +4142,10 @@ canvas.addEventListener('mousedown', e => {
   if (state === 'levelMap') {
     const c = getCanvasCoords(e);
     mapDragStartY = c.y; mapDragScrollStart = mapTargetScrollY; mapDragDist = 0;
+  }
+  if (state === 'leaderboard') {
+    const c = getCanvasCoords(e);
+    lbDragStartY = c.y; lbDragScrollStart = lbTargetScrollY; lbDragDist = 0;
   }
 });
 
@@ -3835,12 +4157,17 @@ canvas.addEventListener('mouseup', e => {
     }
     mapDragStartY = null;
   }
+  if (state === 'leaderboard') lbDragStartY = null;
 });
 
 canvas.addEventListener('wheel', e => {
   if (state === 'levelMap') {
     e.preventDefault();
     mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapTargetScrollY + e.deltaY * 0.6));
+  }
+  if (state === 'leaderboard') {
+    e.preventDefault();
+    lbTargetScrollY = Math.max(0, Math.min(lbScrollMax, lbTargetScrollY + e.deltaY * 0.6));
   }
 }, { passive: false });
 
@@ -3853,8 +4180,8 @@ canvas.addEventListener('click', e => {
   if (state === 'leaderboard') return;
   if (state === 'recipes') {
     if (recipesBookIdx >= 0) {
-      // Back button area (top-left, y=18-46, x=10-72)
-      if (x>=10 && x<=72 && y>=18 && y<=46) { playClick(); recipesBookIdx=-1; }
+      // Back button — round icon button hit-test
+      if (Math.hypot(x-RECIPE_BACK_CX, y-RECIPE_BACK_CY) <= RECIPE_BACK_R) { playClick(); recipesBookIdx=-1; }
     } else {
       recipesBookBtns.forEach(btn => {
         if (x>=btn.x && x<=btn.x+btn.w && y>=btn.y && y<=btn.y+btn.h) { playClick(); recipesBookIdx=btn.idx; }
@@ -3906,11 +4233,15 @@ canvas.addEventListener('touchstart', e => {
     return;
   }
   if (state === 'orderDone' && orderDoneAnimT > 30) { advanceOrder(); return; }
-  if (state === 'leaderboard') return;
+  if (state === 'leaderboard') {
+    const c = getCanvasCoords(t);
+    lbDragStartY = c.y; lbDragScrollStart = lbTargetScrollY; lbDragDist = 0;
+    return;
+  }
   if (state === 'recipes') {
     if (recipesBookIdx >= 0) {
-      // Back button area (top-left, y=18-46, x=10-72)
-      if (x>=10 && x<=72 && y>=18 && y<=46) { playClick(); recipesBookIdx=-1; }
+      // Back button — round icon button hit-test
+      if (Math.hypot(x-RECIPE_BACK_CX, y-RECIPE_BACK_CY) <= RECIPE_BACK_R) { playClick(); recipesBookIdx=-1; }
     } else {
       recipesBookBtns.forEach(btn => {
         if (x>=btn.x && x<=btn.x+btn.w && y>=btn.y && y<=btn.y+btn.h) { playClick(); recipesBookIdx=btn.idx; }
@@ -3953,11 +4284,17 @@ canvas.addEventListener('touchmove', e => {
   if (state === 'levelMap' && mapDragStartY !== null) {
     const c = getCanvasCoords(e.touches[0]);
     mapDragDist = c.y - mapDragStartY;
-    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapDragScrollStart - mapDragDist));
+    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapDragScrollStart + mapDragDist));
+  }
+  if (state === 'leaderboard' && lbDragStartY !== null) {
+    const c = getCanvasCoords(e.touches[0]);
+    lbDragDist = c.y - lbDragStartY;
+    lbTargetScrollY = Math.max(0, Math.min(lbScrollMax, lbDragScrollStart - lbDragDist));
   }
 }, { passive: false });
 
 canvas.addEventListener('touchend', e => {
+  if (state === 'leaderboard') { lbDragStartY = null; return; }
   if (state === 'levelMap') {
     if (Math.abs(mapDragDist) <= 8) { // tap
       const t = e.changedTouches[0];
@@ -3981,7 +4318,8 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Escape') { closeAudioPanel(); }
 });
 
-bgMusic.volume = 0.10;
+loadProgress();
+if (sessionToken) fetchAndApplyProfile(); // refresh from server in case another device played since
 updateNavVisibility();
 updateNavActive();
 loop();
