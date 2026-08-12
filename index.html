@@ -1006,19 +1006,6 @@
       display: none;
     }
 
-    .nav-badge {
-      display: inline-block;
-      margin-left: 6px;
-      padding: 1px 6px;
-      font-size: 0.625rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--color-primary-strong);
-      background: var(--color-accent);
-      border-radius: var(--radius-pill);
-      vertical-align: middle;
-    }
-
     /* Distinct base color from Getting Started's --color-surface-tint, so
        the two sections read as visually separate even reusing the same
        .guide-section layout. --color-primary-soft is brief-section's own
@@ -1179,7 +1166,7 @@
   <!-- SITE NAV -->
   <nav class="site-nav" aria-label="Section navigation">
     <div class="site-nav-inner">
-      <a href="#leveling-up" data-nav-target="leveling-up" class="text-sheen">Leveling Up<span class="nav-badge">NEW</span></a>
+      <a href="#leveling-up" data-nav-target="leveling-up" class="text-sheen">Leveling Up</a>
       <a href="#timeline" data-nav-target="timeline" class="text-sheen">Timeline</a>
       <a href="#brief" data-nav-target="brief" class="text-sheen">Brief</a>
     </div>
@@ -1865,6 +1852,24 @@
   document.getElementById('footer-year').textContent = new Date().getFullYear();
   </script>
   <script type="module" src="src/main.js"></script>
+  <!-- Docked into the site's own nav bar rather than floating over it —
+       mounted into .site-nav itself (not .site-nav-inner), anchored to its
+       own right edge and vertically centered, independent of .site-nav-
+       inner's centered links row (.site-nav-inner stays exactly as
+       centered as before; the icon doesn't become a 4th item in that flex
+       group). data-inset="32" matches .container's own edge padding
+       (index.html's inline :root block) so it lines up with the page's
+       usual content margin. accentColor matches --color-primary-strong for
+       the panel's buttons; iconColor/iconColorMuted match .site-nav a's own
+       hover/default treatment exactly (styles/organisms/site-nav.css —
+       --color-text-on-primary on hover, --color-text-on-primary-muted at
+       rest) so the icon reads as the same kind of control as "Leveling Up
+       / Timeline / Brief", not a foreign element. See shared/account-
+       widget.js's top comment for the full data-attribute reference. -->
+  <script src="/shared/account-widget.js"
+          data-mode="docked" data-mount-into=".site-nav" data-inset="32"
+          data-accent-color="#B72E68"
+          data-icon-color="#FBE0EC" data-icon-color-muted="#EDB7CE"></script>
 
 </body>
 </html>

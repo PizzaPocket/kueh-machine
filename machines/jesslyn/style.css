@@ -770,10 +770,15 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
 }
 
 /* ---------- sound toggle ---------- */
+/* Bumped left of the account badge (fixed, top:15px/right:10px, 52px
+   diameter — shared/account-widget.js's default floating position) rather
+   than the badge moving out of the standard top-right corner: right:72px
+   clears the badge's own left edge (10+52=62) with a ~10px gap; top:19px
+   centers this 44px button against the badge's 52px height. */
 .sound-toggle {
   position: fixed;
-  top: 14px;
-  right: 14px;
+  top: 19px;
+  right: 72px;
   z-index: 50;
   width: 44px;
   height: 44px;

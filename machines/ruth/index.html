@@ -62,15 +62,9 @@ canvas { display: block; }
 .name-input::placeholder { color: #C4A870; }
 .name-input.input-error { border-color: #C4402A; background: rgba(255,225,222,0.9); }
 .name-input.input-error:focus { border-color: #C4402A; }
-#authFormSignup, #authFormLogin, #authFormGuest { text-align: center; }
-.auth-heading { font-family: 'Fredoka One', cursive; font-size: 1.4rem; color: #6B3A10; text-align: center; }
-.auth-field { margin-top: 16px; }
-.btn.auth-field { margin-top: 16px; } /* wins over .btn's own margin-top via higher specificity */
-.auth-error { min-height: 16px; font-size: 0.78rem; color: #C4402A; font-weight: 700; margin-top: 10px; text-align: left; }
 .auth-switch { font-size: 0.82rem; color: #7A5530; text-align: center; margin-top: 26px; }
 .auth-switch a { color: #C4863A; font-weight: 700; text-decoration: none; }
 .auth-switch a:hover { text-decoration: underline; }
-.auth-switch-muted { opacity: 0.7; font-size: 0.76rem; margin-top: 2px; }
 
 #tutorialGateOverlay { background: rgba(16, 5, 0, 0.60); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 #tutorialOverlay     { background: transparent; pointer-events: none; justify-content: center; padding-bottom: 0; }
@@ -358,7 +352,7 @@ canvas { display: block; }
 
 /* ── Settings Button & Panel ────────────────────────── */
 #audioBtn {
-  position: absolute; top: 15px; right: 10px;
+  position: absolute; top: 15px; left: 10px;
   width: 52px; height: 52px; border-radius: 50%;
   background: linear-gradient(145deg, rgba(120,65,12,0.82), rgba(80,38,6,0.82));
   border: 2px solid rgba(230,185,80,0.60);
@@ -408,6 +402,7 @@ canvas { display: block; }
 .ap-act-btn:active { transform:scale(0.93); }
 .ap-act-retry { background:linear-gradient(145deg,#F0A840,#C47820); color:#fff; box-shadow:0 3px 10px rgba(180,100,20,0.35); }
 .ap-act-exit  { background:linear-gradient(145deg,#E07070,#B03030); color:#fff; box-shadow:0 3px 10px rgba(160,40,40,0.35); }
+.ap-act-primary { background:linear-gradient(145deg,#ECA848,#B86A1A); color:#fff; box-shadow:0 3px 10px rgba(180,100,26,0.35); }
 
 /* ── Icon shapes for overlays ───────────────────────── */
 .oi {
@@ -464,10 +459,14 @@ canvas { display: block; }
     <div class="ap-row"><span class="ap-label">Sound FX</span><input type="checkbox" id="chkSfx" checked onchange="onSfxToggle()"></div>
     <input type="range" id="volSfx" min="0" max="100" value="70" class="ap-range" oninput="onVolSfxChange(this.value)">
     <div class="ap-row"><span class="ap-label">Vibration</span><input type="checkbox" id="chkVibrate" checked onchange="onVibrateToggle()"></div>
-    <div class="ap-divider hidden" id="apAccountDivider"></div>
+    <div class="ap-divider" id="apAccountDivider"></div>
     <div class="ap-account hidden" id="apAccountRow">
       <span class="ap-label">Account: <span id="apAccountName" style="font-weight:400"></span></span>
       <button class="ap-act-btn ap-act-exit" style="padding:14px 6px;font-size:1.1rem" onclick="logOut()">Log Out</button>
+    </div>
+    <div class="ap-account hidden" id="apAccountEmpty">
+      <span class="ap-label" style="font-weight:400">Sign in to save your progress across devices.</span>
+      <button class="ap-act-btn ap-act-primary" style="padding:14px 6px;font-size:1.1rem" onclick="KuehAccount.openPanel()">Sign In</button>
     </div>
     <div class="ap-divider hidden" id="apDivider"></div>
     <div class="ap-game-actions hidden" id="apGameActions">
@@ -500,43 +499,21 @@ canvas { display: block; }
         Next
       </button>
     </div>
-    <!-- Phase 3: Account creation / login / guest -->
+    <!-- Phase 3: Name entry. Account creation/login now lives entirely in
+         the persistent account icon (shared/account-widget.js, top-right of
+         this page) rather than a duplicate embedded form — signing in
+         there while this card is showing completes onboarding
+         automatically (see the KuehAccount.onAuthStateChange subscription,
+         below, and its !hasOnboarded branch). -->
     <div id="namingCard" class="name-popup">
       <div class="onboard-card">
-        <!-- Sign up (default) -->
-        <div id="authFormSignup">
-          <div class="auth-heading">Create Account</div>
-          <input class="name-input auth-field" id="suUsername" type="text"
-                 maxlength="20" placeholder="Username" autocomplete="off" />
-          <input class="name-input auth-field" id="suPassword" type="password"
-                 maxlength="40" placeholder="Password (min 12 characters)" autocomplete="new-password" />
-          <div class="auth-error" id="authErrorSignup"></div>
-          <button class="btn auth-field" id="suSubmitBtn" onclick="handleSignUp()">Sign Up</button>
-          <div class="auth-switch">Already have an account? <a href="#" onclick="showAuthMode('login');return false;">Log In</a></div>
-          <div class="auth-switch auth-switch-muted"><a href="#" onclick="showAuthMode('guest');return false;">Skip — play as guest</a></div>
-        </div>
-        <!-- Log in -->
-        <div id="authFormLogin" style="display:none">
-          <div class="auth-heading">Log In</div>
-          <input class="name-input auth-field" id="liUsername" type="text"
-                 maxlength="20" placeholder="Username" autocomplete="off" />
-          <input class="name-input auth-field" id="liPassword" type="password"
-                 maxlength="40" placeholder="Password" autocomplete="current-password" />
-          <div class="auth-error" id="authErrorLogin"></div>
-          <button class="btn auth-field" id="liSubmitBtn" onclick="handleLogIn()">Log In</button>
-          <div class="auth-switch">Need an account? <a href="#" onclick="showAuthMode('signup');return false;">Sign Up</a></div>
-          <div class="auth-switch auth-switch-muted"><a href="#" onclick="showAuthMode('guest');return false;">Skip — play as guest</a></div>
-        </div>
-        <!-- Guest (original flow — no account, progress stays on this device) -->
-        <div id="authFormGuest" style="display:none">
-          <div class="name-label">What shall the customers call you?</div>
-          <input class="name-input" id="bakerNameInput" type="text"
-                 maxlength="20" placeholder="Baker ___" autocomplete="off" />
-          <button class="btn" onclick="confirmName()" style="margin-top:4px">
-            Start your journey
-          </button>
-          <div class="auth-switch"><a href="#" onclick="showAuthMode('signup');return false;">Create an account instead</a></div>
-        </div>
+        <div class="name-label">What shall the customers call you?</div>
+        <input class="name-input" id="bakerNameInput" type="text"
+               maxlength="20" placeholder="Baker ___" autocomplete="off" />
+        <button class="btn" onclick="confirmName()" style="margin-top:4px">
+          Start your journey
+        </button>
+        <div class="auth-switch">Have an account? <a href="#" onclick="KuehAccount.openPanel();return false;">Sign in</a> to sync your progress</div>
       </div>
     </div>
   </div>
@@ -642,6 +619,18 @@ canvas { display: block; }
 
 </div>
 
+<!-- Settings (#audioBtn) is top-left, account is top-right — badgeBackground/
+     badgeBorder match #audioBtn's own gradient/border exactly (index.html's
+     #audioBtn rule, above) so the two read as the same family of button,
+     not two different visual languages sharing a row. iconColor matches
+     #audioBtn's own icon color (#FFD890) too, same reason. accentColor
+     (#B86A1A, .btn's own gradient's darker stop) still drives the panel's
+     buttons — her primary-CTA orange, same family as "Start your
+     journey"/"Sign Up", not Kueh Machine's default pink. -->
+<script src="/shared/account-widget.js" data-mount-into="#wrapper" data-mode="absolute" data-anchor="top-right"
+        data-accent-color="#B86A1A" data-icon-color="#FFD890"
+        data-badge-background="linear-gradient(145deg, rgba(120,65,12,0.82), rgba(80,38,6,0.82))"
+        data-badge-border="2px solid rgba(230,185,80,0.60)"></script>
 <script>
 // ═══════════════════════════════════════════════════════
 //  CANVAS SETUP
@@ -686,12 +675,20 @@ function resize() {
     gameOffY  = (canvas.height - H * gameScale) / 2;
     wrapper.style.transform = '';
   } else {
-    // Desktop: fixed 400×700 canvas, CSS-transform the wrapper.
-    canvas.width  = W;
-    canvas.height = H;
+    // Desktop: fixed 400×700 canvas, rendered at native DPR — was always
+    // 1x regardless of screen density, so on any retina display the
+    // browser had to upscale the bitmap to fill the CSS box, blurring
+    // every canvas-drawn element including text (confirmed: this was the
+    // cause of "Leaderboard" and other titles looking soft). Same fix as
+    // the mobile branch above, just without its aspect-fit centering since
+    // this canvas is already exactly W×H before the DPR multiply.
+    // CSS-transform the wrapper to fit the viewport, as before.
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width  = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
     canvas.style.width  = W + 'px';
     canvas.style.height = H + 'px';
-    gameScale = 1; gameOffX = 0; gameOffY = 0;
+    gameScale = dpr; gameOffX = 0; gameOffY = 0;
     const s = Math.min(vw / 420, vh / 784, 1);
     wrapper.style.transform = `scale(${s})`;
   }
@@ -1027,38 +1024,103 @@ function drawCustomerPortrait(cx, cy, r, idx) {
 // Tutorial practice order (3 layers so completion feels real)
 const TUTORIAL_ORDER = { layers:['pandan','coconut','pandan'], speed:1.6, decoy:0.0 };
 
-const MOCK_SUGGESTED = [
-  { name:'Mei Lin',    levelName:'Apprentice I',  id:3847, color:'#3A8C3A' },
-  { name:'Arjun K',   levelName:'Apprentice II', id:9012, color:'#2C78A8' },
-];
-
 // ── Supabase online leaderboard ───────────────────────────────────────────
-// The anon key is a PUBLIC key — it's meant to be embedded in the client and is
-// safe as long as the `scores` table has Row Level Security enabled (see the SQL
-// in the setup notes). Rows are append-only + range-checked by RLS policies.
-const SB_URL = 'https://dnzauwulqxjwtbmvqfbh.supabase.co/rest/v1';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuemF1d3VscXhqd3RibXZxZmJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTM3MTgsImV4cCI6MjEwMDU2OTcxOH0.qJCZUIoov8209WFs29HYgZ6bi9fbpwSNEV3p-D4L2F4';
-const SB_HDR = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
-
+// Talks to the shared kueh-machine Supabase project via shared/account-widget.js
+// (loaded as a <script> tag above) rather than owning its own project/key —
+// see AUTH.md. `ruth_scores` holds one cumulative row per player (upserted
+// by player_id via the ruth_upsert_score RPC — see
+// supabase/migrations/0001_init.sql), not a new row per submission: every
+// level completion resubmits the running total_score(), and a plain insert
+// would leave old, lower totals sitting on the board as separate entries
+// for the same person.
 let liveLeaderboard = [];   // top rows fetched from Supabase, rendered by the leaderboard screen
 
-// Record a run's score on the online leaderboard (fire-and-forget)
+// Stable per-device id for guest (signed-out) score submissions — same
+// pattern as Liwei's kuehLapisPlayerId, so a guest's score upserts onto the
+// same leaderboard row across sessions instead of a new one each time.
+const RUTH_GUEST_ID_KEY = 'kuehRuthGuestId';
+function getGuestScoreId() {
+  try {
+    const id = localStorage.getItem(RUTH_GUEST_ID_KEY);
+    if (id) return id;
+  } catch (e) {}
+  const newId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() :
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  try { localStorage.setItem(RUTH_GUEST_ID_KEY, newId); } catch (e) {}
+  return newId;
+}
+
+// Record/update this player's cumulative score (fire-and-forget).
 async function submitScore(name, score) {
   try {
-    await fetch(`${SB_URL}/scores`, {
-      method: 'POST',
-      headers: { ...SB_HDR, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ name: String(name).slice(0, 24), score: Math.max(0, Math.round(score)) })
+    const client = await KuehAccount.ready;
+    await client.rpc('ruth_upsert_score', {
+      p_player_id: getGuestScoreId(), // ignored server-side when signed in — see the RPC's own comment
+      p_name: String(name).slice(0, 24),
+      p_score: Math.max(0, Math.round(score)),
     });
   } catch (e) { console.warn('[leaderboard] submit failed:', e); }
 }
 
-// Fetch the current top 20 into liveLeaderboard
+// Fetch the current top 20 into liveLeaderboard, plus (best-effort) real
+// avatars for every row that has a real account behind it.
 async function loadLeaderboard() {
   try {
-    const res = await fetch(`${SB_URL}/scores?select=name,score&order=score.desc&limit=20`, { headers: SB_HDR });
-    if (res.ok) liveLeaderboard = await res.json();
+    const client = await KuehAccount.ready;
+    const { data, error } = await client.from('ruth_scores').select('name,score,user_id').order('score', { ascending: false }).limit(20);
+    if (!error) {
+      liveLeaderboard = data;
+      fetchAvatarsFor(data.map(r => r.user_id));
+    }
   } catch (e) { console.warn('[leaderboard] load failed:', e); }
+}
+
+// ── Cross-player avatars (leaderboard + friends) ──────────────────────────
+// profiles is publicly readable (profiles_select_public, see
+// supabase/migrations/0001_init.sql) specifically so a leaderboard/friends
+// list can show real avatars, not just the signed-in user's own — batch-
+// fetched and cached here rather than one request per row.
+const avatarImgCache = {};     // src -> Image() (many players can share one illustration)
+const profileAvatarCache = {}; // user_id -> {src,color} | null (null = looked up, no avatar/no account)
+
+function getCachedAvatarImg(src) {
+  if (!avatarImgCache[src]) {
+    const img = new Image();
+    img.src = src;
+    avatarImgCache[src] = img;
+  }
+  return avatarImgCache[src];
+}
+
+// Resolved avatar for a leaderboard/friends row, or null if none cached yet
+// (still loading) or the player has no avatar — callers fall back to the
+// existing initial-letter treatment in that case, same convention as the
+// header badge/Liwei's leaderboard (see AUTH.md's "One identity, everywhere").
+function getRowAvatar(userId) {
+  if (!userId) return null;
+  const info = profileAvatarCache[userId];
+  if (!info) return null;
+  const img = getCachedAvatarImg(info.src);
+  if (!img.complete || !img.naturalWidth) return null;
+  return { img, color: info.color };
+}
+
+async function fetchAvatarsFor(userIds) {
+  const toFetch = [...new Set(userIds)].filter(id => id && !(id in profileAvatarCache));
+  if (!toFetch.length) return;
+  try {
+    const client = await KuehAccount.ready;
+    const { data, error } = await client.from('profiles').select('id,avatar_illustration,avatar_color').in('id', toFetch);
+    toFetch.forEach(id => { profileAvatarCache[id] = null; }); // resolved, even if not found below
+    if (error || !data) return;
+    data.forEach(row => {
+      const info = window.KuehAccount.resolveAvatar(row);
+      if (info) profileAvatarCache[row.id] = info;
+    });
+  } catch (e) { console.warn('[avatars] fetch failed:', e); }
 }
 const RECIPE_BOOKS = [
   { title:'Apprentice Bakes',  subtitle:'Levels 1 – 5',   color:'#D08020', spine:'#8A4008', filter: n => n.startsWith('Apprentice') },
@@ -1077,12 +1139,16 @@ const INIT_W     = 200;
 const PLATE_Y    = 575;
 const MOVER_Y    = 215;
 const SPEED_MULT = 1.5;
-// Recipe book detail view — round back-button geometry, mirrored to match
-// #audioBtn exactly (top:15px, right:10px, 52px diameter → same size, same
-// vertical position, mirrored to the left edge).
+// Recipe book detail view — round back-button geometry. Used to mirror
+// #audioBtn into whichever corner it didn't occupy; now that *both* top
+// corners are permanently claimed (#audioBtn at top-left, the account
+// widget's badge at top-right — shared/account-widget.js), there's no
+// empty corner left to mirror into, so this sits directly below #audioBtn
+// instead (same left edge, same 52px diameter, one 8px gap down) rather
+// than overlapping it.
 const RECIPE_BACK_R  = 26;
 const RECIPE_BACK_CX = 10 + RECIPE_BACK_R;
-const RECIPE_BACK_CY = 15 + RECIPE_BACK_R;
+const RECIPE_BACK_CY = 15 + 52 + 8 + RECIPE_BACK_R;
 
 // ═══════════════════════════════════════════════════════
 //  GAME STATE
@@ -1137,12 +1203,14 @@ let perfectStacksCount = 0;
 // Recipe book — { key, name, desc, layers, levelName } deduped by key
 let collectedRecipes = [];
 
-// Friends — stored locally { name, id, level }
+// Friends — real accounts looked up by Baker ID (see addFriend()), stored
+// as { name, user_id } and synced via ruth_profiles.data.friends like
+// everything else here (saveProgress()/pushProfileToServer()). id kept as
+// an alias of user_id for back-compat with any already-saved rows.
 let friends = [];
+let currentBakerId = null;        // this account's own baker_id, fetched from ruth_profiles — null until signed in & loaded
 let profileAddFriendBtnY = 560;   // updated each draw
-let profileRecommendBtns = [];    // [{x,y,w,h,id,name}] updated each draw
-let profileTab       = 0;         // 0=Suggested, 1=Friends
-let profileTabBtns   = [];        // updated each draw
+let profileShareIdBtn = null;     // {x,y,w,h} updated each draw — "share with friends" hit target
 let recipesBookIdx   = -1;        // -1=grid view, ≥0=book detail view
 let recipesBookBtns  = [];        // [{x,y,w,h,idx}] updated each draw
 
@@ -1185,13 +1253,12 @@ const clouds = [
 // ═══════════════════════════════════════════════════════
 //  ACCOUNT PERSISTENCE
 //  Local layer (localStorage) always keeps progress on this device.
-//  If the player has an account (username+password, via Supabase RPCs),
-//  a session token additionally syncs that same progress to the server so
-//  it follows them to another browser/device.
+//  If the player is signed in — via the account widget (top-left icon,
+//  Supabase Auth: email/password or Google), shared with every other
+//  machine on the site — that same progress additionally syncs to
+//  ruth_profiles so it follows them to another browser/device.
 // ═══════════════════════════════════════════════════════
-const SAVE_KEY    = 'kuehSave_v1';
-const SESSION_KEY = 'kuehSession';
-let sessionToken  = localStorage.getItem(SESSION_KEY) || null;
+const SAVE_KEY = 'kuehSave_v1';
 
 function saveProgress() {
   try {
@@ -1219,46 +1286,109 @@ function loadProgress() {
   } catch (e) { console.warn('[load] failed:', e); }
 }
 
-// ── Account RPCs (Supabase) — username+password, no email ─────────────────
-async function rpc(name, body) {
-  const res = await fetch(`${SB_URL}/rpc/${name}`, {
-    method: 'POST',
-    headers: { ...SB_HDR, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err.message || 'Something went wrong').replace(/^.*?:\s*/, ''));
-  }
-  return res.json();
-}
-
+// ── Account sync (Supabase Auth, via shared/account-widget.js) ────────────
 function applyServerProfile(p) {
   if (!p) return;
-  if (p.baker_name) bakerName = p.baker_name;
-  if (typeof p.unlocked_levels === 'number') unlockedLevels = p.unlocked_levels;
-  if (Array.isArray(p.level_stars) && p.level_stars.length === 20) levelStars = p.level_stars;
-  if (Array.isArray(p.high_scores) && p.high_scores.length === 20) highScores = p.high_scores;
+  if (typeof p.bakerName === 'string' && p.bakerName) bakerName = p.bakerName;
+  if (typeof p.unlockedLevels === 'number') unlockedLevels = p.unlockedLevels;
+  if (Array.isArray(p.levelStars) && p.levelStars.length === 20) levelStars = p.levelStars;
+  if (Array.isArray(p.highScores) && p.highScores.length === 20) highScores = p.highScores;
   if (typeof p.score === 'number') score = p.score;
-  if (Array.isArray(p.collected_recipes)) collectedRecipes = p.collected_recipes;
-  if (Array.isArray(p.friends)) friends = p.friends;
+  if (Array.isArray(p.collectedRecipes)) collectedRecipes = p.collectedRecipes;
+  if (Array.isArray(p.friends)) { friends = p.friends; fetchAvatarsFor(friends.map(f => f.user_id)); }
 }
 
 async function fetchAndApplyProfile() {
-  if (!sessionToken) return;
   try {
-    const p = await rpc('load_profile', { p_token: sessionToken });
-    applyServerProfile(p);
+    const client = await KuehAccount.ready;
+    const user = KuehAccount.getUser();
+    if (!user) return;
+    const { data, error } = await client.from('ruth_profiles').select('data,baker_id').eq('user_id', user.id).maybeSingle();
+    if (!error && data) {
+      applyServerProfile(data.data);
+      // Assigned server-side (ruth_profiles_baker_id trigger) on first save —
+      // not set yet on a brand-new signup until pushProfileToServer() below
+      // has run once, hence the null fallback rather than assuming it exists.
+      currentBakerId = data.baker_id || null;
+    }
   } catch (e) { console.warn('[profile] load failed:', e); }
 }
 
-function pushProfileToServer() {
-  if (!sessionToken) return;
-  rpc('save_profile', {
-    p_token: sessionToken,
-    p_data: { bakerName, unlockedLevels, levelStars, highScores, score, collectedRecipes, friends },
-  }).catch(e => console.warn('[profile] save failed:', e));
+async function pushProfileToServer() {
+  try {
+    const client = await KuehAccount.ready;
+    const user = KuehAccount.getUser();
+    if (!user) return;
+    const { data } = await client.from('ruth_profiles').upsert({
+      user_id: user.id,
+      data: { bakerName, unlockedLevels, levelStars, highScores, score, collectedRecipes, friends },
+      updated_at: new Date().toISOString(),
+    }).select('baker_id').maybeSingle();
+    // Only relevant the very first time: a brand-new signup has no
+    // ruth_profiles row yet at fetchAndApplyProfile() time, so baker_id
+    // (assigned by the ruth_profiles_baker_id trigger on this first insert)
+    // isn't known until this upsert's own response returns it.
+    if (data && data.baker_id) currentBakerId = data.baker_id;
+  } catch (e) { console.warn('[profile] save failed:', e); }
 }
+
+// React to sign-in/out triggered anywhere else on the site (the persistent
+// account icon, or another tab) — not just this page's own embedded forms below.
+KuehAccount.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN') {
+    const user = KuehAccount.getUser();
+    const displayName = user && user.user_metadata && user.user_metadata.display_name;
+    fetchAndApplyProfile().then(() => {
+      // Brand-new signup, no ruth_profiles row yet — fetchAndApplyProfile()
+      // found nothing to restore, so fall back to the account's own name
+      // rather than leaving the default "Baker".
+      if (displayName && bakerName === 'Baker') bakerName = displayName;
+      // Signed in while still on the pre-game naming card (whether via its
+      // own "Sign in" link or the persistent icon directly) — finish
+      // onboarding the same way the old embedded signup/login forms used to.
+      if (!hasOnboarded) {
+        const hasRecord = unlockedLevels > 1 || score > 0 || levelStars.some(s => s > 0);
+        completeOnboarding(hasRecord);
+      }
+    });
+  } else if (event === 'SIGNED_OUT') {
+    bakerName = 'Baker'; hasOnboarded = false; unlockedLevels = 1;
+    levelStars = Array(20).fill(0); highScores = Array(20).fill(0);
+    score = 0; collectedRecipes = []; friends = [];
+    accountAvatarImg = null; accountAvatarColor = null;
+    currentBakerId = null;
+  }
+});
+
+// ── Account identity (display name + avatar) ─────────────────────────────
+// Same account, same identity everywhere on the site (see AUTH.md's "One
+// identity, everywhere") — not just a one-time name copy at signup. This
+// keeps bakerName and the profile card's avatar (drawProfilePage(), below)
+// live-synced to the account even when the change happens elsewhere, e.g.
+// editing your display name from inside Liwei's game.
+let accountAvatarImg = null;   // cached Image — drawProfilePage() runs every
+let accountAvatarColor = null; // frame, so this must stay synchronous to draw
+
+function syncAccountAvatar() {
+  const info = KuehAccount.getAvatarInfo();
+  if (!info) { accountAvatarImg = null; accountAvatarColor = null; return; }
+  accountAvatarColor = info.color;
+  if (accountAvatarImg && accountAvatarImg.dataset.src === info.src) return;
+  const img = new Image();
+  img.dataset.src = info.src;
+  img.src = info.src;
+  accountAvatarImg = img;
+}
+
+KuehAccount.onProfileChange((profile) => {
+  const user = KuehAccount.getUser();
+  if (user) {
+    const accountName = profile && profile.display_name;
+    if (accountName && accountName !== bakerName) { bakerName = accountName; saveProgress(); }
+  }
+  syncAccountAvatar();
+});
+KuehAccount.ready.then(() => { if (KuehAccount.getUser()) syncAccountAvatar(); });
 
 async function completeOnboarding(skipTutorialGate = false) {
   hasOnboarded = true;
@@ -1270,91 +1400,12 @@ async function completeOnboarding(skipTutorialGate = false) {
   document.getElementById('tutorialGateOverlay').classList.remove('hidden');
 }
 
-let authMode = 'signup';
-function showAuthMode(mode) {
-  authMode = mode;
-  document.getElementById('authFormSignup').style.display = mode === 'signup' ? '' : 'none';
-  document.getElementById('authFormLogin').style.display  = mode === 'login'  ? '' : 'none';
-  document.getElementById('authFormGuest').style.display   = mode === 'guest'  ? '' : 'none';
-  const focusId = mode === 'signup' ? 'suUsername' : mode === 'login' ? 'liUsername' : 'bakerNameInput';
-  setTimeout(() => document.getElementById(focusId)?.focus(), 50);
-}
-
-// Returns an error message for a weak password, or '' if it's strong enough.
-const COMMON_WEAK_PASSWORDS = [
-  'password', '123456', 'qwerty', 'letmein', 'admin', 'welcome',
-  'abcdef', 'iloveyou', 'trustno1', 'baker123', 'football', 'dragon',
-];
-function passwordIssue(pw) {
-  if (pw.length < 12) return 'Password must be at least 12 characters.';
-  if (/^(.)\1+$/.test(pw)) return 'Too easy — avoid repeating the same character.';
-  const codes = Array.from(pw.toLowerCase(), c => c.charCodeAt(0));
-  const isRun = codes.every((c, i) => c - codes[0] === i) || codes.every((c, i) => codes[0] - c === i);
-  if (isRun) return 'Too easy — avoid simple runs like "abcdefg…" or "12345…".';
-  const lower = pw.toLowerCase();
-  if (COMMON_WEAK_PASSWORDS.some(w => lower.includes(w))) return 'Too easy — avoid common words like "password" or "qwerty".';
-  const variety = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter(re => re.test(pw)).length;
-  if (variety < 2) return 'Too easy — mix in letters, numbers, or symbols.';
-  return '';
-}
-document.getElementById('suPassword').addEventListener('input', function () {
-  const issue = this.value ? passwordIssue(this.value) : '';
-  this.classList.toggle('input-error', !!issue);
-  document.getElementById('authErrorSignup').textContent = issue;
-});
-
-async function handleSignUp() {
-  const username = document.getElementById('suUsername').value.trim();
-  const password = document.getElementById('suPassword').value;
-  const pwEl = document.getElementById('suPassword');
-  const errEl = document.getElementById('authErrorSignup');
-  const btn = document.getElementById('suSubmitBtn');
-  errEl.textContent = '';
-  if (username.length < 3) { errEl.textContent = 'Username must be at least 3 characters.'; return; }
-  const pwIssue = passwordIssue(password);
-  if (pwIssue) { errEl.textContent = pwIssue; pwEl.classList.add('input-error'); return; }
-  btn.disabled = true; btn.textContent = 'Signing up…';
-  try {
-    const token = await rpc('signup', { p_username: username, p_password: password });
-    sessionToken = token;
-    localStorage.setItem(SESSION_KEY, token);
-    bakerName = username;
-    await completeOnboarding();
-  } catch (e) {
-    errEl.textContent = e.message || 'Could not create account.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Sign Up';
-  }
-}
-
-async function handleLogIn() {
-  const username = document.getElementById('liUsername').value.trim();
-  const password = document.getElementById('liPassword').value;
-  const errEl = document.getElementById('authErrorLogin');
-  const btn = document.getElementById('liSubmitBtn');
-  errEl.textContent = '';
-  if (!username || !password) { errEl.textContent = 'Enter your username and password.'; return; }
-  btn.disabled = true; btn.textContent = 'Logging in…';
-  try {
-    const token = await rpc('login', { p_username: username, p_password: password });
-    sessionToken = token;
-    localStorage.setItem(SESSION_KEY, token);
-    bakerName = username;
-    await fetchAndApplyProfile();
-    // Existing progress on this account — skip the "first time baking?" gate.
-    const hasRecord = unlockedLevels > 1 || score > 0 || levelStars.some(s => s > 0);
-    await completeOnboarding(hasRecord);
-  } catch (e) {
-    errEl.textContent = e.message || 'Incorrect username or password.';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Log In';
-  }
-}
-
+// Account creation/login lives entirely in the persistent account icon now
+// (shared/account-widget.js) — see the KuehAccount.onAuthStateChange
+// subscription above for what happens when someone signs in through it
+// while this game is open.
 function logOut() {
-  sessionToken = null;
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(SAVE_KEY);
+  KuehAccount.signOut().catch(e => console.warn('[auth] sign out failed:', e));
   bakerName = 'Baker'; hasOnboarded = false; unlockedLevels = 1;
   levelStars = Array(20).fill(0); highScores = Array(20).fill(0);
   score = 0; collectedRecipes = []; friends = [];
@@ -1395,12 +1446,39 @@ function updateNavVisibility() {
   const isMap = state === 'levelMap' || state === 'levelIntro' || state === 'levelComplete';
   document.body.style.background = 'linear-gradient(to bottom, #FFF8E8, #F0D8A8)';
 }
-function addFriend() {
-  const name = (prompt("Enter your friend's baker name:") || '').trim();
-  if (name.length >= 2) {
-    const id = Math.floor(Math.random() * 9000) + 1000;
-    friends.push({ name: name.slice(0, 16), id, level: 1 });
+// Real lookup, not a fabricated local entry — ruth_lookup_baker() only
+// exists to answer "who has this Baker ID", it can't see anyone's own
+// scores/recipes/friends list (see the RPC's own comment in
+// supabase/migrations/0001_init.sql).
+async function addFriend() {
+  const raw = (prompt("Enter your friend's Baker ID (e.g. 4821):") || '').trim();
+  if (!raw) return;
+  const bakerId = raw.replace(/\D/g, '').slice(0, 4);
+  if (bakerId.length !== 4) { alert('Baker IDs are 4 digits — check the number and try again.'); return; }
+  if (currentBakerId && bakerId === currentBakerId) { alert("That's your own Baker ID!"); return; }
+  try {
+    const client = await KuehAccount.ready;
+    const { data, error } = await client.rpc('ruth_lookup_baker', { p_baker_id: bakerId }).maybeSingle();
+    if (error || !data || !data.user_id) { alert('No baker found with that ID.'); return; }
+    if (friends.some(f => f.user_id === data.user_id)) { alert("You're already friends with them!"); return; }
+    friends.push({ name: (data.baker_name || 'Baker').slice(0, 24), user_id: data.user_id, baker_id: bakerId });
+    fetchAvatarsFor([data.user_id]);
     saveProgress();
+  } catch (e) { console.warn('[friends] lookup failed:', e); alert('Something went wrong — try again.'); }
+}
+
+function shareBakerId() {
+  if (!currentBakerId) return;
+  const text = `Add me on Kueh Bakery! My Baker ID is #${currentBakerId}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Kueh Bakery', text }).catch(() => {});
+  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(`#${currentBakerId}`).then(
+      () => alert('Baker ID copied — share it with a friend!'),
+      () => alert(`#${currentBakerId}`)
+    );
+  } else {
+    alert(`#${currentBakerId}`);
   }
 }
 
@@ -1489,9 +1567,10 @@ function toggleAudioPanel() {
     const inGame = state === 'playing' || state === 'testRound';
     document.getElementById('apDivider').classList.toggle('hidden', !inGame);
     document.getElementById('apGameActions').classList.toggle('hidden', !inGame);
-    document.getElementById('apAccountDivider').classList.toggle('hidden', !sessionToken);
-    document.getElementById('apAccountRow').classList.toggle('hidden', !sessionToken);
-    if (sessionToken) document.getElementById('apAccountName').textContent = bakerName;
+    const signedIn = !!KuehAccount.getUser();
+    document.getElementById('apAccountRow').classList.toggle('hidden', !signedIn);
+    document.getElementById('apAccountEmpty').classList.toggle('hidden', signedIn);
+    if (signedIn) document.getElementById('apAccountName').textContent = bakerName;
   }
 }
 function retryFromSettings() {
@@ -1579,7 +1658,6 @@ function showNamingCard() {
   nc.style.display = 'flex';
   requestAnimationFrame(() => requestAnimationFrame(() => {
     nc.classList.add('visible');
-    showAuthMode('signup');
   }));
 }
 
@@ -1643,10 +1721,6 @@ function confirmName() {
 document.getElementById('bakerNameInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') confirmName();
 });
-document.getElementById('suUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleSignUp(); });
-document.getElementById('suPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleSignUp(); });
-document.getElementById('liUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogIn(); });
-document.getElementById('liPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogIn(); });
 
 // ── Tutorial Demo state ───────────────────────────────
 let tutDemoStep  = 1;   // 1=ReadOrder, 2=TapToPlace, 3=WatchLives
@@ -2160,19 +2234,37 @@ function drawProfilePage() {
   ctx.fillStyle='rgba(255,238,170,0.45)'; ctx.font="7px 'Nunito',sans-serif"; ctx.textAlign='left';
   ctx.fillText('MEMBER CARD', cx+14, cy+40);
 
-  // Avatar
+  // Avatar — the real account illustration/color (KuehAccount.getAvatarInfo(),
+  // cached in accountAvatarImg/accountAvatarColor since this draws every
+  // frame and an Image() load is async) when signed in with one set, the
+  // original gold-gradient + initial-letter card otherwise — same fallback
+  // logic as the header badge/Liwei's leaderboard, see AUTH.md.
   const avx=cx+68, avy=cy+50+72, avr=46;
+  const hasAccountAvatar = accountAvatarImg && accountAvatarImg.complete && accountAvatarImg.naturalWidth;
   ctx.save();
   ctx.shadowColor='rgba(0,0,0,0.10)'; ctx.shadowBlur=14; ctx.shadowOffsetY=3;
-  const ag = ctx.createRadialGradient(avx-14,avy-14,4,avx,avy,avr);
-  ag.addColorStop(0,'#FAD878'); ag.addColorStop(1,'#A06820');
-  ctx.fillStyle=ag; ctx.beginPath(); ctx.arc(avx,avy,avr,0,Math.PI*2); ctx.fill();
+  if (hasAccountAvatar) {
+    ctx.fillStyle = accountAvatarColor || '#A06820';
+  } else {
+    const ag = ctx.createRadialGradient(avx-14,avy-14,4,avx,avy,avr);
+    ag.addColorStop(0,'#FAD878'); ag.addColorStop(1,'#A06820');
+    ctx.fillStyle=ag;
+  }
+  ctx.beginPath(); ctx.arc(avx,avy,avr,0,Math.PI*2); ctx.fill();
   ctx.restore();
   ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(avx,avy,avr,0,Math.PI*2); ctx.stroke();
   ctx.strokeStyle='rgba(160,100,30,0.25)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(avx,avy,avr-5,0,Math.PI*2); ctx.stroke();
-  ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(avx-12,avy-14,18,0,Math.PI*2); ctx.fill(); ctx.restore();
-  ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.font="bold 38px 'Fredoka One',cursive"; ctx.textAlign='center';
-  ctx.fillText(bakerName.charAt(0).toUpperCase(), avx, avy+13);
+  if (hasAccountAvatar) {
+    const s = avr * 2 * 0.76; // same 76%-of-circle convention as .avatar-img
+    ctx.save();
+    ctx.beginPath(); ctx.arc(avx,avy,avr,0,Math.PI*2); ctx.clip();
+    ctx.drawImage(accountAvatarImg, avx - s/2, avy - s/2, s, s);
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(avx-12,avy-14,18,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.fillStyle='rgba(255,255,255,0.95)'; ctx.font="bold 38px 'Fredoka One',cursive"; ctx.textAlign='center';
+    ctx.fillText(bakerName.charAt(0).toUpperCase(), avx, avy+13);
+  }
 
   // Right content
   const rx=cx+132, ry=cy+60;
@@ -2212,124 +2304,89 @@ function drawProfilePage() {
     ctx.fillText(c.label.toUpperCase(), chipX+12, chipY2+46);
   });
 
-  const idNum = `ID #${(bakerName.charCodeAt(0)*17+score)%9000+1000}`;
+  // Baker ID — real, stable, assigned once server-side (ruth_profiles.baker_id,
+  // see supabase/migrations/0001_init.sql's ruth_profiles_baker_id trigger),
+  // not derived from name/score like the old placeholder formula (which
+  // changed as your score changed and was never a real lookup key for
+  // anything — see ruth_lookup_baker(), used by addFriend() below).
+  const idNum = currentBakerId ? `ID #${currentBakerId}` : (KuehAccount.getUser() ? 'ID ····' : 'Sign in for an ID');
   ctx.fillStyle='rgba(120,80,30,0.32)'; ctx.font="9px 'Nunito',sans-serif"; ctx.textAlign='right';
   ctx.fillText(idNum, cx+cw-14, cy+ch-8);
 
-  // ── Tab bar (20px gap below baker card) ──────────────
-  const tabsY = cy + ch + 20;   // 312
-  const tabW  = (W - 48) / 2;   // 176
-  const TAB_H = 38;
-  profileTabBtns = [
-    { x:20,          y:tabsY, w:tabW, h:TAB_H, tab:0, label:'Suggested' },
-    { x:24+tabW,     y:tabsY, w:tabW, h:TAB_H, tab:1, label:'Friends'   },
-  ];
+  // ── Friends (20px gap below baker card) ───────────────
+  // No more "Suggested" tab — that was MOCK_SUGGESTED, two hardcoded fake
+  // bakers shown to literally everyone, not a real recommendation source.
+  // Better to not have one than to fake it.
+  const contentY = cy + ch + 20;
+  ctx.fillStyle='#4A2008'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='left';
+  ctx.fillText('Friends', 20, contentY+16);
 
-  // Tab container
-  ctx.fillStyle='rgba(196,134,58,0.10)'; rr(20,tabsY,W-40,TAB_H,19); ctx.fill();
-  ctx.strokeStyle='rgba(196,134,58,0.22)'; ctx.lineWidth=1; rr(20.5,tabsY+0.5,W-41,TAB_H-1,18.5); ctx.stroke();
-
-  profileTabBtns.forEach(tb => {
-    if (tb.tab === profileTab) {
-      ctx.save(); ctx.shadowColor='rgba(180,100,20,0.18)'; ctx.shadowBlur=8;
-      const tg=ctx.createLinearGradient(tb.x,tb.y,tb.x,tb.y+TAB_H);
-      tg.addColorStop(0,'#F0A840'); tg.addColorStop(1,'#C47820');
-      ctx.fillStyle=tg; rr(tb.x+3,tb.y+3,tb.w-6,TAB_H-6,15); ctx.fill(); ctx.restore();
-      ctx.fillStyle='#fff';
-    } else {
-      ctx.fillStyle='rgba(100,60,16,0.42)';
-    }
-    ctx.font="bold 12px 'Nunito',sans-serif"; ctx.textAlign='center';
-    ctx.fillText(tb.label, tb.x+tb.w/2, tb.y+24);
-  });
-
-  const contentY = tabsY + TAB_H + 14;   // ~364
-
-  // ── Tab 0: Suggested Bakers ───────────────────────────
-  if (profileTab === 0) {
-    profileRecommendBtns = [];
-    MOCK_SUGGESTED.forEach((sf, si) => {
-      const rowY = contentY + si * 60;
-      ctx.save(); ctx.shadowColor='rgba(80,40,0,0.06)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
-      ctx.fillStyle='rgba(255,249,236,0.96)'; rr(16,rowY,W-32,52,12); ctx.fill(); ctx.restore();
-      ctx.strokeStyle='rgba(196,134,58,0.16)'; ctx.lineWidth=1; rr(16.5,rowY+0.5,W-33,51,11.5); ctx.stroke();
-
-      ctx.save(); ctx.shadowColor='rgba(0,0,0,0.08)'; ctx.shadowBlur=6;
-      ctx.fillStyle=sf.color; ctx.beginPath(); ctx.arc(49,rowY+26,17,0,Math.PI*2); ctx.fill(); ctx.restore();
-      ctx.fillStyle='#fff'; ctx.font="bold 12px 'Fredoka One',cursive"; ctx.textAlign='center';
-      ctx.fillText(sf.name.charAt(0), 49, rowY+31);
-
-      ctx.fillStyle='#4A2008'; ctx.font="bold 13px 'Nunito',sans-serif"; ctx.textAlign='left';
-      ctx.fillText(sf.name, 74, rowY+20);
-      ctx.fillStyle='rgba(100,60,16,0.44)'; ctx.font="10px 'Nunito',sans-serif";
-      ctx.fillText(sf.levelName, 74, rowY+36);
-
-      const bw=56, bh=26, bx=W-16-16-bw, by2=rowY+13; // 16px card edge + 16px inner padding
-      const isAdded=friends.some(f=>f.id===sf.id);
-      if (isAdded) {
-        ctx.fillStyle='rgba(26,144,96,0.12)'; rr(bx,by2,bw,bh,8); ctx.fill();
-        ctx.strokeStyle='rgba(26,144,96,0.30)'; ctx.lineWidth=1; rr(bx+0.5,by2+0.5,bw-1,bh-1,7.5); ctx.stroke();
-        ctx.fillStyle='#1A9060'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='center';
-        ctx.fillText('Added!', bx+bw/2, by2+17);
-      } else {
-        const abg=ctx.createLinearGradient(bx,by2,bx,by2+bh);
-        abg.addColorStop(0,'#F0A840'); abg.addColorStop(1,'#C47820');
-        ctx.fillStyle=abg; rr(bx,by2,bw,bh,8); ctx.fill();
-        ctx.fillStyle='#fff'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='center';
-        ctx.fillText('+ Add', bx+bw/2, by2+17);
-        profileRecommendBtns.push({ x:bx, y:by2, w:bw, h:bh, id:sf.id, name:sf.name });
-      }
-    });
+  if (!KuehAccount.getUser()) {
+    ctx.fillStyle='rgba(120,80,30,0.42)'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
+    ctx.fillText('Sign in to get a Baker ID and add friends', W/2, contentY+56);
+    profileShareIdBtn = null; profileAddFriendBtnY = -1;
+    return;
   }
 
-  // ── Tab 1: Friends ────────────────────────────────────
-  if (profileTab === 1) {
-    // Baker ID badge
-    ctx.fillStyle='rgba(196,134,58,0.10)'; rr(20,contentY,W-40,34,10); ctx.fill();
-    ctx.strokeStyle='rgba(196,134,58,0.28)'; ctx.lineWidth=1; rr(20,contentY,W-40,34,10); ctx.stroke();
-    ctx.fillStyle='#7B4A18'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='left';
-    ctx.fillText('Your Baker ID', 32, contentY+13);
-    ctx.fillStyle='#C4863A'; ctx.font="bold 13px 'Fredoka One',cursive";
-    ctx.fillText(idNum, 32, contentY+27);
-    ctx.fillStyle='rgba(120,80,30,0.42)'; ctx.font="9px 'Nunito',sans-serif"; ctx.textAlign='right';
-    ctx.fillText('share with friends →', W-30, contentY+20);
+  // Baker ID badge + tappable "share with friends"
+  const idBarY = contentY + 26;
+  ctx.fillStyle='rgba(196,134,58,0.10)'; rr(20,idBarY,W-40,34,10); ctx.fill();
+  ctx.strokeStyle='rgba(196,134,58,0.28)'; ctx.lineWidth=1; rr(20,idBarY,W-40,34,10); ctx.stroke();
+  ctx.fillStyle='#7B4A18'; ctx.font="bold 10px 'Nunito',sans-serif"; ctx.textAlign='left';
+  ctx.fillText('Your Baker ID', 32, idBarY+13);
+  ctx.fillStyle='#C4863A'; ctx.font="bold 13px 'Fredoka One',cursive";
+  ctx.fillText(idNum, 32, idBarY+27);
+  ctx.fillStyle='rgba(120,80,30,0.42)'; ctx.font="9px 'Nunito',sans-serif"; ctx.textAlign='right';
+  ctx.fillText('share with friends →', W-30, idBarY+20);
+  const shareTextW = ctx.measureText('share with friends →').width;
+  profileShareIdBtn = currentBakerId ? { x: W-30-shareTextW-6, y: idBarY+7, w: shareTextW+12, h: 18 } : null;
 
-    let nextY = contentY + 44;
-    const shown = friends.slice(0, 3);
-    if (shown.length === 0) {
-      ctx.fillStyle='rgba(120,80,30,0.36)'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
-      ctx.fillText('No friends yet — share your Baker ID!', W/2, nextY+18);
-      nextY += 36;
-    } else {
-      shown.forEach(f => {
-        ctx.save(); ctx.shadowColor='rgba(80,40,0,0.06)'; ctx.shadowBlur=6; ctx.shadowOffsetY=2;
-        ctx.fillStyle='rgba(255,249,236,0.94)'; rr(16,nextY,W-32,48,12); ctx.fill(); ctx.restore();
-        ctx.strokeStyle='rgba(196,134,58,0.14)'; ctx.lineWidth=1; rr(16.5,nextY+0.5,W-33,47,11.5); ctx.stroke();
+  let nextY = idBarY + 44;
+  fetchAvatarsFor(friends.map(f => f.user_id));
+  const shown = friends.slice(0, 3);
+  if (shown.length === 0) {
+    ctx.fillStyle='rgba(120,80,30,0.36)'; ctx.font="12px 'Nunito',sans-serif"; ctx.textAlign='center';
+    ctx.fillText('No friends yet — share your Baker ID!', W/2, nextY+18);
+    nextY += 36;
+  } else {
+    shown.forEach(f => {
+      ctx.save(); ctx.shadowColor='rgba(80,40,0,0.06)'; ctx.shadowBlur=6; ctx.shadowOffsetY=2;
+      ctx.fillStyle='rgba(255,249,236,0.94)'; rr(16,nextY,W-32,48,12); ctx.fill(); ctx.restore();
+      ctx.strokeStyle='rgba(196,134,58,0.14)'; ctx.lineWidth=1; rr(16.5,nextY+0.5,W-33,47,11.5); ctx.stroke();
+      const rowAvatar = getRowAvatar(f.user_id);
+      if (rowAvatar) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(40,nextY+24,15,0,Math.PI*2); ctx.fillStyle=rowAvatar.color||'#C4863A'; ctx.fill();
+        ctx.clip();
+        const s = 15*2*0.76;
+        ctx.drawImage(rowAvatar.img, 40-s/2, nextY+24-s/2, s, s);
+        ctx.restore();
+      } else {
         const fc=['#C4863A','#3A8C3A','#2C78A8','#7840B0'][f.name.charCodeAt(0)%4];
         ctx.fillStyle=fc; ctx.beginPath(); ctx.arc(40,nextY+24,15,0,Math.PI*2); ctx.fill();
         ctx.fillStyle='#fff'; ctx.font="bold 11px 'Fredoka One',cursive"; ctx.textAlign='center';
         ctx.fillText(f.name.charAt(0).toUpperCase(), 40, nextY+28);
-        ctx.fillStyle='#4A2008'; ctx.font="bold 13px 'Nunito',sans-serif"; ctx.textAlign='left';
-        ctx.fillText(f.name, 62, nextY+18);
-        ctx.fillStyle='rgba(120,80,30,0.48)'; ctx.font="10px 'Nunito',sans-serif";
-        ctx.fillText(`Baker  ·  ID #${f.id}`, 62, nextY+32);
-        nextY += 56;
-      });
-      if (friends.length > 3) {
-        ctx.fillStyle='rgba(120,80,30,0.38)'; ctx.font="10px 'Nunito',sans-serif"; ctx.textAlign='center';
-        ctx.fillText(`+${friends.length-3} more`, W/2, nextY+12);
-        nextY += 24;
       }
+      ctx.fillStyle='#4A2008'; ctx.font="bold 13px 'Nunito',sans-serif"; ctx.textAlign='left';
+      ctx.fillText(f.name, 62, nextY+18);
+      ctx.fillStyle='rgba(120,80,30,0.48)'; ctx.font="10px 'Nunito',sans-serif";
+      ctx.fillText(`Baker  ·  ID #${f.baker_id || '----'}`, 62, nextY+32);
+      nextY += 56;
+    });
+    if (friends.length > 3) {
+      ctx.fillStyle='rgba(120,80,30,0.38)'; ctx.font="10px 'Nunito',sans-serif"; ctx.textAlign='center';
+      ctx.fillText(`+${friends.length-3} more`, W/2, nextY+12);
+      nextY += 24;
     }
-
-    profileAddFriendBtnY = nextY + 8;
-    ctx.save(); ctx.shadowColor='rgba(180,100,20,0.16)'; ctx.shadowBlur=12; ctx.shadowOffsetY=3;
-    const afg=ctx.createLinearGradient(20,profileAddFriendBtnY,20,profileAddFriendBtnY+40);
-    afg.addColorStop(0,'#F0A840'); afg.addColorStop(1,'#C47820');
-    ctx.fillStyle=afg; rr(20,profileAddFriendBtnY,W-40,40,14); ctx.fill(); ctx.restore();
-    ctx.fillStyle='#fff'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='center';
-    ctx.fillText('+ Add Friend', W/2, profileAddFriendBtnY+26);
   }
+
+  profileAddFriendBtnY = nextY + 8;
+  ctx.save(); ctx.shadowColor='rgba(180,100,20,0.16)'; ctx.shadowBlur=12; ctx.shadowOffsetY=3;
+  const afg=ctx.createLinearGradient(20,profileAddFriendBtnY,20,profileAddFriendBtnY+40);
+  afg.addColorStop(0,'#F0A840'); afg.addColorStop(1,'#C47820');
+  ctx.fillStyle=afg; rr(20,profileAddFriendBtnY,W-40,40,14); ctx.fill(); ctx.restore();
+  ctx.fillStyle='#fff'; ctx.font="bold 15px 'Fredoka One',cursive"; ctx.textAlign='center';
+  ctx.fillText('+ Add Friend', W/2, profileAddFriendBtnY+26);
 }
 
 function drawLeaderboard() {
@@ -2437,20 +2494,39 @@ function drawLeaderboard() {
       ctx.fillText(i+1,48,my+5);
     }
 
-    // Avatar — 12px gap after rank badge right edge (48+16=64), center at 92
+    // Avatar — 12px gap after rank badge right edge (48+16=64), center at 92.
+    // Real account avatar (own, via syncAccountAvatar(); other rows via
+    // getRowAvatar()/fetchAvatarsFor(), profiles being publicly readable —
+    // see AUTH.md) when one's loaded, the original initial-letter circle
+    // otherwise — same fallback convention used everywhere else.
     const avx=92, avR=17;
-    const initC=['#C4863A','#3A8C3A','#2C78A8','#7840B0','#C0402A'][e.name.charCodeAt(0)%5];
-    ctx.fillStyle=isMe?'#C4683A':initC;
-    ctx.beginPath(); ctx.arc(avx,my,avR,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.60)'; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font="bold 12px 'Fredoka One',cursive"; ctx.textAlign='center';
-    ctx.fillText((e.name.charAt(0)||'?').toUpperCase(),avx,my+4);
+    const rowAvatar = isMe
+      ? (accountAvatarImg && accountAvatarImg.complete && accountAvatarImg.naturalWidth ? { img: accountAvatarImg, color: accountAvatarColor } : null)
+      : getRowAvatar(e.user_id);
+    if (rowAvatar) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(avx,my,avR,0,Math.PI*2); ctx.fillStyle=rowAvatar.color||'#C4683A'; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.60)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.clip();
+      const s = avR * 2 * 0.76;
+      ctx.drawImage(rowAvatar.img, avx - s/2, my - s/2, s, s);
+      ctx.restore();
+    } else {
+      const initC=['#C4863A','#3A8C3A','#2C78A8','#7840B0','#C0402A'][e.name.charCodeAt(0)%5];
+      ctx.fillStyle=isMe?'#C4683A':initC;
+      ctx.beginPath(); ctx.arc(avx,my,avR,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.60)'; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.font="bold 12px 'Fredoka One',cursive"; ctx.textAlign='center';
+      ctx.fillText((e.name.charAt(0)||'?').toUpperCase(),avx,my+4);
+    }
 
-    // Name — starts after avatar, ends 16px from card right (368)
+    // Name — starts after avatar, ends 16px from card right (368). "Name
+    // (you)" for your own row, same convention as Liwei's leaderboard (see
+    // AUTH.md) — not a bare "You" that hides which account it actually is.
     const nameX=avx+avR+8, nameMaxW=368-nameX-8;
     ctx.fillStyle='#3A1A06';
     ctx.font=`bold ${isTop3||isMe?16:15}px 'Nunito',sans-serif`; ctx.textAlign='left';
-    let nm=isMe?'You':e.name;
+    let nm=isMe?`${e.name} (you)`:e.name;
     while(ctx.measureText(nm).width>nameMaxW&&nm.length>2) nm=nm.slice(0,-1);
     ctx.fillText(nm,nameX,my+5);
 
@@ -4163,7 +4239,17 @@ canvas.addEventListener('mouseup', e => {
 canvas.addEventListener('wheel', e => {
   if (state === 'levelMap') {
     e.preventDefault();
-    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapTargetScrollY + e.deltaY * 0.6));
+    // MINUS here, unlike leaderboard below — mapScrollY increases *down*
+    // the screen for a fixed node (canvasY = nd.y + mapScrollY - 1840,
+    // see the coordinate-system comment above), the opposite sense from
+    // lbScrollY. Wheel/trackpad "scroll down" must pan the viewport down
+    // through the map (toward Level 1, the largest virtual y) — the same
+    // direction drag-down already does correctly, just via the opposite
+    // sign because wheel and drag are inverse conventions by design (drag
+    // moves content with your cursor; wheel moves your viewport through
+    // the content — same as Google Maps/Figma/etc). Confirmed backwards
+    // before this fix via a live scroll test, not just derived on paper.
+    mapTargetScrollY = Math.max(0, Math.min(MAP_SCROLL_MAX, mapTargetScrollY - e.deltaY * 0.6));
   }
   if (state === 'leaderboard') {
     e.preventDefault();
@@ -4190,24 +4276,11 @@ canvas.addEventListener('click', e => {
     return;
   }
   if (state === 'profile') {
-    // Tab switching
-    let tapped = false;
-    profileTabBtns.forEach(tb => {
-      if (x >= tb.x && x <= tb.x+tb.w && y >= tb.y && y <= tb.y+tb.h) {
-        if (profileTab !== tb.tab) { playClick(); profileTab = tb.tab; } tapped = true;
-      }
-    });
-    if (!tapped) {
-      if (profileTab === 0) {
-        profileRecommendBtns.forEach(btn => {
-          if (x >= btn.x && x <= btn.x+btn.w && y >= btn.y && y <= btn.y+btn.h) {
-            playClick();
-            if (!friends.some(f => f.id === btn.id)) friends.push({ name:btn.name, id:btn.id, level:1 });
-          }
-        });
-      } else {
-        if (x > 20 && x < W-20 && y > profileAddFriendBtnY && y < profileAddFriendBtnY+40) { playClick(); addFriend(); }
-      }
+    if (profileShareIdBtn && x >= profileShareIdBtn.x && x <= profileShareIdBtn.x+profileShareIdBtn.w
+        && y >= profileShareIdBtn.y && y <= profileShareIdBtn.y+profileShareIdBtn.h) {
+      playClick(); shareBakerId();
+    } else if (x > 20 && x < W-20 && y > profileAddFriendBtnY && y < profileAddFriendBtnY+40) {
+      playClick(); addFriend();
     }
     return;
   }
@@ -4250,24 +4323,11 @@ canvas.addEventListener('touchstart', e => {
     return;
   }
   if (state === 'profile') {
-    // Tab switching
-    let tapped = false;
-    profileTabBtns.forEach(tb => {
-      if (x >= tb.x && x <= tb.x+tb.w && y >= tb.y && y <= tb.y+tb.h) {
-        if (profileTab !== tb.tab) { playClick(); profileTab = tb.tab; } tapped = true;
-      }
-    });
-    if (!tapped) {
-      if (profileTab === 0) {
-        profileRecommendBtns.forEach(btn => {
-          if (x >= btn.x && x <= btn.x+btn.w && y >= btn.y && y <= btn.y+btn.h) {
-            playClick();
-            if (!friends.some(f => f.id === btn.id)) friends.push({ name:btn.name, id:btn.id, level:1 });
-          }
-        });
-      } else {
-        if (x > 20 && x < W-20 && y > profileAddFriendBtnY && y < profileAddFriendBtnY+40) { playClick(); addFriend(); }
-      }
+    if (profileShareIdBtn && x >= profileShareIdBtn.x && x <= profileShareIdBtn.x+profileShareIdBtn.w
+        && y >= profileShareIdBtn.y && y <= profileShareIdBtn.y+profileShareIdBtn.h) {
+      playClick(); shareBakerId();
+    } else if (x > 20 && x < W-20 && y > profileAddFriendBtnY && y < profileAddFriendBtnY+40) {
+      playClick(); addFriend();
     }
     return;
   }
@@ -4319,7 +4379,9 @@ document.addEventListener('keydown', e => {
 });
 
 loadProgress();
-if (sessionToken) fetchAndApplyProfile(); // refresh from server in case another device played since
+// Refresh from the server in case another device played since — waits for the
+// shared account widget to know whether anyone's actually signed in first.
+KuehAccount.ready.then(() => { if (KuehAccount.getUser()) fetchAndApplyProfile(); });
 updateNavVisibility();
 updateNavActive();
 loop();

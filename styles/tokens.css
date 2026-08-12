@@ -22,6 +22,20 @@
   --color-text-on-primary-muted:  #EDB7CE;
 }
 
+/* === STATUS COLOR ===
+   Fixed, non-day-palette — unlike --color-primary/--color-accent/etc.
+   above, this doesn't rotate with kueh-of-day.js's generatePalette() (which
+   only ever writes the properties in the COLOR TOKENS block above; anything
+   outside it, including this one, is simply never touched). A validation/
+   auth error should read as "error" consistently regardless of which kueh
+   is featured today, the same reasoning the METAL PALETTE below already
+   uses for staying fixed. Warm red rather than a pure/cold red, so it sits
+   in the same family as the rest of the palette instead of clashing with it.
+   First consumer: shared/account-widget.js's sign-in error text. */
+:root {
+  --color-danger: #C43A2E;
+}
+
 /* === METAL PALETTE ===
    Static, non-day-palette metal tones — unlike --color-accent/
    --color-highlight above (which rotate daily and feed the *liquid*

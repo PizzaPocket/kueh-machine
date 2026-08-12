@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Illustration of Kueh Bahulu">
+        <defs>
+          <filter id="soft-shadow-bahulu" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.35"/>
+          </filter>
+          <radialGradient id="bahulu-grad" cx="35%" cy="25%">
+            <stop offset="0%" stop-color="rgb(255,202.054,95.054)"/>
+            <stop offset="100%" stop-color="rgb(244.054,168.054,61.054)"/>
+          </radialGradient>
+          <clipPath id="bahulu-clip"><ellipse cx="120" cy="128" rx="62" ry="47.2"/></clipPath>
+        </defs>
+        <g filter="url(#soft-shadow-bahulu)">
+          <ellipse cx="120" cy="128" rx="62" ry="47.2" fill="url(#bahulu-grad)"/>
+          <g clip-path="url(#bahulu-clip)"><path d="M 75.7 86.8 Q 69.7 128 75.7 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/><path d="M 90.5 86.8 Q 86.5 128 90.5 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/><path d="M 105.2 86.8 Q 103.2 128 105.2 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/><path d="M 120.0 86.8 Q 120.0 128 120.0 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/><path d="M 134.8 86.8 Q 136.8 128 134.8 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/><path d="M 149.5 86.8 Q 153.5 128 149.5 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/><path d="M 164.3 86.8 Q 170.3 128 164.3 169.2" fill="none" stroke="rgb(199.054,123.054,16.054000000000002)" stroke-width="1.6" opacity="0.5"/></g>
+        </g>
+      </svg>

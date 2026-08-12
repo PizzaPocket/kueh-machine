@@ -614,6 +614,30 @@ canvas#game {
   color: #FDF5EE;
 }
 
+/* The signed-in account's real avatar (KuehAccount.getAvatarInfo()) — same
+   circle-with-colored-swatch treatment as the header badge itself, sized
+   for this row instead of a 40-52px badge. Background color set inline per
+   account (avatar_color); hidden entirely when signed out or no avatar. */
+.lb-name-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lb-name-avatar.hidden {
+  display: none;
+}
+
+.lb-name-avatar img {
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+}
+
 .lb-edit-btn {
   background: none;
   border: none;
@@ -636,7 +660,28 @@ canvas#game {
 
 #lbScore.hidden,
 #lbAteLabel.hidden,
-#lbNameRow.hidden {
+#lbNameRow.hidden,
+#lbEditBtn.hidden {
+  display: none;
+}
+
+/* Plain prompt text directly on the panel background (like .lb-score-unit
+   above it), not a boxed card — .lb-name-row's tinted/bordered treatment is
+   for the actual name row, this is just a hint. The "Sign In" action reuses
+   .lb-edit-btn as-is (this panel's one established small-text-button
+   convention) rather than a near-duplicate class. */
+.lb-signin-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(253, 245, 238, 0.55);
+}
+
+.lb-signin-hint.hidden {
   display: none;
 }
 

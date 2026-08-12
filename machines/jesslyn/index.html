@@ -362,5 +362,17 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="./script.js" defer></script>
+<!-- Floating top-right, NOT docked into .app-header — that header is
+     `hidden` (see its tag above) until the welcome screen ends, so a badge
+     mounted inside it was invisible on the very first screen. Floating
+     fixed instead makes it visible from the start, same as the page's own
+     .sound-toggle (position:fixed, style.css). top-right is the standard
+     corner; .sound-toggle is nudged to sit just left of it instead (see
+     its own comment in style.css) rather than moving the account badge out
+     of the corner. accentColor matches --accent (script.js's CSS,
+     hsl(340 85% 65%)). -->
+<script src="/shared/account-widget.js"
+        data-anchor="top-right"
+        data-accent-color="#F25A8C"></script>
 </body>
 </html>

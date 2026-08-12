@@ -264,6 +264,11 @@
     try { localStorage.setItem(STORAGE_KEY, name); } catch(e){}
   }
   var playerName = getPlayerName();
+  // The local guest identity, captured before any account sync ever runs —
+  // restored verbatim on sign-out (see syncIdentityFromAccount) rather than
+  // re-deriving it, so it can't end up re-reading a guest slot that a
+  // signed-in rename overwrote (see the confirm-name handler, below).
+  var guestPlayerName = playerName;
 
   // ── Player identity (localStorage) ───────────────────────────────────
   // Separate from the display name so two players choosing the same
@@ -284,15 +289,77 @@
   }
   var playerId = getPlayerId();
 
-  // ── Supabase leaderboard ─────────────────────────────────────────────
-  var SB_URL = "https://ezgwbhtngkimcubviwqd.supabase.co";
-  var SB_KEY = "sb_publishable_7Hk4sbUM-oAhMt4Di39jtw_CtDcIY9J";
-  var SB_HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
+  // Stable identity for the leaderboard: the signed-in account's id when
+  // signed in (via the shared account widget — follows the player across
+  // devices), otherwise the anonymous per-device id above (unchanged today).
+  function effectivePlayerId(){
+    var user = window.KuehAccount && window.KuehAccount.getUser();
+    return user ? user.id : playerId;
+  }
 
+  // ── Account identity ─────────────────────────────────────────────────
+  // Signed in, the account's own display_name/avatar (shared/account-
+  // widget.js) become the player's identity here too — not a separate
+  // per-game nickname living alongside a disconnected account system. See
+  // AUTH.md's "One identity, everywhere". Signed out, everything falls
+  // straight back to the local guest identity above, unchanged.
+  function renderNameAvatar(){
+    var signedIn = !!(window.KuehAccount && window.KuehAccount.getUser());
+    // Renaming yourself while signed in is an account-level action now
+    // (the account panel's own name editor — see AUTH.md), not something
+    // to promote inline here alongside a name you didn't type in this game.
+    document.getElementById("lbEditBtn").classList.toggle("hidden", signedIn);
+
+    var el = document.getElementById("lbNameAvatar");
+    var info = window.KuehAccount && window.KuehAccount.getAvatarInfo();
+    if (!info) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+    el.style.background = info.color || "transparent";
+    el.innerHTML = '<img src="' + info.src + '" alt="" />';
+    el.classList.remove("hidden");
+  }
+
+  function syncIdentityFromAccount(){
+    var user = window.KuehAccount && window.KuehAccount.getUser();
+    if (user) {
+      var profile = window.KuehAccount.getProfile();
+      var accountName = (profile && profile.display_name) || (user.email ? user.email.split("@")[0] : null);
+      // Deliberately NOT saved into the local guest slot (savePlayerName) —
+      // the account's name is a separate identity, not a new guest
+      // fallback, or signing out would keep showing it instead of going
+      // back to the local nickname/random generator.
+      if (accountName && accountName !== playerName) {
+        playerName = accountName;
+        document.getElementById("lbNameDisplay").textContent = playerName;
+      }
+    } else if (playerName !== guestPlayerName) {
+      // Signed out — go back to the local guest identity exactly as if
+      // nobody had ever signed in on this device, not whatever the account
+      // was last showing.
+      playerName = guestPlayerName;
+      document.getElementById("lbNameDisplay").textContent = playerName;
+    }
+    renderNameAvatar();
+  }
+
+  // Keeps the leaderboard overlay's sign-in hint and the player's name/
+  // avatar in sync if someone signs in (or edits their avatar) via the
+  // badge while this page is already open, not just on next open.
+  if (window.KuehAccount) {
+    KuehAccount.onAuthStateChange(function(){ updateSigninHint(); syncIdentityFromAccount(); });
+    KuehAccount.onProfileChange(syncIdentityFromAccount);
+    KuehAccount.ready.then(syncIdentityFromAccount);
+  }
+
+  // ── Supabase leaderboard ─────────────────────────────────────────────
+  // Talks to the shared kueh-machine Supabase project via shared/account-widget.js
+  // (loaded as a <script> tag in index.html) rather than owning its own
+  // project/key — see AUTH.md. `liwei_scores` keeps the same shape as
+  // before: public read, write your own row only (or an anonymous row,
+  // player_id null-owned — see supabase/migrations/0001_init.sql).
   function fetchLeaderboard(callback){
-    fetch(SB_URL + "/rest/v1/scores?select=name,score,player_id&order=score.desc&limit=100", { headers: SB_HEADERS })
-      .then(function(r){ return r.json(); })
-      .then(function(data){ callback(Array.isArray(data) ? data : []); })
+    window.KuehAccount.ready
+      .then(function(client){ return client.from("liwei_scores").select("name,score,player_id").order("score", { ascending: false }).limit(100); })
+      .then(function(res){ callback(Array.isArray(res.data) ? res.data : []); })
       .catch(function(){ callback([]); });
   }
 
@@ -300,10 +367,11 @@
   // open (treats the name as available) if the request errors out, so a
   // network hiccup can't lock someone out of naming themselves.
   function isNameTaken(name, callback){
-    fetch(SB_URL + "/rest/v1/scores?select=player_id&name=eq." + encodeURIComponent(name), { headers: SB_HEADERS })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        var taken = Array.isArray(data) && data.some(function(row){ return row.player_id !== playerId; });
+    window.KuehAccount.ready
+      .then(function(client){ return client.from("liwei_scores").select("player_id").eq("name", name); })
+      .then(function(res){
+        var data = res.data;
+        var taken = Array.isArray(data) && data.some(function(row){ return row.player_id !== effectivePlayerId(); });
         callback(taken);
       })
       .catch(function(){ callback(false); });
@@ -313,22 +381,16 @@
 
   function submitScore(pId, name, s, callback){
     currentScoreId = null;
-    fetch(SB_URL + "/rest/v1/rpc/upsert_score", {
-      method: "POST",
-      headers: Object.assign({}, SB_HEADERS, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ p_player_id: pId, p_name: name, p_score: s })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){ if(data && data.id) currentScoreId = data.id; if(callback) callback(); })
-    .catch(function(){ if(callback) callback(); });
+    window.KuehAccount.ready
+      .then(function(client){ return client.rpc("upsert_score", { p_player_id: pId, p_name: name, p_score: s }); })
+      .then(function(res){ if(res.data && res.data.id) currentScoreId = res.data.id; if(callback) callback(); })
+      .catch(function(){ if(callback) callback(); });
   }
 
   function updateScoreName(id, newName, callback){
-    fetch(SB_URL + "/rest/v1/scores?id=eq." + id, {
-      method: "PATCH",
-      headers: Object.assign({}, SB_HEADERS, { "Content-Type": "application/json", "Prefer": "return=minimal" }),
-      body: JSON.stringify({ name: newName })
-    }).then(function(){ if(callback) callback(); })
+    window.KuehAccount.ready
+      .then(function(client){ return client.from("liwei_scores").update({ name: newName }).eq("id", id); })
+      .then(function(){ if(callback) callback(); })
       .catch(function(){ if(callback) callback(); });
   }
 
@@ -452,8 +514,18 @@
     }, 50);
   }
 
+  // Shown whenever the leaderboard overlay opens and nobody's signed in —
+  // scores already save fine anonymously (effectivePlayerId() falls back to
+  // the localStorage UUID either way), this is just a nudge that signing in
+  // carries them to another device/browser too.
+  function updateSigninHint(){
+    var signedIn = !!(window.KuehAccount && KuehAccount.getUser());
+    document.getElementById("lbSigninHint").classList.toggle("hidden", signedIn);
+  }
+
   function showLeaderboardViewOnly(){
     viewOnlyMode = true;
+    updateSigninHint();
     document.getElementById("lbGameoverLabel").textContent = "Hall of Fame";
     document.getElementById("lbGameoverLabel").classList.add("gold");
     document.getElementById("lbScore").classList.add("hidden");
@@ -467,6 +539,7 @@
 
   function showLeaderboard(){
     viewOnlyMode = false;
+    updateSigninHint();
     document.getElementById("lbScore").classList.remove("hidden");
     document.getElementById("lbAteLabel").classList.remove("hidden");
     document.getElementById("lbNameRow").classList.remove("hidden");
@@ -480,15 +553,16 @@
     document.getElementById("lbScore").textContent = score;
     document.getElementById("lbAteLabel").textContent = "You ate " + score + " kueh" + (score === 1 ? "" : "s");
     document.getElementById("lbNameDisplay").textContent = playerName;
+    renderNameAvatar();
     document.getElementById("overlayLb").classList.remove("hidden");
     document.querySelector(".bottom-btns").classList.add("hidden");
 
     if(score > 0){
-      submitScore(playerId, playerName, score, function(){
-        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
+      submitScore(effectivePlayerId(), playerName, score, function(){
+        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, effectivePlayerId()); });
       });
     } else {
-      fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
+      fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, effectivePlayerId()); });
     }
   }
 
@@ -500,6 +574,11 @@
     elStreak.textContent="";
     showLeaderboard();
   }
+
+  document.getElementById("lbSigninLink").addEventListener("click", function(e){
+    e.preventDefault();
+    if (window.KuehAccount) KuehAccount.openPanel();
+  });
 
   // ── Name edit interactions ───────────────────────────────────────────
   document.getElementById("lbEditBtn").addEventListener("click", function(){
@@ -543,16 +622,29 @@
       }
       nameError.classList.add("hidden");
       playerName = newName;
-      savePlayerName(playerName);
+      // Signed in, this IS the account's name (not a separate per-game
+      // nickname) — updateProfile() pushes it to the same profiles row the
+      // header badge/account panel read, so it shows up everywhere, not
+      // just here. See AUTH.md's "One identity, everywhere". Signed out,
+      // it's purely the local guest nickname — kept out of each other so
+      // an account rename can never leak into the local guest slot (and
+      // reappear after a future sign-out) or vice versa.
+      var user = window.KuehAccount && window.KuehAccount.getUser();
+      if (user) {
+        window.KuehAccount.updateProfile({ display_name: playerName });
+      } else {
+        savePlayerName(playerName);
+        guestPlayerName = playerName;
+      }
       document.getElementById("overlayEdit").classList.add("hidden");
       document.getElementById("lbNameDisplay").textContent = playerName;
       document.getElementById("overlayLb").classList.remove("hidden");
       if(currentScoreId){
         updateScoreName(currentScoreId, playerName, function(){
-          fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
+          fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, effectivePlayerId()); });
         });
       } else {
-        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, playerId); });
+        fetchLeaderboard(function(rows){ renderLeaderboard(rows, playerName, score, false, effectivePlayerId()); });
       }
     });
   });

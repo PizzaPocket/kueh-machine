@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Illustration of Kueh Talam">
+        <defs>
+          <filter id="soft-shadow-talam" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity="0.35"/>
+          </filter>
+          <clipPath id="talam-clip"><path d="M 120 49.09440000000001 L 192.9056 122 L 120 194.9056 L 47.09440000000001 122 Z"/></clipPath>
+        </defs>
+        <g filter="url(#soft-shadow-talam)">
+          <g clip-path="url(#talam-clip)">
+            <rect x="40" y="40" width="160" height="160" fill="#F2A63B"/>
+            <path d="M 35.7 133.4 L 204.3 133.4 L 192.9056 122 L 120 49.09440000000001 Z" fill="#F5EEE2"/>
+          </g>
+          <path d="M 120 49.09440000000001 L 192.9056 122 L 120 194.9056 L 47.09440000000001 122 Z" fill="none" stroke="#00000025" stroke-width="1.4"/>
+        </g>
+      </svg>

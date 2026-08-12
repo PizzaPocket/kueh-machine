@@ -94,8 +94,13 @@
       <p class="lb-final-score" id="lbScore">0</p>
       <p class="lb-score-unit" id="lbAteLabel">You ate 0 kuehs</p>
       <div class="lb-name-row" id="lbNameRow">
+        <span class="lb-name-avatar hidden" id="lbNameAvatar"></span>
         <span class="lb-name-text" id="lbNameDisplay">Player 1234</span>
         <button class="lb-edit-btn" id="lbEditBtn">Edit name</button>
+      </div>
+      <div class="lb-signin-hint hidden" id="lbSigninHint">
+        <span>Sign in to save your progress across devices</span>
+        <button type="button" class="lb-edit-btn" id="lbSigninLink">Sign In</button>
       </div>
     </div>
     <div class="lb-divider-line"></div>
@@ -129,6 +134,11 @@
 </div>
 <p class="controls-hint">Don't bite yourself 😏</p>
 
+<!-- accentColor matches --gold (style.css) — this game's own accent rather
+     than Kueh Machine's default pink, which would clash with the dark
+     green/gold "Lapis" palette. No header bar here to dock into (just a
+     title, no nav row), so this stays in the default floating mode. -->
+<script src="/shared/account-widget.js" data-accent-color="#C4933F"></script>
 <script src="./sounds.js"></script>
 <script src="./main.js"></script>
 </body>
