@@ -42,10 +42,13 @@
 }
 
 .site-nav a {
-  font-size: 0.8125rem;
-  font-weight: 700;
+  /* --type-label-size/-weight/--tracking-label (index.html's own :root
+     block) — the shared "interactive label" treatment; .tab (styles/
+     atoms.css) reads the exact same three tokens. */
+  font-size: var(--type-label-size, 0.8125rem);
+  font-weight: var(--type-label-weight, 700);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-label, 0.08em);
   text-decoration: none;
   /* on-primary, not on-surface: the nav's own background is now
      var(--color-primary-strong) (matches .hero), so its text needs the

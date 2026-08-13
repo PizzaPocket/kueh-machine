@@ -201,15 +201,53 @@ trigger that creates the `profiles` row — see `0001_init.sql`) — not gated
 at signup, since that would mean a multi-step signup wizard everywhere this
 badge is used. Changing it afterward is the avatar itself: click it in the
 signed-in panel to open the same panel's editor view (an illustration grid
-+ a swatch row, live preview, "← Back" — same level as Sign out, not a
-separate modal). Every click applies immediately, no separate save step,
-matching how Viki's and Amanda's own customizer UIs already work.
++ a swatch row, live preview, a chevron "Back" — same level as Sign out,
+not a separate modal). Every click applies immediately, no separate save
+step, matching how Viki's and Amanda's own customizer UIs already work.
 
 Want to contribute more illustration options? Keep them small (these are
 40–52px circles) and simple enough to read at that size — add the file
 under `shared/avatars/` (or reference your project's own asset directly if
 it's already small), add an entry to `AVATAR_ILLUSTRATIONS`, and add the
 same id to `0001_init.sql`'s `random_avatar_illustration()` array.
+
+## Managing the account itself
+
+Renaming and avatar-editing live on the panel's main view, but email,
+password, and deleting the account don't — they're one level deeper,
+behind a "Manage account" link under Sign Out (`accountView='manage'`,
+same mechanism 'avatar' already is). That split is deliberate, not an
+oversight: those are either security-sensitive or irreversible, not
+something to surface on every single open the way Sign Out is — the same
+convention most account menus use (Google's own account popover: quick
+actions up front, a "Manage account" link out to the rest).
+
+```js
+KuehAccount.updateEmail(newEmail)     // sends a confirmation email to both the old and new address
+                                       // (this project's "Secure email change" setting) — doesn't
+                                       // switch instantly, the UI reflects that rather than lying about it
+KuehAccount.updatePassword(newPassword)
+KuehAccount.deleteAccount()           // permanent — see below
+```
+
+`deleteAccount()` is the one piece of this system that can't live in
+`shared/account-widget.js` alone: `auth.admin.deleteUser()` needs the
+service-role key, which must never reach client code, so it calls a
+server-side Edge Function (`supabase/functions/delete-account`) instead.
+**That function needs deploying once, the same "paste into the dashboard"
+way as the SQL migrations** — Supabase dashboard → Edge Functions → New
+Function → name it exactly `delete-account` → paste the file's contents in
+→ Deploy. No CLI needed; the service-role key itself is never pasted
+anywhere, the Edge Functions runtime injects it as an env var
+automatically. Until that function is deployed, the "Yes, delete my
+account" button will show an error instead of silently doing nothing —
+it's called immediately, not stubbed out waiting for you to notice this.
+
+Deleting cascades through the schema already in `0001_init.sql`:
+`profiles`/`ruth_profiles` (both `on delete cascade` against `auth.users`)
+disappear with the account; `ruth_scores`/`liwei_scores` rows survive with
+`user_id` set to `null` (`on delete set null`) — past leaderboard entries
+stay up, just no longer tied to the deleted account.
 
 ## Getting your own RLS-protected table
 

@@ -385,8 +385,6 @@ canvas { display: block; }
 }
 .ap-row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .ap-row.hidden { display:none; }
-.ap-account { display:flex; flex-direction:column; gap:10px; }
-.ap-account.hidden { display:none; }
 .ap-label { font-family:'Nunito',sans-serif; font-size:0.95rem; color:#6B3A10; font-weight:700; }
 .ap-range { width:100%; accent-color:#C4863A; cursor:pointer; height:6px; }
 #audioPanel input[type=checkbox] { accent-color:#C4863A; width:20px; height:20px; cursor:pointer; }
@@ -459,15 +457,6 @@ canvas { display: block; }
     <div class="ap-row"><span class="ap-label">Sound FX</span><input type="checkbox" id="chkSfx" checked onchange="onSfxToggle()"></div>
     <input type="range" id="volSfx" min="0" max="100" value="70" class="ap-range" oninput="onVolSfxChange(this.value)">
     <div class="ap-row"><span class="ap-label">Vibration</span><input type="checkbox" id="chkVibrate" checked onchange="onVibrateToggle()"></div>
-    <div class="ap-divider" id="apAccountDivider"></div>
-    <div class="ap-account hidden" id="apAccountRow">
-      <span class="ap-label">Account: <span id="apAccountName" style="font-weight:400"></span></span>
-      <button class="ap-act-btn ap-act-exit" style="padding:14px 6px;font-size:1.1rem" onclick="logOut()">Log Out</button>
-    </div>
-    <div class="ap-account hidden" id="apAccountEmpty">
-      <span class="ap-label" style="font-weight:400">Sign in to save your progress across devices.</span>
-      <button class="ap-act-btn ap-act-primary" style="padding:14px 6px;font-size:1.1rem" onclick="KuehAccount.openPanel()">Sign In</button>
-    </div>
     <div class="ap-divider hidden" id="apDivider"></div>
     <div class="ap-game-actions hidden" id="apGameActions">
       <button class="ap-act-btn ap-act-retry" onclick="retryFromSettings()">↺ Retry</button>
@@ -1400,18 +1389,10 @@ async function completeOnboarding(skipTutorialGate = false) {
   document.getElementById('tutorialGateOverlay').classList.remove('hidden');
 }
 
-// Account creation/login lives entirely in the persistent account icon now
-// (shared/account-widget.js) — see the KuehAccount.onAuthStateChange
-// subscription above for what happens when someone signs in through it
-// while this game is open.
-function logOut() {
-  KuehAccount.signOut().catch(e => console.warn('[auth] sign out failed:', e));
-  bakerName = 'Baker'; hasOnboarded = false; unlockedLevels = 1;
-  levelStars = Array(20).fill(0); highScores = Array(20).fill(0);
-  score = 0; collectedRecipes = []; friends = [];
-  closeAudioPanel();
-  goToMenu();
-}
+// Account creation/login/sign-out lives entirely in the persistent account
+// icon now (shared/account-widget.js) — see the KuehAccount.onAuthStateChange
+// subscription above for what happens when someone signs in or out through
+// it while this game is open.
 
 // ═══════════════════════════════════════════════════════
 //  HELPERS
@@ -1567,10 +1548,6 @@ function toggleAudioPanel() {
     const inGame = state === 'playing' || state === 'testRound';
     document.getElementById('apDivider').classList.toggle('hidden', !inGame);
     document.getElementById('apGameActions').classList.toggle('hidden', !inGame);
-    const signedIn = !!KuehAccount.getUser();
-    document.getElementById('apAccountRow').classList.toggle('hidden', !signedIn);
-    document.getElementById('apAccountEmpty').classList.toggle('hidden', signedIn);
-    if (signedIn) document.getElementById('apAccountName').textContent = bakerName;
   }
 }
 function retryFromSettings() {

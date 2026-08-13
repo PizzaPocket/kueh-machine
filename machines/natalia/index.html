@@ -80,13 +80,16 @@
   <button id="sheet-done-btn" class="primary-btn">Done</button>
 </div>
 
-<script src="./scenes.js"></script>
-<script src="./wisdoms.js"></script>
-<script src="./script.js"></script>
 <!-- .island-header has no background fill of its own and isn't shown on
      every screen (onboarding/settings don't have it), so this floats
      top-right (default) rather than docking into it. accentColor matches
-     --accent (style.css). -->
+     --accent (style.css). Loaded before scenes.js/wisdoms.js/script.js
+     (matching Ken's/Amy's/Ruth's/Liwei's own script order) — script.js
+     reads window.KuehAccount at its own top level to sync habit progress
+     with the signed-in account, so it needs to already exist by then. -->
 <script src="/shared/account-widget.js" data-accent-color="#c96a4a"></script>
+<script src="./scenes.js"></script>
+<script src="./wisdoms.js"></script>
+<script src="./script.js"></script>
 </body>
 </html>

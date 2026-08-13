@@ -65,8 +65,66 @@ function addToCollection(kuehId) {
   const isNew = !state.collection[kuehId];
   state.collection[kuehId] = (state.collection[kuehId] || 0) + 1;
   saveCollection();
+  pushCollectionToServer();
   return isNew;
 }
+
+/* ------------------------------------------------------------------
+   ACCOUNT SYNC (shared/account-widget.js) — keeps the collection tied
+   to the signed-in account instead of just this one browser.
+   localStorage (above) stays the source of truth for guests and for the
+   very first paint on every load — it's never cleared or bypassed, only
+   ever merged with the server so signing in can never make progress
+   disappear. window.KuehAccount is guaranteed to exist here since its
+   own <script> tag loads before this file (index.html).
+------------------------------------------------------------------- */
+function pushCollectionToServer() {
+  var user = window.KuehAccount.getUser();
+  if (!user) return; // guest — localStorage above is already the whole story
+  window.KuehAccount.ready.then(function (client) {
+    return client.from('ken_collection').upsert({
+      user_id: user.id,
+      data: state.collection,
+      updated_at: new Date().toISOString()
+    });
+  }).catch(function (e) { console.warn('[ken] collection sync failed:', e); });
+}
+
+// Union, not overwrite either direction — take the higher count per kueh
+// between whatever's already in this browser and whatever the account
+// already had saved, so neither a first-time sign-in (server empty, local
+// has real progress) nor a returning sign-in on a fresh browser (local
+// empty, server has the real history) ever loses a pull. Pushes the
+// merged result back up so the server row catches up too.
+function syncCollectionFromServer() {
+  var user = window.KuehAccount.getUser();
+  if (!user) return;
+  window.KuehAccount.ready.then(function (client) {
+    return client.from('ken_collection').select('data').eq('user_id', user.id).maybeSingle();
+  }).then(function (res) {
+    var server = (res && res.data && res.data.data) || {};
+    var changed = false;
+    var serverBehind = false;
+    Object.keys(server).forEach(function (id) {
+      if ((state.collection[id] || 0) < server[id]) { state.collection[id] = server[id]; changed = true; }
+    });
+    Object.keys(state.collection).forEach(function (id) {
+      if (state.collection[id] > (server[id] || 0)) serverBehind = true;
+    });
+    if (changed) { saveCollection(); renderCollection(); }
+    if (changed || serverBehind) pushCollectionToServer();
+  }).catch(function (e) { console.warn('[ken] collection fetch failed:', e); });
+}
+
+window.KuehAccount.ready.then(function () {
+  if (window.KuehAccount.getUser()) syncCollectionFromServer();
+});
+// Covers signing in via the persistent account icon while this page is
+// open, not just an already-signed-in page load — same reasoning Ruth's
+// own onAuthStateChange subscription documents.
+window.KuehAccount.onAuthStateChange(function (event) {
+  if (event === 'SIGNED_IN') syncCollectionFromServer();
+});
 
 function renderCollection() {
   const collectedCount = Object.keys(state.collection).length;

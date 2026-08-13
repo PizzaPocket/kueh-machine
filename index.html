@@ -57,6 +57,20 @@
       --tracking-heading: -0.025em;
       --tracking-counter: -0.04em;
 
+      /* Interactive label — the small bold/uppercase/tracked treatment
+         shared by every "text as a button" control: .site-nav a (styles/
+         organisms/site-nav.css) and .tab (styles/atoms.css) both read
+         these three, so a nav link and a kueh-of-day tab are provably the
+         same typographic decision, not two numbers that happen to match
+         today. shared/account-widget.js's own .btn/.field-edit-btn mirror
+         these same three values by hand (13px / 700 / 0.08em) — it can't
+         reference this :root block directly (classic script, no build
+         step, runs standalone on pages that never load index.html's own
+         inline styles), so keep both sides in sync if these ever change. */
+      --type-label-size: 0.8125rem;
+      --type-label-weight: 700;
+      --tracking-label: 0.08em;
+
       --max-width: 880px;
     }
 
@@ -1859,17 +1873,19 @@
        centered as before; the icon doesn't become a 4th item in that flex
        group). data-inset="32" matches .container's own edge padding
        (index.html's inline :root block) so it lines up with the page's
-       usual content margin. accentColor matches --color-primary-strong for
-       the panel's buttons; iconColor/iconColorMuted match .site-nav a's own
-       hover/default treatment exactly (styles/organisms/site-nav.css —
-       --color-text-on-primary on hover, --color-text-on-primary-muted at
-       rest) so the icon reads as the same kind of control as "Leveling Up
-       / Timeline / Brief", not a foreign element. See shared/account-
-       widget.js's top comment for the full data-attribute reference. -->
+       usual content margin. accentColor/iconColor/iconColorMuted are
+       shared/account-widget.js's own fixed pandan-green default (Ondeh-
+       Ondeh's palette, src/tokens/colors.js), pinned explicitly here rather
+       than left to inherit that default implicitly — the badge is meant to
+       read as one fixed Kueh Machine brand mark, not drift with whichever
+       kueh the daily rotation currently has --color-primary-strong/
+       --color-text-on-primary[-muted] pointed at (styles/organisms/site-
+       nav.css). See shared/account-widget.js's top comment for the full
+       data-attribute reference. -->
   <script src="/shared/account-widget.js"
           data-mode="docked" data-mount-into=".site-nav" data-inset="32"
-          data-accent-color="#B72E68"
-          data-icon-color="#FBE0EC" data-icon-color-muted="#EDB7CE"></script>
+          data-accent-color="#037031"
+          data-icon-color="#d1ead5" data-icon-color-muted="#b0eebc"></script>
 
 </body>
 </html>

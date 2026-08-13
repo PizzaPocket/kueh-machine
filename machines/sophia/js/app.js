@@ -61,6 +61,66 @@ function saveCats() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cats));
 }
 
+// ── Account sync (shared/account-widget.js) ─────────────────────────
+// CatScan is a shared community log, not a private save — every cat here
+// is meant to be visible to everyone, not just the browser that added it,
+// so this pushes/pulls the whole public sophia_cats table (supabase/
+// migrations/0005_sophia_cats.sql) rather than syncing a per-user blob the
+// way Ken's/Amy's/Natalia's own account sync does. Works signed in or out
+// (public insert/update, matching the app's own "anyone can report a
+// sighting" spirit) — localStorage stays a fast local cache, not the
+// source of truth once this is live.
+function pushCatToServer(cat) {
+  var user = window.KuehAccount.getUser();
+  window.KuehAccount.ready.then(function (client) {
+    return client.from("sophia_cats").upsert({
+      id: cat.id,
+      user_id: user ? user.id : null,
+      lat: cat.lat,
+      lng: cat.lng,
+      vibe: cat.vibe,
+      photo: cat.photo,
+      names: cat.names,
+      discovered_by: cat.discoveredBy,
+      discovered_date: cat.discoveredDate,
+      sightings: cat.sightings,
+      updated_at: new Date().toISOString()
+    });
+  }).catch(function (e) { console.warn("[sophia] cat sync failed:", e); });
+}
+
+// Merges in anything the server has that this browser doesn't, or has more
+// of (more names/sightings logged elsewhere on the same cat) — never drops
+// a cat this browser already knows about, only ever adds to the picture.
+function syncCatsFromServer() {
+  window.KuehAccount.ready.then(function (client) {
+    return client.from("sophia_cats").select("*");
+  }).then(function (res) {
+    if (!res || res.error || !res.data) {
+      if (res && res.error) console.warn("[sophia] fetch failed:", res.error);
+      return;
+    }
+    var changed = false;
+    res.data.forEach(function (row) {
+      var serverCat = {
+        id: row.id, lat: row.lat, lng: row.lng, vibe: row.vibe, photo: row.photo,
+        names: row.names || [], discoveredBy: row.discovered_by, discoveredDate: row.discovered_date,
+        sightings: row.sightings || []
+      };
+      var existing = cats.find(function (c) { return c.id === row.id; });
+      if (!existing) {
+        cats.push(serverCat);
+        changed = true;
+      } else if ((row.names || []).length > existing.names.length || (row.sightings || []).length > existing.sightings.length) {
+        Object.assign(existing, serverCat);
+        changed = true;
+      }
+    });
+    if (changed) { saveCats(); renderPins(); renderFeed(); }
+  }).catch(function (e) { console.warn("[sophia] fetch failed:", e); });
+}
+syncCatsFromServer();
+
 function makeId() {
   return "cat-" + Math.random().toString(36).slice(2, 10);
 }
@@ -134,6 +194,7 @@ document.getElementById("add-cat-form").addEventListener("submit", (e) => {
     };
     cats.push(newCat);
     saveCats();
+    pushCatToServer(newCat);
     renderPins();
     renderFeed();
     e.target.reset();
@@ -214,6 +275,7 @@ document.getElementById("add-name-form").addEventListener("submit", (e) => {
 
   cat.names.push({ name, by, date: new Date().toISOString() });
   saveCats();
+  pushCatToServer(cat);
   renderCatProfile();
   renderFeed();
   e.target.reset();
@@ -229,6 +291,7 @@ document.getElementById("add-sighting-form").addEventListener("submit", (e) => {
 
   cat.sightings.push({ note, by, date: new Date().toISOString() });
   saveCats();
+  pushCatToServer(cat);
   renderCatProfile();
   renderFeed();
   e.target.reset();

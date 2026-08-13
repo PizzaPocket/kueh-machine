@@ -100,11 +100,14 @@
 
 </div>
 
-<script src="./js/data.js"></script>
-<script src="./js/app.js"></script>
 <!-- No persistent header here to dock into — floats top-right (default).
      accentColor matches --coral (css/style.css), one of the gachapon
-     machine's own capsule colors. -->
+     machine's own capsule colors. Loaded before data.js/app.js (matching
+     Ken's/Ruth's/Liwei's own script order) — app.js reads window.KuehAccount
+     at its own top level to sync the kueh collection with the signed-in
+     account, so it needs to already exist by then. -->
 <script src="/shared/account-widget.js" data-accent-color="#d97b66"></script>
+<script src="./js/data.js"></script>
+<script src="./js/app.js"></script>
 </body>
 </html>

@@ -134,14 +134,18 @@
     </div>
   </footer>
 
-  <script src="./js/data.js?v=5"></script>
-  <script src="./js/svg.js?v=5"></script>
-  <script src="./js/app.js?v=5"></script>
   <!-- Docked into .site-header — it has no fill of its own (the dark page
        background shows through), so accentColor doubles as the icon's own
-       color too, matching .wordmark's --gold. -->
+       color too, matching .wordmark's --gold. Loaded before data.js/svg.js/
+       app.js (matching Ruth's and Liwei's own script order) — app.js reads
+       window.KuehAccount at its own top level to sync the collection with
+       the signed-in account, so it needs to already exist by then rather
+       than being defined by a script tag further down the page. -->
   <script src="/shared/account-widget.js"
           data-mode="docked" data-mount-into=".site-header"
           data-accent-color="#F5C24B"></script>
+  <script src="./js/data.js?v=5"></script>
+  <script src="./js/svg.js?v=5"></script>
+  <script src="./js/app.js?v=5"></script>
 </body>
 </html>

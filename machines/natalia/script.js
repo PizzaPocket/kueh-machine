@@ -28,6 +28,7 @@ function loadHabits() {
 
 function saveHabits(state) {
   localStorage.setItem(STORAGE_HABITS, JSON.stringify(state));
+  pushStateToServer();
 }
 
 function activeHabitCount(state) {
@@ -152,6 +153,7 @@ function loadTodayProgress(date) {
 
 function saveTodayProgress(date, progress) {
   localStorage.setItem(progressStorageKey(date), JSON.stringify(progress));
+  pushStateToServer();
 }
 
 function tierForPercent(pct) {
@@ -188,6 +190,71 @@ let habitState = loadHabits();
 let today = new Date();
 let todayProgress = loadTodayProgress(today);
 let waterPickerOpen = false;
+
+// ── Account sync (shared/account-widget.js) ─────────────────────────
+// localStorage (STORAGE_HABITS/ci_progress_<date>, above) stays the
+// source of truth for guests and for the first paint on every load —
+// this only adds a Supabase copy on top when signed in, synced to
+// natalia_progress (supabase/migrations/0004_natalia_progress.sql).
+// progressByDay isn't read by any UI yet (there's no history view, just
+// today's island) — the data's there for one to be built later, same
+// spirit as Ken's/Amy's collection tracking.
+let progressByDay = {};
+
+function pushStateToServer() {
+  const user = window.KuehAccount.getUser();
+  if (!user) return; // guest — localStorage above is already the whole story
+  progressByDay[todayKey(today)] = todayProgress;
+  window.KuehAccount.ready.then((client) =>
+    client.from("natalia_progress").upsert({
+      user_id: user.id,
+      data: { habits: habitState, progress: progressByDay },
+      updated_at: new Date().toISOString()
+    })
+  ).catch((e) => console.warn("[natalia] sync failed:", e));
+}
+
+function syncStateFromServer() {
+  const user = window.KuehAccount.getUser();
+  if (!user) return;
+  window.KuehAccount.ready
+    .then((client) => client.from("natalia_progress").select("data").eq("user_id", user.id).maybeSingle())
+    .then((res) => {
+      const server = (res && res.data && res.data.data) || {};
+      const serverProgress = server.progress || {};
+      let changed = false;
+
+      // Past days: adopt anything the server has that this browser
+      // doesn't already have its own record of — never overwrites a day
+      // this browser already logged itself.
+      Object.keys(serverProgress).forEach((dateKey) => {
+        if (dateKey === todayKey(today)) return;
+        if (!(dateKey in progressByDay)) progressByDay[dateKey] = serverProgress[dateKey];
+      });
+
+      // Today is live on screen right now — only adopt the server's copy
+      // if this browser hasn't logged anything today itself, so a real
+      // local session in progress can never get clobbered by an older
+      // server snapshot.
+      const localTodayEmpty = Object.keys(todayProgress).length === 0;
+      if (localTodayEmpty && serverProgress[todayKey(today)]) {
+        todayProgress = serverProgress[todayKey(today)];
+        localStorage.setItem(progressStorageKey(today), JSON.stringify(todayProgress));
+        changed = true;
+      }
+
+      if (changed) renderIsland();
+      pushStateToServer();
+    })
+    .catch((e) => console.warn("[natalia] fetch failed:", e));
+}
+
+window.KuehAccount.ready.then(() => {
+  if (window.KuehAccount.getUser()) syncStateFromServer();
+});
+window.KuehAccount.onAuthStateChange((event) => {
+  if (event === "SIGNED_IN") syncStateFromServer();
+});
 
 function allHabitsList() {
   const list = [];

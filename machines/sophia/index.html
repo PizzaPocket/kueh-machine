@@ -157,10 +157,14 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Full-screen "screen" system, no persistent header to dock into — floats
+     top-right (default). accentColor matches --terracotta (css/style.css).
+     Loaded after Leaflet (app.js needs L.* to exist) but before onboarding.js/
+     app.js themselves — app.js reads window.KuehAccount at its own top
+     level to sync cats with the shared sophia_cats table, so it needs to
+     already exist by then. -->
+<script src="/shared/account-widget.js" data-accent-color="#d97a5c"></script>
 <script src="./js/onboarding.js?v=5"></script>
 <script src="./js/app.js?v=7"></script>
-<!-- Full-screen "screen" system, no persistent header to dock into — floats
-     top-right (default). accentColor matches --terracotta (css/style.css). -->
-<script src="/shared/account-widget.js" data-accent-color="#d97a5c"></script>
 </body>
 </html>

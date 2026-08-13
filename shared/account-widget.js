@@ -12,7 +12,7 @@
 // round) so it reads as one consistent entry point site-wide, but its
 // *position* and *color* adapt per host page — every other machine has its
 // own bespoke visual world, and a badge that always looks like fixed Kueh
-// Machine pink regardless of context reads as pasted-on rather than part of
+// Machine green regardless of context reads as pasted-on rather than part of
 // the page. Two independent adaptation axes, both optional, both declared
 // via data-attributes on the script tag itself:
 //
@@ -46,8 +46,8 @@
 //     data-icon-color: the icon's own color in 'docked' mode, where there's
 //     no fill to contrast against — needed when accentColor (used for panel
 //     buttons) wouldn't itself read clearly against the header's own
-//     background (see root index.html: dark pink accent for the panel, but
-//     light on-primary for the icon sitting on that same dark pink nav bar).
+//     background (see root index.html: dark green accent for the panel, but
+//     light on-primary for the icon sitting on that same dark green nav bar).
 //     data-icon-color-muted: docked mode's *default* (non-hover) icon
 //     color, if a header's own text-buttons sit at a dimmer shade until
 //     hovered/focused and you want the icon to match that exactly (root's
@@ -57,8 +57,8 @@
 //     the floating/absolute badge's own fill/border outright, for matching
 //     an *existing* button's exact look (gradient, translucency, etc.)
 //     rather than a flat accent color — see Ruth's #audioBtn.
-//   Omit all of the above and everything defaults to the original fixed
-//   Kueh Machine pink look.
+//   Omit all of the above and everything defaults to the fixed Kueh
+//   Machine pandan-green look.
 //
 // Public API — window.KuehAccount:
 //   init(options)   { anchor, mountInto, mode: 'fixed'|'absolute'|'docked',
@@ -79,6 +79,10 @@
 //   signInWithPassword({ email, password })
 //   signInWithGoogle()
 //   signOut()
+//   updateEmail(newEmail)          sends a confirmation email (both old and new address — this
+//                                   project's "Secure email change" setting); doesn't switch instantly
+//   updatePassword(newPassword)
+//   deleteAccount()                 permanent — calls the delete-account Edge Function, then signs out
 //   openPanel() / closePanel()
 //
 // Credentials for the shared Supabase project are hardcoded below rather
@@ -185,23 +189,33 @@
   var ICON_CLOSE_SVG = null;
   var ICON_EDIT_SVG = null;
   var ICON_BACK_SVG = null;
+  var ICON_FORWARD_SVG = null;
   import('https://esm.sh/lucide@latest').then(function (mod) {
     var userEl = mod.createElement(mod.CircleUserRound);
     userEl.setAttribute('width', '24');
     userEl.setAttribute('height', '24');
     ICON_USER_SVG = userEl.outerHTML;
     var xEl = mod.createElement(mod.X);
-    xEl.setAttribute('width', '16');
-    xEl.setAttribute('height', '16');
+    xEl.setAttribute('width', '20');
+    xEl.setAttribute('height', '20');
     ICON_CLOSE_SVG = xEl.outerHTML;
     var pencilEl = mod.createElement(mod.Pencil);
     pencilEl.setAttribute('width', '9');
     pencilEl.setAttribute('height', '9');
     ICON_EDIT_SVG = pencilEl.outerHTML;
-    var backEl = mod.createElement(mod.ArrowLeft);
-    backEl.setAttribute('width', '14');
-    backEl.setAttribute('height', '14');
+    // ChevronLeft, not ArrowLeft — house convention is chevrons for "back"
+    // (a plain directional indicator inside a still-in-place control), not
+    // an arrow-with-tail (which reads more like "move/send this way").
+    var backEl = mod.createElement(mod.ChevronLeft);
+    backEl.setAttribute('width', '20');
+    backEl.setAttribute('height', '20');
     ICON_BACK_SVG = backEl.outerHTML;
+    // ChevronRight — the same "back" convention, mirrored, for a row that
+    // drills forward into a sub-view (the Manage Account row).
+    var forwardEl = mod.createElement(mod.ChevronRight);
+    forwardEl.setAttribute('width', '20');
+    forwardEl.setAttribute('height', '20');
+    ICON_FORWARD_SVG = forwardEl.outerHTML;
     renderBadge(); // cascades into renderPanel() itself once badgeBtn exists
   }).catch(function (e) {
     console.warn('[KuehAccount] failed to load Lucide icon, using fallback:', e);
@@ -234,7 +248,7 @@
   // Turns a single data-accent-color into a small palette (a lighter hover
   // shade + a readable on-accent text/icon color), so a host page only
   // ever has to specify one color, not three, to re-theme the widget.
-  var DEFAULT_ACCENT = { strong: '#B72E68', light: '#E8629A', onAccent: '#FBE0EC' };
+  var DEFAULT_ACCENT = { strong: '#037031', light: '#4da664', onAccent: '#d1ead5' };
 
   function hexToRgb(hex) {
     hex = hex.replace('#', '');
@@ -328,6 +342,157 @@
     };
   }
 
+  // ── Superellipse shapes ("retro-rectangle") ─────────────────────────────
+  // Ported by value from src/tokens/superellipse.js + src/atoms/retro-
+  // shape.js — root's own shape engine behind .btn/.tab/.file-card and
+  // every other small control (see index.html's own comment on them), so
+  // the panel's inputs/buttons pick up the site's actual corner character
+  // instead of a plain border-radius standing in for it. Can't import
+  // those modules directly (this file is a classic script, no build step —
+  // see its own top-of-file comment), so this is the same "duplicate the
+  // essential math locally" move the color helpers above already make.
+  // Only the "clip-only, element already paints its own background" mode
+  // is needed here (createRetroShape()'s no-fill branch) — every button/
+  // input this applies to already has a real background of its own.
+  function superellipsePointAt(t, a, b, n) {
+    var cos = Math.cos(t), sin = Math.sin(t);
+    return [
+      a * Math.sign(cos) * Math.pow(Math.abs(cos), 2 / n),
+      b * Math.sign(sin) * Math.pow(Math.abs(sin), 2 / n),
+    ];
+  }
+  function buildSuperellipsePath(width, height, n, originX, originY) {
+    var a = width / 2, b = height / 2, samples = 96, d = '';
+    for (var i = 0; i < samples; i++) {
+      var t = (i / samples) * Math.PI * 2;
+      var p = superellipsePointAt(t, a, b, n);
+      var px = Math.round((p[0] + originX) * 100) / 100;
+      var py = Math.round((p[1] + originY) * 100) / 100;
+      d += i === 0 ? ('M ' + px + ',' + py) : (' L ' + px + ',' + py);
+    }
+    return d + ' Z';
+  }
+  // Same n as root's own SMALL_RETRO_SHAPE_OPTS (src/atoms/retro-shape.js)
+  // — the reference "small button" corner reused across .tab/small .btn
+  // site-wide, so this panel's controls read as the same family instead of
+  // a close-but-different approximation.
+  var SMALL_RETRO_SHAPE_N = 6;
+  // Single standard hairline width for every stroke in this panel — plain
+  // CSS borders (dividers, input/home-icon outlines, via --ka-stroke-width
+  // below) AND applyRetroShapeClip's own SVG stroke overlay (its default,
+  // this file's own reference point). These aren't interchangeable at the
+  // same nominal number: confirmed directly, a 1px SVG <path> stroke
+  // renders visibly fainter than a 1px CSS border at the same color (the
+  // vector path's anti-aliasing spreads the same ink across a softer edge
+  // a crisp, pixel-snapped CSS border doesn't have to deal with) — 1px
+  // read as a noticeably weaker line around every button than the row
+  // dividers right next to them. 2px is the value that actually matches
+  // the two side by side, not a literal "both are 1px" equivalence.
+  var STROKE_WIDTH = 2;
+  // Ported by value from src/tokens/superellipse.js's own
+  // superellipseValue/solveClearingExponent — for a big surface like the
+  // panel, a single fixed n either looks flat (root's own default n:10, an
+  // ~10px corner pull-in on a 300px-wide box — confirmed directly, that's
+  // what "still reads as a rounded rectangle" was) or, picked more
+  // aggressively by hand, clips real content (n:4 pulled the top-left
+  // corner in far enough to cut into the "Create an account" heading —
+  // also confirmed directly). Root's own system doesn't hand-pick a
+  // constant for shapes like this either — it solves for the roundest n
+  // that still clears a given padded margin, per the box's *actual*
+  // current width/height, and lets ResizeObserver re-solve it on every
+  // resize (switching between the panel's own auth form/account view/
+  // avatar editor, each a different height). unlike root's own default
+  // (minN: 10 — deliberately never rounder than that, see that module's
+  // own comment), this panel wants the roundest safe shape it can get, so
+  // applyRetroShapeClip's opts.gutter mode (below) is called with minN: 2.
+  function superellipseValue(x, y, a, b, n) {
+    return Math.pow(Math.abs(x / a), n) + Math.pow(Math.abs(y / b), n);
+  }
+  function solveClearingExponent(width, height, marginX, marginY, minN, maxN) {
+    var a = width / 2, b = height / 2;
+    var px = a - Math.min(marginX, a * 0.9);
+    var py = b - Math.min(marginY, b * 0.9);
+    if (superellipseValue(px, py, a, b, maxN) > 1) return maxN;
+    if (superellipseValue(px, py, a, b, minN) <= 1) return minN;
+    var lo = minN, hi = maxN;
+    for (var i = 0; i < 30; i++) {
+      var mid = (lo + hi) / 2;
+      if (superellipseValue(px, py, a, b, mid) <= 1) hi = mid; else lo = mid;
+    }
+    return hi;
+  }
+  // Real SVG <clipPath> + url(#id), not the shorter `clip-path: path(...)`
+  // inline form — matches root's own createRetroShape wiring exactly,
+  // which exists for a reason (raw CSS path() clip-paths have had spotty
+  // cross-browser support historically; an SVG clipPath referenced by url()
+  // doesn't hit that). id-based url() refs resolve fine inside a shadow
+  // root as long as both ends live in the same one, which they always do
+  // here. Re-measures on resize (ResizeObserver, or a window resize
+  // fallback) since the panel itself moves between a fixed desktop popover
+  // width and a fluid mobile modal width — see .panel's own media queries.
+  var retroShapeUid = 0;
+  // opts.stroke: draws the border as a *second*, visible, unclipped SVG
+  // overlay tracing the exact same path as the clip — not a plain CSS
+  // `border` on el itself. A CSS border follows el's rectangular border-box
+  // and gets cut off wherever that rectangle doesn't line up with the
+  // curved clip silhouette (confirmed directly: .btn-google's border was
+  // visibly clipped square-ish at the corners instead of following the
+  // swell). Only pass this for elements that need a visible edge — most
+  // callers here paint a flat, borderless fill and don't.
+  function applyRetroShapeClip(el, n, opts) {
+    opts = opts || {};
+    var id = 'ka-retro-shape-' + (retroShapeUid++);
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.style.position = 'absolute';
+    svg.innerHTML = '<defs><clipPath id="' + id + '" clipPathUnits="userSpaceOnUse"><path d=""/></clipPath></defs>';
+    el.appendChild(svg);
+    el.style.clipPath = 'url(#' + id + ')';
+    var pathEl = svg.querySelector('path');
+
+    var strokeSvg = null, strokePathEl = null;
+    if (opts.stroke) {
+      if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+      strokeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      strokeSvg.setAttribute('aria-hidden', 'true');
+      strokeSvg.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible;';
+      strokeSvg.innerHTML = '<path fill="none" d=""/>';
+      el.appendChild(strokeSvg);
+      strokePathEl = strokeSvg.querySelector('path');
+      // Inline style, not the stroke="" attribute — style values run
+      // through normal custom-property resolution, so opts.stroke can be a
+      // var(--ka-color-*) reference the same as any other color here.
+      strokePathEl.style.stroke = opts.stroke;
+      strokePathEl.style.strokeWidth = (opts.strokeWidth || STROKE_WIDTH) + 'px';
+    }
+
+    function update() {
+      var w = el.clientWidth, h = el.clientHeight;
+      if (!w || !h) return;
+      // opts.gutter: solve for the roundest n that still clears this much
+      // padding on every resize, instead of a fixed exponent — see this
+      // function's own comment above. Only the panel opts into this; every
+      // other caller here (buttons/inputs) keeps the plain n/SMALL_RETRO_
+      // SHAPE_N fallback, unaffected.
+      var resolvedN = opts.gutter != null
+        ? solveClearingExponent(w, h, opts.gutter, opts.gutter, opts.minN || 2, opts.maxN || 40)
+        : (n || SMALL_RETRO_SHAPE_N);
+      var d = buildSuperellipsePath(w, h, resolvedN, w / 2, h / 2);
+      pathEl.setAttribute('d', d);
+      if (strokePathEl) {
+        strokeSvg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+        strokePathEl.setAttribute('d', d);
+      }
+    }
+    update();
+    if (window.ResizeObserver) {
+      new ResizeObserver(update).observe(el);
+    } else {
+      window.addEventListener('resize', update);
+    }
+  }
+
   // ── DOM / Shadow DOM setup ─────────────────────────────────────────────
   var host = null;      // the badge's own element, mounted per data-mode
   var shadow = null;     // its shadow root
@@ -337,6 +502,25 @@
   var defaultBadgeBackground = ''; // set once in mount() — see its own comment
   var defaultBadgeBorder = ''; // set once in mount() — see its own comment
   var panelEl = null;
+  // A plain wrapper inside panelEl that owns all of the panel's *rendered
+  // content* — every renderPanel()/renderAccountPanel()/renderAuthPanel()/
+  // etc. call clears and rebuilds *this*, not panelEl directly. This is
+  // load-bearing, not cosmetic: panelEl's own clip-path superellipse (see
+  // mount()'s applyRetroShapeClip(panelEl, ...) call) works by appending a
+  // <clipPath> defs <svg> as a *child of panelEl itself* — so a naive
+  // `panelEl.innerHTML = ''` on every re-render was deleting that defs
+  // <svg> along with the old content, the instant the very first
+  // renderPanel() ran after mount(). The clip-path: url(#id) on panelEl
+  // was left pointing at an id that no longer existed anywhere in the
+  // document — an invalid reference, which renders as *no clipping at
+  // all* — so the panel always looked like a plain rounded rectangle
+  // (border-radius from .panel's own CSS) regardless of what n was passed
+  // to applyRetroShapeClip; confirmed directly by inspecting the live DOM,
+  // where the clip <svg> template's own querySelector came back empty
+  // after the panel had rendered once. panelBodyEl is created once and
+  // never cleared itself, so panelEl's clip/stroke <svg> siblings (which
+  // sit next to it, not inside it) survive every re-render undisturbed.
+  var panelBodyEl = null;
   var backdropEl = null; // mobile only (CSS-gated) — dimmed scrim behind the modal
   var panelOpen = false;
   var authMode = 'signup'; // 'login' | 'signup'
@@ -363,22 +547,79 @@
   var CSS = ''
     + ':host {'
     + '  all: initial;'
-    + '  --ka-color-primary-strong: #B72E68;'
-    + '  --ka-color-primary: #E8629A;'
-    + '  --ka-color-primary-soft: #F8BFD9;'
-    + '  --ka-color-accent: #F7D774;'
-    + '  --ka-color-surface: #FFF8F0;'
-    + '  --ka-color-surface-tint: #F0E8DA;'
-    + '  --ka-color-surface-border: #D6C8B4;'
-    + '  --ka-color-text-on-surface: #5C1638;'
-    + '  --ka-color-text-on-surface-muted: #8C4569;'
-    + '  --ka-color-text-on-primary: #FBE0EC;'
+    // Ondeh-Ondeh's pandan-green palette (generatePalette({h:150,c:0.13}, ...),
+    // src/tokens/colors.js) — the widget's fixed, non-rotating brand mark,
+    // swapped from kueh-lapis's original magenta (DEFAULT_THEME) after the
+    // magenta read as "super strong." Deliberately NOT touching
+    // DEFAULT_THEME/kueh-lapis's own mapping in colors.js — that palette
+    // still needs to stay accurate for kueh-lapis's own day in the real
+    // rotation (kueh-of-day.js), a separate concern from this widget's own
+    // permanently-fixed identity.
+    + '  --ka-color-primary-strong: #037031;'
+    + '  --ka-color-primary: #4da664;'
+    + '  --ka-color-primary-soft: #83dc97;'
+    + '  --ka-color-accent: #ffb490;'
+    + '  --ka-color-surface: #fff7f3;'
+    + '  --ka-color-surface-tint: #f6e5de;'
+    + '  --ka-color-surface-border: #ddc4bb;'
+    + '  --ka-color-text-on-surface: #004113;'
+    + '  --ka-color-text-on-surface-muted: #2c6d3e;'
+    + '  --ka-color-text-on-primary: #d1ead5;'
     + '  --ka-color-danger: #C43A2E;'
     + '  --ka-radius-card: 12px;'
     + '  --ka-radius-interactive: 8px;'
     + '  --ka-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;'
     + '  --ka-font-display: "Syne", var(--ka-font-sans);'
     + '  --ka-tracking-heading: -0.025em;'
+    // Mirrors root's --type-label-size/--type-label-weight/--tracking-label
+    // (index.html's own :root block) by value — 13px/700/0.08em, the exact
+    // same numbers .site-nav a and .tab (styles/organisms/site-nav.css,
+    // styles/atoms.css) read from those real tokens. Every .btn and
+    // .field-edit-btn in this panel uses --ka-fs-body (13px, already equal
+    // to 0.8125rem) and --ka-fw-bold (700) alongside this for font-size/
+    // weight, so all four surfaces — header nav, kotd tabs, panel buttons,
+    // row-edit links — provably share one typographic decision. This can't
+    // reference index.html's tokens directly (classic script, no build
+    // step, runs standalone on pages that never load index.html's inline
+    // styles) — keep in sync by hand if those ever change.
+    + '  --ka-tracking-label: 0.08em;'
+    // Type scale — three sizes, three weights, each with one job, so every
+    // piece of text in the panel picks a role instead of picking a number.
+    // Weight is the load-bearing fix here: root's own body/identity text
+    // (e.g. .fc-name, index.html) sits at 600, reserving 700 for *actions*
+    // (root's own .btn, styles/atoms.css) — this panel used to default to
+    // 700 almost everywhere (headings, buttons, and passive text like the
+    // account name alike), which is what read as "too bold" against the
+    // rest of the site. --ka-fw-bold now only ever lands on real actions
+    // (buttons) and the Syne heading, matching that split.
+    + '  --ka-fs-label: 11px;'
+    + '  --ka-fs-body: 13px;'
+    + '  --ka-fs-value: 14px;'
+    + '  --ka-fs-heading: 16px;'
+    // 16px, not --ka-fs-body's 13px — any input font-size below 16px makes
+    // iOS Safari auto-zoom the whole page on focus, since it assumes
+    // anything smaller is too small for the user to have intended to tap.
+    + '  --ka-fs-input: 16px;'
+    + '  --ka-fw-regular: 400;'
+    + '  --ka-fw-medium: 600;'
+    + '  --ka-fw-bold: 700;'
+    // Standard size for a plain inline system icon (a back/forward chevron,
+    // the mobile close X) — was landing at whatever size felt right per
+    // call site (14px on the back button, 16px on close), which is what
+    // read as "slightly too small" on the back chevron specifically. One
+    // token, one size everywhere that calls for a normal icon. Bumped again
+    // from an initial 16px to 20px — even unified, 16px still read as
+    // slightly too small next to the panel's other text. The avatar-edit
+    // pencil badge (--account-avatar-edit) stays smaller than this on
+    // purpose — it is a tiny corner badge overlay on the avatar, not a
+    // standalone icon, a deliberate exception rather than an oversight.
+    + '  --ka-icon-size: 20px;'
+    // Same STROKE_WIDTH constant applyRetroShapeClip's own SVG stroke
+    // overlay defaults to (see its own comment) — generated from that one
+    // JS value rather than a second hand-typed "2px" here, so a plain CSS
+    // border (dividers, input/home-icon outlines) and a superellipse
+    // button's traced edge can never drift apart again.
+    + '  --ka-stroke-width: ' + STROKE_WIDTH + 'px;'
     // Set per-mount from data-size/data-accent-color/data-icon-color (mount(),
     // below) via host.style.setProperty — these are just the un-configured
     // fallback values, same numbers/colors the widget always used before
@@ -395,7 +636,7 @@
     + '  display: flex; align-items: center; justify-content: center;'
     + '  color: var(--ka-color-text-on-primary); font-family: var(--ka-font-display);'
     + '  font-size: calc(var(--ka-badge-size) * 0.29); font-weight: 700; letter-spacing: var(--ka-tracking-heading);'
-    + '  box-shadow: 0 4px 14px rgba(92,22,56,0.32), 0 1px 4px rgba(92,22,56,0.2);'
+    + '  box-shadow: 0 4px 14px rgba(0,65,19,0.32), 0 1px 4px rgba(0,65,19,0.2);'
     + '  transition: transform 0.12s ease, background 0.15s ease;'
     + '}'
     + '.badge:hover { transform: scale(1.05); }'
@@ -472,15 +713,32 @@
     // was painting over the panel because the panel's old host lived inside
     // .site-nav's stacking context instead of body's).
     + '.panel {'
-    + '  position: fixed; width: 260px; padding: 20px;'
-    + '  background: var(--ka-color-surface); border: 1px solid var(--ka-color-surface-border);'
-    + '  border-radius: var(--ka-radius-card); box-shadow: 0 12px 32px rgba(92,22,56,0.18), 0 2px 8px rgba(92,22,56,0.12);'
-    + '  color: var(--ka-color-text-on-surface); font-size: 13px; display: none;'
+    // 300px, not the old 260px — needed the extra room once inputs moved
+    // to a 16px floor (see --ka-fs-input's own comment); 260px read as
+    // cramped once labels/values/inputs stopped fighting for space at 13px.
+    + '  position: fixed; width: 300px; padding: 20px;'
+    + '  background: var(--ka-color-surface);'
+    // No border here — same reasoning as .btn-google/.btn-ghost: a plain
+    // CSS border follows this element's rectangular box, not its clipped
+    // superellipse silhouette, so it gets cut off at the corners instead of
+    // following the curve. mount()'s applyRetroShapeClip(panelEl, ...) call
+    // draws the real edge via opts.stroke instead. filter: drop-shadow, not
+    // box-shadow, for the same reason — box-shadow paints outside the
+    // clipped shape, so it'd still show the old rectangular silhouette as a
+    // shadow even once the fill itself reads as a superellipse; drop-shadow
+    // follows the element's actual (clipped) alpha shape, same reasoning
+    // root's own .btn-rim (styles/atoms.css) uses it over box-shadow.
+    + '  border-radius: var(--ka-radius-card);'
+    + '  filter: drop-shadow(0 12px 24px rgba(0,65,19,0.18)) drop-shadow(0 2px 6px rgba(0,65,19,0.12));'
+    + '  color: var(--ka-color-text-on-surface); font-size: var(--ka-fs-body); display: none;'
     + '}'
     + '.panel.open { display: block; }'
     + '.backdrop {'
     + '  position: fixed; inset: 0; display: none;'
-    + '  background: rgba(92,22,56,0.45); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);'
+    // Plain black, not a brand-tinted scrim — a modal backdrop is neutral
+    // dimming, not a colored surface; tinting it toward the brand color
+    // read as a stray colored haze behind the panel rather than a shadow.
+    + '  background: rgba(0,0,0,0.45); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);'
     + '}'
     + '.panel-close {'
     + '  display: none; position: absolute; top: 12px; right: 12px; width: 28px; height: 28px;'
@@ -489,7 +747,7 @@
     + '}'
     + '.panel-close:hover { background: var(--ka-color-surface-border); }'
     + '.panel-close:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
-    + '.panel-close svg { width: 16px; height: 16px; }'
+    + '.panel-close svg { width: var(--ka-icon-size); height: var(--ka-icon-size); }'
     // Desktop: a small popover anchored to wherever the badge actually is
     // on screen right now — --ka-panel-x/y are computed from the badge's
     // real getBoundingClientRect() each time the panel opens (updatePanelPosition(),
@@ -517,20 +775,41 @@
     + '  .panel-close { display: flex; }'
     + '}'
     + '.panel h3 {'
-    + '  margin: 0 0 12px; font-family: var(--ka-font-display); font-size: 16px; font-weight: 700;'
+    + '  margin: 0 0 12px; font-family: var(--ka-font-display); font-size: var(--ka-fs-heading); font-weight: var(--ka-fw-bold);'
     + '  letter-spacing: var(--ka-tracking-heading); color: var(--ka-color-text-on-surface);'
     + '}'
-    + '.panel label { display: block; margin: 10px 0 4px; color: var(--ka-color-text-on-surface-muted); }'
+    // Small-caps field-label treatment — same family as root's own small
+    // uppercase/letter-spaced labels (e.g. index.html's .eyebrow), scaled
+    // down for a form field rather than a hero-sized kicker: 0.06em reads
+    // as the same idea at 11px that 0.25em reads as at hero scale, not a
+    // literal copy of a spacing number tuned for much bigger text.
+    + '.panel label {'
+    + '  display: block; margin: 10px 0 4px; color: var(--ka-color-text-on-surface-muted);'
+    + '  font-size: var(--ka-fs-label); font-weight: var(--ka-fw-medium); letter-spacing: 0.06em; text-transform: uppercase;'
+    + '}'
     + '.panel input {'
-    + '  width: 100%; padding: 8px 10px; border-radius: var(--ka-radius-interactive);'
-    + '  border: 1px solid var(--ka-color-surface-border); background: #fff;'
-    + '  color: var(--ka-color-text-on-surface); font-size: 13px;'
+    // Sharp corners, deliberately — not every control gets the superellipse
+    // clip; inputs stay flat-cornered on purpose, so the shape itself
+    // becomes a signal ("this is a button") rather than blanket
+    // decoration. Also sidesteps a real clipping artifact a curved input
+    // had: a text caret/selection highlight is a plain rectangle, and
+    // clipping it to a swelled-corner path made it look cut off near the
+    // edges whenever the caret sat close to one.
+    + '  width: 100%; padding: 11px 14px; border-radius: 0;'
+    + '  border: var(--ka-stroke-width) solid var(--ka-color-surface-border); background: #fff;'
+    + '  color: var(--ka-color-text-on-surface); font-size: var(--ka-fs-input); font-weight: var(--ka-fw-regular);'
     + '}'
     + '.panel input:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 1px; }'
     + '.btn {'
-    + '  width: 100%; margin-top: 12px; padding: 9px 10px; border: none; border-radius: var(--ka-radius-interactive);'
+    + '  width: 100%; margin-top: 12px; padding: 11px 10px; border: none; border-radius: var(--ka-radius-interactive);'
     + '  background: var(--ka-color-primary-strong); color: var(--ka-color-text-on-primary);'
-    + '  font-family: var(--ka-font-sans); font-weight: 700; font-size: 13px; cursor: pointer;'
+    // Bold + uppercase + tracked — matches root's .site-nav a exactly
+    // (styles/organisms/site-nav.css), not .tab's own 600/sentence-case
+    // (which .tab itself has since been brought up to this same header-nav
+    // treatment too, styles/atoms.css). Every button in this panel now
+    // reads as the same family as the site's own header links.
+    + '  font-family: var(--ka-font-sans); font-weight: var(--ka-fw-bold); font-size: var(--ka-fs-body);'
+    + '  text-transform: uppercase; letter-spacing: var(--ka-tracking-label); cursor: pointer;'
     + '  transition: background 0.15s ease;'
     + '}'
     + '.btn:hover { background: var(--ka-color-primary); }'
@@ -538,17 +817,33 @@
     + '.btn:disabled { opacity: 0.6; cursor: default; }'
     + '.btn-google {'
     // Google's own required brand mark/colors — not a Kueh Machine token,
-    // left alone deliberately (see AUTH.md).
-    + '  background: #fff; color: #3C3C3C; border: 1px solid var(--ka-color-surface-border);'
+    // left alone deliberately (see AUTH.md). No border here — a real CSS
+    // border follows this element's rectangular box and gets clipped by
+    // the curved superellipse mask wherever the two don't line up; the
+    // visible edge instead comes from applyRetroShapeClip's opts.stroke
+    // overlay (its call site), which traces the actual clipped path.
+    // Text case/weight is the same brand exception — Google's own sign-in
+    // button spec is sentence case at a medium weight, not the site's
+    // bold/uppercase button convention, so this one button deliberately
+    // opts back out of .btn's text-transform/letter-spacing/font-weight.
+    + '  background: #fff; color: #3C3C3C;'
     + '  display: flex; align-items: center; justify-content: center; gap: 8px;'
+    + '  text-transform: none; letter-spacing: normal; font-weight: var(--ka-fw-medium);'
     + '}'
     + '.btn-google:hover { background: var(--ka-color-surface-tint); }'
     + '.btn-ghost {'
-    + '  background: transparent; border: 1px solid var(--ka-color-surface-border); color: var(--ka-color-text-on-surface);'
+    // No border here either — same reasoning as .btn-google above; its
+    // edge comes from applyRetroShapeClip's opts.stroke overlay instead.
+    + '  background: transparent; color: var(--ka-color-text-on-surface);'
     + '}'
     + '.btn-ghost:hover { background: var(--ka-color-surface-tint); }'
     + '.switch-mode {'
-    + '  margin-top: 12px; text-align: center; color: var(--ka-color-text-on-surface-muted);'
+    // 20px, not the same 12px every other stacked element in this panel
+    // uses — this one sits directly under a full-width tap-target button
+    // (Sign up/Log in), and 12px read as close enough to fat-finger the
+    // wrong one. Extra breathing room specifically because both are real
+    // tap targets stacked vertically, not just visual rhythm.
+    + '  margin-top: 20px; text-align: center; color: var(--ka-color-text-on-surface-muted);'
     + '  cursor: pointer; text-decoration: underline;'
     + '}'
     + '.switch-mode:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
@@ -576,24 +871,119 @@
     + '  pointer-events: none;'
     + '}'
     + '.account-avatar-edit svg { width: 9px; height: 9px; }'
-    + '.account-info { min-width: 0; flex: 1; }'
-    // Same idea as .avatar-editor-back — a real button with a real Lucide
-    // icon next to the text, not a separate pencil-only control. Text
-    // left-aligned/truncating so a long name doesn't push the icon out of
-    // the panel; icon never shrinks.
-    + '.account-name-btn {'
-    + '  display: flex; align-items: center; gap: 5px; max-width: 100%;'
-    + '  background: none; border: none; padding: 0; cursor: pointer;'
-    + '  font-family: var(--ka-font-sans); font-weight: 700; font-size: 14px; color: var(--ka-color-text-on-surface);'
+    + '.account-email {'
+    + '  min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+    + '  color: var(--ka-color-text-on-surface-muted); font-size: var(--ka-fs-body);'
     + '}'
-    + '.account-name-btn span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }'
-    + '.account-name-btn svg { flex-shrink: 0; width: 11px; height: 11px; color: var(--ka-color-text-on-surface-muted); }'
-    + '.account-name-btn:hover svg, .account-name-btn:focus-visible svg { color: var(--ka-color-text-on-surface); }'
-    + '.account-name-btn:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
+    // ── Reusable field row: LABEL / value + Edit ────────────────────────
+    // One display+edit pattern for any single-line account field — display
+    // name today, the shape an email field would reuse later (see AUTH.md's
+    // account-management note) rather than each field growing its own
+    // bespoke markup. .field-label reuses .panel label's own rule (same
+    // element, not a separate class) so the "field label" and "form label"
+    // read as one visual family, not two similar-but-different treatments.
+    // ── Row list: shared vertical rhythm + divider for any account row ──
+    // .field (a label/value/edit row) and .row-link (a plain forward-drill
+    // row, e.g. Manage Account) both carry .acct-row and share this same
+    // spacing/divider treatment when placed inside a .row-list wrapper —
+    // one mechanism for "list of rows" regardless of what's inside each
+    // one. :last-child, not a per-row flag threaded through from JS — the
+    // one that happens to render last in the DOM is the one that loses its
+    // divider, so reordering or adding a row never needs a second edit
+    // anywhere else.
+    + '.row-list { margin-top: 14px; }'
+    + '.row-list > .acct-row {'
+    + '  padding: 14px 0; border-bottom: var(--ka-stroke-width) solid var(--ka-color-surface-border);'
+    + '}'
+    + '.row-list > .acct-row:first-child { padding-top: 0; }'
+    + '.row-list > .acct-row:last-child { border-bottom: none; padding-bottom: 0; }'
+    + '.field { margin: 0; }'
+    + '.field-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }'
+    + '.field-value {'
+    + '  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;'
+    + '  font-size: var(--ka-fs-value); font-weight: var(--ka-fw-medium); color: var(--ka-color-text-on-surface);'
+    + '}'
+    // A text button, not a filled one — deliberately lighter-weight than
+    // .btn/.btn-ghost (no background/shape of its own to clip), the same
+    // "plain colored text, not a box" register as .switch-mode below. Same
+    // bold/uppercase/tracked treatment as .btn and .site-nav a though, not
+    // a separate convention — an underline used to be what marked this as
+    // interactive; that job now belongs to the shared button typography
+    // instead, so the underline comes off.
+    + '.field-edit-btn {'
+    + '  flex-shrink: 0; background: none; border: none; padding: 0; cursor: pointer;'
+    + '  font-family: var(--ka-font-sans); font-weight: var(--ka-fw-bold); font-size: var(--ka-fs-body);'
+    + '  text-transform: uppercase; letter-spacing: var(--ka-tracking-label);'
+    + '  color: var(--ka-color-primary-strong);'
+    + '}'
+    + '.field-edit-btn:hover { color: var(--ka-color-primary); }'
+    + '.field-edit-btn:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
+    // A whole-row forward-drill link (Manage Account) — label left, chevron
+    // right, no separate "label" line above it the way .field has, since
+    // there's no value to show, just a destination. Plain text weight, not
+    // the bold/uppercase button treatment — this isn't an action, it's
+    // navigation, the same distinction .switch-mode already draws.
+    + '.row-link {'
+    + '  display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer;'
+    + '  font-size: var(--ka-fs-value); font-weight: var(--ka-fw-medium); color: var(--ka-color-text-on-surface);'
+    + '}'
+    + '.row-link:hover { color: var(--ka-color-primary-strong); }'
+    + '.row-link:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
+    + '.row-link svg { width: var(--ka-icon-size); height: var(--ka-icon-size); color: var(--ka-color-text-on-surface-muted); flex-shrink: 0; }'
+    // "Kueh Machine Home" — a real <a href>, not a fake button; this leaves
+    // the panel entirely (unlike Manage Account, which drills into a sub-
+    // view), so it earns real link semantics (cmd/middle-click, "open in
+    // new tab"). Icon-left, text-right rather than .row-link's text/chevron
+    // pair — there's no destination-within-the-panel to point at, just a
+    // small mark identifying where this leads. Left-aligned, no
+    // justify-content: space-between, since there's nothing to push right.
+    + '.row-home {'
+    + '  display: flex; align-items: center; gap: 10px; text-decoration: none;'
+    + '  font-size: var(--ka-fs-value); font-weight: var(--ka-fw-medium); color: var(--ka-color-text-on-surface);'
+    + '}'
+    + '.row-home:hover { color: var(--ka-color-primary-strong); }'
+    + '.row-home:hover .row-home-icon { transform: scale(1.08); }'
+    + '.row-home:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
+    // 36px circle — same diameter AND same background as .account-avatar
+    // (the user's own avatar at the top of this panel, var(--ka-color-
+    // primary-soft), no border) — one consistent "circular identity mark"
+    // treatment for both, not two different circle conventions competing
+    // in the same panel. Padded rather than full-bleed, matching how every
+    // avatar illustration/swatch in this file already sits inset within
+    // its own circle instead of touching the edge.
+    + '.row-home-icon {'
+    + '  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; padding: 7px; box-sizing: border-box;'
+    // #C7EFD0 — --ka-color-primary-soft (#83dc97) mixed 55% toward white,
+    // precomputed rather than a runtime color-mix() (this file's own
+    // established convention, see .btn-danger:hover's own comment) — a
+    // paler pandan tint than the avatar's own primary-soft swatch, since
+    // this icon is a static site mark, not an identity color the way the
+    // avatar's background is.
+    + '  background: #C7EFD0;'
+    + '  display: flex; align-items: center; justify-content: center; overflow: hidden;'
+    + '  transition: transform 0.12s ease;'
+    + '}'
+    + '.row-home-icon svg { width: 100%; height: 100%; }'
     // Inherits .panel input's own look (same field style as the signup/
-    // login form above) — no !important overrides, just spacing.
-    + '.account-name-input { margin-bottom: 4px; font-weight: 700; }'
-    + '.account-email { color: var(--ka-color-text-on-surface-muted); word-break: break-all; }'
+    // login form) — no overrides beyond spacing.
+    + '.field-input { margin-top: 4px; }'
+    // Feedback for an edit that can't just re-render as "saved" the instant
+    // it's submitted — email change needs a confirm-by-email round trip,
+    // so this is what tells the user that's what's happening instead of
+    // the field silently doing nothing.
+    + '.field-status { margin-top: 6px; font-size: var(--ka-fs-label); color: var(--ka-color-text-on-surface-muted); }'
+    + '.field-status-error { color: var(--ka-color-danger); font-weight: var(--ka-fw-medium); }'
+    + '.field-help { margin-top: 4px; font-size: var(--ka-fs-label); color: var(--ka-color-text-on-surface-muted); }'
+    + '.field-help-danger { color: var(--ka-color-danger); }'
+    // Same shape/weight/size as .btn — only the color changes, so a
+    // destructive action still reads as "a button in this same family,"
+    // not a visually unrelated warning box.
+    + '.btn-danger { background: var(--ka-color-danger); color: #fff; }'
+    // #A73127 — --ka-color-danger (#C43A2E) mixed 15% toward black,
+    // precomputed rather than a runtime CSS color-mix() — every other
+    // derived color in this file (mixWithWhite/mixWithBlack, above) is
+    // computed the same "in JS/ahead of time" way, not with color-mix().
+    + '.btn-danger:hover { background: #A73127; }'
     // .avatar-img sits inside either .badge or .account-avatar — sized
     // relative (76%, not full-bleed) so the illustration reads as a sticker
     // centered on its own color swatch rather than a hard-cropped photo;
@@ -609,15 +999,15 @@
     + '.badge.has-avatar:hover, .badge.has-avatar:focus-visible { transform: scale(1.05); }'
     + '.avatar-editor-back {'
     + '  background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 10px;'
-    + '  color: var(--ka-color-text-on-surface-muted); font-family: var(--ka-font-sans); font-weight: 700; font-size: 13px;'
+    + '  color: var(--ka-color-text-on-surface-muted); font-family: var(--ka-font-sans); font-weight: var(--ka-fw-medium); font-size: var(--ka-fs-body);'
     + '  display: inline-flex; align-items: center; gap: 4px;'
     + '}'
     + '.avatar-editor-back:hover { color: var(--ka-color-text-on-surface); }'
-    + '.avatar-editor-back svg { width: 14px; height: 14px; }'
+    + '.avatar-editor-back svg { width: var(--ka-icon-size); height: var(--ka-icon-size); }'
     + '.avatar-preview {'
     + '  width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 14px;'
     + '  display: flex; align-items: center; justify-content: center;'
-    + '  box-shadow: 0 4px 14px rgba(92,22,56,0.24);'
+    + '  box-shadow: 0 4px 14px rgba(0,65,19,0.24);'
     + '}'
     + '.avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 14px; }'
     + '.avatar-tile {'
@@ -631,8 +1021,13 @@
     + '.avatar-tile:focus-visible { outline: 2px solid var(--ka-color-accent); outline-offset: 2px; }'
     + '.avatar-tile img { width: 100%; height: 100%; object-fit: contain; }'
     + '.avatar-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }'
+    // border defaults to --ka-color-surface-border, not transparent — one
+    // of AVATAR_COLORS (#FBF6EC, a near-cream white) was reading as
+    // invisible against this panel's own cream background with no border
+    // to mark its own edge. .active still overrides to a darker, more
+    // deliberate border to read as "selected," not just "has a rim."
     + '.avatar-swatch {'
-    + '  width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer;'
+    + '  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ka-color-surface-border); padding: 0; cursor: pointer;'
     + '  transition: transform 0.12s ease, border-color 0.12s ease;'
     + '}'
     + '.avatar-swatch:hover, .avatar-swatch:focus-visible { transform: scale(1.15); }'
@@ -655,18 +1050,46 @@
   var FALLBACK_EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
     + '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
 
-  // Matches Lucide's arrow-left artwork — the avatar editor's "Back" button
-  // (renderAvatarEditor()); this replaced a literal "←" Unicode character
-  // that had slipped in before this became a house rule (see the icon-
-  // loading comment above).
+  // Matches Lucide's chevron-left artwork — the avatar editor's "Back"
+  // button (renderAvatarEditor()) and the Manage Account view's own back
+  // button; this replaced a literal "←" Unicode character that had
+  // slipped in before this became a house rule (see the icon-loading
+  // comment above), then an arrow-left (house convention is chevrons for
+  // "back" specifically — a plain directional indicator inside a still-
+  // in-place control, not an arrow-with-tail, which reads more like
+  // "move/send this way").
   var FALLBACK_BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-    + '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>';
+    + '<path d="m15 18-6-6 6-6"/></svg>';
+
+  // Matches Lucide's chevron-right artwork — FALLBACK_BACK_SVG's mirror,
+  // for the Manage Account row's forward-drill affordance.
+  var FALLBACK_FORWARD_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="m9 18 6-6-6-6"/></svg>';
 
   var GOOGLE_SVG = '<svg width="16" height="16" viewBox="0 0 18 18">'
     + '<path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/>'
     + '<path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.36 0-4.35-1.6-5.06-3.74H.98v2.33A9 9 0 0 0 9 18z"/>'
     + '<path fill="#FBBC05" d="M3.94 10.68A5.4 5.4 0 0 1 3.66 9c0-.58.1-1.15.28-1.68V4.99H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.01l2.96-2.33z"/>'
     + '<path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.99l2.96 2.33C4.65 5.18 6.64 3.58 9 3.58z"/>'
+    + '</svg>';
+
+  // Copied by value from root's own favicon.svg — the "Kueh Machine Home"
+  // row's icon (renderAccountPanel()/renderAuthPanel()) is meant to read as
+  // the same mark as the browser tab, not a fresh symbol invented for this
+  // one row. Self-contained/inlined rather than <img src="/favicon.svg">
+  // so it doesn't cost a network request and can't break if that file ever
+  // moves. Keep in sync by hand if favicon.svg's own markup changes.
+  var HOME_ICON_SVG = '<svg viewBox="0 0 32 32">'
+    + '<defs><clipPath id="ka-home-icon-clip"><rect x="2" y="4" width="28" height="24" rx="5"/></clipPath></defs>'
+    + '<g clip-path="url(#ka-home-icon-clip)">'
+    + '<rect x="0" y="4" width="32" height="5" fill="#F4978E"/>'
+    + '<rect x="0" y="9" width="32" height="1" fill="#FFF8F0"/>'
+    + '<rect x="0" y="10" width="32" height="5" fill="#F9C74F"/>'
+    + '<rect x="0" y="15" width="32" height="1" fill="#FFF8F0"/>'
+    + '<rect x="0" y="16" width="32" height="5" fill="#95D5B2"/>'
+    + '<rect x="0" y="21" width="32" height="1" fill="#FFF8F0"/>'
+    + '<rect x="0" y="22" width="32" height="6" fill="#2D6A4F"/>'
+    + '</g>'
     + '</svg>';
 
   // Avatars are real illustrations pulled from contributors' own projects,
@@ -719,17 +1142,36 @@
   // .color-swatch) — active = a visible ring + a slight scale-up.
   var AVATAR_COLORS = ['#F2B8C6', '#8FBF7F', '#F0B429', '#D97B66', '#B8D8B8', '#FBF6EC', '#C4933F', '#5B3A29'];
 
-  function anchorStyle(anchor) {
+  // Desktop inset for a true floating (mode:'fixed') badge's horizontal
+  // edge — matches root's own docked-header inset exactly (data-inset="32"
+  // on its own script tag), per direct feedback that the previous flat
+  // 10px read as too tight next to that more generous header spacing.
+  // Same 480px mobile cap docked mode already uses for the same reason
+  // (applyDockedInset, below) — a corner badge doesn't have a wide
+  // desktop header's room to spare on a narrow phone screen.
+  var FIXED_BADGE_DESKTOP_INSET = 32;
+  var FIXED_BADGE_MOBILE_INSET = 10;
+
+  function anchorStyle(anchor, horizontalInset) {
+    var h = horizontalInset + 'px';
     switch (anchor) {
-      case 'top-left': return { top: '15px', left: '10px' };
-      case 'bottom-right': return { bottom: '15px', right: '10px' };
-      case 'bottom-left': return { bottom: '15px', left: '10px' };
-      default: return { top: '15px', right: '10px' };
+      case 'top-left': return { top: '15px', left: h };
+      case 'bottom-right': return { bottom: '15px', right: h };
+      case 'bottom-left': return { bottom: '15px', left: h };
+      default: return { top: '15px', right: h };
     }
   }
 
   function applyPos(el, opts) {
-    var pos = anchorStyle(opts.anchor);
+    // Only mode:'fixed' scales with the real viewport — mode:'absolute'
+    // (e.g. Ruth's badge, mirrored to her own #audioBtn inside a fixed-
+    // width #wrapper that isn't the real viewport) keeps the original flat
+    // inset regardless of window.innerWidth, which has nothing to do with
+    // its actual on-screen container.
+    var horizontalInset = opts.mode === 'fixed'
+      ? (window.innerWidth < 480 ? FIXED_BADGE_MOBILE_INSET : FIXED_BADGE_DESKTOP_INSET)
+      : FIXED_BADGE_MOBILE_INSET;
+    var pos = anchorStyle(opts.anchor, horizontalInset);
     el.style.position = opts.mode === 'absolute' ? 'absolute' : 'fixed';
     ['top', 'right', 'bottom', 'left'].forEach(function (k) { el.style[k] = pos[k] || 'auto'; });
   }
@@ -856,17 +1298,18 @@
   }
 
   function renderPanel() {
-    if (!panelEl) return;
-    panelEl.innerHTML = '';
+    if (!panelEl || !panelBodyEl) return;
+    panelBodyEl.innerHTML = '';
     // Only visible at mobile widths (.panel-close, CSS) — the popover on
     // desktop already closes via the outside-click handler, but a modal
     // over the whole screen needs an explicit, discoverable way out.
     var closeBtn = el('button', 'panel-close', ICON_CLOSE_SVG || FALLBACK_CLOSE_SVG);
     closeBtn.setAttribute('aria-label', 'Close');
     closeBtn.addEventListener('click', function () { togglePanel(false); });
-    panelEl.appendChild(closeBtn);
+    panelBodyEl.appendChild(closeBtn);
     if (currentSession) {
       if (accountView === 'avatar') renderAvatarEditor();
+      else if (accountView === 'manage') renderManageAccount();
       else renderAccountPanel();
     } else {
       renderAuthPanel();
@@ -882,8 +1325,9 @@
     avatarBtn.appendChild(el('span', 'account-avatar-edit', ICON_EDIT_SVG || FALLBACK_EDIT_SVG));
     avatarBtn.addEventListener('click', function () { accountView = 'avatar'; renderPanel(); });
     row.appendChild(avatarBtn);
+    row.appendChild(el('div', 'account-email', escapeHtml(user.email || '')));
+    panelBodyEl.appendChild(row);
 
-    var col = el('div', 'account-info');
     // profiles.display_name is the one updateProfile()/every game's name-
     // edit UI actually writes to (see AUTH.md's "One identity, everywhere")
     // — reading user_metadata.display_name here instead would show the
@@ -891,59 +1335,360 @@
     var currentName = (currentProfile && currentProfile.display_name)
       || (user.user_metadata && user.user_metadata.display_name)
       || (user.email ? user.email.split('@')[0] : 'Signed in');
-    renderNameDisplay(col, currentName);
-    row.appendChild(col);
-    panelEl.appendChild(row);
+
+    var rowList = el('div', 'row-list');
+    panelBodyEl.appendChild(rowList);
+
+    var nameField = el('div', 'field acct-row');
+    rowList.appendChild(nameField);
+    renderFieldRow(nameField, {
+      label: 'Display name',
+      value: currentName,
+      maxLength: 40,
+      onSave: function (val) { updateProfile({ display_name: val }); },
+    });
+
+    // Security-sensitive stuff (email, password, delete) doesn't belong on
+    // this first-level popover — same convention most account menus use
+    // (Google's own: quick actions up front, a "Manage account" row out
+    // to the sensitive stuff). accountView='manage' is the same pattern
+    // 'avatar' already is, not a new mechanism. Its own row-list row (no
+    // label, chevron pointing at the destination) rather than the old
+    // .switch-mode text link — it's navigation to a whole sub-view, not a
+    // toggle or a one-line action, so it earns the same row treatment as
+    // the fields above it, divider included.
+    var manageRow = el('div', 'row-link acct-row', '<span>Manage account</span>' + (ICON_FORWARD_SVG || FALLBACK_FORWARD_SVG));
+    makeButtonLike(manageRow, function () { accountView = 'manage'; renderPanel(); });
+    rowList.appendChild(manageRow);
+
+    var homeRow = el('a', 'row-home acct-row', '<span class="row-home-icon">' + HOME_ICON_SVG + '</span><span>Kueh Machine Home</span>');
+    homeRow.href = '/';
+    rowList.appendChild(homeRow);
 
     var signOutBtn = el('button', 'btn btn-ghost', 'Sign out');
-    signOutBtn.style.marginTop = '14px';
+    signOutBtn.style.marginTop = '18px';
     signOutBtn.addEventListener('click', function () {
       signOut().catch(function (e) { console.error('[KuehAccount] sign out failed:', e); });
     });
-    panelEl.appendChild(signOutBtn);
+    panelBodyEl.appendChild(signOutBtn);
+    applyRetroShapeClip(signOutBtn, null, { stroke: 'var(--ka-color-surface-border)' });
   }
 
-  // Display mode: the name as a real <button> (Enter/Space work, not just
-  // click — see makeButtonLike's own comment on why this matters) with a
-  // real Lucide pencil next to it, matching .avatar-editor-back's "icon +
-  // text" convention rather than a bare pencil-only affordance.
-  function renderNameDisplay(col, name) {
-    col.innerHTML = '';
-    var nameBtn = el('button', 'account-name-btn',
-      '<span>' + escapeHtml(name) + '</span>' + (ICON_EDIT_SVG || FALLBACK_EDIT_SVG));
-    nameBtn.setAttribute('aria-label', 'Edit name');
-    nameBtn.addEventListener('click', function () { startNameEdit(col, name); });
-    col.appendChild(nameBtn);
-    col.appendChild(el('div', 'account-email', escapeHtml(currentSession.user.email || '')));
+  // ── Reusable field row: LABEL / value + Edit ──────────────────────────
+  // Display mode: a small-caps label (.panel label) over a value + "Edit"
+  // text button row. Not built display-name-specific — `opts` is generic
+  // enough that an email field could reuse this same pair of functions
+  // later (see AUTH.md's account-management note) rather than growing its
+  // own bespoke markup.
+  function renderFieldRow(container, opts) {
+    container.innerHTML = '';
+    container.appendChild(el('label', '', escapeHtml(opts.label)));
+    var row = el('div', 'field-row');
+    row.appendChild(el('div', 'field-value', escapeHtml(opts.value)));
+    var editBtn = el('button', 'field-edit-btn', 'Edit');
+    editBtn.setAttribute('aria-label', 'Edit ' + opts.label.toLowerCase());
+    editBtn.addEventListener('click', function () { renderFieldEditRow(container, opts); });
+    row.appendChild(editBtn);
+    container.appendChild(row);
   }
 
-  // Edit mode: applies immediately on Enter/blur, same "no separate Save
-  // step" convention as the avatar editor's tiles/swatches — updateProfile()
-  // pushes it to the same profiles.display_name every game reads, so
-  // renaming yourself here renames you everywhere (see AUTH.md).
-  function startNameEdit(col, currentName) {
-    col.innerHTML = '';
-    var input = el('input', 'account-name-input');
-    input.type = 'text';
-    input.maxLength = 40;
-    input.value = currentName;
-    col.appendChild(input);
-    col.appendChild(el('div', 'account-email', escapeHtml(currentSession.user.email || '')));
+  // Edit mode: applies on Enter/blur, same "no separate Save step"
+  // convention as the avatar editor's tiles/swatches — opts.onSave is what
+  // actually persists the change. Two shapes of onSave, both supported:
+  // - Fire-and-forget, returns nothing (display name's updateProfile() —
+  //   its own side effect re-renders the whole panel synchronously, so
+  //   there's nothing left for this function to do afterward).
+  // - Returns a promise (email's updateEmail() — a real network round trip
+  //   that can fail, and that doesn't take effect immediately even on
+  //   success, since Supabase requires confirming it by email first).
+  //   Resolving with a truthy string shows it as a status message and
+  //   *stays* in edit mode (email: "confirmation sent", not yet true —
+  //   switching to display mode would show an address that isn't active
+  //   yet); resolving with nothing switches to display mode showing the
+  //   new value, the same outcome the fire-and-forget path gets for free.
+  function renderFieldEditRow(container, opts) {
+    container.innerHTML = '';
+    container.appendChild(el('label', '', escapeHtml(opts.label)));
+    var input = el('input', 'field-input');
+    input.type = opts.inputType || 'text';
+    // Only the one case needs this so far (email) — a real autocomplete
+    // hint instead of leaving the browser to guess from the field's own
+    // label text, same reasoning renderPasswordEditRow's own
+    // autocomplete="new-password" already applies.
+    if (opts.inputType === 'email') input.autocomplete = 'email';
+    if (opts.maxLength) input.maxLength = opts.maxLength;
+    input.value = opts.value;
+    container.appendChild(input);
+    var statusEl = el('div', 'field-status', '');
+    container.appendChild(statusEl);
     input.focus();
     input.select();
     var committed = false;
+    var lastSubmitted = null; // guards a duplicate send if blur fires again after a status message (e.g. the user reads it, then clicks away)
     function commit() {
       if (committed) return;
-      committed = true;
       var val = input.value.trim();
-      if (val && val !== currentName) updateProfile({ display_name: val });
-      else renderPanel();
+      if (!val || val === opts.value || val === lastSubmitted) { committed = true; renderFieldRow(container, opts); return; }
+      // Fail fast on an obviously malformed email rather than round-
+      // tripping to the server to find out — input.type="email" alone only
+      // styles the field, it doesn't stop a blur/Enter handler from firing
+      // with invalid content, so checkValidity() has to be called
+      // explicitly. Left in edit mode (not committed) so the user can
+      // just keep typing rather than losing their place.
+      if (opts.inputType === 'email' && !input.checkValidity()) {
+        statusEl.className = 'field-status field-status-error';
+        statusEl.textContent = 'Enter a valid email address.';
+        // blur already moved focus away by the time this runs (this is
+        // itself the blur handler) — pull it back so the user can correct
+        // the address immediately instead of having to click back in.
+        input.focus();
+        return;
+      }
+      committed = true;
+      input.disabled = true;
+      var result = opts.onSave(val);
+      if (result && result.then) {
+        result.then(function (message) {
+          if (message) {
+            lastSubmitted = val;
+            statusEl.textContent = message;
+            input.disabled = false;
+            committed = false;
+          } else {
+            renderFieldRow(container, Object.assign({}, opts, { value: val }));
+          }
+        }).catch(function (e) {
+          committed = false;
+          input.disabled = false;
+          statusEl.className = 'field-status field-status-error';
+          statusEl.textContent = e.message || 'Something went wrong.';
+        });
+      }
     }
     input.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
-      else if (ev.key === 'Escape') { ev.preventDefault(); committed = true; renderPanel(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); committed = true; renderFieldRow(container, opts); }
     });
     input.addEventListener('blur', commit);
+  }
+
+  // ── Manage account: email, password, delete ───────────────────────────
+  // Second-level view (accountView='manage', same mechanism as 'avatar')
+  // for the account actions that don't belong on the first-level popover —
+  // security-sensitive or destructive, not something to reach on every
+  // open the way Sign Out is. Same convention most account menus use
+  // (Google's own: quick stuff up front, "Manage account" out to the rest).
+  function renderManageAccount() {
+    var backBtn = el('button', 'avatar-editor-back', (ICON_BACK_SVG || FALLBACK_BACK_SVG) + 'Back');
+    backBtn.addEventListener('click', function () { accountView = 'main'; renderPanel(); });
+    panelBodyEl.appendChild(backBtn);
+
+    panelBodyEl.appendChild(el('h3', '', 'Manage account'));
+
+    var user = currentSession.user;
+
+    var rowList = el('div', 'row-list');
+    panelBodyEl.appendChild(rowList);
+
+    var emailField = el('div', 'field acct-row');
+    rowList.appendChild(emailField);
+    renderFieldRow(emailField, {
+      label: 'Email',
+      value: user.email || '',
+      inputType: 'email',
+      onSave: function (val) {
+        // Always resolves with a message, never switches to display mode
+        // on its own — the address shown here shouldn't change to the new
+        // one until it's actually confirmed (this project's "Secure email
+        // change" setting requires confirming from both the old and new
+        // inbox), or the panel would be lying about which email is live.
+        return updateEmail(val).then(function () {
+          return 'Check both your old and new inbox to confirm the change.';
+        });
+      },
+    });
+
+    var passwordField = el('div', 'field acct-row');
+    rowList.appendChild(passwordField);
+    renderPasswordRow(passwordField);
+
+    var dangerField = el('div', 'field acct-row');
+    rowList.appendChild(dangerField);
+    renderDeleteAccountRow(dangerField);
+  }
+
+  // Password has no real "current value" to show (never known/exposed
+  // client-side) or to compare a new one against — deliberately its own
+  // small pair of functions rather than forced through renderFieldRow's
+  // "value" shape, which assumes both of those exist.
+  function renderPasswordRow(container) {
+    container.innerHTML = '';
+    container.appendChild(el('label', '', 'Password'));
+    var row = el('div', 'field-row');
+    row.appendChild(el('div', 'field-value', '••••••••'));
+    var editBtn = el('button', 'field-edit-btn', 'Edit');
+    editBtn.setAttribute('aria-label', 'Change password');
+    editBtn.addEventListener('click', function () { renderPasswordEditRow(container); });
+    row.appendChild(editBtn);
+    container.appendChild(row);
+  }
+
+  // Deliberately NOT renderFieldEditRow's own blur-to-commit pattern —
+  // right for Display Name (low-stakes, instantly correctable, no
+  // confirmation round trip needed), wrong for a password: there's no
+  // "current value" to catch a typo against, and a stray blur (a misclick,
+  // a tab key) would silently commit whatever partial text was sitting in
+  // the field with no way back. Email gets its own safety net for free
+  // (Supabase's confirm-by-email round trip); password needed one built by
+  // hand — a second "confirm" field to catch typos, and an explicit
+  // Save/Cancel pair instead of auto-commit, the same weight
+  // renderDeleteAccountConfirm already gives its own irreversible action
+  // (stacked full-width .btn/.btn-ghost, a <span>-wrapped label so the
+  // Saving… swap doesn't wipe out applyRetroShapeClip's own appended
+  // clip-def SVG the way a plain .textContent assignment would).
+  function renderPasswordEditRow(container) {
+    container.innerHTML = '';
+    container.appendChild(el('label', '', 'New password'));
+    var input = el('input', 'field-input');
+    input.type = 'password';
+    input.placeholder = 'New password';
+    input.autocomplete = 'new-password';
+    container.appendChild(input);
+
+    var confirmInput = el('input', 'field-input');
+    confirmInput.type = 'password';
+    confirmInput.placeholder = 'Confirm new password';
+    confirmInput.autocomplete = 'new-password';
+    confirmInput.style.marginTop = '8px';
+    container.appendChild(confirmInput);
+
+    var statusEl = el('div', 'field-status', '');
+    container.appendChild(statusEl);
+
+    var saveBtn = el('button', 'btn', '<span>Save</span>');
+    var saveLabelEl = saveBtn.querySelector('span');
+    var cancelBtn = el('button', 'btn btn-ghost', 'Cancel');
+    container.appendChild(saveBtn);
+    container.appendChild(cancelBtn);
+    applyRetroShapeClip(saveBtn);
+    applyRetroShapeClip(cancelBtn, null, { stroke: 'var(--ka-color-surface-border)' });
+
+    input.focus();
+    var committed = false;
+
+    // Only surfaces a mismatch once the confirm field has caught up in
+    // length to the first one — comparing on every keystroke would flag a
+    // "mismatch" on every character typed into confirmInput before it's
+    // even as long as the password it's checking against, which reads as
+    // the form nagging at you mid-type rather than actually helping.
+    function validate() {
+      if (confirmInput.value.length >= input.value.length && confirmInput.value !== input.value) {
+        statusEl.className = 'field-status field-status-error';
+        statusEl.textContent = "Passwords don't match.";
+      } else {
+        statusEl.className = 'field-status';
+        statusEl.textContent = '';
+      }
+    }
+    input.addEventListener('input', validate);
+    confirmInput.addEventListener('input', validate);
+
+    function cancel() {
+      if (committed) return;
+      committed = true;
+      renderPasswordRow(container);
+    }
+    cancelBtn.addEventListener('click', cancel);
+
+    function save() {
+      if (committed) return;
+      var val = input.value;
+      if (!val) {
+        statusEl.className = 'field-status field-status-error';
+        statusEl.textContent = 'Enter a new password.';
+        input.focus();
+        return;
+      }
+      if (val !== confirmInput.value) {
+        statusEl.className = 'field-status field-status-error';
+        statusEl.textContent = "Passwords don't match.";
+        confirmInput.focus();
+        return;
+      }
+      committed = true;
+      input.disabled = true;
+      confirmInput.disabled = true;
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+      saveLabelEl.textContent = 'Saving…';
+      updatePassword(val).then(function () {
+        renderPasswordRow(container);
+      }).catch(function (e) {
+        committed = false;
+        input.disabled = false;
+        confirmInput.disabled = false;
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
+        saveLabelEl.textContent = 'Save';
+        statusEl.className = 'field-status field-status-error';
+        statusEl.textContent = e.message || 'Something went wrong.';
+      });
+    }
+    saveBtn.addEventListener('click', save);
+
+    [input, confirmInput].forEach(function (inp) {
+      inp.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') { ev.preventDefault(); save(); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+      });
+    });
+  }
+
+  // Two-stage confirm — a plain "Delete account" click can't fire the
+  // actual deletion, it only reveals a second, explicit "Yes, delete my
+  // account" button alongside a real warning. Irreversible (see
+  // deleteAccount()'s own comment on what cascades/what survives), so this
+  // deliberately isn't a one-click action the way everything else in this
+  // panel is.
+  function renderDeleteAccountRow(container) {
+    container.innerHTML = '';
+    container.appendChild(el('label', '', 'Delete account'));
+    container.appendChild(el('div', 'field-help', "Permanently deletes your account. This can't be undone."));
+    var btn = el('button', 'btn btn-danger', 'Delete account');
+    btn.addEventListener('click', function () { renderDeleteAccountConfirm(container); });
+    container.appendChild(btn);
+    applyRetroShapeClip(btn);
+  }
+
+  function renderDeleteAccountConfirm(container) {
+    container.innerHTML = '';
+    container.appendChild(el('label', '', 'Delete account'));
+    container.appendChild(el('div', 'field-help field-help-danger',
+      "This permanently deletes your account, avatar, and saved progress. Your past leaderboard scores stay up, no longer tied to you. This can't be undone."));
+    var statusEl = el('div', 'field-status', '');
+
+    var confirmBtn = el('button', 'btn btn-danger', '<span>Yes, delete my account</span>');
+    var confirmLabelEl = confirmBtn.querySelector('span');
+    var cancelBtn = el('button', 'btn btn-ghost', 'Cancel');
+    cancelBtn.addEventListener('click', function () { renderDeleteAccountRow(container); });
+    confirmBtn.addEventListener('click', function () {
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      confirmLabelEl.textContent = 'Deleting…';
+      deleteAccount().catch(function (e) {
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        confirmLabelEl.textContent = 'Yes, delete my account';
+        statusEl.className = 'field-status field-status-error';
+        statusEl.textContent = e.message || 'Something went wrong.';
+      });
+    });
+
+    container.appendChild(confirmBtn);
+    container.appendChild(cancelBtn);
+    container.appendChild(statusEl);
+    applyRetroShapeClip(confirmBtn);
+    applyRetroShapeClip(cancelBtn, null, { stroke: 'var(--ka-color-surface-border)' });
   }
 
   // Same panel, same level as Sign out — not a separate modal-on-a-modal —
@@ -954,16 +1699,16 @@
   function renderAvatarEditor() {
     var backBtn = el('button', 'avatar-editor-back', (ICON_BACK_SVG || FALLBACK_BACK_SVG) + 'Back');
     backBtn.addEventListener('click', function () { accountView = 'main'; renderPanel(); });
-    panelEl.appendChild(backBtn);
+    panelBodyEl.appendChild(backBtn);
 
-    panelEl.appendChild(el('h3', '', 'Choose your kueh'));
+    panelBodyEl.appendChild(el('h3', '', 'Choose your avatar'));
 
     var activeIll = findIllustration(currentProfile && currentProfile.avatar_illustration) || AVATAR_ILLUSTRATIONS[0];
     var activeColor = (currentProfile && currentProfile.avatar_color) || AVATAR_COLORS[0];
 
     var preview = el('div', 'avatar-preview', '<img class="avatar-img" src="' + activeIll.src + '" alt="" />');
     preview.style.background = activeColor;
-    panelEl.appendChild(preview);
+    panelBodyEl.appendChild(preview);
 
     var grid = el('div', 'avatar-grid');
     AVATAR_ILLUSTRATIONS.forEach(function (ill) {
@@ -974,9 +1719,9 @@
       tile.addEventListener('click', function () { updateProfile({ avatar_illustration: ill.id }); });
       grid.appendChild(tile);
     });
-    panelEl.appendChild(grid);
+    panelBodyEl.appendChild(grid);
 
-    panelEl.appendChild(el('label', '', 'Background'));
+    panelBodyEl.appendChild(el('label', '', 'Background'));
     var swatchRow = el('div', 'avatar-swatch-row');
     AVATAR_COLORS.forEach(function (color) {
       var swatch = el('button', 'avatar-swatch' + (color === activeColor ? ' active' : ''));
@@ -986,67 +1731,87 @@
       swatch.addEventListener('click', function () { updateProfile({ avatar_color: color }); });
       swatchRow.appendChild(swatch);
     });
-    panelEl.appendChild(swatchRow);
+    panelBodyEl.appendChild(swatchRow);
   }
 
   function renderAuthPanel() {
-    panelEl.appendChild(el('h3', '', authMode === 'signup' ? 'Create an account' : 'Sign in'));
+    panelBodyEl.appendChild(el('h3', '', authMode === 'signup' ? 'Create an account' : 'Sign in'));
 
     var googleBtn = el('button', 'btn btn-google', GOOGLE_SVG + '<span>Continue with Google</span>');
     googleBtn.addEventListener('click', function () {
       signInWithGoogle().catch(function (e) { showError(e.message || 'Google sign-in failed.'); });
     });
-    panelEl.appendChild(googleBtn);
+    panelBodyEl.appendChild(googleBtn);
+    applyRetroShapeClip(googleBtn, null, { stroke: 'var(--ka-color-surface-border)' });
 
     var divider = el('div', '', '');
-    divider.style.cssText = 'text-align:center;margin:12px 0;opacity:0.5;font-size:11px;';
+    // font-weight: medium (600), not the inherited 400 default — at 11px
+    // and opacity:0.5 (a deliberately de-emphasized divider), regular
+    // weight read as too thin to stay legible, not just quiet.
+    divider.style.cssText = 'text-align:center;margin:12px 0;opacity:0.5;font-size:var(--ka-fs-label);font-weight:var(--ka-fw-medium);';
     divider.textContent = 'or';
-    panelEl.appendChild(divider);
+    panelBodyEl.appendChild(divider);
 
     if (authMode === 'signup') {
-      panelEl.appendChild(el('label', '', 'Display name'));
+      panelBodyEl.appendChild(el('label', '', 'Display name'));
       var nameInput = el('input', '');
       nameInput.type = 'text';
-      panelEl.appendChild(nameInput);
+      panelBodyEl.appendChild(nameInput);
     }
 
-    panelEl.appendChild(el('label', '', 'Email'));
+    panelBodyEl.appendChild(el('label', '', 'Email'));
     var emailInput = el('input', '');
     emailInput.type = 'email';
-    panelEl.appendChild(emailInput);
+    panelBodyEl.appendChild(emailInput);
 
-    panelEl.appendChild(el('label', '', 'Password'));
+    panelBodyEl.appendChild(el('label', '', 'Password'));
     var pwInput = el('input', '');
     pwInput.type = 'password';
-    panelEl.appendChild(pwInput);
+    panelBodyEl.appendChild(pwInput);
 
     var errEl = el('div', 'error', '');
-    panelEl.appendChild(errEl);
+    panelBodyEl.appendChild(errEl);
 
     var submitLabel = authMode === 'signup' ? 'Sign up' : 'Log in';
-    var submitBtn = el('button', 'btn', submitLabel);
+    // Label text lives in its own <span> — applyRetroShapeClip's appended
+    // clip-def <svg> is a sibling of it, so swapping the label during the
+    // loading state (below) can safely target just the span's textContent
+    // without wiping that sibling out from under the button's own
+    // clip-path: url(#id) reference the way a plain submitBtn.textContent
+    // assignment would.
+    var submitBtn = el('button', 'btn', '<span>' + escapeHtml(submitLabel) + '</span>');
+    var submitLabelEl = submitBtn.querySelector('span');
     submitBtn.addEventListener('click', function () {
       var email = emailInput.value.trim();
       var password = pwInput.value;
       if (!email || !password) { errEl.textContent = 'Enter your email and password.'; return; }
       submitBtn.disabled = true;
-      submitBtn.textContent = authMode === 'signup' ? 'Signing up…' : 'Logging in…';
+      submitLabelEl.textContent = authMode === 'signup' ? 'Signing up…' : 'Logging in…';
       var task = authMode === 'signup'
-        ? signUp({ email: email, password: password, displayName: panelEl.querySelector('input[type=text]') ? panelEl.querySelector('input[type=text]').value.trim() : '' })
+        ? signUp({ email: email, password: password, displayName: panelBodyEl.querySelector('input[type=text]') ? panelBodyEl.querySelector('input[type=text]').value.trim() : '' })
         : signInWithPassword({ email: email, password: password });
       task
         .then(function () { errEl.textContent = ''; })
         .catch(function (e) { errEl.textContent = e.message || 'Something went wrong.'; })
-        .finally(function () { submitBtn.disabled = false; submitBtn.textContent = submitLabel; });
+        .finally(function () { submitBtn.disabled = false; submitLabelEl.textContent = submitLabel; });
     });
-    panelEl.appendChild(submitBtn);
+    panelBodyEl.appendChild(submitBtn);
+    applyRetroShapeClip(submitBtn);
 
     var switchEl = el('div', 'switch-mode', authMode === 'signup' ? 'Already have an account? Log in' : "Don't have an account? Sign up");
     makeButtonLike(switchEl, function () {
       authMode = authMode === 'signup' ? 'login' : 'signup';
       renderPanel();
     });
-    panelEl.appendChild(switchEl);
+    panelBodyEl.appendChild(switchEl);
+
+    // Same row, same icon, as the signed-in panel's own "Kueh Machine Home"
+    // (renderAccountPanel()) — a plain top border + margin here since this
+    // view doesn't have a .row-list of its own to hang a divider off of.
+    var homeRow = el('a', 'row-home', '<span class="row-home-icon">' + HOME_ICON_SVG + '</span><span>Kueh Machine Home</span>');
+    homeRow.href = '/';
+    homeRow.style.cssText = 'margin-top:16px; padding-top:16px; border-top:var(--ka-stroke-width) solid var(--ka-color-surface-border);';
+    panelBodyEl.appendChild(homeRow);
 
     function showError(msg) { errEl.textContent = msg; }
   }
@@ -1099,6 +1864,14 @@
     if (panelOpen) {
       suppressNextOutsideClose = true;
       setTimeout(function () { suppressNextOutsideClose = false; }, 0);
+    } else if (accountView !== 'main') {
+      // Reset on close, not on open — closing from Manage Account or the
+      // avatar editor shouldn't leave the next open landing back on that
+      // same sub-view; every fresh open starts at the top level. Re-renders
+      // immediately (not lazily on next open) so there's no stale sub-view
+      // content sitting in the DOM to flash before the reset catches up.
+      accountView = 'main';
+      renderPanel();
     }
   }
 
@@ -1159,8 +1932,22 @@
       // library would.
       if (window.getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
       host.style.position = 'absolute';
-      host.style[currentOpts.anchor.indexOf('left') !== -1 ? 'left' : 'right'] =
-        (currentOpts.inset != null ? currentOpts.inset : 20) + 'px';
+      var insetSide = currentOpts.anchor.indexOf('left') !== -1 ? 'left' : 'right';
+      var configuredInset = currentOpts.inset != null ? currentOpts.inset : 20;
+      // A host page's own data-inset is tuned for its desktop header bar —
+      // root's own is 32px, sized against nav links with room to spare at
+      // that width. The same 32px on a narrow phone screen leaves the
+      // links nowhere to go, so the badge visibly overlaps the last one
+      // (confirmed directly: "BRIEF" sitting under the badge at 390px).
+      // Capping the effective inset well below that on narrow viewports
+      // gives the links their room back without needing a per-page mobile
+      // override — every docked host benefits, not just root.
+      function applyDockedInset() {
+        var inset = window.innerWidth < 480 ? Math.min(configuredInset, 10) : configuredInset;
+        host.style[insetSide] = inset + 'px';
+      }
+      applyDockedInset();
+      window.addEventListener('resize', applyDockedInset);
       host.style.top = '50%';
       host.style.transform = 'translateY(-50%)';
     } else {
@@ -1270,6 +2057,24 @@
     // bug, so this is fixed here once rather than patched per host page.
     panelEl.addEventListener('keydown', function (ev) { ev.stopPropagation(); });
     panelShadow.appendChild(panelEl);
+    // Created before applyRetroShapeClip below, and before anything can
+    // possibly trigger a renderPanel() call — see panelBodyEl's own comment
+    // for why this has to exist, and exist first.
+    panelBodyEl = el('div', 'panel-body');
+    panelEl.appendChild(panelBodyEl);
+    // gutter: 20 — matches .panel's own CSS padding exactly. minN: 15 —
+    // flatter (more subtle) than root's own STEP_CARD_SHAPE_OPTS (n:8, src/
+    // organisms/chrome-accents.js) and its plain "window" default (n:10);
+    // 8, 11, and 13 all still read as too round on this panel once actually
+    // visible, landed here by direct visual confirmation rather than a
+    // formula. Still only a floor, not a fixed value: solveClearingExponent
+    // pushes n higher, automatically, on whichever view's real content
+    // would otherwise clip against it, recalculated on every resize as the
+    // panel swaps between its own auth form/account view/manage view/
+    // avatar editor, each a different height. See solveClearingExponent's
+    // own comment above for the full story on why this isn't just a
+    // hardcoded number.
+    applyRetroShapeClip(panelEl, null, { gutter: 20, minN: 15, stroke: 'var(--ka-color-surface-border)' });
 
     renderBadge();
   }
@@ -1307,13 +2112,67 @@
   }
 
   function signInWithGoogle() {
+    // origin + pathname + search — deliberately NOT window.location.href,
+    // which can carry a #hash. Confirmed directly as the actual cause of
+    // "Google login resets the page and does nothing": supabase-js's own
+    // post-login cleanup (clearing window.location.hash after a successful
+    // implicit-grant sign-in) leaves the URL ending in a bare trailing "#"
+    // — a well-known quirk of location.hash = '' not removing the "#"
+    // character itself, not a bug in that library. If redirectTo carries
+    // that leftover "#" into the *next* OAuth attempt from the same tab,
+    // Supabase's server appends its own "#access_token=..." on top of it,
+    // landing back as "…/##access_token=…" — a double-hash the SDK's own
+    // parser can't recognize as a login callback (the stray leading "#"
+    // gets folded into the first param's key, so e.access_token comes back
+    // undefined and the whole detection branch is silently skipped: no
+    // session, no error, no console warning, and the broken hash is never
+    // cleared either — so it just compounds further on every next attempt,
+    // exactly matching the growing stack of "#access_token=…" blocks seen
+    // live. Stripping any existing hash/search before it's ever handed to
+    // Supabase means a stale fragment from a page anchor link or an
+    // earlier sign-in can never poison a later one.
+    var cleanUrl = window.location.origin + window.location.pathname;
     return ready.then(function (c) {
-      return c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+      return c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: cleanUrl } });
     }).then(unwrap);
   }
 
   function signOut() {
     return ready.then(function (c) { return c.auth.signOut(); }).then(unwrap);
+  }
+
+  // Supabase sends a confirmation email to the new address (and, with this
+  // project's "Secure email change" setting on, the old one too) rather
+  // than switching immediately — the caller is responsible for telling the
+  // user to go check their inbox; this just kicks the flow off.
+  function updateEmail(newEmail) {
+    return ready.then(function (c) { return c.auth.updateUser({ email: newEmail }); }).then(unwrap);
+  }
+
+  function updatePassword(newPassword) {
+    return ready.then(function (c) { return c.auth.updateUser({ password: newPassword }); }).then(unwrap);
+  }
+
+  // Permanently deletes the signed-in user's own account. Can't be done
+  // with just the anon/publishable key this file otherwise uses —
+  // auth.admin.deleteUser() needs the service-role key, which never
+  // belongs in client code — so this calls a server-side Edge Function
+  // (supabase/functions/delete-account) instead. That function verifies
+  // the caller's own JWT before deleting anything; nothing here trusts a
+  // client-supplied id. profiles/ruth_profiles rows cascade-delete
+  // automatically (their own FK to auth.users, see 0001_init.sql);
+  // ruth_scores/liwei_scores rows survive with user_id set to null,
+  // keeping leaderboard history intact but anonymized rather than erasing
+  // it. Signs the (now-deleted) session out locally on success, same as a
+  // normal signOut() — the server-side session is already invalid at that
+  // point, this just clears local state to match.
+  function deleteAccount() {
+    return ready.then(function (c) {
+      return c.functions.invoke('delete-account');
+    }).then(function (res) {
+      if (res && res.error) throw res.error;
+      return signOut();
+    });
   }
 
   function unwrap(res) {
@@ -1367,6 +2226,9 @@
     signInWithPassword: signInWithPassword,
     signInWithGoogle: signInWithGoogle,
     signOut: signOut,
+    updateEmail: updateEmail,
+    updatePassword: updatePassword,
+    deleteAccount: deleteAccount,
     // Lets a host page open the panel from its own UI — e.g. a "Sign in"
     // link inside a game's own onboarding flow (see machines/ruth/index.html)
     // — instead of requiring a click directly on the badge itself.

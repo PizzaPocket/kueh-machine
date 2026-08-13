@@ -699,8 +699,16 @@
   border: none;
   background: none;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 600;
+  /* --type-label-size/-weight/--tracking-label (index.html's own :root
+     block) — the exact same three tokens .site-nav a reads (styles/
+     organisms/site-nav.css), not just matching numbers duplicated in two
+     places. Used to be its own 0.875rem/600 sentence-case convention;
+     brought up to the header-nav treatment so every interactive text
+     control reads as one family. */
+  font-size: var(--type-label-size, 0.8125rem);
+  font-weight: var(--type-label-weight, 700);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label, 0.08em);
   padding: 9px 20px;
   border-radius: var(--radius-interactive);
   cursor: pointer;

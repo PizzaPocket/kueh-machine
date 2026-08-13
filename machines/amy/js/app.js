@@ -13,6 +13,75 @@
   let state = STATE.IDLE;
   let crackCount = 0;
 
+  // ── Collection persistence ──────────────────────────────────────────
+  // { [kuehId]: count } — every kueh this browser has ever revealed, plus
+  // how many times. localStorage first (works for anyone, signed in or
+  // not); when signed in, synced with amy_collection in Supabase
+  // (supabase/migrations/0003_amy_collection.sql) so it follows the
+  // account instead of staying stuck in one browser. There's no UI for
+  // this yet beyond the "· New" tag in revealKueh() below — the data's
+  // there to build a real collection view on top of, same shape as Ken's
+  // gachapon machine (machines/ken/js/app.js) already demonstrates.
+  const COLLECTION_KEY = "amy-kueh-collection";
+  const collection = JSON.parse(localStorage.getItem(COLLECTION_KEY) || "{}");
+
+  function saveCollection() {
+    localStorage.setItem(COLLECTION_KEY, JSON.stringify(collection));
+  }
+
+  function addToCollection(kuehId) {
+    const isNew = !collection[kuehId];
+    collection[kuehId] = (collection[kuehId] || 0) + 1;
+    saveCollection();
+    pushCollectionToServer();
+    return isNew;
+  }
+
+  function pushCollectionToServer() {
+    const user = window.KuehAccount.getUser();
+    if (!user) return; // guest — localStorage above is already the whole story
+    window.KuehAccount.ready.then((client) =>
+      client.from("amy_collection").upsert({
+        user_id: user.id,
+        data: collection,
+        updated_at: new Date().toISOString()
+      })
+    ).catch((e) => console.warn("[amy] collection sync failed:", e));
+  }
+
+  // Union, not overwrite either direction — same reasoning as Ken's own
+  // syncCollectionFromServer: take the higher count per kueh between
+  // whatever's already in this browser and whatever the account already
+  // had saved, so neither a first sign-in nor a returning one on a fresh
+  // browser ever loses a reveal.
+  function syncCollectionFromServer() {
+    const user = window.KuehAccount.getUser();
+    if (!user) return;
+    window.KuehAccount.ready
+      .then((client) => client.from("amy_collection").select("data").eq("user_id", user.id).maybeSingle())
+      .then((res) => {
+        const server = (res && res.data && res.data.data) || {};
+        let changed = false;
+        let serverBehind = false;
+        Object.keys(server).forEach((id) => {
+          if ((collection[id] || 0) < server[id]) { collection[id] = server[id]; changed = true; }
+        });
+        Object.keys(collection).forEach((id) => {
+          if (collection[id] > (server[id] || 0)) serverBehind = true;
+        });
+        if (changed) saveCollection();
+        if (changed || serverBehind) pushCollectionToServer();
+      })
+      .catch((e) => console.warn("[amy] collection fetch failed:", e));
+  }
+
+  window.KuehAccount.ready.then(() => {
+    if (window.KuehAccount.getUser()) syncCollectionFromServer();
+  });
+  window.KuehAccount.onAuthStateChange((event) => {
+    if (event === "SIGNED_IN") syncCollectionFromServer();
+  });
+
   const prefersReducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;
@@ -97,9 +166,10 @@
   function revealKueh() {
     state = STATE.REVEALED;
     const kueh = KUEH_DATA[Math.floor(Math.random() * KUEH_DATA.length)];
+    const isNew = addToCollection(kueh.id);
 
     kuehArt.innerHTML = renderKuehArt(kueh);
-    kuehName.textContent = kueh.name;
+    kuehName.textContent = isNew ? `${kueh.name} · New` : kueh.name;
     kuehDesc.textContent = kueh.description;
     kuehTaste.textContent = kueh.taste;
     kuehHistory.textContent = kueh.history;
