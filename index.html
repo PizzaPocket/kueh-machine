@@ -1098,17 +1098,24 @@
     /* Lucide icon (src/organisms/icons.js) standing in for the list
        marker — display:flex on the <li> itself, not a nested wrapper, so
        the text still reads as a plain left-aligned line, just starting
-       after the icon + gap instead of after a bullet. */
+       after the icon + gap instead of after a bullet. gap: 22px matches
+       .step-card-fill's own gap (between .step-num and .step-body) so a
+       numbered step's text and an icon-bulleted line's text land at the
+       exact same left edge, not two different indents on the same page. */
     .leveling-resource-list li {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
+      gap: 22px;
       font-size: 0.9rem;
       line-height: 1.6;
     }
     .leveling-resource-icon {
       flex-shrink: 0;
-      width: 18px;
+      /* 24px wide (not 18px) to match .step-num's own column width, for
+         the same reason as the gap above — the icon itself still renders
+         at 18px (SVG aspect-ratio preserved, centered in the extra space)
+         since height stays 18px. */
+      width: 24px;
       height: 18px;
       margin-top: 3px; /* optically aligns with the text's first line, not its own box center */
       color: var(--color-text-on-surface);
