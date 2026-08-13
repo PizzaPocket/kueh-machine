@@ -945,6 +945,16 @@
       filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
       transition: background 0.15s;
     }
+    /* Getting Started's own CLAUDE.md download needs no override here — it
+       sits alongside plain .step-heading/.step-text siblings in the same
+       .step-body with no competing indent, so it's already flush with
+       them. This one's different: its own .step-body has a
+       .leveling-resource-list before it, and that list's own text is
+       pushed right by its icon + gap (24px + 22px = 46px, .leveling-
+       resource-icon/.leveling-resource-list li's own values), so the
+       file-card needs the same 46px to land on that same text edge
+       instead of the icon's. */
+    #shared-database .file-card { margin-left: 46px; }
     .file-card:hover {
       background: var(--color-primary);
     }
