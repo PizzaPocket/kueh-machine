@@ -27,7 +27,8 @@
 #brief,
 #timeline,
 #guide,
-#leveling-up {
+#leveling-up,
+#shared-database {
   scroll-margin-top: calc(var(--site-nav-height, 64px) + 12px);
 }
 

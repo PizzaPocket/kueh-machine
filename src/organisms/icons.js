@@ -13,9 +13,9 @@
 // URLs in ES module imports natively, same "static site, no build step"
 // constraint every other organism already lives under.
 
-import { createIcons, Layers, Shield, Shapes, Grid3x3, NotebookPen, BookOpenText } from 'https://esm.sh/lucide@latest';
+import { createIcons, Layers, Shield, Shapes, Grid3x3, NotebookPen, BookOpenText, Database } from 'https://esm.sh/lucide@latest';
 
-const ICONS = { Layers, Shield, Shapes, Grid3x3, NotebookPen, BookOpenText };
+const ICONS = { Layers, Shield, Shapes, Grid3x3, NotebookPen, BookOpenText, Database };
 
 export function init() {
   createIcons({ icons: ICONS });
