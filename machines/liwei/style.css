@@ -676,6 +676,18 @@ canvas#game {
   justify-content: space-between;
   gap: 0.5rem;
   margin-top: 0.85rem;
+  /* Matches .lb-name-row's own left/right padding (0.7rem) and its 1px
+     border — not chosen independently. .lb-name-row is a bordered/tinted
+     box with its own inset, .lb-signin-hint is plain text with none of
+     its own, so without this the hint text and "Sign In" would sit flush
+     with the panel edge while "Player 1234"/"Edit name" sit inset above
+     them. The border here stays transparent (no visible line wanted) but
+     still occupies the same 1px .lb-name-row's real border does, so the
+     content insets match exactly, not off by that 1px. This lines the
+     hint's text up with the name text's left edge, and "Sign In" up with
+     "Edit name"'s right edge. */
+  border: 1px solid transparent;
+  padding: 0 0.7rem;
   font-size: 0.72rem;
   font-weight: 600;
   color: rgba(253, 245, 238, 0.55);
