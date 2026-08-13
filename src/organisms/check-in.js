@@ -64,7 +64,7 @@ const CONTRIBUTORS = [
     windowDecors: [{ src: 'images/checkin/snake-peek.gif', position: 'top-left' }],
     randomiserKey: 'Liwei',
   },
-  { initials: 'MJ', name: 'Mei Jun Chew', desc: "(the one that's a taste of home)", randomiserKey: 'Mei Jun' },
+  { initials: 'MJ', name: 'Mei Jun Chew', title: 'Taste of Home', desc: "(the one that's a taste of home)", url: '/machines/meijun/', randomiserKey: 'Mei Jun' },
   { initials: 'NA', name: 'Natalia Lionardy', title: 'Care Island', desc: "(the one where you watch today's scene come alive)", url: '/machines/natalia/', randomiserKey: 'Natalia' },
   { initials: 'NE', name: 'Nicole Ng', desc: "(the one that's a ___)" },
   {
