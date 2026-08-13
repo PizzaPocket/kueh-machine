@@ -38,6 +38,6 @@ Most contributors don't have the full repo locally, just their own project. Two 
 
 ## What not to do
 
-- Don't create a separate Supabase project or hardcode a different URL or key. One shared project, one `shared/account-widget.js`.
+- Don't wire your actual project to a separate Supabase project or a different URL or key. It needs to end up on the one shared project, through the one `shared/account-widget.js`. Spinning up your own free Supabase project on the side to learn RLS or try something out is completely fine. Just don't ship that as what your submission depends on.
 - Don't require sign-in for the core feature to work. Every project on this site needs to work fully for someone who never makes an account.
 - Don't skip row level security, and don't guess at a policy that isn't actually right for who should read or write that table. A table with RLS off is a real security hole, not a shortcut.
