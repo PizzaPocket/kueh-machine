@@ -377,17 +377,25 @@
   // site-wide, so this panel's controls read as the same family instead of
   // a close-but-different approximation.
   var SMALL_RETRO_SHAPE_N = 6;
-  // Single standard hairline width for every stroke in this panel — plain
-  // CSS borders (dividers, input/home-icon outlines, via --ka-stroke-width
-  // below) AND applyRetroShapeClip's own SVG stroke overlay (its default,
-  // this file's own reference point). These aren't interchangeable at the
-  // same nominal number: confirmed directly, a 1px SVG <path> stroke
-  // renders visibly fainter than a 1px CSS border at the same color (the
-  // vector path's anti-aliasing spreads the same ink across a softer edge
-  // a crisp, pixel-snapped CSS border doesn't have to deal with) — 1px
-  // read as a noticeably weaker line around every button than the row
-  // dividers right next to them. 2px is the value that actually matches
-  // the two side by side, not a literal "both are 1px" equivalence.
+  // Raw SVG stroke-width applyRetroShapeClip's own stroke overlay defaults
+  // to — deliberately NOT the same number as --ka-stroke-width (the plain
+  // CSS border standard, 1px, set on :host below). The two produce the
+  // SAME true visual width for a real, confirmed geometric reason, not a
+  // coincidence and not "1px SVG looks fainter so bump it a bit": the
+  // stroke overlay's <path> is drawn with the exact same `d` as el's own
+  // clip-path, and an SVG stroke paints centered on its path — half the
+  // width inside, half outside. el's clip-path then cuts away everything
+  // outside that same path, including the outer half of its own stroke
+  // overlay (clip-path clips an element's whole painted subtree, not just
+  // its own fill — overflow:visible on the stroke <svg> doesn't exempt it,
+  // confirmed directly: at matching nominal widths, every button's traced
+  // edge rendered at roughly half the thickness of a plain CSS border
+  // right next to it). A raw stroke-width of 2 here means exactly 1px
+  // survives the clip, matching --ka-stroke-width's 1px CSS borders
+  // exactly. Setting both to the same literal number (what this file did
+  // at one point) silently doubles the CSS side's true width relative to
+  // the button side's — the earlier "buttons read thinner than dividers"
+  // bug, exactly.
   var STROKE_WIDTH = 2;
   // Ported by value from src/tokens/superellipse.js's own
   // superellipseValue/solveClearingExponent — for a big surface like the
@@ -614,12 +622,13 @@
     // purpose — it is a tiny corner badge overlay on the avatar, not a
     // standalone icon, a deliberate exception rather than an oversight.
     + '  --ka-icon-size: 20px;'
-    // Same STROKE_WIDTH constant applyRetroShapeClip's own SVG stroke
-    // overlay defaults to (see its own comment) — generated from that one
-    // JS value rather than a second hand-typed "2px" here, so a plain CSS
-    // border (dividers, input/home-icon outlines) and a superellipse
-    // button's traced edge can never drift apart again.
-    + '  --ka-stroke-width: ' + STROKE_WIDTH + 'px;'
+    // The true visual hairline standard for a plain CSS border (dividers,
+    // input outline) — 1px, NOT STROKE_WIDTH (2, above). Deliberately two
+    // different numbers for the same visual result: see STROKE_WIDTH's own
+    // comment for why a superellipse button's traced stroke needs double
+    // the raw width to render at this same 1px once its own clip-path
+    // cuts the outer half away.
+    + '  --ka-stroke-width: 1px;'
     // Set per-mount from data-size/data-accent-color/data-icon-color (mount(),
     // below) via host.style.setProperty — these are just the un-configured
     // fallback values, same numbers/colors the widget always used before
