@@ -1,9 +1,10 @@
 // Renders the procedural batik motif field (src/tokens/batik-motifs.js)
 // into SVG markup, and owns the draw-in reveal animation for it — same
 // split chrome-metal.js uses between its pure gradient-string builders and
-// its DOM-effect functions (registerForSheen, applyIconFillSheen), kept
-// together here rather than in a separate organism since the animation is
-// intrinsic to how this atom renders, not page-specific wiring.
+// its DOM-effect functions (registerForRotation, applyLayeredConicChrome),
+// kept together here rather than in a separate organism since the
+// animation is intrinsic to how this atom renders, not page-specific
+// wiring.
 //
 // Colors are never resolved here: every fill/stroke is a var(--color-*)
 // reference, so the pattern always matches whatever palette

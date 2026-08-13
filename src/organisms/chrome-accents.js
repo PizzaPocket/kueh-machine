@@ -1,16 +1,15 @@
 // Organism: applies the "liquid chrome" treatment (src/tokens/chrome-metal.js)
 // to the static decorative elements that aren't owned by another organism —
-// the "Machine" wordmark and the guide section's step-cards — plus a single
-// blanket sweep that wires up every .text-sheen/.icon-sheen element on the
-// page (however it got rendered — static HTML, or dynamic markup from
-// another organism/molecule/atom) for the cursor-Y-tracking light accent.
-// Centralizing that sweep here, run last (see main.js), means individual
-// atoms/organisms that use .text-sheen/.icon-sheen don't each need their own
-// registration call and can't accidentally double-register the same
-// element. .tab-group-rim is handled inside tab-group.js, the site-nav
-// divider inside site-nav.js, since those are real conic-chrome rims, not
-// the sheen accent. Kueh of the Day (kueh-of-day.js) dropped its own
-// chrome rim in favor of retro-rectangle shapes (src/atoms/retro-shape.js).
+// the "Machine" wordmark and the guide section's step-cards. .tab-group-rim
+// is handled inside tab-group.js, the site-nav divider inside site-nav.js,
+// since those are their own conic-chrome rims. Kueh of the Day
+// (kueh-of-day.js) dropped its own chrome rim in favor of retro-rectangle
+// shapes (src/atoms/retro-shape.js).
+//
+// (This file used to also run a blanket sweep wiring up every .text-sheen/
+// .icon-sheen element for a cursor-tracking light accent — removed as too
+// distracting. .text-sheen is now a plain static color; see its own
+// comment in styles/atoms.css.)
 // Both wordmarks' rims (.chrome-text-rim, index.html) used to be static
 // CSS gradients — "Machine"'s a plain linear-gradient, "Kueh"'s two
 // (inner + a thicker outer) added later. All four are wired up here now
@@ -21,7 +20,7 @@
 // registered for cursor rotation, unlike most other conic rims on the
 // site) — see WORDMARK_RIM_OUTER_ANGLE below for why.
 
-import { applyLayeredConicChrome, computeConicChromeLayers, registerForSheen, applyIconFillSheen } from '../tokens/chrome-metal.js';
+import { applyLayeredConicChrome, computeConicChromeLayers } from '../tokens/chrome-metal.js';
 import { attachRetroShapeClip, SMALL_RETRO_SHAPE_OPTS } from '../atoms/retro-shape.js';
 
 // Peaks shared by both wordmarks' rims — matches housing-frame.js's own
@@ -156,7 +155,4 @@ export function init() {
   };
   document.querySelectorAll('.chrome-text-rim--themed').forEach(wireWordmarkRim(KUEH_RIM_DARK, KUEH_RIM_LIGHT));
   document.querySelectorAll('.chrome-text-rim--metal').forEach(wireWordmarkRim(MACHINE_RIM_DARK, MACHINE_RIM_LIGHT));
-
-  document.querySelectorAll('.text-sheen').forEach((el) => registerForSheen(el));
-  document.querySelectorAll('.icon-sheen').forEach((el) => applyIconFillSheen(el));
 }

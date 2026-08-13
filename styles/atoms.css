@@ -605,75 +605,18 @@
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.18);
 }
 
-/* .text-sheen — a subtle, fixed-vertical light band across text: base
-   color, a slightly lighter step, back to base. Unlike the liquid-chrome
-   rims, this never rotates — it tracks cursor Y only (src/tokens/
-   chrome-metal.js registerForSheen), via --sheen-pos (0%-100% down the
-   element). Cursor above the element pins the light to the very top,
-   cursor below pins it to the bottom, cursor alongside the element makes
-   the light step follow it. Elements using this set --sheen-base to
-   whatever their own color would normally be (can't just use currentColor:
-   this rule sets color: transparent to reveal the gradient, and
-   currentColor would then resolve to that same transparent, not the
-   element's real intended color). */
+/* .text-sheen used to be a cursor-tracking light band across text (base
+   color, a slightly lighter step following the pointer's Y position, back
+   to base) — removed as too distracting; every element that carries this
+   class still sets --sheen-base to its own intended color, so this now
+   just reads that variable directly as a plain, static color instead of
+   feeding a gradient. Kept the class name and --sheen-base rather than
+   editing every call site that sets it (src/atoms/tab.js, button.js,
+   index.html, styles/organisms/site-nav.css, and below), since removing
+   the animation only ever required changing what this one rule does with
+   it, not un-marking every element that used to animate. */
 .text-sheen {
-  background: linear-gradient(to bottom,
-    var(--sheen-base) 0%,
-    var(--sheen-base) calc(var(--sheen-pos) - 25%),
-    color-mix(in srgb, var(--sheen-base) 80%, white) var(--sheen-pos),
-    var(--sheen-base) calc(var(--sheen-pos) + 25%),
-    var(--sheen-base) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* .icon-sheen marks which icons src/organisms/chrome-accents.js's blanket
-   sweep should apply the light accent to — the actual visual treatment is
-   .icon-sheen-wrap/.icon-sheen-highlight below, built at runtime by
-   applyIconFillSheen() (src/tokens/chrome-metal.js), since it needs a
-   cloned DOM layer, not just a CSS rule on the icon itself. */
-
-/* .icon-sheen-wrap — sizes to the base icon (its only in-flow child);
-   .icon-sheen-highlight is the lightened clone, absolutely positioned
-   exactly on top of it. */
-.icon-sheen-wrap {
-  position: relative;
-  display: inline-flex;
-  vertical-align: middle;
-}
-
-/* The clone is masked to a soft band around --sheen-pos (identical shape to
-   .text-sheen's gradient, see atoms.css above, so both accents move
-   together) — everywhere outside that band the mask is fully transparent,
-   so the clone (and its brightened pixels) simply doesn't render there and
-   the base icon underneath shows through unchanged. Because the mask is
-   multiplied against the clone's own alpha, the highlight can never bleed
-   past the icon's own silhouette the way a drop-shadow does — it only ever
-   lightens pixels the icon already paints, which is what reads as a fill
-   catching light rather than a glow around the icon. brightness()/
-   saturate() (not a recolored fill/stroke) is what keeps this working
-   regardless of the icon's own fill complexity. */
-.icon-sheen-highlight {
-  position: absolute;
-  inset: 0;
-  filter: brightness(1.6) saturate(0.7);
-  -webkit-mask-image: linear-gradient(to bottom,
-    transparent 0%,
-    transparent calc(var(--sheen-pos) - 25%),
-    white var(--sheen-pos),
-    transparent calc(var(--sheen-pos) + 25%),
-    transparent 100%
-  );
-  mask-image: linear-gradient(to bottom,
-    transparent 0%,
-    transparent calc(var(--sheen-pos) - 25%),
-    white var(--sheen-pos),
-    transparent calc(var(--sheen-pos) + 25%),
-    transparent 100%
-  );
-  pointer-events: none;
+  color: var(--sheen-base);
 }
 
 /* .tab — the tab group's sliding .tab-highlight (src/molecules/

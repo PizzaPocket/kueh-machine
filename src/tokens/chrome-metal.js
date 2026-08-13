@@ -98,20 +98,16 @@ function buildConicGlints(peaks, glintVars, center) {
 
 // --- shared cursor/scroll-driven loop --------------------------------------
 //
-// Two independent effects read this same loop's pointer tracking, but drive
-// different custom properties and never influence each other:
-//   - rotationTargets: --chrome-angle, a full rotation for the metal rims
-//     (tab-group, step-cards, the site-nav divider) — most of what reads
-//     as "liquid" rather than a static metallic border. Still active on
-//     touch devices via scroll (see noPersistentPointer below) — scroll-
-//     linked rotation is a real effect there too, not a cursor stand-in.
-//   - sheenTargets: --sheen-pos, a vertical-only position (0%-100% down the
-//     element) for the .text-sheen/.icon-sheen light-catching accent on text
-//     and our own decorative icons — deliberately NOT rotation-based (a
-//     light source doesn't orbit), just tracks how far up/down the cursor
-//     sits relative to that specific element. Icons use the same --sheen-pos
-//     value as text (see applyIconFillSheen below), just through a masked
-//     highlight layer instead of background-clip:text.
+// rotationTargets drives --chrome-angle, a full rotation for the metal rims
+// (tab-group, step-cards, the site-nav divider) — most of what reads as
+// "liquid" rather than a static metallic border. Still active on touch
+// devices via scroll (see noPersistentPointer below) — scroll-linked
+// rotation is a real effect there too, not a cursor stand-in.
+//
+// (This loop used to also drive a second, independent effect —
+// --sheen-pos, a cursor-Y-tracking light accent on .text-sheen/.icon-sheen
+// text and icons — removed as too distracting. .text-sheen is now a plain
+// static color; see its own comment in styles/atoms.css.)
 //
 // This loop runs for the entire life of the page once anything registers,
 // so two things keep it from being a permanent full-cost drain:
@@ -124,12 +120,9 @@ function buildConicGlints(peaks, glintVars, center) {
 //     havePointer latch true after the first touch would just freeze every
 //     rim's angle at a stale point forever while still paying the per-
 //     frame cost. Touch devices skip the pointer-tracking listener
-//     entirely, so rotationTargets falls back to its scroll-only path, and
-//     sheenTargets (which has no scroll fallback) never registers an
-//     element there at all.
+//     entirely, so rotationTargets falls back to its scroll-only path.
 
 const rotationTargets = [];
-const sheenTargets = [];
 let loopStarted = false;
 let pointerX = 0;
 let pointerY = 0;
@@ -214,20 +207,6 @@ function startSharedLoop() {
       target.el.style.setProperty('--chrome-angle', `${target.current}deg`);
     }
 
-    if (havePointer) {
-      for (const target of sheenTargets) {
-        if (!target.visible) continue;
-        const rect = target.el.getBoundingClientRect();
-        let posPct;
-        if (pointerY <= rect.top) posPct = 0;
-        else if (pointerY >= rect.bottom) posPct = 100;
-        else posPct = ((pointerY - rect.top) / rect.height) * 100;
-
-        target.current += (posPct - target.current) * 0.15;
-        target.el.style.setProperty('--sheen-pos', `${target.current.toFixed(1)}%`);
-      }
-    }
-
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
@@ -245,70 +224,6 @@ function registerForRotation(el) {
   rotationTargets.push(target);
   observeVisibility(target);
   startSharedLoop();
-}
-
-/**
- * Registers an element's --sheen-pos to track the cursor's
- * vertical position against that element's own bounds (see the loop above
- * for the exact mapping). A no-op under prefers-reduced-motion or on touch
- * devices (noPersistentPointer, see the loop's own comment) — the element
- * keeps the static centered fallback (--sheen-pos: 50%) set in tokens.css
- * instead of animating.
- */
-export function registerForSheen(el) {
-  if (!el || prefersReducedMotion || noPersistentPointer) return;
-  const target = { el, current: 50, visible: false };
-  sheenTargets.push(target);
-  observeVisibility(target);
-  startSharedLoop();
-}
-
-let iconSheenUid = 0;
-
-// SVG `id`s (referenced internally via url(#id) on clip-path/mask/fill, e.g.
-// the kueh icon's layered-bars clipPath) collide once cloned — two elements
-// sharing one id resolve unpredictably. Rewrite the clone's ids and any
-// internal references to it so the clone stays self-contained.
-function dedupeClonedIds(clone) {
-  const suffix = `-sheen${iconSheenUid++}`;
-  clone.querySelectorAll('[id]').forEach((node) => {
-    const oldId = node.id;
-    const newId = oldId + suffix;
-    node.id = newId;
-    clone.querySelectorAll(`[clip-path="url(#${oldId})"]`).forEach((ref) => ref.setAttribute('clip-path', `url(#${newId})`));
-    clone.querySelectorAll(`[mask="url(#${oldId})"]`).forEach((ref) => ref.setAttribute('mask', `url(#${newId})`));
-    clone.querySelectorAll(`[fill="url(#${oldId})"]`).forEach((ref) => ref.setAttribute('fill', `url(#${newId})`));
-  });
-}
-
-/**
- * Turns an icon into a "fill within the icon" light accent: a lightened
- * clone stacked exactly on top of the original, masked to a band around
- * --sheen-pos (see .icon-sheen-highlight, styles/atoms.css) so the light
- * only ever shows through pixels the icon itself already paints — unlike a
- * drop-shadow, which paints a silhouette outside the icon's own shape and
- * reads as a glow/halo rather than a highlight on the material itself.
- * `filter: brightness()` on the clone (rather than recoloring its fill/
- * stroke attributes directly) is what keeps this working regardless of the
- * icon's own fill complexity — flat single-color, multi-part, currentColor,
- * whatever it draws, brightening the rendered pixels doesn't care.
- */
-export function applyIconFillSheen(el) {
-  if (!el || el.dataset.sheenWrapped) return;
-  el.dataset.sheenWrapped = 'true';
-
-  const wrap = document.createElement('span');
-  wrap.className = 'icon-sheen-wrap';
-  el.parentNode.insertBefore(wrap, el);
-  wrap.appendChild(el);
-
-  const highlight = el.cloneNode(true);
-  highlight.classList.add('icon-sheen-highlight');
-  highlight.setAttribute('aria-hidden', 'true');
-  dedupeClonedIds(highlight);
-  wrap.appendChild(highlight);
-
-  registerForSheen(wrap);
 }
 
 /**
