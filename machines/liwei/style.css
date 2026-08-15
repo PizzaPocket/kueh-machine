@@ -48,7 +48,7 @@ header {
 }
 
 .eyebrow {
-  font-size: 0.62rem;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -89,7 +89,8 @@ h1 span {
 }
 
 .score-label {
-  font-size: 0.5rem;
+  /* font-size: 0.5rem; */
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -104,7 +105,7 @@ h1 span {
   font-weight: 900;
   line-height: 1;
   color: var(--cream);
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .hint-label {
@@ -143,7 +144,7 @@ canvas#game {
 }
 
 .overlay.hidden {
-  display: none;
+  display: none !important;
 }
 
 .snake-peek-mask {
@@ -262,7 +263,7 @@ canvas#game {
 }
 
 .score-val.pulse {
-  transform: scale(var(--pulse-scale, 1.2)) rotate(-3deg);
+  transform: scale(1.16);
   color: var(--lime);
 }
 
@@ -276,21 +277,17 @@ canvas#game {
 }
 
 .streak.active {
-  animation: streakPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: streakPop 0.25s ease-out;
 }
 
 @keyframes streakPop {
   0% {
-    transform: scale(0.5);
+    transform: translateX(6px);
     opacity: 0
   }
 
-  60% {
-    transform: scale(1.2)
-  }
-
   100% {
-    transform: scale(1);
+    transform: translateX(0);
     opacity: 1
   }
 }
@@ -303,23 +300,19 @@ canvas#game {
   font-weight: 900;
   color: var(--lime);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  animation: floatUp 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: floatUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   z-index: 10;
 }
 
 @keyframes floatUp {
   0% {
     opacity: 1;
-    transform: translateY(0) scale(0.6)
-  }
-
-  30% {
-    transform: translateY(-12px) scale(1.3)
+    transform: translateY(0)
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-50px) scale(0.9)
+    transform: translateY(-34px)
   }
 }
 
@@ -373,7 +366,7 @@ canvas#game {
 
 .tutorial-icon {
   font-size: 3rem;
-  animation: tutBounce 1s cubic-bezier(0.34, 1.56, 0.64, 1) infinite alternate;
+  animation: tutBounce 3.2s ease-in-out infinite alternate;
 }
 
 @keyframes tutBounce {
@@ -382,7 +375,7 @@ canvas#game {
   }
 
   100% {
-    transform: translateY(-8px)
+    transform: translateY(-3px)
   }
 }
 
@@ -445,7 +438,7 @@ canvas#game {
   font-size: 6rem;
   font-weight: 900;
   color: var(--cream);
-  animation: countPop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: countPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .countdown-num.go {
@@ -454,18 +447,8 @@ canvas#game {
 
 @keyframes countPop {
   0% {
-    transform: scale(0.3);
+    transform: scale(0.85);
     opacity: 0
-  }
-
-  40% {
-    transform: scale(1.2);
-    opacity: 1
-  }
-
-  70% {
-    transform: scale(0.95);
-    opacity: 1
   }
 
   100% {
@@ -530,7 +513,8 @@ canvas#game {
 }
 
 .kopi-hint-inline-text {
-  font-size: 0.84rem;
+  /* font-size: 0.84rem; */
+  font-size: 16px;
   font-weight: 700;
   color: rgba(253, 245, 238, 0.6);
   line-height: 1.4;
@@ -565,7 +549,8 @@ canvas#game {
 }
 
 .lb-gameover-label {
-  font-size: 0.85rem;
+  /* font-size: 0.85rem; */
+  font-size: 16px;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: none;
@@ -588,7 +573,8 @@ canvas#game {
 }
 
 .lb-score-unit {
-  font-size: 0.65rem;
+  /* font-size: 0.65rem; */
+  font-size: 12px;
   font-weight: 700;
   color: rgba(253, 245, 238, 0.5);
   letter-spacing: 0.03em;
@@ -705,7 +691,8 @@ canvas#game {
 }
 
 .lb-section-label {
-  font-size: 0.52rem;
+  /* font-size: 0.52rem; */
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -765,7 +752,8 @@ canvas#game {
 }
 
 .lb-rank {
-  font-size: 0.62rem;
+  /* font-size: 0.62rem; */
+  font-size: 12px;
   font-weight: 900;
   color: rgba(253, 245, 238, 0.4);
   width: 18px;
@@ -791,7 +779,8 @@ canvas#game {
 
 .lb-entry-name {
   flex: 1;
-  font-size: 0.78rem;
+  /* font-size: 0.78rem; */
+  font-size: 14px;
   font-weight: 700;
   color: #FDF5EE;
   white-space: nowrap;
@@ -804,7 +793,8 @@ canvas#game {
 }
 
 .lb-entry-score {
-  font-size: 0.78rem;
+  /* font-size: 0.78rem; */
+  font-size: 14px;
   font-weight: 900;
   color: #FDF5EE;
   flex-shrink: 0;
@@ -874,17 +864,17 @@ canvas#game {
 }
 
 /* ── Kopi hint animations ── */
-@keyframes kopiGlowPulse {
+@keyframes kopiPulse {
 
   0%,
   100% {
     filter: drop-shadow(0 0 0px rgba(196, 147, 63, 0));
-    transform: scale(1.2);
+    opacity: 0.85;
   }
 
   50% {
-    filter: drop-shadow(0 0 7px rgba(196, 147, 63, 0.95));
-    transform: scale(1.5);
+    filter: drop-shadow(0 0 6px rgba(196, 147, 63, 0.85));
+    opacity: 1;
   }
 }
 
@@ -901,7 +891,7 @@ canvas#game {
 }
 
 .kopi-hint-icon {
-  animation: kopiGlowPulse 2.5s ease-in-out infinite;
+  animation: kopiPulse 2.5s ease-in-out infinite;
   transform-origin: center;
   flex-shrink: 0;
   display: flex;
@@ -921,50 +911,59 @@ canvas#game {
 }
 
 /* ── Combo display ── */
-@keyframes comboBounce {
+@keyframes comboBurst {
   0% {
+    transform: translate(-50%, -50%) scale(0.4);
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3);
   }
 
-  28% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.28);
-  }
-
-  52% {
-    transform: translate(-50%, -50%) scale(0.9);
+  18% {
+    transform: translate(-50%, -50%) scale(1.2);
     opacity: 1;
   }
 
-  68% {
-    transform: translate(-50%, -50%) scale(1.06);
+  32% {
+    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
 
-  78% {
+  82% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
 
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1.05);
     opacity: 0;
   }
 }
 
-.combo-display {
+.combo-burst {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 15;
   font-family: "Nunito", sans-serif;
-  font-size: 2.5rem;
   font-weight: 900;
   letter-spacing: -0.02em;
+  text-align: center;
+  pointer-events: none;
+  z-index: 40;
   white-space: nowrap;
+  animation: comboBurst 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.combo-burst.outlined {
+  font-style: italic;
+  font-size: 2.4rem;
+  color: #fff;
+  -webkit-text-stroke: 8px #3FA9E8;
+  paint-order: stroke fill;
+}
+
+.combo-burst.plain {
+  font-style: normal;
+  font-size: 1.6rem;
 }
 
 
