@@ -72,6 +72,7 @@ func _ready() -> void:
 		"skin": HubPalette.FAIR_SKIN,
 		"hair": HubPalette.PLAYER_HAIR,
 		"hair_style": FigureHair.STYLE_HERO,
+		"is_female": false,
 		"top": HubPalette.WHITE,
 		"bottom": Color("777b80"),
 		"shoes": HubPalette.BROWN_LEATHER,

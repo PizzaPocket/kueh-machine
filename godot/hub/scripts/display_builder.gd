@@ -474,7 +474,8 @@ static func _cat_station(parent: Node3D, position: Vector3) -> Node3D:
 	cat.coat_color = Color("c6c7c5")
 	cat.sitting = true
 	cat.roaming = false
-	cat.position = Vector3(0, 0.90, 0)
+	# Local +Z faces inward, so -Z moves the cat toward the rear of the plinth.
+	cat.position = Vector3(0, 0.90, -0.12)
 	stand.add_child(cat)
 	return stand
 

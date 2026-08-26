@@ -3,33 +3,34 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-<title id="page-title">A Day for Me</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>" />
+<title id="page-title">Kueh Partee</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='44' fill='%23E23B54'/><rect x='28' y='34' width='44' height='28' rx='10' fill='%23FFF7E9'/><rect x='34' y='26' width='32' height='10' rx='5' fill='%233FA34D'/><circle cx='41' cy='49' r='3' fill='%23C77D3A'/><circle cx='50' cy='49' r='3' fill='%234A5DAE'/><circle cx='59' cy='49' r='3' fill='%232BB6B0'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Bangers&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./style.css" />
+<link rel="stylesheet" href="./theme.css" />
 </head>
 <body>
 
 <div class="confetti-burst" id="confetti-burst" aria-hidden="true"></div>
 
-<button class="sound-toggle" id="sound-toggle" type="button" aria-label="Mute sounds">🔊</button>
+<button class="sound-toggle" id="sound-toggle" type="button" aria-label="Mute sounds"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M24 28h8l10-8v24l-10-8h-8z" fill="#3FA34D"/><path d="M44 24c4 4 4 12 0 16" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/><path d="M48 18c7 6 8 22 0 28" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/></svg></span></button>
 
 <!-- ===================== WELCOME SCREEN ===================== -->
 <section class="screen active" id="screen-welcome">
   <div class="welcome-float" aria-hidden="true">
-    <span class="float-item f1">🎈</span>
-    <span class="float-item f2">✨</span>
-    <span class="float-item f3">🎈</span>
-    <span class="float-item f4">🎉</span>
-    <span class="float-item f5">✨</span>
-    <span class="float-item f6">🎈</span>
+    <span class="float-item f1"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M16 28h32v18a8 8 0 0 1-8 8H24a8 8 0 0 1-8-8z" fill="#C77D3A"/><path d="M24 20h16a8 8 0 0 1 8 8v2H16v-2a8 8 0 0 1 8-8z" fill="#E23B54"/><circle cx="24" cy="32" r="2" fill="#FFF7E9"/><circle cx="40" cy="32" r="2" fill="#FFF7E9"/></svg></span></span>
+    <span class="float-item f2"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M20 18h24l-4 10H24z" fill="#3FA34D"/><circle cx="32" cy="35" r="10" fill="#4A5DAE"/></svg></span></span>
+    <span class="float-item f3"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="16" width="28" height="30" rx="8" fill="#2BB6B0"/><path d="M26 22h12" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M26 30h12" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span></span>
+    <span class="float-item f4"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 22c4-8 10-12 14-12s10 4 14 12c-4 2-8 4-14 4s-10-2-14-4z" fill="#E23B54"/><path d="M20 36c2-6 6-8 12-8s10 2 12 8" stroke="#C77D3A" stroke-width="4" fill="none" stroke-linecap="round"/></svg></span></span>
+    <span class="float-item f5"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M24 20h16l-4 10H28z" fill="#3FA34D"/><circle cx="32" cy="38" r="8" fill="#E23B54"/></svg></span></span>
+    <span class="float-item f6"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="8" fill="#4A5DAE"/><path d="M24 28h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M32 20v24" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span></span>
   </div>
   <div class="welcome-wrap">
-    <div class="welcome-badge">🎂</div>
-    <h1 class="live-title" id="welcome-title">A Day for Me</h1>
-    <p class="welcome-sub">Let's plan a birthday that feels just right.</p>
+    <div class="welcome-badge" aria-hidden="true"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M20 24h24l-4 8H24z" fill="#E23B54"/><rect x="20" y="28" width="24" height="18" rx="7" fill="#FFF7E9"/><path d="M24 36h16" stroke="#C77D3A" stroke-width="4" stroke-linecap="round"/><path d="M26 42h12" stroke="#2BB6B0" stroke-width="4" stroke-linecap="round"/></svg></span></div>
+    <h1 class="live-title" id="welcome-title">Kueh Partee</h1>
+    <p class="welcome-sub">Let's plan a sweet little birthday party with colour, cheer and a little kueh magic.</p>
 
     <div class="field">
       <label for="input-name">What's your name?</label>
@@ -40,13 +41,11 @@
       <label>Pick your favourite colour</label>
       <div class="color-row">
         <div class="color-swatches" id="color-swatches">
-          <button type="button" class="color-swatch" style="background:#D32F2F" data-color="#D32F2F" aria-label="Red"></button>
-          <button type="button" class="color-swatch" style="background:#BF360C" data-color="#BF360C" aria-label="Orange"></button>
-          <button type="button" class="color-swatch" style="background:#2E7D32" data-color="#2E7D32" aria-label="Green"></button>
-          <button type="button" class="color-swatch" style="background:#00695C" data-color="#00695C" aria-label="Teal"></button>
-          <button type="button" class="color-swatch" style="background:#1565C0" data-color="#1565C0" aria-label="Blue"></button>
-          <button type="button" class="color-swatch" style="background:#6A1B9A" data-color="#6A1B9A" aria-label="Purple"></button>
-          <button type="button" class="color-swatch selected" style="background:#AD1457" data-color="#AD1457" aria-label="Pink"></button>
+          <button type="button" class="color-swatch" style="background:#3FA34D" data-color="#3FA34D" aria-label="Pandan green"></button>
+          <button type="button" class="color-swatch" style="background:#4A5DAE" data-color="#4A5DAE" aria-label="Butterfly-pea blue"></button>
+          <button type="button" class="color-swatch" style="background:#C77D3A" data-color="#C77D3A" aria-label="Gula melaka amber"></button>
+          <button type="button" class="color-swatch selected" style="background:#E23B54" data-color="#E23B54" aria-label="Ang-ku rose"></button>
+          <button type="button" class="color-swatch" style="background:#2BB6B0" data-color="#2BB6B0" aria-label="Nyonya turquoise"></button>
         </div>
       </div>
     </div>
@@ -59,7 +58,7 @@
 <header class="app-header" id="app-header" hidden>
   <div class="header-inner">
     <div class="greeting">
-      <span class="greeting-hi">Hi <span id="greet-name">friend</span>! 👋</span>
+      <span class="greeting-hi">Hi <span id="greet-name">friend</span>! <span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 28c4-8 10-12 14-12s10 4 14 12c-4 2-8 4-14 4s-10-2-14-4z" fill="#E23B54"/><path d="M18 39c4-4 8-6 14-6s10 2 14 6" stroke="#4A5DAE" stroke-width="4" stroke-linecap="round"/></svg></span></span>
       <span class="step-label" id="step-label"></span>
     </div>
     <div class="budget-meter">
@@ -67,7 +66,12 @@
         <span id="budget-spent">$0</span> spent of <span id="budget-total">$2,000</span>
       </div>
       <div class="meter-track">
-        <div class="meter-fill" id="meter-fill"></div>
+        <div class="meter-fill" id="meter-fill">
+          <span class="meter-layer meter-layer-1" id="meter-layer-1"></span>
+          <span class="meter-layer meter-layer-2" id="meter-layer-2"></span>
+          <span class="meter-layer meter-layer-3" id="meter-layer-3"></span>
+        </div>
+        <div class="meter-overflow" id="meter-overflow"></div>
       </div>
       <div class="budget-remaining" id="budget-remaining">$2,000 left to plan with</div>
     </div>
@@ -90,32 +94,52 @@
 <section class="screen" id="screen-picker">
   <div class="screen-inner">
     <h2>How do you want to celebrate, <span class="name-slot"></span>?</h2>
-    <p class="screen-sub">Pick one or maximum of two — it's your day to plan.</p>
+    <p class="screen-sub">Your kueh platter holds two — pick your favourites from the tray below.</p>
 
     <div class="budget-banner">
-      <span class="budget-banner-emoji">💰</span>
+      <span class="budget-banner-jar" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <defs>
+            <clipPath id="bannerJarClip"><rect x="13" y="17" width="38" height="37" rx="14"/></clipPath>
+          </defs>
+          <rect x="18" y="8" width="28" height="9" rx="4" fill="#C77D3A"/>
+          <g clip-path="url(#bannerJarClip)">
+            <rect x="13" y="17" width="38" height="37" fill="#FFFDF6"/>
+            <rect x="13" y="42" width="38" height="12" fill="#3FA34D"/>
+            <rect x="13" y="34" width="38" height="8" fill="#4A5DAE"/>
+            <rect x="13" y="27" width="38" height="7" fill="#E23B54"/>
+            <rect x="13" y="17" width="38" height="10" fill="#2BB6B0"/>
+          </g>
+          <rect x="13" y="17" width="38" height="37" rx="14" fill="none" stroke="#2A2A4A" stroke-width="2"/>
+          <circle cx="22" cy="14" r="3" fill="#E23B54"/>
+          <circle cx="32" cy="12" r="3" fill="#4A5DAE"/>
+          <circle cx="42" cy="14" r="3" fill="#3FA34D"/>
+        </svg>
+      </span>
       <div>
         <div class="budget-banner-line">Up to <span id="budget-banner-amount">$2,000</span></div>
         <div class="budget-banner-label">Spend wisely — whatever's left grows your Savings Jar!</div>
       </div>
     </div>
 
-    <div class="pick-grid">
-      <button class="pick-card" data-path="party">
-        <span class="pick-emoji">🎉</span>
-        <span class="pick-title">A Big Party</span>
-        <span class="pick-desc">Plan the place, food, decorations and more</span>
-      </button>
-      <button class="pick-card" data-path="activity">
-        <span class="pick-emoji">🎈</span>
-        <span class="pick-title">A Small Get-Together</span>
-        <span class="pick-desc">A fun outing with family or close friends</span>
-      </button>
-      <button class="pick-card" data-path="gift">
-        <span class="pick-emoji">🎁</span>
-        <span class="pick-title">A Gift I Want</span>
-        <span class="pick-desc">Browse gifts and maybe save up for one</span>
-      </button>
+    <div class="kueh-tray">
+      <div class="pick-grid">
+        <button class="pick-card" data-path="party">
+          <span class="pick-emoji"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 24c4-8 10-12 14-12s10 4 14 12c-4 3-8 5-14 5s-10-2-14-5z" fill="#E23B54"/><path d="M24 32c4 4 8 6 8 10v4H18v-4c0-4 4-6 6-10z" fill="#4A5DAE"/><path d="M36 32c4 4 8 6 8 10v4h-14v-4c0-4 4-6 6-10z" fill="#3FA34D"/></svg></span></span>
+          <span class="pick-title">Party</span>
+          <span class="pick-desc">Plan the place, food, decorations and more</span>
+        </button>
+        <button class="pick-card" data-path="activity">
+          <span class="pick-emoji"><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M24 18c4 0 8 4 8 10 0 8-4 12-8 12s-8-4-8-12c0-6 4-10 8-10z" fill="#2BB6B0"/><path d="M22 42c6 4 16 4 22 0" stroke="#C77D3A" stroke-width="4" stroke-linecap="round"/><path d="M34 28l10 10" stroke="#E23B54" stroke-width="4" stroke-linecap="round"/></svg></span></span>
+          <span class="pick-title">Outing</span>
+          <span class="pick-desc">A fun outing with family or close friends</span>
+        </button>
+        <button class="pick-card" data-path="gift">
+          <span class="pick-emoji"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="16" y="24" width="32" height="24" rx="8" fill="#4A5DAE"/><path d="M32 18c6 0 10 4 10 10H22c0-6 4-10 10-10z" fill="#E23B54"/><path d="M20 32h24" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M32 24v24" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span></span>
+          <span class="pick-title">Gift</span>
+          <span class="pick-desc">Browse gifts and maybe save up for one</span>
+        </button>
+      </div>
     </div>
 
     <div class="nav-row">
@@ -128,7 +152,7 @@
 <!-- ===================== PARTY SCREEN ===================== -->
 <section class="screen" id="screen-party">
   <div class="screen-inner">
-    <h2>Plan your big party 🎉</h2>
+    <h2>Plan your big party</h2>
     <p class="screen-sub">Pick one option in each category — or leave one out entirely. A simple party is a wonderful party.</p>
     <div id="party-categories"></div>
     <div class="nav-row">
@@ -141,7 +165,7 @@
 <!-- ===================== GIFT SCREEN ===================== -->
 <section class="screen" id="screen-gift">
   <div class="screen-inner">
-    <h2>Find your gift 🎁</h2>
+    <h2>Find your gift</h2>
     <p class="screen-sub">Browse gifts below. If one costs more than you have, I'll show you a saving-up plan.</p>
     <div class="pick-grid gift-grid" id="gift-grid"></div>
     <div id="save-up-panel" class="save-up-panel" hidden></div>
@@ -155,7 +179,7 @@
 <!-- ===================== ACTIVITY SCREEN ===================== -->
 <section class="screen" id="screen-activity">
   <div class="screen-inner">
-    <h2>Choose your activity 🎈</h2>
+    <h2>Choose your activity</h2>
     <p class="screen-sub">Something fun with family or a few close friends.</p>
     <div class="pick-grid" id="activity-grid"></div>
     <div class="nav-row">
@@ -168,7 +192,7 @@
 <!-- ===================== INVITATION CARD SCREEN ===================== -->
 <section class="screen" id="screen-invite">
   <div class="screen-inner">
-    <h2>Design your invitation 💌</h2>
+    <h2>Design your invitation <span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="16" y="20" width="32" height="24" rx="8" fill="#E23B54"/><path d="M20 24l12 10 12-10" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></h2>
     <p class="screen-sub">Make a card to send, and keep track of who's coming.</p>
 
     <div class="invite-layout">
@@ -194,8 +218,8 @@
           <textarea id="invite-message" maxlength="120" placeholder="Come celebrate with me!"></textarea>
         </div>
         <div class="invite-actions">
-          <button class="btn btn-secondary" id="btn-print-card">🖨️ Print card</button>
-          <button class="btn btn-secondary" id="btn-save-card">🖼️ Save as image</button>
+          <button class="btn btn-secondary" id="btn-print-card"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="6" fill="#4A5DAE"/><path d="M24 20v10h16V20" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M24 44h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Print card</button>
+          <button class="btn btn-secondary" id="btn-save-card"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="6" fill="#3FA34D"/><path d="M24 28h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M32 22v12" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Save as image</button>
         </div>
       </div>
 
@@ -244,7 +268,7 @@
         <button type="submit" class="btn btn-primary btn-small">Add to list</button>
       </form>
       <ul class="rsvp-list" id="rsvp-list"></ul>
-      <button class="btn btn-ghost btn-small" id="btn-export-rsvp" hidden>⬇️ Download guest list (.csv)</button>
+      <button class="btn btn-ghost btn-small" id="btn-export-rsvp" hidden><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M32 18v20" stroke="#4A5DAE" stroke-width="4" stroke-linecap="round"/><path d="M24 28l8 8 8-8" stroke="#4A5DAE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 42h24" stroke="#4A5DAE" stroke-width="4" stroke-linecap="round"/></svg></span> Download guest list (.csv)</button>
     </div>
 
     <div class="nav-row">
@@ -257,7 +281,7 @@
 <!-- ===================== SUMMARY SCREEN ===================== -->
 <section class="screen" id="screen-summary">
   <div class="screen-inner">
-    <h2>Here's your day, <span class="name-slot"></span> 🎊</h2>
+    <h2>Here's your partee, <span class="name-slot"></span> <span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 24c4-8 10-12 14-12s10 4 14 12c-4 3-8 5-14 5s-10-2-14-5z" fill="#E23B54"/><path d="M24 34c4 4 8 6 8 10v4H18v-4c0-4 4-6 6-10z" fill="#4A5DAE"/><path d="M36 34c4 4 8 6 8 10v4h-14v-4c0-4 4-6 6-10z" fill="#3FA34D"/></svg></span></h2>
 
     <div class="summary-grid">
       <div class="summary-card">
@@ -285,7 +309,12 @@
       </div>
 
       <div class="summary-card savings-jar-card">
-        <h3>🏺 Savings Jar</h3>
+        <h3><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="20" y="24" width="24" height="26" rx="6" fill="#2BB6B0"/><rect x="24" y="16" width="16" height="10" rx="4" fill="#C77D3A"/><path d="M24 34h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Savings Jar</h3>
+        <div class="jar-glass" aria-hidden="true">
+          <div class="jar-rim"></div>
+          <div class="jar-fill" id="jar-fill"></div>
+        </div>
+        <div class="jar-base" aria-hidden="true"></div>
         <p class="jar-amount" id="jar-amount">$2,000</p>
         <div class="field">
           <label for="jar-goal">What are you saving up for?</label>
@@ -299,7 +328,7 @@
     </div>
 
     <div class="savings-plan-block" id="savings-plan-block" hidden>
-      <h3>📈 Your Savings Plan</h3>
+      <h3><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 44V30" stroke="#3FA34D" stroke-width="5" stroke-linecap="round"/><path d="M30 44V22" stroke="#C77D3A" stroke-width="5" stroke-linecap="round"/><path d="M42 44V34" stroke="#E23B54" stroke-width="5" stroke-linecap="round"/><path d="M14 44h36" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/></svg></span> Your Savings Plan</h3>
       <div class="save-row">
         <label for="jar-goal-weekly">Save $<span id="jar-goal-weekly-amount">5</span> a week</label>
         <input type="range" id="jar-goal-weekly" min="1" max="50" value="5" />
@@ -320,15 +349,15 @@
       </div>
 
       <div class="invite-actions">
-        <button class="btn btn-secondary" id="btn-print-plan">🖨️ Print plan</button>
-        <button class="btn btn-secondary" id="btn-save-plan">🖼️ Save as image</button>
+        <button class="btn btn-secondary" id="btn-print-plan"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="6" fill="#4A5DAE"/><path d="M24 20v10h16V20" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M24 44h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Print plan</button>
+        <button class="btn btn-secondary" id="btn-save-plan"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="6" fill="#3FA34D"/><path d="M24 28h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M32 22v12" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Save as image</button>
       </div>
     </div>
 
     <div class="trade-off-note" id="trade-off-note"></div>
 
     <div class="recap-block">
-      <h3>🎊 Save Your Recap</h3>
+      <h3><span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 24c4-8 10-12 14-12s10 4 14 12c-4 3-8 5-14 5s-10-2-14-5z" fill="#E23B54"/><path d="M24 34c4 4 8 6 8 10v4H18v-4c0-4 4-6 6-10z" fill="#4A5DAE"/><path d="M36 34c4 4 8 6 8 10v4h-14v-4c0-4 4-6 6-10z" fill="#3FA34D"/></svg></span> Save Your Recap</h3>
       <div class="recap-preview-wrap">
         <div class="recap-card" id="recap-card">
           <div class="recap-title" id="recap-card-title">Ava's Big Day</div>
@@ -342,8 +371,8 @@
         </div>
       </div>
       <div class="invite-actions">
-        <button class="btn btn-secondary" id="btn-print-recap">🖨️ Print recap</button>
-        <button class="btn btn-secondary" id="btn-save-recap">🖼️ Save as image</button>
+        <button class="btn btn-secondary" id="btn-print-recap"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="6" fill="#4A5DAE"/><path d="M24 20v10h16V20" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M24 44h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Print recap</button>
+        <button class="btn btn-secondary" id="btn-save-recap"><span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="6" fill="#3FA34D"/><path d="M24 28h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M32 22v12" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span> Save as image</button>
       </div>
     </div>
 
@@ -357,22 +386,19 @@
 </main>
 
 <footer class="app-footer">
-  <p>A Day for Me — built by Jesslyn, for <strong>kuehmachine.com</strong></p>
+  <p>Kueh Partee — built by Jesslyn, for <strong>kuehmachine.com</strong></p>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 <script src="./script.js" defer></script>
-<!-- Floating top-right, NOT docked into .app-header — that header is
-     `hidden` (see its tag above) until the welcome screen ends, so a badge
-     mounted inside it was invisible on the very first screen. Floating
-     fixed instead makes it visible from the start, same as the page's own
-     .sound-toggle (position:fixed, style.css). top-right is the standard
-     corner; .sound-toggle is nudged to sit just left of it instead (see
-     its own comment in style.css) rather than moving the account badge out
-     of the corner. accentColor matches --accent (script.js's CSS,
-     hsl(340 85% 65%)). -->
+<!-- Shared Kueh Machine account entry point. The sound control is positioned
+     immediately to its left, preserving the site-wide top-right convention. -->
 <script src="/shared/account-widget.js"
         data-anchor="top-right"
-        data-accent-color="#F25A8C"></script>
+        data-size="44"
+        data-accent-color="#E23B54"
+        data-badge-background="#FFFDF6"
+        data-badge-border="2px solid rgba(74, 93, 174, 0.28)"
+        data-icon-color="#2A2A4A"></script>
 </body>
 </html>

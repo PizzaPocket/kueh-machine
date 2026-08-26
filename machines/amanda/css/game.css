@@ -153,10 +153,18 @@ button:focus-visible,
 
 .hero-settings-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 15px;
+  /* Account badge: 32px desktop inset + 44px badge + 8px control gap. */
+  right: 84px;
   background: rgba(255, 255, 255, 0.85);
   z-index: 1;
+}
+
+@media (max-width: 480px) {
+  .hero-settings-btn {
+    /* The shared badge reduces its viewport inset from 32px to 10px. */
+    right: 62px;
+  }
 }
 
 .hero-cta-stack {

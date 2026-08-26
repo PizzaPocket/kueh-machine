@@ -29,6 +29,8 @@ const STYLE_FLAT_TOP := "flat_top"
 const STYLE_FLAT_TOP_LOW := "flat_top_low"
 const STYLE_BUN := "bun"
 const STYLE_PONYTAIL := "ponytail"
+const STYLE_PONYTAIL_SHORT := "ponytail_short"
+const STYLE_PONYTAIL_LONG := "ponytail_long"
 const STYLE_LONG := "long"
 const STYLE_LONG_FULL := "long_full"
 const STYLE_LONG_EXTRA_FULL := "long_extra_full"
@@ -269,6 +271,12 @@ static func add_hair(
 		STYLE_PONYTAIL:
 			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
 			_build_ponytail(head, semi_axes, hair_color)
+		STYLE_PONYTAIL_SHORT:
+			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_ponytail(head, semi_axes, hair_color, 0.25, 0.045, "ShortPonytail")
+		STYLE_PONYTAIL_LONG:
+			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_ponytail(head, semi_axes, hair_color, 0.62, PONYTAIL_BODY_RADIUS, "LongPonytail")
 		STYLE_LONG:
 			_build_long(head, semi_axes, top_epsilon, hair_color, length_variance)
 		STYLE_LONG_FULL:
@@ -404,7 +412,14 @@ static func _build_bun(head: MeshInstance3D, semi_axes: Vector3, color: Color) -
 ## bulk, then easing back out to a point), and hands both to
 ## _build_tapered_tube() -- see this style's own top-of-file comment for
 ## the reasoning behind a curved single-mesh tube over separate segments.
-static func _build_ponytail(head: MeshInstance3D, semi_axes: Vector3, color: Color) -> void:
+static func _build_ponytail(
+	head: MeshInstance3D,
+	semi_axes: Vector3,
+	color: Color,
+	height: float = PONYTAIL_HEIGHT,
+	body_radius: float = PONYTAIL_BODY_RADIUS,
+	piece_name: String = "Ponytail"
+) -> void:
 	var edges := _buzzcut_edges(semi_axes)
 	var attach := Vector3(0, edges["top"] * PONYTAIL_Y_FRACTION, edges["back"] * PONYTAIL_Z_FRACTION)
 	# Only the zero-radius root advances into the head. P1, P2, and the end
@@ -412,16 +427,16 @@ static func _build_ponytail(head: MeshInstance3D, semi_axes: Vector3, color: Col
 	var curve_root := attach + Vector3(0, 0, PONYTAIL_ROOT_INSET)
 	var p1 := attach + Vector3(
 		0,
-		-PONYTAIL_HEIGHT * PONYTAIL_S_P1_DROP_FRACTION,
-		-PONYTAIL_HEIGHT * PONYTAIL_S_P1_BACK_FRACTION
+		-height * PONYTAIL_S_P1_DROP_FRACTION,
+		-height * PONYTAIL_S_P1_BACK_FRACTION
 	)
 	var p2 := attach + Vector3(
 		0,
-		-PONYTAIL_HEIGHT * PONYTAIL_S_P2_DROP_FRACTION,
-		PONYTAIL_HEIGHT * PONYTAIL_S_P2_FORWARD_FRACTION
+		-height * PONYTAIL_S_P2_DROP_FRACTION,
+		height * PONYTAIL_S_P2_FORWARD_FRACTION
 	)
 	var tip := attach + Vector3(
-		0, -PONYTAIL_HEIGHT, -PONYTAIL_HEIGHT * PONYTAIL_TIP_BACK_FRACTION
+		0, -height, -height * PONYTAIL_TIP_BACK_FRACTION
 	)
 	var taper_out_start := 1.0 - PONYTAIL_TAPER_OUT_FRACTION
 
@@ -437,15 +452,15 @@ static func _build_ponytail(head: MeshInstance3D, semi_axes: Vector3, color: Col
 			+ tip * (t * t * t)
 		)
 		points.append(point)
-		var radius := PONYTAIL_BODY_RADIUS
+		var radius := body_radius
 		if t < PONYTAIL_TAPER_IN_FRACTION:
-			radius = PONYTAIL_BODY_RADIUS * smoothstep(0.0, PONYTAIL_TAPER_IN_FRACTION, t)
+			radius = body_radius * smoothstep(0.0, PONYTAIL_TAPER_IN_FRACTION, t)
 		elif t > taper_out_start:
-			radius = PONYTAIL_BODY_RADIUS * (1.0 - smoothstep(taper_out_start, 1.0, t))
+			radius = body_radius * (1.0 - smoothstep(taper_out_start, 1.0, t))
 		radii.append(radius)
 
 	var piece := _build_tapered_tube(points, radii, PONYTAIL_RADIAL_SEGMENTS, color)
-	piece.name = "Ponytail"
+	piece.name = piece_name
 	head.add_child(piece)
 
 

@@ -1,0 +1,331 @@
+:root {
+  --bg: #FFF7E9;
+  --bg-soft: #FFF1DB;
+  --pandan: #3FA34D;
+  --blue: #4A5DAE;
+  --amber: #C77D3A;
+  --rose: #E23B54;
+  --turquoise: #2BB6B0;
+  --text: #2A2A4A;
+  --paper: #FFFDF8;
+  --line: rgba(42, 42, 74, 0.16);
+  --line-strong: rgba(42, 42, 74, 0.24);
+  --shadow-card: 0 14px 34px rgba(42, 42, 74, 0.08);
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --radius-sm: 14px;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(63, 163, 77, 0.12), transparent 28%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+  color: var(--text);
+  font-family: 'Quicksand', 'Trebuchet MS', sans-serif;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.32;
+  background-image:
+    radial-gradient(circle at 0 0, rgba(255,255,255,.75) 0 14px, transparent 15px),
+    radial-gradient(circle at 100% 100%, rgba(255,255,255,.7) 0 10px, transparent 11px),
+    repeating-linear-gradient(135deg, rgba(42,42,74,.04) 0 8px, transparent 8px 16px);
+  background-size: 34px 34px, 26px 26px, 22px 22px;
+  mix-blend-mode: multiply;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+h1, h2, h3, .live-title, .pick-title, .invite-headline, .recap-title, .savings-plan-title {
+  font-family: 'Baloo 2', 'Trebuchet MS', sans-serif;
+}
+
+.screen-inner {
+  padding: 28px 24px 72px;
+}
+
+.screen h2 {
+  color: var(--text);
+}
+
+.screen-sub {
+  color: rgba(42, 42, 74, 0.72);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--pandan), var(--turquoise));
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(42, 42, 74, 0.12);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.btn-ghost {
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.6);
+}
+
+.app-header {
+  background: rgba(255,247,233,0.92);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 8px 20px rgba(42, 42, 74, 0.05);
+}
+
+.welcome-wrap,
+.pick-card,
+.summary-card,
+.save-up-panel,
+.invite-card,
+.qr-rsvp,
+.trade-off-note,
+.recap-card,
+.savings-plan-card,
+.rsvp-list li {
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.welcome-wrap {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 30px;
+}
+
+.welcome-badge {
+  color: var(--rose);
+  filter: drop-shadow(0 8px 18px rgba(226, 59, 84, 0.18));
+}
+
+.live-title {
+  color: var(--accent);
+}
+
+.budget-banner,
+.save-up-panel,
+.trade-off-note {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.pick-emoji,
+.kueh-icon {
+  color: var(--amber);
+}
+
+.pick-card {
+  background: rgba(255,255,255,0.86);
+  border-radius: var(--radius-lg);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* a warm ceramic-tray backdrop for the celebration picks, with a
+   soft shadow "plate" under each kueh piece so they read as sitting
+   on it rather than floating in a plain grid */
+.kueh-tray {
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255,255,255,0.6), transparent 55%),
+    linear-gradient(160deg, rgba(199,125,58,0.18), rgba(255,247,233,0.45));
+  border: 1px solid var(--line);
+  box-shadow: inset 0 2px 12px rgba(42,42,74,0.06);
+}
+
+.kueh-tray .pick-card { border-radius: 32px; }
+.kueh-tray .pick-card::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 65%;
+  height: 13px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(42,42,74,0.16), transparent 72%);
+  border-radius: 50%;
+  z-index: -1;
+}
+
+.pick-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 32px rgba(42, 42, 74, 0.1);
+}
+
+.pick-card.selected {
+  border-color: var(--pandan);
+  background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(234,246,236,0.95));
+}
+
+.tag-toggle button.active-need {
+  background: var(--turquoise);
+  border-color: var(--turquoise);
+}
+
+.tag-toggle button.active-want {
+  background: var(--rose);
+  border-color: var(--rose);
+}
+
+.meter-track {
+  position: relative;
+  height: 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  background: rgba(255,255,255,0.8);
+}
+
+.meter-fill {
+  position: relative;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--pandan);
+  transition: width .45s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* kueh-lapis layers — each band picks up where the last one left
+   off, so the meter visibly builds in coloured stripes as spending
+   climbs, instead of one flat fill colour. */
+.meter-layer {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-right: 1px solid rgba(255,255,255,0.35);
+  transition: width .45s cubic-bezier(.34,1.56,.64,1);
+}
+.meter-layer-1 { left: 0%; background: var(--pandan); }
+.meter-layer-2 { left: 40%; background: var(--amber); }
+.meter-layer-3 { left: 75%; background: var(--rose); border-right: none; }
+
+.meter-overflow {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(226,59,84,0.9));
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+
+.meter-fill.over {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.36);
+}
+
+.summary-card,
+.recap-card,
+.savings-plan-card {
+  background: rgba(255,255,255,0.88);
+  border-radius: var(--radius-lg);
+}
+
+.summary-card h3,
+.savings-jar-card h3,
+.recap-block h3,
+.savings-plan-block h3,
+.rsvp-block h3 {
+  color: var(--pandan);
+}
+
+.jar-glass {
+  position: relative;
+  width: 90px;
+  height: 120px;
+  margin: 0 auto 10px;
+  border: 2px solid rgba(42,42,74,0.16);
+  border-radius: 22px 22px 24px 24px;
+  background: rgba(255,255,255,0.85);
+  box-shadow: inset 0 -10px 18px rgba(42,42,74,0.08);
+  overflow: hidden;
+}
+
+.jar-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 12%;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--pandan) 0 14px,
+    var(--amber) 14px 28px,
+    var(--rose) 28px 42px,
+    var(--turquoise) 42px 56px,
+    var(--blue) 56px 70px
+  );
+  transition: height .35s ease;
+}
+
+.jar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.3), transparent 40%);
+}
+
+.jar-rim {
+  position: absolute;
+  top: -10px;
+  left: -6px;
+  right: -6px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(42,42,74,0.16);
+  background: rgba(255,255,255,0.9);
+}
+
+.jar-base {
+  width: 112px;
+  height: 18px;
+  margin: 0 auto;
+  border-radius: 0 0 999px 999px;
+  background: rgba(42,42,74,0.08);
+}
+
+.invite-card {
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,247,233,0.95));
+}
+
+.invite-card-inner {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.kueh-icon {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: middle;
+}
+
+.kueh-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sound-toggle {
+  background: rgba(255,255,255,0.9);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .welcome-wrap {
+    padding: 36px 22px;
+  }
+}

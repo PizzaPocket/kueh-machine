@@ -25,23 +25,23 @@
   ];
 
   const GIFTS = [
-    { id: 'g1', label: 'Lego Spike', price: 580, emoji: '🧱' },
-    { id: 'g2', label: 'Board game', price: 50, emoji: '🎲' },
-    { id: 'g3', label: 'Inline Skates', price: 70, emoji: '🛼' },
-    { id: 'g4', label: 'Wacom drawing tablet', price: 100, emoji: '🎨' },
-    { id: 'g5', label: 'NeeDoh sensory toy', price: 20, emoji: '🫧' },
-    { id: 'g6', label: 'Timezone credit', price: 80, emoji: '🕹️' },
+    { id: 'g1', label: 'Lego Spike', price: 580, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="20" width="28" height="24" rx="6" fill="#4A5DAE"/><path d="M24 24h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M28 20v24" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span>' },
+    { id: 'g2', label: 'Board game', price: 50, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="18" width="28" height="28" rx="8" fill="#3FA34D"/><path d="M24 24h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M32 18v28" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span>' },
+    { id: 'g3', label: 'Inline Skates', price: 70, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M20 24h24" stroke="#C77D3A" stroke-width="4" stroke-linecap="round"/><path d="M24 18l8 8-8 8" stroke="#E23B54" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="40" r="6" fill="#4A5DAE"/><circle cx="40" cy="40" r="6" fill="#2BB6B0"/></svg></span>' },
+    { id: 'g4', label: 'Wacom drawing tablet', price: 100, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="22" width="28" height="20" rx="6" fill="#E23B54"/><path d="M24 28h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M24 34h10" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span>' },
+    { id: 'g5', label: 'NeeDoh sensory toy', price: 20, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#2BB6B0"/><path d="M24 30c2-6 6-8 8-8s6 2 8 8" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span>' },
+    { id: 'g6', label: 'Timezone credit', price: 80, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><rect x="18" y="20" width="28" height="24" rx="7" fill="#4A5DAE"/><path d="M24 30h16" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/><path d="M24 36h10" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span>' },
   ];
 
   const ACTIVITIES = [
-    { id: 'a1', label: 'Sentosa & Sky Luge', price: 300, emoji: '🏖️', desc: 'Sandy beaches, luge rides, seaside snacks!' },
-    { id: 'a3', label: 'Crocodile Lodge (2D1N)', price: 950, emoji: '🐊', desc: 'Sleep in the wild, jungle adventures!' },
-    { id: 'a4', label: 'Rainforest Resort (3D2N)', price: 1300, emoji: '🐒', desc: 'Rainforest hotel stay with animal friends!' },
+    { id: 'a1', label: 'Sentosa & Sky Luge', price: 300, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M18 28c8-10 20-10 28 0" stroke="#2BB6B0" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M24 30c4 4 6 8 8 12 2-4 4-8 8-12" stroke="#E23B54" stroke-width="4" fill="none" stroke-linecap="round"/></svg></span>', desc: 'Sandy beaches, luge rides, seaside snacks!' },
+    { id: 'a3', label: 'Crocodile Lodge (2D1N)', price: 950, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="14" fill="#3FA34D"/><path d="M24 28c2-6 8-10 8-10s6 4 8 10" stroke="#FFF7E9" stroke-width="4" stroke-linecap="round"/></svg></span>', desc: 'Sleep in the wild, jungle adventures!' },
+    { id: 'a4', label: 'Rainforest Resort (3D2N)', price: 1300, icon: '<span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M20 24h24" stroke="#C77D3A" stroke-width="4" stroke-linecap="round"/><path d="M24 24v20" stroke="#E23B54" stroke-width="4" stroke-linecap="round"/><path d="M40 24v20" stroke="#4A5DAE" stroke-width="4" stroke-linecap="round"/></svg></span>', desc: 'Rainforest hotel stay with animal friends!' },
   ];
 
   const state = {
     name: '',
-    color: '#AD1457',
+    color: '#E23B54',
     paths: new Set(),
     party: { place: [], food: [], decor: [], favours: [] },
     gift: null,
@@ -82,8 +82,14 @@
   }
 
   function applyTheme(hex) {
-    const { h, s, l } = hexToHSL(hex);
     const root = document.documentElement.style;
+    const { h, s, l } = hexToHSL(hex);
+    root.setProperty('--accent', hex);
+    root.setProperty('--accent-dark', `hsl(${h} ${Math.max(s, 55)}% ${Math.max(l - 18, 35)}%)`);
+    root.setProperty('--accent-darker', `hsl(${h} ${Math.max(s, 55)}% ${Math.max(l - 30, 25)}%)`);
+    root.setProperty('--accent-soft', `hsl(${h} ${Math.min(s + 12, 80)}% ${Math.min(l + 24, 94)}%)`);
+    root.setProperty('--accent-softer', `hsl(${h} ${Math.min(s + 10, 78)}% ${Math.min(l + 40, 97)}%)`);
+    root.setProperty('--accent-mid', `hsl(${h} ${Math.min(s + 16, 84)}% ${Math.min(l + 8, 82)}%)`);
     root.setProperty('--accent-h', h);
     root.setProperty('--accent-s', Math.max(s, 45) + '%');
     root.setProperty('--accent-l', Math.min(Math.max(l, 45), 65) + '%');
@@ -136,6 +142,15 @@
     if (flow.includes('invite')) renderInvite();
   }
 
+  function updateJarDisplay() {
+    const saved = Math.max(BUDGET - totalSpent(), 0);
+    const jarFill = $('jar-fill');
+    if (jarFill) {
+      const fillPct = Math.max(10, Math.min(100, Math.round((saved / BUDGET) * 100)));
+      jarFill.style.height = `${fillPct}%`;
+    }
+  }
+
   function updateHeader() {
     const spent = totalSpent();
     const over = spent > BUDGET;
@@ -144,8 +159,20 @@
     $('budget-banner-amount').textContent = `$${fmt(BUDGET)}`;
     const pct = Math.min((spent / BUDGET) * 100, 100);
     const fill = $('meter-fill');
+    const overflow = $('meter-overflow');
     fill.style.width = pct + '%';
     fill.classList.toggle('over', over);
+    const overflowPct = over ? Math.min(((spent - BUDGET) / BUDGET) * 100, 24) : 0;
+    overflow.style.width = over ? `${overflowPct}%` : '0%';
+    overflow.style.opacity = over ? '1' : '0';
+    const layer1 = $('meter-layer-1');
+    const layer2 = $('meter-layer-2');
+    const layer3 = $('meter-layer-3');
+    if (layer1 && layer2 && layer3) {
+      layer1.style.width = `${Math.min(pct, 40)}%`;
+      layer2.style.width = `${Math.max(Math.min(pct - 40, 35), 0)}%`;
+      layer3.style.width = `${Math.max(Math.min(pct - 75, 25), 0)}%`;
+    }
     const remaining = BUDGET - spent;
     const remEl = $('budget-remaining');
     remEl.textContent = over ? `$${fmt(Math.abs(remaining))} over your $${fmt(BUDGET)} budget` : `$${fmt(remaining)} left to plan with`;
@@ -270,6 +297,22 @@
     container._cleanupTimer = setTimeout(() => { container.innerHTML = ''; }, 2800);
   }
 
+  function updatePlatterFullState() {
+    document.querySelectorAll('#screen-picker .pick-card').forEach((card) => {
+      const isSelected = state.paths.has(card.dataset.path);
+      card.classList.toggle('platter-full', !isSelected && state.paths.size >= 2);
+    });
+  }
+
+  function deselectPath(path) {
+    state.paths.delete(path);
+    const card = document.querySelector(`#screen-picker .pick-card[data-path="${path}"]`);
+    if (card) card.classList.remove('selected');
+    if (path === 'party') state.party = { place: [], food: [], decor: [], favours: [] };
+    if (path === 'gift') state.gift = null;
+    if (path === 'activity') state.activity = null;
+  }
+
   function tagToggleHTML(scope, key, currentTag) {
     return `<span class="tag-toggle">
       <button type="button" data-tagscope="${scope}" data-tagkey="${key}" data-tagvalue="need" class="${currentTag === 'need' ? 'active-need' : ''}">Need</button>
@@ -305,7 +348,7 @@
     $('gift-grid').innerHTML = GIFTS.map((g) => {
       const isSel = state.gift && state.gift.id === g.id;
       return `<div class="pick-card ${isSel ? 'selected' : ''}" data-gift="${g.id}">
-        <span class="pick-emoji">${g.emoji}</span>
+        <span class="pick-emoji">${g.icon}</span>
         <span class="pick-title">${g.label}</span>
         <span class="pick-price">$${fmt(g.price)}</span>
         ${tagToggleHTML('gift', 'gift', isSel ? state.gift.tag : null)}
@@ -340,7 +383,7 @@
     $('activity-grid').innerHTML = ACTIVITIES.map((a) => {
       const isSel = state.activity && state.activity.id === a.id;
       return `<div class="pick-card ${isSel ? 'selected' : ''}" data-activity="${a.id}">
-        <span class="pick-emoji">${a.emoji}</span>
+        <span class="pick-emoji">${a.icon}</span>
         <span class="pick-title">${a.label}</span>
         <span class="pick-desc">${a.desc}</span>
         <span class="pick-price">$${fmt(a.price)}</span>
@@ -447,6 +490,7 @@
     $('jar-amount').textContent = `$${fmt(saved)}`;
     $('summary-needs').textContent = `${needs} needs`;
     $('summary-wants').textContent = `${wants} wants`;
+    updateJarDisplay();
     $('jar-goal').value = state.jarGoal;
     $('jar-goal-cost').value = state.jarGoalCost;
     $('jar-goal-weekly').value = state.jarGoalWeekly;
@@ -530,7 +574,7 @@
 
   function resetApp() {
     state.name = '';
-    state.color = '#AD1457';
+    state.color = '#E23B54';
     state.paths = new Set();
     state.party = { place: [], food: [], decor: [], favours: [] };
     state.gift = null;
@@ -545,13 +589,14 @@
     pos = 0;
 
     $('input-name').value = '';
-    document.querySelectorAll('#color-swatches .color-swatch').forEach((s) => s.classList.toggle('selected', s.dataset.color === '#AD1457'));
+    document.querySelectorAll('#color-swatches .color-swatch').forEach((s) => s.classList.toggle('selected', s.dataset.color === '#E23B54'));
     $('btn-start').disabled = true;
-    $('welcome-title').textContent = 'A Day for Me';
-    $('page-title').textContent = 'A Day for Me';
+    $('welcome-title').textContent = 'Kueh Partee';
+    $('page-title').textContent = 'Kueh Partee';
     document.querySelectorAll('#screen-picker .pick-card').forEach((c) => c.classList.remove('selected'));
+    updatePlatterFullState();
     $('btn-picker-continue').disabled = true;
-    applyTheme('#AD1457');
+    applyTheme('#E23B54');
     $('app-header').hidden = true;
     showScreen('welcome');
   }
@@ -572,14 +617,14 @@
     $('sound-toggle').addEventListener('click', () => {
       muted = !muted;
       const btn = $('sound-toggle');
-      btn.textContent = muted ? '🔇' : '🔊';
+      btn.innerHTML = muted ? '<span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M24 28h8l10-8v24l-10-8h-8z" fill="#3FA34D"/><path d="M44 24c4 4 4 12 0 16" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/><path d="M40 20l12 12" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/><path d="M52 20l-12 12" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/></svg></span>' : '<span class="kueh-icon"><svg viewBox="0 0 64 64"><path d="M24 28h8l10-8v24l-10-8h-8z" fill="#3FA34D"/><path d="M44 24c4 4 4 12 0 16" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/><path d="M48 18c7 6 8 22 0 28" stroke="#2A2A4A" stroke-width="4" stroke-linecap="round"/></svg></span>';
       btn.setAttribute('aria-label', muted ? 'Unmute sounds' : 'Mute sounds');
       if (!muted) playPop();
     });
 
     inputName.addEventListener('input', () => {
       const val = inputName.value.trim();
-      const title = val ? `A Day for ${val}` : 'A Day for Me';
+      const title = val ? `${val}'s Kueh Partee` : 'Kueh Partee';
       $('welcome-title').textContent = title;
       $('page-title').textContent = title;
       btnStart.disabled = val.length === 0;
@@ -591,6 +636,8 @@
       applyTheme(state.color);
       document.querySelectorAll('.name-slot').forEach((el) => { el.textContent = state.name; });
       $('greet-name').textContent = state.name;
+      $('welcome-title').textContent = `${state.name}'s Kueh Partee`;
+      $('page-title').textContent = `${state.name}'s Kueh Partee`;
       burstConfetti();
       playCelebrate();
       setTimeout(() => {
@@ -605,21 +652,15 @@
       if (!card) return;
       const path = card.dataset.path;
       if (state.paths.has(path)) {
-        state.paths.delete(path);
-        card.classList.remove('selected');
-        if (path === 'party') state.party = { place: [], food: [], decor: [], favours: [] };
-        if (path === 'gift') state.gift = null;
-        if (path === 'activity') state.activity = null;
+        deselectPath(path);
         playSoftDown();
       } else {
-        if (state.paths.size >= 2) {
-          showToast('Pick up to two ways to celebrate — try un-picking one first!');
-          return;
-        }
+        if (state.paths.size >= 2) return; // platter's full — card is inert, this shouldn't fire
         state.paths.add(path);
         card.classList.add('selected');
         playPop();
       }
+      updatePlatterFullState();
       $('btn-picker-continue').disabled = state.paths.size === 0;
     });
 
@@ -708,7 +749,7 @@
         showToast('Image saving isn\'t available right now — try a screenshot instead!');
         return;
       }
-      html2canvas($('invite-card'), { backgroundColor: null, scale: 2 }).then((canvas) => {
+      html2canvas($('invite-card'), { backgroundColor: null, scale: 2, useCORS: true }).then((canvas) => {
         const link = document.createElement('a');
         link.download = `${state.name || 'invite'}-invitation.png`;
         link.href = canvas.toDataURL('image/png');
@@ -722,7 +763,7 @@
         showToast('Image saving isn\'t available right now — try a screenshot instead!');
         return;
       }
-      html2canvas($('savings-plan-card'), { backgroundColor: null, scale: 2 }).then((canvas) => {
+      html2canvas($('savings-plan-card'), { backgroundColor: null, scale: 2, useCORS: true }).then((canvas) => {
         const link = document.createElement('a');
         link.download = `${state.name || 'my'}-savings-plan.png`;
         link.href = canvas.toDataURL('image/png');
@@ -736,7 +777,7 @@
         showToast('Image saving isn\'t available right now — try a screenshot instead!');
         return;
       }
-      html2canvas($('recap-card'), { backgroundColor: null, scale: 2 }).then((canvas) => {
+      html2canvas($('recap-card'), { backgroundColor: null, scale: 2, useCORS: true }).then((canvas) => {
         const link = document.createElement('a');
         link.download = `${state.name || 'my'}-day-recap.png`;
         link.href = canvas.toDataURL('image/png');

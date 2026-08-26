@@ -1,12 +1,13 @@
 /* =========================================================
-   A Day for Me — theme is generated at runtime from the
-   child's favourite colour (see script.js: applyTheme()).
-   Fallback values below in case JS hasn't run yet.
+   Kueh Partee — a Peranakan-kueh-themed birthday planner.
+   This file is the structural layer; theme.css carries the
+   Peranakan palette, majolica tile background and jar/meter
+   visuals on top of it.
    ========================================================= */
 :root {
-  --accent-h: 340;
-  --accent-s: 85%;
-  --accent-l: 65%;
+  --accent-h: 350;
+  --accent-s: 74%;
+  --accent-l: 56%;
 
   --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
   --accent-dark: hsl(var(--accent-h) var(--accent-s) 40%);
@@ -15,18 +16,18 @@
   --accent-softer: hsl(var(--accent-h) 80% 97%);
   --accent-mid: hsl(var(--accent-h) var(--accent-s) 80%);
 
-  --ink: #33303a;
-  --ink-soft: #6b6675;
-  --paper: #fffdf9;
-  --line: #e9e1e6;
+  --ink: #2A2A4A;
+  --ink-soft: #6b6690;
+  --paper: #FFFDF6;
+  --line: rgba(74, 93, 174, 0.28);
 
-  --good: #3fae7a;
-  --bad: #e2554b;
+  --good: #3FA34D;
+  --bad: #E23B54;
 
   --radius-lg: 28px;
   --radius-md: 18px;
   --radius-sm: 12px;
-  --shadow-card: 0 6px 0 rgba(0,0,0,0.06), 0 10px 24px rgba(0,0,0,0.08);
+  --shadow-card: 0 6px 0 rgba(42,42,74,0.06), 0 10px 24px rgba(42,42,74,0.08);
   --shadow-pop: 0 4px 0 var(--accent-darker);
 
   font-size: 18px;
@@ -38,7 +39,6 @@ html, body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--accent-softer) 0%, #fffdf9 340px);
   color: var(--ink);
   font-family: 'Quicksand', system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -95,6 +95,10 @@ input, textarea { font-family: inherit; }
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease, opacity .15s ease;
   min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .btn:active { transform: translateY(2px); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -158,8 +162,9 @@ input, textarea { font-family: inherit; }
 }
 .live-title {
   font-size: clamp(2rem, 6vw, 2.8rem);
+  line-height: 1.05;
   color: var(--accent);
-  min-height: 1.3em;
+  min-height: 1.05em;
   word-break: break-word;
 }
 .welcome-sub { color: var(--ink-soft); margin: 6px 0 32px; font-size: 1.1rem; }
@@ -254,11 +259,35 @@ input, textarea { font-family: inherit; }
   border: 2px solid var(--line);
 }
 .meter-fill {
+  position: relative;
   height: 100%;
   width: 0%;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
   border-radius: 999px;
   transition: width .45s cubic-bezier(.34,1.56,.64,1), background .3s ease;
+  overflow: hidden;
+}
+
+.meter-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-right: 1px solid rgba(255,255,255,0.25);
+  transition: width .45s cubic-bezier(.34,1.56,.64,1);
+}
+
+.meter-layer-1 {
+  width: 40%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%);
+}
+
+.meter-layer-2 {
+  background: linear-gradient(90deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.03) 100%);
+}
+
+.meter-layer-3 {
+  background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.01) 100%);
 }
 .meter-fill.over { background: var(--bad); }
 .budget-remaining { font-size: .82rem; color: var(--ink-soft); margin-top: 4px; font-weight: 600; }
@@ -307,6 +336,33 @@ input, textarea { font-family: inherit; }
 }
 .balance-caption { font-size: .7rem; color: var(--ink-soft); text-align: center; max-width: 130px; }
 
+/* ---------- kueh tray + platter-full state (picker screen) ---------- */
+.kueh-tray {
+  border-radius: 40px;
+  padding: 32px 20px 24px;
+  margin-bottom: 8px;
+}
+.kueh-tray .pick-grid { margin-bottom: 0; }
+.kueh-tray .pick-card { position: relative; }
+.pick-card.platter-full {
+  opacity: .45;
+  filter: grayscale(.35);
+  pointer-events: none;
+}
+.pick-card.platter-full::before {
+  content: 'Platter full';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--ink);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  z-index: 2;
+}
+
 /* ---------- budget banner (picker screen) ---------- */
 .budget-banner {
   display: inline-flex;
@@ -319,7 +375,8 @@ input, textarea { font-family: inherit; }
   border-radius: var(--radius-md);
   margin-bottom: 28px;
 }
-.budget-banner-emoji { font-size: 1.5rem; }
+.budget-banner-jar { width: 58px; height: 58px; flex-shrink: 0; }
+.budget-banner-jar svg { width: 100%; height: 100%; display: block; }
 .budget-banner-line { font-family: 'Baloo 2', sans-serif; font-weight: 600; font-size: 1.05rem; line-height: 1.2; }
 .budget-banner-line #budget-banner-amount { font-weight: 800; }
 .budget-banner-label { font-size: .8rem; opacity: .85; }
@@ -443,7 +500,6 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
   box-shadow: 7px 7px 0 var(--ink);
 }
 .invite-card-inner {
-  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -475,13 +531,13 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
   text-align: center;
 }
 .invite-headline {
-  font-family: 'Bangers', 'Baloo 2', sans-serif;
-  font-weight: 400;
-  font-size: 2rem;
-  line-height: 1.05;
-  letter-spacing: 1px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1.1;
+  letter-spacing: .5px;
   color: var(--accent-mid);
-  -webkit-text-stroke: 1.5px var(--ink);
+  -webkit-text-stroke: 1px var(--ink);
   text-shadow: 2px 2px 0 var(--ink);
 }
 .invite-headline .headline-name,
@@ -513,6 +569,7 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
 }
 .invite-msg-panel {
   flex: 1;
+  min-height: 200px;
   background: var(--accent-mid);
   border: 4px solid var(--ink);
   border-radius: 6px;
@@ -529,7 +586,6 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
 }
 .invite-qr-panel {
   background: var(--paper);
-  border: 3px solid var(--ink);
   border-radius: 8px;
   padding: 8px 10px;
   display: flex;
@@ -770,15 +826,11 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
 }
 
 /* ---------- sound toggle ---------- */
-/* Bumped left of the account badge (fixed, top:15px/right:10px, 52px
-   diameter — shared/account-widget.js's default floating position) rather
-   than the badge moving out of the standard top-right corner: right:72px
-   clears the badge's own left edge (10+52=62) with a ~10px gap; top:19px
-   centers this 44px button against the badge's 52px height. */
 .sound-toggle {
   position: fixed;
-  top: 19px;
-  right: 72px;
+  top: 15px;
+  /* Account badge: 32px desktop inset + 44px badge + 8px gap. */
+  right: 84px;
   z-index: 50;
   width: 44px;
   height: 44px;
@@ -794,6 +846,13 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
   transition: transform .1s ease;
 }
 .sound-toggle:active { transform: scale(.9); }
+
+@media (max-width: 480px) {
+  .sound-toggle {
+    /* The shared badge uses a 10px inset on narrow viewports. */
+    right: 62px;
+  }
+}
 
 /* ---------- toast ---------- */
 .toast {
@@ -819,6 +878,11 @@ input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
 
 /* ---------- print ---------- */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
   body * { visibility: hidden; }
   .invite-card, .invite-card *,
   .savings-plan-card, .savings-plan-card *,
