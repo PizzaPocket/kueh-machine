@@ -14,6 +14,23 @@ var _movement_hint_dismissing := false
 var _tip_index := 0
 var _tip_elapsed := 0.0
 var _loading_elapsed := 0.0
+# Doubles the WASD hint as real touch controls, per direct instruction: the
+# hint should only disappear on an actual keyboard press (see
+# _unhandled_input's own InputEventKey check below, left untouched), so a
+# touch/mouse user gets persistent on-screen movement buttons instead of
+# ever losing them. Maps each key Control to the movement action it drives.
+var _key_actions: Dictionary = {}
+# Which pointer (a real touch's own event.index, or MOUSE_TOUCH_INDEX for a
+# mouse button) currently "owns" which key Control -- lets a drag slide
+# between adjacent keys (e.g. W -> D for a diagonal) update the pressed
+# action instead of only ever supporting a single static tap.
+var _active_touches: Dictionary = {}
+const MOUSE_TOUCH_INDEX := -1
+# _prompt's own designed width on a normal desktop viewport; _update_prompt_
+# width() below never grows it past this, only shrinks it to fit a narrower
+# screen.
+const PROMPT_WIDTH_DESKTOP := 900.0
+const PROMPT_SIDE_MARGIN := 32.0
 var _tips := [
 	"WASD to move",
 	"Hold Shift to run",
@@ -27,6 +44,8 @@ func _ready() -> void:
 	_build_loading()
 	_build_prompt()
 	_build_movement_hint()
+	get_viewport().size_changed.connect(_update_prompt_width)
+	_update_prompt_width()
 
 func _process(delta: float) -> void:
 	if _loading.visible:
@@ -157,11 +176,44 @@ func _build_prompt() -> void:
 	_prompt = UIKit.backed_readout("Talk (F)", UITheme.TEXT_PRIMARY, UITheme.FONT_BUTTON)
 	_prompt.name = "InteractionPrompt"
 	_prompt.theme = UITheme.get_theme()
-	_prompt.custom_minimum_size = Vector2(900, 0)
-	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt.custom_minimum_size = Vector2(PROMPT_WIDTH_DESKTOP, 0)
+	# backed_readout() is a plain (non-interactive by design -- it also backs
+	# passive HUD stat displays elsewhere) PanelContainer; STOP here plus the
+	# gui_input connection below is what turns THIS particular instance into
+	# a real tappable control, since a touch/mouse user has no physical F key
+	# to press instead.
+	_prompt.mouse_filter = Control.MOUSE_FILTER_STOP
+	_prompt.gui_input.connect(_on_prompt_gui_input)
 	UIKit.anchor_to_edge(_prompt, 0.5, 1.0, 0.0, UITheme.SPACE_XL * 2)
 	_prompt.visible = false
 	add_child(_prompt)
+
+## Fires the same "interact" action a physical F key press would, via a real
+## InputEventAction parsed through the normal input pipeline -- hub_player.gd
+## and dialog_ui.gd both key off event.is_action_pressed("interact") in their
+## own _unhandled_input, an event-driven check that Input.action_press()
+## alone does NOT satisfy (that only updates polling state like
+## is_action_pressed(), the mechanism the WASD movement buttons above rely
+## on instead -- interact needs the actual event).
+func _on_prompt_gui_input(event: InputEvent) -> void:
+	var pressed := (
+		(event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		or (event is InputEventScreenTouch and event.pressed)
+	)
+	if not pressed:
+		return
+	var action_event := InputEventAction.new()
+	action_event.action = "interact"
+	action_event.pressed = true
+	Input.parse_input_event(action_event)
+	get_viewport().set_input_as_handled()
+
+## _prompt's width never grows past PROMPT_WIDTH_DESKTOP, only shrinks to
+## fit a viewport narrower than that (plus side margins) -- so it's already
+## the right width on a normal desktop window and never overflows a phone's.
+func _update_prompt_width() -> void:
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	_prompt.custom_minimum_size.x = minf(PROMPT_WIDTH_DESKTOP, viewport_width - PROMPT_SIDE_MARGIN * 2.0)
 
 func _build_movement_hint() -> void:
 	_movement_hint = VBoxContainer.new()
@@ -175,23 +227,34 @@ func _build_movement_hint() -> void:
 
 	# A full three-key row establishes the alignment width; CenterContainer
 	# then places W directly over S, matching the physical keyboard cluster.
+	# top_row/bottom_row themselves stay MOUSE_FILTER_IGNORE (pure layout
+	# boxes) -- only the individual key panels need to receive input.
 	var top_row := CenterContainer.new()
 	top_row.custom_minimum_size.x = 254
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(_movement_key("W"))
+	top_row.add_child(_movement_key("W", "move_forward"))
 	_movement_hint.add_child(top_row)
 
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", 10)
 	bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for letter in ["A", "S", "D"]:
-		bottom_row.add_child(_movement_key(letter))
+	bottom_row.add_child(_movement_key("A", "move_left"))
+	bottom_row.add_child(_movement_key("S", "move_back"))
+	bottom_row.add_child(_movement_key("D", "move_right"))
 	_movement_hint.add_child(bottom_row)
 
-func _movement_key(letter: String) -> PanelContainer:
+func _movement_key(letter: String, action: String) -> PanelContainer:
 	var key := PanelContainer.new()
 	key.custom_minimum_size = Vector2(78, 78)
-	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# STOP (not the surrounding rows' IGNORE) so this panel's own
+	# get_global_rect() is a meaningful hit-test target in _input() below --
+	# the actual press/release is driven from there, not a gui_input signal,
+	# since a Control's own input only ever tracks one pointer at a time
+	# (touch is emulated through a single synthetic mouse), which would
+	# silently drop a second simultaneous finger on a different key (e.g.
+	# forward+strafe held together for a diagonal).
+	key.mouse_filter = Control.MOUSE_FILTER_STOP
+	_key_actions[key] = action
 	var style := SuperellipseStyleBox.new()
 	style.bg_color = Color(0.16, 0.11, 0.07, 0.64)
 	style.corner_radius = 78
@@ -210,6 +273,76 @@ func _movement_key(letter: String) -> PanelContainer:
 	key.add_child(label)
 	return key
 
+## Real per-finger hit-testing against the WASD panels, in _input() (not a
+## gui_input signal) so a second simultaneous touch on a different key is
+## never silently swallowed -- see _movement_key()'s own comment on why a
+## Control's single-pointer mouse emulation isn't enough here. Runs ahead of
+## hub_player.gd's own _unhandled_input, and explicitly marks only the
+## events that actually land on a key as handled, so a drag starting
+## anywhere else on screen still reaches hub_player.gd for camera look.
+func _input(event: InputEvent) -> void:
+	if not _movement_hint.visible or _movement_hint_dismissing:
+		return
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			var key := _key_at_position(touch.position)
+			if key != null:
+				_press_touch(touch.index, key)
+				get_viewport().set_input_as_handled()
+		elif _active_touches.has(touch.index):
+			_release_touch(touch.index)
+			get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if _active_touches.has(drag.index):
+			_update_touch(drag.index, drag.position)
+			get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
+			if mouse_button.pressed:
+				var key := _key_at_position(mouse_button.position)
+				if key != null:
+					_press_touch(MOUSE_TOUCH_INDEX, key)
+					get_viewport().set_input_as_handled()
+			elif _active_touches.has(MOUSE_TOUCH_INDEX):
+				_release_touch(MOUSE_TOUCH_INDEX)
+				get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and _active_touches.has(MOUSE_TOUCH_INDEX):
+		_update_touch(MOUSE_TOUCH_INDEX, (event as InputEventMouseMotion).position)
+		get_viewport().set_input_as_handled()
+
+func _key_at_position(pos: Vector2) -> Control:
+	for key in _key_actions:
+		if (key as Control).get_global_rect().has_point(pos):
+			return key
+	return null
+
+func _press_touch(index: int, key: Control) -> void:
+	Input.action_press(_key_actions[key])
+	_active_touches[index] = key
+
+func _release_touch(index: int) -> void:
+	var key: Control = _active_touches[index]
+	Input.action_release(_key_actions[key])
+	_active_touches.erase(index)
+
+## A drag sliding from one key onto an adjacent one (e.g. W -> D for a
+## diagonal) swaps which action is held; sliding off all keys just releases
+## and stops tracking that pointer (per _key_at_position's own doc, it does
+## not resume if the same finger drags back onto a key afterward).
+func _update_touch(index: int, pos: Vector2) -> void:
+	var current: Control = _active_touches[index]
+	if (current as Control).get_global_rect().has_point(pos):
+		return
+	Input.action_release(_key_actions[current])
+	var next := _key_at_position(pos)
+	if next != null:
+		_press_touch(index, next)
+	else:
+		_active_touches.erase(index)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not _movement_hint.visible or _movement_hint_dismissing:
 		return
@@ -218,6 +351,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		var movement_keys := [KEY_W, KEY_A, KEY_S, KEY_D]
 		if key_event.keycode in movement_keys or key_event.physical_keycode in movement_keys:
 			_movement_hint_dismissing = true
+			# A finger/mouse button already held down on a key when the keyboard
+			# dismisses the hint would otherwise never get its release event
+			# processed (once dismissed, _input() above ignores everything) and
+			# leave that movement action stuck pressed forever.
+			for index in _active_touches.keys():
+				Input.action_release(_key_actions[_active_touches[index]])
+			_active_touches.clear()
 			var fade := create_tween()
 			fade.set_trans(Tween.TRANS_QUAD)
 			fade.set_ease(Tween.EASE_OUT)

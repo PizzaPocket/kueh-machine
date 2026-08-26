@@ -15,6 +15,17 @@ extends CanvasLayer
 # disappearing before there was time to actually read them.
 const AUTO_DISMISS_TIME := 6.0
 
+## Godot has no declarative CSS-style media query, but the equivalent is this
+## straightforward: check the viewport's own width at runtime (and again on
+## every resize/orientation change) and branch the layout on it. Below this
+## width the NPC line panel (anchored at 0.5, 0.90 -- centered, near the
+## bottom) and the response panel (anchored to the bottom-right corner) sit
+## close enough vertically, on a narrow/portrait viewport, to overlap; above
+## it there's enough spare width for both side by side as originally tuned.
+const MOBILE_BREAKPOINT_WIDTH := 700.0
+const NPC_PANEL_ANCHOR_V_DESKTOP := 0.90
+const NPC_PANEL_ANCHOR_V_MOBILE := 0.60
+
 var _panel: PanelContainer
 var _speaker_label: Label
 var _line_label: Label
@@ -37,6 +48,8 @@ var _dismiss_callback: Callable = Callable()
 func _ready() -> void:
 	layer = 30
 	_build_ui()
+	get_viewport().size_changed.connect(_update_responsive_layout)
+	_update_responsive_layout()
 
 
 func _build_ui() -> void:
@@ -54,7 +67,10 @@ func _build_ui() -> void:
 	# clear of the center while still growing upward, safely, as its own
 	# content requires. Lowered another 15% of the viewport so speech sits in
 	# the intended lower-screen caption zone without altering its scale.
-	UIKit.anchor_to_edge(_panel, 0.5, 0.90, 0.0, 0.0)
+	# The vertical anchor itself is finalized by _update_responsive_layout()
+	# right after _build_ui() returns (see _ready()) -- this call just gives
+	# the panel a valid anchor/offset/grow setup before then.
+	UIKit.anchor_to_edge(_panel, 0.5, NPC_PANEL_ANCHOR_V_DESKTOP, 0.0, 0.0)
 	_panel.visible = false
 	add_child(_panel)
 
@@ -103,6 +119,17 @@ func _build_response_ui(shared_theme: Theme) -> void:
 	_response_list = VBoxContainer.new()
 	_response_list.add_theme_constant_override("separation", UITheme.SPACE_XS)
 	vbox.add_child(_response_list)
+
+
+## The actual "breakpoint": re-anchors just the NPC line panel's vertical
+## position based on the live viewport width, leaving its horizontal
+## centering and the response panel's own bottom-right anchor untouched in
+## both cases. Only the NPC panel needs to move -- it's the one anchored
+## into the same vertical band the response panel already occupies.
+func _update_responsive_layout() -> void:
+	var is_mobile := get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH
+	var target_v := NPC_PANEL_ANCHOR_V_MOBILE if is_mobile else NPC_PANEL_ANCHOR_V_DESKTOP
+	UIKit.anchor_to_edge(_panel, 0.5, target_v, 0.0, 0.0)
 
 
 func _process(delta: float) -> void:

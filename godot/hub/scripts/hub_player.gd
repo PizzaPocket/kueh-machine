@@ -105,6 +105,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not input_locked:
 		_yaw -= event.relative.x * MOUSE_SENSITIVITY
 		_pitch = clampf(_pitch - event.relative.y * MOUSE_SENSITIVITY, -0.85, 0.42)
+	# Touch has no pointer-lock/mouse_mode concept -- a drag reaches here at
+	# all only because hub_ui.gd's own _input() already consumed (and marked
+	# handled) any drag that started on one of the WASD touch buttons, so
+	# anything arriving here as unhandled genuinely started elsewhere on
+	# screen and is meant as a look gesture, same as mouse motion above.
+	if event is InputEventScreenDrag and not input_locked:
+		var drag := event as InputEventScreenDrag
+		_yaw -= drag.relative.x * MOUSE_SENSITIVITY
+		_pitch = clampf(_pitch - drag.relative.y * MOUSE_SENSITIVITY, -0.85, 0.42)
 	if event.is_action_pressed("interact") and not input_locked:
 		interact_requested.emit()
 
