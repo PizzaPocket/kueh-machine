@@ -1714,6 +1714,18 @@
       return n < 10 ? '0' + n : '' + n;
     }
 
+    // No-ops (rather than throwing) when the digit spans aren't in the DOM
+    // — true whenever the grid is currently showing the ENTER button
+    // instead of the countdown.
+    function setDigits(days, hours, minutes, seconds) {
+      var daysEl = document.getElementById('js-days');
+      if (!daysEl) return;
+      daysEl.textContent = days;
+      document.getElementById('js-hours').textContent   = pad(hours);
+      document.getElementById('js-minutes').textContent = pad(minutes);
+      document.getElementById('js-seconds').textContent = pad(seconds);
+    }
+
     // Water level = time remaining, not elapsed: full at PROJECT_START_UTC,
     // drained to empty by TARGET_UTC. Factored out of updateLiquidFill so
     // rippleLiquid (below) can read the same real level its brief
@@ -1887,11 +1899,47 @@
       var diff = TARGET_UTC - countdownNow();
       updateLiquidFill();
 
+      // Populated unconditionally (clamped to 0, not left negative) before
+      // the enter-state branch below, rather than only on the diff > 0
+      // path further down — a page loaded directly past the launch
+      // boundary (a debug preset, or any real visitor arriving after the
+      // actual launch) hits `return` inside that branch before ever
+      // reaching the old single population site, leaving the digits on
+      // their static "—" placeholder markup. That placeholder is far
+      // narrower than a real rendered digit, which the enter-state
+      // branch's own footprint measurement (below) depends on being
+      // realistic. setDigits is a safe no-op here when the grid is
+      // already showing the ENTER button (js-days etc. don't exist then).
+      var totalSeconds = Math.max(0, Math.floor(diff / 1000));
+      var days    = Math.floor(totalSeconds / 86400);
+      var hours   = Math.floor((totalSeconds % 86400) / 3600);
+      var minutes = Math.floor((totalSeconds % 3600) / 60);
+      var seconds = totalSeconds % 60;
+      setDigits(days, hours, minutes, seconds);
+
       if (diff <= 0) {
 		var grid = countdownGrid;
 		if (grid && !grid.classList.contains('is-enter-state') && !enterBuildStarted) {
 		  enterBuildStarted = true;
-		  import('./src/atoms/button.js').then(function (mod) {
+		  // Freeze the water-clock window at its current (digit-countdown)
+		  // footprint before swapping in the much smaller button, so the
+		  // window doesn't shrink to hug the button — measured live rather
+		  // than duplicated as a breakpoint-matched CSS value, since
+		  // .cd-number/.cd-sep/etc. are already sized per-breakpoint
+		  // elsewhere and this only needs to match whatever that produced.
+		  // Waits on document.fonts.ready first: a page loaded directly
+		  // past the launch boundary (a debug preset, or any real visitor
+		  // arriving after the actual launch) can reach this measurement
+		  // before Syne has swapped in, measuring the fallback font's
+		  // narrower metrics instead of the real ones.
+		  // Chained (not run in parallel with the button import below) so
+		  // the measurement is guaranteed to land before anything touches
+		  // the grid's content.
+		  Promise.all([document.fonts.ready, import('./src/atoms/button.js')]).then(function (results) {
+		    var mod = results[1];
+		    var preSwapRect = grid.getBoundingClientRect();
+		    grid.style.minWidth = preSwapRect.width + 'px';
+		    grid.style.minHeight = preSwapRect.height + 'px';
 		    var built = mod.createButton({
 		      label: 'ENTER',
 		      size: 'large',
@@ -1923,19 +1971,18 @@
 		countdownGrid.classList.remove('is-enter-state');
 		countdownGrid.setAttribute('role', 'timer');
 		countdownGrid.setAttribute('aria-label', 'Countdown to showcase on 26 August 2026');
+		// Undo the frozen footprint the ENTER swap set inline (above) — the
+		// restored digit countdown sizes itself again.
+		countdownGrid.style.minWidth = '';
+		countdownGrid.style.minHeight = '';
 		enterBuildStarted = false;
+		// setDigits above ran before this reset, while js-days etc. still
+		// belonged to the old (about-to-be-discarded) ENTER markup and was
+		// a no-op — re-run now against the freshly restored spans so they
+		// don't sit on "—" until the next tick.
+		setDigits(days, hours, minutes, seconds);
 	  }
 
-      var totalSeconds = Math.floor(diff / 1000);
-      var days    = Math.floor(totalSeconds / 86400);
-      var hours   = Math.floor((totalSeconds % 86400) / 3600);
-      var minutes = Math.floor((totalSeconds % 3600) / 60);
-      var seconds = totalSeconds % 60;
-
-      document.getElementById('js-days').textContent    = days;
-      document.getElementById('js-hours').textContent   = pad(hours);
-      document.getElementById('js-minutes').textContent = pad(minutes);
-      document.getElementById('js-seconds').textContent = pad(seconds);
       updateDrop(seconds);
 
       setTimeout(updateCountdown, 1000);
