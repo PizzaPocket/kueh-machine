@@ -2,6 +2,46 @@
    STATE + ELEMENT REFS
 ------------------------------------------------------------------- */
 const COLLECTION_KEY = "kueh-machine-collection";
+const STOP_MOTION_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8].map((frame) => `./Resources/images/Set 2/${frame}.png`);
+const STOP_MOTION_SCALES = [0.4, 0.515, 0.63, 0.745, 0.855, 0.97, 1.085, 1.2];
+const STOP_MOTION_GLOW_MULTIPLIERS = [1, 1, 1.18, 1.28, 1.38, 1.48, 1.58, 1.68];
+const STOP_MOTION_GLOW_OPACITIES = [0.72, 0.72, 1, 1, 1, 1, 1, 1];
+const STOP_MOTION_PRELOADS = STOP_MOTION_FRAMES.map((source) => {
+  const image = new Image();
+  image.src = source;
+  return image;
+});
+const COLLECTION_IMAGES = {
+  bahulu: "./Resources/images/Kueh balls/bahulu.png",
+  dadar: "./Resources/images/Kueh balls/dadar.png",
+  lapis: "./Resources/images/Kueh balls/lapis.png",
+  ondeh: "./Resources/images/Kueh balls/ondeh.png",
+  salat: "./Resources/images/Kueh balls/salat.png",
+  angku: "./Resources/images/Kueh balls/ang ku kueh.png",
+  talam: "./Resources/images/Kueh balls/talam.png",
+  koswee: "./Resources/images/Kueh balls/ko swee.png?v=2",
+  "pulut-hitam": "./Resources/images/Kueh balls/pulut hitam.png?v=2"
+};
+const SHOP_PRICES = {
+  bahulu: 12,
+  ondeh: 12,
+  dadar: 14,
+  lapis: 18,
+  salat: 18,
+  angku: 20,
+  talam: 24,
+  koswee: 24,
+  "pulut-hitam": 28
+};
+const shopBag = {};
+const KUEH_MAKERS = [
+  { name: "Bengawan Solo", address: "1 Woodlands Link, Singapore 738730", website: "https://www.bengawansolo.com.sg/", image: "./Resources/images/makers/bengawan-solo.jpg" },
+  { name: "Kim Choo Kueh Chang", address: "60 Joo Chiat Place, Singapore 427784", website: "https://www.kimchoo.com/", image: "./Resources/images/makers/kim-choo.png" },
+  { name: "Ji Xiang Confectionery", address: "36 Joo Chiat Place, Singapore 427760", website: "https://tartreats.com/", image: "./Resources/images/makers/ji-xiang.png" },
+  { name: "Kueh Ho Jiak", address: "2 Everton Park, Singapore 080002", website: "https://www.kuehhojiak.com/", image: "./Resources/images/makers/kueh-ho-jiak.png" },
+  { name: "Lek Lim Nonya Cake", address: "15 Simon Road, Singapore 545907", website: "https://www.leklim.com.sg/", image: "./Resources/images/shopfront.png" },
+  { name: "The Kueh Consultancy", address: "Singapore, by appointment and delivery", website: "https://www.thekuehconsultancy.com/", image: "./Resources/images/shopfront.png" }
+];
 
 const state = {
   collection: JSON.parse(localStorage.getItem(COLLECTION_KEY) || "{}"), // { kuehId: count }
@@ -11,12 +51,17 @@ const state = {
 const els = {
   machineStage: document.getElementById("machine-stage"),
   machineIllustration: document.getElementById("machine-illustration"),
+  stopMotionLayer: document.getElementById("stop-motion-layer"),
+  stopMotionFrameA: document.getElementById("stop-motion-frame-a"),
+  stopMotionFrameB: document.getElementById("stop-motion-frame-b"),
   dispenseWindow: document.getElementById("dispense-window"),
+  dispenseBall: document.getElementById("dispense-ball"),
   capsuleLayer: document.getElementById("capsule-layer"),
   capsuleReveal: document.getElementById("capsule-reveal"),
   capsuleBall: document.getElementById("capsule-ball"),
   capsuleKueh: document.getElementById("capsule-kueh"),
   leverBtn: document.getElementById("lever-btn"),
+  gatchaCta: document.getElementById("gatcha-cta"),
   outputSection: document.getElementById("output-section"),
   outputCard: document.getElementById("output-card"),
   rarityBanner: document.getElementById("rarity-banner"),
@@ -27,7 +72,29 @@ const els = {
   pullAgainBtn: document.getElementById("pull-again-btn"),
   collectionHeading: document.getElementById("collection-heading"),
   collectionGrid: document.getElementById("collection-grid"),
-  legendaryGrid: document.getElementById("legendary-grid"),
+  makersCarousel: document.getElementById("makers-carousel"),
+  makersPrev: document.getElementById("makers-prev"),
+  makersNext: document.getElementById("makers-next"),
+  shopGrid: document.getElementById("shop-grid"),
+  shopBagButton: document.getElementById("shop-bag-button"),
+  shopBagCount: document.getElementById("shop-bag-count"),
+  shopProductOverlay: document.getElementById("shop-product-overlay"),
+  shopProductClose: document.getElementById("shop-product-close"),
+  shopProductImage: document.getElementById("shop-product-image"),
+  shopProductRarity: document.getElementById("shop-product-rarity"),
+  shopProductTitle: document.getElementById("shop-product-title"),
+  shopProductSubtitle: document.getElementById("shop-product-subtitle"),
+  shopProductEdition: document.getElementById("shop-product-edition"),
+  shopProductSpecification: document.getElementById("shop-product-specification"),
+  shopProductPrice: document.getElementById("shop-product-price"),
+  shopProductQuantity: document.getElementById("shop-product-quantity"),
+  shopProductAdd: document.getElementById("shop-product-add"),
+  shopTrayOverlay: document.getElementById("shop-tray-overlay"),
+  shopTrayClose: document.getElementById("shop-tray-close"),
+  shopTrayItems: document.getElementById("shop-tray-items"),
+  shopTrayEmpty: document.getElementById("shop-tray-empty"),
+  shopTotal: document.getElementById("shop-total"),
+  shopCheckoutButton: document.getElementById("shop-checkout-button"),
   modalOverlay: document.getElementById("kueh-modal-overlay"),
   modalClose: document.getElementById("kueh-modal-close"),
   modalIllustration: document.getElementById("kueh-modal-illustration"),
@@ -53,6 +120,15 @@ function pick(arr) {
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+function nextPaint() {
+  return new Promise((resolve) => requestAnimationFrame(resolve));
+}
+function renderKuehIllustration(kueh) {
+  const image = COLLECTION_IMAGES[kueh.id];
+  return image
+    ? `<span class="kueh-ball-frame rarity-${kueh.rarity}"><img class="kueh-ball-illustration" src="${image}" alt=""></span>`
+    : renderKuehSVG(kueh.svgType, kueh.rarity);
+}
 
 /* ------------------------------------------------------------------
    COLLECTION PERSISTENCE
@@ -70,98 +146,148 @@ function addToCollection(kuehId) {
 }
 
 /* ------------------------------------------------------------------
-   ACCOUNT SYNC (shared/account-widget.js) — keeps the collection tied
-   to the signed-in account instead of just this one browser.
-   localStorage (above) stays the source of truth for guests and for the
-   very first paint on every load — it's never cleared or bypassed, only
-   ever merged with the server so signing in can never make progress
-   disappear. window.KuehAccount is guaranteed to exist here since its
-   own <script> tag loads before this file (index.html).
+   ACCOUNT SYNC — guests keep using localStorage, while signed-in
+   collections are merged with the universal Kueh Machine account.
 ------------------------------------------------------------------- */
 function pushCollectionToServer() {
-  var user = window.KuehAccount.getUser();
-  if (!user) return; // guest — localStorage above is already the whole story
-  window.KuehAccount.ready.then(function (client) {
-    return client.from('ken_collection').upsert({
+  const user = window.KuehAccount.getUser();
+  if (!user) return;
+
+  window.KuehAccount.ready
+    .then((client) => client.from("ken_collection").upsert({
       user_id: user.id,
       data: state.collection,
       updated_at: new Date().toISOString()
-    });
-  }).catch(function (e) { console.warn('[ken] collection sync failed:', e); });
+    }))
+    .catch((error) => console.warn("[ken] collection sync failed:", error));
 }
 
-// Union, not overwrite either direction — take the higher count per kueh
-// between whatever's already in this browser and whatever the account
-// already had saved, so neither a first-time sign-in (server empty, local
-// has real progress) nor a returning sign-in on a fresh browser (local
-// empty, server has the real history) ever loses a pull. Pushes the
-// merged result back up so the server row catches up too.
+// Keep the highest count for every kueh, so neither browser-local nor
+// account progress can be lost when somebody signs in on another device.
 function syncCollectionFromServer() {
-  var user = window.KuehAccount.getUser();
+  const user = window.KuehAccount.getUser();
   if (!user) return;
-  window.KuehAccount.ready.then(function (client) {
-    return client.from('ken_collection').select('data').eq('user_id', user.id).maybeSingle();
-  }).then(function (res) {
-    var server = (res && res.data && res.data.data) || {};
-    var changed = false;
-    var serverBehind = false;
-    Object.keys(server).forEach(function (id) {
-      if ((state.collection[id] || 0) < server[id]) { state.collection[id] = server[id]; changed = true; }
-    });
-    Object.keys(state.collection).forEach(function (id) {
-      if (state.collection[id] > (server[id] || 0)) serverBehind = true;
-    });
-    if (changed) { saveCollection(); renderCollection(); }
-    if (changed || serverBehind) pushCollectionToServer();
-  }).catch(function (e) { console.warn('[ken] collection fetch failed:', e); });
+
+  window.KuehAccount.ready
+    .then((client) => client
+      .from("ken_collection")
+      .select("data")
+      .eq("user_id", user.id)
+      .maybeSingle())
+    .then((result) => {
+      const serverCollection = (result && result.data && result.data.data) || {};
+      let localChanged = false;
+      let serverBehind = false;
+
+      Object.keys(serverCollection).forEach((id) => {
+        if ((state.collection[id] || 0) < serverCollection[id]) {
+          state.collection[id] = serverCollection[id];
+          localChanged = true;
+        }
+      });
+      Object.keys(state.collection).forEach((id) => {
+        if (state.collection[id] > (serverCollection[id] || 0)) serverBehind = true;
+      });
+
+      if (localChanged) {
+        saveCollection();
+        renderCollection();
+      }
+      if (localChanged || serverBehind) pushCollectionToServer();
+    })
+    .catch((error) => console.warn("[ken] collection fetch failed:", error));
 }
 
-window.KuehAccount.ready.then(function () {
+window.KuehAccount.ready.then(() => {
   if (window.KuehAccount.getUser()) syncCollectionFromServer();
 });
-// Covers signing in via the persistent account icon while this page is
-// open, not just an already-signed-in page load — same reasoning Ruth's
-// own onAuthStateChange subscription documents.
-window.KuehAccount.onAuthStateChange(function (event) {
-  if (event === 'SIGNED_IN') syncCollectionFromServer();
+window.KuehAccount.onAuthStateChange((event) => {
+  if (event === "SIGNED_IN") syncCollectionFromServer();
 });
 
 function renderCollection() {
   const collectedCount = Object.keys(state.collection).length;
   els.collectionHeading.textContent = `${collectedCount} of ${KUEHS.length} collected`;
-
-  els.collectionGrid.innerHTML = KUEHS.map((k) => {
-    const count = state.collection[k.id] || 0;
-    const rarity = RARITIES[k.rarity];
-    if (count === 0) {
-      return `
-        <div class="collection-card is-locked">
-          <div class="collection-card-illustration collection-card-illustration--locked">?</div>
-          <p class="collection-card-name">Not yet pulled</p>
-          <span class="rarity-badge rarity-badge--${k.rarity}">${rarity.label}</span>
-        </div>`;
-    }
-    return `
-      <button type="button" class="collection-card" data-kueh-id="${k.id}">
-        <div class="collection-card-illustration">${renderKuehSVG(k.svgType, k.rarity)}</div>
-        <p class="collection-card-name">${k.name}${count > 1 ? ` <span class="collection-count">&times;${count}</span>` : ""}</p>
-        <span class="rarity-badge rarity-badge--${k.rarity}">${rarity.label}</span>
-      </button>`;
+  els.collectionGrid.innerHTML = KUEHS.map((kueh) => {
+    const count = state.collection[kueh.id] || 0;
+    const rarity = RARITIES[kueh.rarity];
+    if (!count) return `<div class="collection-card is-locked"><div class="collection-card-illustration collection-card-illustration--locked">?</div><p class="collection-card-name">Not yet pulled</p><span class="rarity-badge rarity-badge--${kueh.rarity}">${rarity.label}</span></div>`;
+    return `<button type="button" class="collection-card" data-kueh-id="${kueh.id}"><div class="collection-card-illustration">${renderKuehIllustration(kueh)}</div><p class="collection-card-name">${kueh.name}${count > 1 ? ` <span class="collection-count">&times;${count}</span>` : ""}</p><span class="rarity-badge rarity-badge--${kueh.rarity}">${rarity.label}</span></button>`;
   }).join("");
+  renderShop();
 }
 
-/* ------------------------------------------------------------------
-   LEGENDARY — always locked, always shrouded. No pull mechanic exists
-   for this tier yet, so these cards are inert: no click handler, no
-   name or art shown, just a teaser that the tier exists.
-------------------------------------------------------------------- */
-function renderLegendary() {
-  els.legendaryGrid.innerHTML = LEGENDARY_KUEHS.map(() => `
-    <div class="legendary-card">
-      <div class="legendary-card-icon">?</div>
-      <p class="legendary-card-label">???</p>
-      <span class="rarity-badge rarity-badge--legendary">Legendary</span>
-    </div>`).join("");
+function formatPrice(amount) {
+  return `$${amount.toFixed(2)}`;
+}
+
+function renderShop() {
+  const unlocked = KUEHS.filter((kueh) => state.collection[kueh.id]);
+  els.shopGrid.innerHTML = unlocked.length ? unlocked.map((kueh) => `<button type="button" class="shop-card" data-shop-kueh-id="${kueh.id}"><span class="shop-card-image">${renderKuehIllustration(kueh)}</span><span class="shop-card-details"><strong>${kueh.name}</strong><span>${formatPrice(SHOP_PRICES[kueh.id])}</span></span><span class="shop-card-action">View details</span></button>`).join("") : `<p class="shop-empty-state">Pull a kueh to unlock it in the shop.</p>`;
+}
+
+function renderMakers() {
+  els.makersCarousel.innerHTML = KUEH_MAKERS.map((maker) => `
+    <article class="maker-card">
+      <img class="maker-card-image" src="${maker.image}" alt="${maker.name} storefront">
+      <div class="maker-card-body">
+        <h3>${maker.name}</h3>
+        <p>${maker.address}</p>
+        <a href="${maker.website}" target="_blank" rel="noreferrer">Visit website <span aria-hidden="true">&rarr;</span></a>
+      </div>
+    </article>`).join("");
+}
+
+function moveMakers(direction) {
+  const amount = els.makersCarousel.clientWidth * 0.82;
+  els.makersCarousel.scrollBy({ left: direction * amount, behavior: "smooth" });
+}
+
+function openShopProduct(kueh) {
+  selectedShopKueh = kueh;
+  els.shopProductImage.innerHTML = renderKuehIllustration(kueh);
+  els.shopProductRarity.textContent = RARITIES[kueh.rarity].label;
+  els.shopProductRarity.className = `rarity-badge rarity-badge--${kueh.rarity}`;
+  els.shopProductTitle.textContent = kueh.name;
+  els.shopProductSubtitle.textContent = kueh.meaning;
+  els.shopProductEdition.textContent = `${RARITIES[kueh.rarity].label} edition`;
+  els.shopProductSpecification.textContent = kueh.detail.whenEaten;
+  els.shopProductPrice.textContent = formatPrice(SHOP_PRICES[kueh.id]);
+  els.shopProductQuantity.value = 1;
+  els.shopProductAdd.textContent = "Add to bag";
+  els.shopProductOverlay.hidden = false;
+  document.body.classList.add("shop-product-open");
+  requestAnimationFrame(() => els.shopProductOverlay.classList.add("is-open"));
+  els.shopProductClose.focus();
+}
+
+function closeShopProduct() {
+  els.shopProductOverlay.classList.remove("is-open");
+  document.body.classList.remove("shop-product-open");
+  setTimeout(() => { els.shopProductOverlay.hidden = true; }, 250);
+}
+
+function renderShopBag() {
+  const items = Object.entries(shopBag).map(([id, quantity]) => ({ kueh: KUEHS.find((item) => item.id === id), quantity }));
+  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  const subtotal = items.reduce((total, item) => total + SHOP_PRICES[item.kueh.id] * item.quantity, 0);
+  els.shopBagCount.textContent = itemCount;
+  els.shopTrayItems.innerHTML = items.map(({ kueh, quantity }) => `<div class="shop-tray-item"><div class="shop-tray-item-image">${renderKuehIllustration(kueh)}</div><div class="shop-tray-item-info"><strong>${kueh.name}</strong><span>${formatPrice(SHOP_PRICES[kueh.id])}</span></div><div class="shop-quantity" aria-label="Quantity for ${kueh.name}"><button type="button" data-shop-action="decrease" data-shop-kueh-id="${kueh.id}" aria-label="Decrease ${kueh.name} quantity">-</button><span>${quantity}</span><button type="button" data-shop-action="increase" data-shop-kueh-id="${kueh.id}" aria-label="Increase ${kueh.name} quantity">+</button></div></div>`).join("");
+  els.shopTrayEmpty.hidden = items.length > 0;
+  els.shopTotal.textContent = formatPrice(subtotal);
+  els.shopCheckoutButton.disabled = items.length === 0;
+}
+
+function openShopTray() {
+  els.shopTrayOverlay.hidden = false;
+  document.body.classList.add("shop-tray-open");
+  requestAnimationFrame(() => els.shopTrayOverlay.classList.add("is-open"));
+}
+
+function closeShopTray() {
+  els.shopTrayOverlay.classList.remove("is-open");
+  document.body.classList.remove("shop-tray-open");
+  setTimeout(() => { els.shopTrayOverlay.hidden = true; }, 250);
 }
 
 /* ------------------------------------------------------------------
@@ -189,79 +315,93 @@ function burstConfetti(container, colors, intensity) {
    pull -> suspense (shake + flash) -> drop -> capsule rises + cracks
    open above the machine -> details settle in below
 ------------------------------------------------------------------- */
-function resetCapsule() {
-  els.capsuleLayer.className = "capsule-layer";
-  els.capsuleReveal.className = "capsule-reveal";
-  els.capsuleBall.className = "capsule-ball";
-  els.capsuleKueh.innerHTML = "";
+async function playStopMotion(duration) {
+  resetStopMotionFrames();
+  [els.stopMotionFrameA, els.stopMotionFrameB].forEach((image) => image.style.removeProperty("transition"));
+  els.machineStage.classList.add("is-stop-motion");
+  els.stopMotionLayer.classList.add("is-playing");
+  const frameDuration = 160;
+  let visibleFrame = els.stopMotionFrameA;
+  let incomingFrame = els.stopMotionFrameB;
+
+  visibleFrame.classList.remove("is-visible");
+  incomingFrame.classList.remove("is-visible");
+  setStopMotionFrame(visibleFrame, STOP_MOTION_FRAMES[0], 0, 0.275);
+  visibleFrame.style.transform = "translate(-50%, -50%) scale(0.275)";
+  visibleFrame.style.opacity = "0.35";
+  await nextPaint();
+  visibleFrame.classList.add("is-visible");
+  visibleFrame.style.opacity = "1";
+  visibleFrame.style.transform = "translate(-50%, -50%) scale(0.4)";
+  await Promise.all(STOP_MOTION_PRELOADS.map((image) => image.decode().catch(() => undefined)));
+  await sleep(frameDuration);
+
+  for (const [index, frame] of STOP_MOTION_FRAMES.slice(1).entries()) {
+    const previousScale = STOP_MOTION_SCALES[index];
+    const nextScale = setStopMotionFrame(incomingFrame, frame, index + 1, previousScale);
+    await incomingFrame.decode().catch(() => undefined);
+    await nextPaint();
+    incomingFrame.classList.add("is-visible");
+    visibleFrame.classList.remove("is-visible");
+    incomingFrame.style.transform = `translate(-50%, -50%) scale(${nextScale})`;
+    await sleep(frameDuration);
+    [visibleFrame, incomingFrame] = [incomingFrame, visibleFrame];
+  }
+
+  await sleep(350);
+  els.stopMotionLayer.classList.remove("is-playing");
+  els.machineStage.classList.remove("is-stop-motion");
 }
 
-async function playCapsuleReveal(kueh, rarity) {
-  els.capsuleReveal.style.setProperty("--capsule-color", rarity.color);
-  els.capsuleReveal.style.setProperty("--capsule-color-dark", shade(rarity.color, -40));
-  els.capsuleReveal.classList.add(`rarity-${kueh.rarity}`);
-  els.capsuleLayer.classList.add("is-active");
+function resetStopMotionFrames() {
+  [els.stopMotionFrameA, els.stopMotionFrameB].forEach((image) => {
+    image.classList.remove("is-visible");
+    image.removeAttribute("src");
+    image.style.transition = "none";
+    image.style.opacity = "0";
+  });
+}
 
-  // rise up in front of the machine, growing into a large capsule
-  await sleep(30);
-  els.capsuleReveal.classList.add("is-risen");
-  await sleep(560);
-
-  // crack the shell open
-  els.capsuleBall.classList.add("is-opening");
-  els.capsuleKueh.innerHTML = renderKuehSVG(kueh.svgType, kueh.rarity);
-  await sleep(430);
-
-  // the kueh pops into view with a light burst
-  els.capsuleReveal.classList.add("is-revealed");
-  const settings = CONFETTI_SETTINGS[kueh.rarity];
-  burstConfetti(els.capsuleReveal, settings.colors, settings.intensity);
-
-  if (kueh.rarity === "ultraRare") {
-    document.body.classList.add("is-flash");
-    setTimeout(() => document.body.classList.remove("is-flash"), 400);
-  }
+function setStopMotionFrame(image, source, frameIndex, initialScale) {
+  const scale = STOP_MOTION_SCALES[frameIndex];
+  const glowMultiplier = STOP_MOTION_GLOW_MULTIPLIERS[frameIndex];
+  image.src = source;
+  image.style.transform = `translate(-50%, -50%) scale(${initialScale ?? scale})`;
+  els.stopMotionLayer.style.setProperty("--glow-size", `${180 * scale * glowMultiplier}px`);
+  els.stopMotionLayer.style.setProperty("--glow-core-size", `${58 * scale * glowMultiplier}px`);
+  els.stopMotionLayer.style.setProperty("--glow-opacity", STOP_MOTION_GLOW_OPACITIES[frameIndex]);
+  els.stopMotionLayer.style.setProperty("--glow-core-opacity", STOP_MOTION_GLOW_OPACITIES[frameIndex]);
+  return scale;
 }
 
 async function doPull() {
   if (state.isPulling) return;
   state.isPulling = true;
   els.leverBtn.disabled = true;
+  els.gatchaCta.disabled = true;
   els.outputSection.hidden = true;
-  resetCapsule();
 
   const kueh = pullKueh();
+
+  // 1. press and turn the separate knob layer before the reveal
+  els.leverBtn.classList.add("is-pressed");
+  await sleep(180);
+  els.dispenseBall.classList.remove("is-rolling");
+  void els.dispenseBall.offsetWidth;
+  els.dispenseBall.classList.add("is-rolling");
+
+  // 2. suspense: advance through the photographed capsule frames
+  const suspenseMs = kueh.rarity === "ultraRare" ? 4000 : 3200;
+  await playStopMotion(suspenseMs);
+  els.leverBtn.classList.remove("is-pressed");
+
+  // 3. settle the details below the finished frame
   const rarity = RARITIES[kueh.rarity];
-
-  // 1. pull the lever
-  els.leverBtn.classList.add("is-pulling");
-
-  // 2. suspense: shake the cabinet, flash the marquee
-  els.machineStage.classList.add("is-shaking");
-  els.machineIllustration.classList.add("is-flashing");
-  const suspenseMs = kueh.rarity === "ultraRare" ? 2000 : 1600;
-  await sleep(suspenseMs);
-  els.machineStage.classList.remove("is-shaking");
-  els.machineIllustration.classList.remove("is-flashing");
-  els.leverBtn.classList.remove("is-pulling");
-
-  // 3. the capsule drops into the dispensing window, bounces, then falls out the chute
-  els.dispenseWindow.style.setProperty("--capsule-color", rarity.color);
-  els.dispenseWindow.classList.add("is-dropping");
-  await sleep(900);
-  els.dispenseWindow.classList.remove("is-dropping");
-
-  // 4. the capsule rises above the machine and cracks open
-  await playCapsuleReveal(kueh, rarity);
-
-  // 5. the details settle in below, while the opened capsule holds
   reveal(kueh, rarity);
-  await sleep(kueh.rarity === "ultraRare" ? 1700 : 1200);
-  els.capsuleLayer.classList.remove("is-active");
-  els.capsuleReveal.classList.remove("is-risen");
 
   state.isPulling = false;
   els.leverBtn.disabled = false;
+  els.gatchaCta.disabled = false;
 }
 
 function reveal(kueh, rarity) {
@@ -270,7 +410,7 @@ function reveal(kueh, rarity) {
 
   els.outputCard.className = `output-card rarity-${kueh.rarity}`;
   els.rarityBanner.textContent = rarity.label + (kueh.rarity === "ultraRare" ? "!" : "");
-  els.outputIllustration.innerHTML = renderKuehSVG(kueh.svgType, kueh.rarity);
+  els.outputIllustration.innerHTML = renderKuehIllustration(kueh);
   els.outputName.textContent = kueh.name + (isNew ? " · New" : "");
   els.outputMeaning.textContent = kueh.meaning;
   els.outputFlavor.textContent = pick(kueh.flavor);
@@ -288,7 +428,7 @@ function openKuehModal(kueh) {
 
   els.modalOverlay.className = "kueh-modal-overlay";
   els.modalOverlay.classList.add(`rarity-${kueh.rarity}`);
-  els.modalIllustration.innerHTML = renderKuehSVG(kueh.svgType, kueh.rarity);
+  els.modalIllustration.innerHTML = renderKuehIllustration(kueh);
   els.modalRarity.textContent = rarity.label;
   els.modalRarity.className = `rarity-badge rarity-badge--${kueh.rarity}`;
   els.modalName.textContent = kueh.name;
@@ -325,6 +465,7 @@ function closeKuehModal() {
    EVENTS
 ------------------------------------------------------------------- */
 els.leverBtn.addEventListener("click", doPull);
+els.gatchaCta.addEventListener("click", doPull);
 els.pullAgainBtn.addEventListener("click", doPull);
 
 els.collectionGrid.addEventListener("click", (e) => {
@@ -333,17 +474,63 @@ els.collectionGrid.addEventListener("click", (e) => {
   const kueh = KUEHS.find((k) => k.id === card.dataset.kuehId);
   if (kueh) openKuehModal(kueh);
 });
+els.shopGrid.addEventListener("click", (e) => {
+  const card = e.target.closest("[data-shop-kueh-id]");
+  if (!card) return;
+  const kueh = KUEHS.find((item) => item.id === card.dataset.shopKuehId);
+  if (kueh) openShopProduct(kueh);
+});
+els.shopProductClose.addEventListener("click", closeShopProduct);
+els.shopProductOverlay.addEventListener("click", (e) => {
+  if (e.target === els.shopProductOverlay) closeShopProduct();
+});
+els.shopProductAdd.addEventListener("click", () => {
+  const quantity = Math.max(1, Math.min(9, Number(els.shopProductQuantity.value) || 1));
+  shopBag[selectedShopKueh.id] = (shopBag[selectedShopKueh.id] || 0) + quantity;
+  renderShopBag();
+  els.shopProductAdd.textContent = "Added to bag";
+});
+els.makersPrev.addEventListener("click", () => moveMakers(-1));
+els.makersNext.addEventListener("click", () => moveMakers(1));
+els.makersCarousel.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") moveMakers(-1);
+  if (e.key === "ArrowRight") moveMakers(1);
+});
+els.shopBagButton.addEventListener("click", openShopTray);
+els.shopTrayClose.addEventListener("click", closeShopTray);
+els.shopTrayOverlay.addEventListener("click", (e) => {
+  if (e.target === els.shopTrayOverlay) closeShopTray();
+  const control = e.target.closest("[data-shop-action]");
+  if (!control) return;
+  const id = control.dataset.shopKuehId;
+  if (control.dataset.shopAction === "increase") shopBag[id] += 1;
+  if (control.dataset.shopAction === "decrease") {
+    shopBag[id] -= 1;
+    if (shopBag[id] <= 0) delete shopBag[id];
+  }
+  renderShopBag();
+});
+els.shopCheckoutButton.addEventListener("click", () => {
+  els.shopCheckoutButton.textContent = "Coming soon";
+  setTimeout(() => { els.shopCheckoutButton.textContent = "Checkout"; }, 1600);
+});
 els.modalClose.addEventListener("click", closeKuehModal);
 els.modalOverlay.addEventListener("click", (e) => {
   if (e.target === els.modalOverlay) closeKuehModal();
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !els.modalOverlay.hidden) closeKuehModal();
+  if (e.key === "Escape" && !els.shopProductOverlay.hidden) closeShopProduct();
+  if (e.key === "Escape" && !els.shopTrayOverlay.hidden) closeShopTray();
 });
 
 /* ------------------------------------------------------------------
    INIT
 ------------------------------------------------------------------- */
-els.machineIllustration.innerHTML = renderMachineSVG();
+STOP_MOTION_FRAMES.forEach((src) => {
+  const image = new Image();
+  image.src = src;
+});
 renderCollection();
-renderLegendary();
+renderMakers();
+renderShopBag();

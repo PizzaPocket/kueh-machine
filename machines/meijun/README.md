@@ -22,19 +22,52 @@ Noto Serif SC (handles Chinese and English gracefully), accents in Caveat, a
 handwritten-feel font, for the personal, diary-like touches. Palette: paper
 cream, deep ink brown, and a chili-red accent.
 
+## The recipes in here
+
+Three dishes documented with mum so far, built into the project rather than
+living only in one browser:
+
+- **Hainanese Yi Bua Kueh** 椰糖蒸糕 — coconut palm sugar steamed cake
+- **Orh Kueh / Yam Cake** 芋头糕 — the one she makes for family gatherings
+- **Tang Yuan / Glutinous Rice Balls** 汤圆
+
+They load automatically the first time the site is opened in any browser, in
+the order set here. Their photos are real files in `./media/`, referenced by
+relative path. Anything added, edited, reordered or deleted in the browser
+after that lives in IndexedDB and takes precedence over the built-in copies.
+
+### Updating what ships in the folder
+
+Recipes written in the browser live only in that browser. To fold new ones,
+edits or a new running order into the project itself:
+
+1. Click **Back up** in the site footer. A `taste-of-home-backup-<date>.json`
+   lands in Downloads.
+2. Run `python3 tools/build-seed.py ~/Downloads/taste-of-home-backup-<date>.json`
+
+That rewrites `media/` and `recipes-seed.js` from the backup, resizing photos
+to 1600px JPEGs so the folder stays small enough to zip. Check the result in a
+private window, which has no saved data and so shows exactly what someone
+opening the site for the first time will see.
+
 ## Features
 
 - [x] Basic page scaffold and scrapbook visual style
 - [x] Recipe card entry form (dish name, story, ingredients in her words +
       translated, steps, photos)
-- [x] Photo/video attachment per recipe, saved in the browser
+- [x] Photo, video and voice recording attachments per recipe, saved in the
+      browser, each nameable with an optional note and draggable into the
+      order you want; photos and video open in a
+      gallery pop-up, photos again for a full-window view, and
+      recordings play inside the recipe pop-up
 - [x] Growing, searchable glossary of vague measurement phrases → real
       measurements
 - [x] Voice-to-text capture (Mandarin + English/Singlish) for recording her
       spoken instructions while cooking
-- [x] Reorder recipes to control the sequence they're told in
+- [x] Drag recipes, and the ingredients, steps and media within them, into the
+      sequence they're told in
 - [x] Share a recipe out (native share sheet, or copied to clipboard as a
-      fallback)
+      fallback), or save it as a PDF laid out for paper
 - [x] Add photos/videos to a recipe's gallery without overwriting what's
       already there — remove individual items instead
 - [x] Back up everything (recipes, photos/videos, glossary) to one file, and

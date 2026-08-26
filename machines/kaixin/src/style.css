@@ -440,6 +440,27 @@ body {
   text-shadow: 2px 2px 0 var(--pink);
 }
 
+/* Deliberately subtle by default — every line is visible in the scroll
+   at once, so a loud color here would give away the joke before you've
+   actually reached that line. A faint dotted underline in the same
+   color as the surrounding text is barely noticeable at a glance. */
+.pun-word {
+  text-decoration: underline dotted;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: currentColor;
+  text-underline-offset: 3px;
+}
+
+/* Once a line is actually being sung, the pun word is the punchline —
+   this is where it's allowed to pop. */
+.lyric-line.is-current .pun-word {
+  color: var(--pink);
+  text-shadow: 2px 2px 0 rgba(255, 247, 232, 0.28);
+  text-decoration: underline wavy;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
 .lyrics-status {
   font-family: "Space Grotesk", sans-serif;
   color: rgba(255, 247, 232, 0.6);
@@ -704,23 +725,6 @@ body {
   color: rgba(255, 247, 232, 0.5);
   font-style: italic;
   font-size: 0.9rem;
-}
-
-.export-data-btn {
-  margin-top: 1rem;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 0.75rem;
-  color: rgba(255, 247, 232, 0.5);
-  background: none;
-  border: 1px dashed rgba(255, 247, 232, 0.3);
-  border-radius: 999px;
-  padding: 0.35rem 0.8rem;
-  cursor: pointer;
-}
-
-.export-data-btn:hover {
-  color: var(--yellow);
-  border-color: var(--yellow);
 }
 
 /* ---------- Queue ---------- */

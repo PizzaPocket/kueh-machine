@@ -19,7 +19,7 @@
 
   <section class="connection">
     <div class="connection-card">
-      <span class="card-tag">why this belongs here</span>
+      <span class="card-tag">A little context</span>
       <div class="connection-terms">
         <div class="connection-row">
           <span class="connection-label"><span class="connection-term">Kueh</span> <span class="arrow">→</span></span>
@@ -30,7 +30,8 @@
           <span class="connection-meaning">the ability to recreate it, through taste</span>
         </div>
       </div>
-      <p class="connection-text">This project is my version of that: turning my mum's decades of cooking &mdash; held only in her hands and her own words &mdash; into something my family can relive through taste.</p>
+      <p class="connection-text">This is my version of that. Turning my mum's cooking, decades of it, all held in her hands and her own words, into something my family can actually relive.</p>
+      <p class="connection-sign">&mdash; Mei Jun</p>
     </div>
   </section>
 
@@ -47,29 +48,12 @@
 
       <div class="recipe-grid" id="recipe-grid">
 
-        <article class="recipe-card">
-          <span class="card-tag">example</span>
-          <h3>Ginger &amp; Scallion Fish <span class="cn">姜葱鱼</span></h3>
-          <p class="recipe-story">The dish she makes when someone in the family is unwell. Always steamed, never fried, "so it stays gentle on the stomach."</p>
-
-          <div class="ingredients">
-            <div class="ingredient-row">
-              <span class="her-words">"一块姜, 差不多这么大" <em>(a piece of ginger, about this big)</em></span>
-              <span class="arrow">→</span>
-              <span class="my-words">~15g ginger, julienned</span>
-            </div>
-            <div class="ingredient-row">
-              <span class="her-words">"两块钱的葱" <em>($2 worth of scallion)</em></span>
-              <span class="arrow">→</span>
-              <span class="my-words">~4 stalks scallion</span>
-            </div>
-          </div>
-
-          <p class="steps-placeholder">Steps and photos to come as I document this properly with her.</p>
-        </article>
-
       </div>
     </section>
+
+    <div id="recipe-detail-overlay" class="form-overlay hidden">
+      <article id="recipe-detail" class="recipe-detail" role="dialog" aria-modal="true" aria-labelledby="recipe-detail-heading"></article>
+    </div>
 
     <div id="recipe-form-overlay" class="form-overlay hidden">
       <form id="recipe-form" class="recipe-form">
@@ -109,8 +93,8 @@
           <div id="step-rows"></div>
         </div>
 
-        <label>Photos / videos
-          <input type="file" id="field-media" accept="image/*,video/*" multiple>
+        <label>Photos, videos, voice recordings
+          <input type="file" id="field-media" accept="image/*,video/*,audio/*" multiple>
         </label>
         <div id="existing-media-preview"></div>
 
@@ -129,8 +113,8 @@
       <ul class="glossary-list" id="glossary-list"></ul>
 
       <div class="glossary-add">
-        <input type="text" id="glossary-term" placeholder="Her phrase (e.g. 少许 or &quot;a splash&quot;)">
-        <input type="text" id="glossary-meaning" placeholder="Real measurement (e.g. ~1/4 tsp)">
+        <input type="text" id="glossary-term" placeholder="Her phrase (e.g. 一点点 or &quot;a splash&quot;)">
+        <input type="text" id="glossary-meaning" placeholder="Real measurement (e.g. ~1/2 tbsp)">
         <button type="button" id="glossary-submit" class="mini-btn">+ Add to glossary</button>
       </div>
     </section>
@@ -140,7 +124,7 @@
   <footer class="site-footer">
     <p>Documented with love by Mei Jun <span class="divider">·</span> part of <a href="https://kuehmachine.com">kuehmachine.com</a></p>
     <p class="utility-row">
-      Everything above lives only in this browser.
+      Anything you add here stays in this browser until you back it up.
       <button type="button" id="backup-btn" class="utility-link">Back up</button>
       <span class="divider">·</span>
       <button type="button" id="restore-btn" class="utility-link">Restore</button>
@@ -148,13 +132,39 @@
     </p>
   </footer>
 
+  <div id="media-overlay" class="media-overlay hidden">
+    <button type="button" class="viewer-nav prev" id="media-prev" aria-label="Previous">‹</button>
+    <figure class="media-frame" role="dialog" aria-modal="true" aria-label="Photo and video viewer">
+      <button type="button" id="close-media" class="close-btn" aria-label="Close">×</button>
+      <div id="media-holder" class="media-holder"></div>
+      <figcaption>
+        <span class="caption-text">
+          <span id="media-caption"></span>
+          <span id="media-description" class="media-description" hidden></span>
+        </span>
+        <span id="media-counter" class="media-counter"></span>
+      </figcaption>
+    </figure>
+    <button type="button" class="viewer-nav next" id="media-next" aria-label="Next">›</button>
+  </div>
+
+  <div id="confirm-overlay" class="confirm-overlay hidden">
+    <div class="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+      <h3 id="confirm-title"></h3>
+      <p id="confirm-body"></p>
+      <div class="confirm-actions">
+        <button type="button" id="confirm-cancel" class="quiet-btn"></button>
+        <button type="button" id="confirm-ok" class="danger-btn"></button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+  <!-- Universal Kueh Machine account. Mei Jun's editable recipes and media
+       intentionally remain browser-local, as described by the backup UI. -->
+  <script src="/shared/account-widget.js" data-accent-color="#b7472a"></script>
+  <script src="./recipes-seed.js"></script>
   <script src="./script.js"></script>
-<!-- Floating top-right (default fixed/top-right, no header/nav bar to dock
-     into) — nothing else occupies that corner (.form-overlay/.toast are
-     centered, not corner-anchored). data-accent-color matches --accent
-     from style.css, this page's own terracotta/red. -->
-<script src="/shared/account-widget.js" data-accent-color="#b7472a"></script>
 </body>
 </html>

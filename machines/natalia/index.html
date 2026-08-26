@@ -3,93 +3,252 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Care Island</title>
-<link rel="stylesheet" href="./style.css">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Kueh Lupis — Water Tracker</title>
+<link rel="stylesheet" href="./style.css?v=17">
 </head>
 <body>
 
 <div id="app">
 
-  <!-- ONBOARDING -->
-  <section id="onboarding" class="screen">
-    <header class="onboard-header">
-      <h1>Care Island</h1>
-      <p class="tagline">Small acts of care, tended into a little world.</p>
-    </header>
+  <!-- KUEH SCREEN (home) -->
+  <section id="kueh-screen" class="screen kueh-screen">
+    <div id="water-wash" class="water-wash"><div class="water-wash-line"></div></div>
 
-    <div class="onboard-body">
-      <div class="onboard-step">
-        <h2>Set your goals</h2>
-        <p class="hint">One-time setup. You'll only tap preset levels day to day — no typing after this.</p>
-        <div id="onboard-editor"></div>
+    <div class="stage-art-wrap">
+      <div id="scene-stage" class="scene-stage"></div>
+    </div>
+
+    <div id="tap-layer" class="tap-layer" title="Tap to log water"></div>
+
+    <div class="chrome-top">
+      <div>
+        <div class="kicker">Today's kueh <span id="day-number" class="day-number"></span></div>
+        <div id="auntie-line" class="auntie-line"></div>
       </div>
+      <div id="stage-chip" class="stage-chip">1/7</div>
+    </div>
 
-      <p id="habit-count-warning" class="warning hidden">Add at least 3 habits total to begin.</p>
+    <div id="fact-card" class="fact-card hidden">
+      <div class="fact-kicker">Fun fact</div>
+      <p id="fact-text" class="fact-text"></p>
+    </div>
 
-      <button id="begin-btn" class="primary-btn">Begin</button>
+    <div id="toast" class="toast hidden"></div>
+
+    <div class="chrome-bottom">
+      <div id="tap-label" class="tap-label">Tap anywhere to log</div>
+      <div class="readout">
+        <span id="ml-label" class="ml-label">0</span>
+        <span class="readout-unit">/ <span id="goal-label">2,000</span> ml</span>
+      </div>
+      <div id="home-advice" class="home-advice"></div>
     </div>
   </section>
 
-  <!-- ISLAND -->
-  <section id="island" class="screen hidden">
-    <header class="island-header">
-      <h1>Care Island</h1>
-      <button id="settings-btn" title="Edit habits">⚙︎</button>
-    </header>
+  <!-- HISTORY SCREEN -->
+  <section id="history-screen" class="screen history-screen hidden">
+    <div class="history-scroll">
+      <h2>How you been<br>drinking, ah?</h2>
+      <p class="history-sub">Let's take a look.</p>
 
-    <div class="scene-wrap">
-      <div id="scene-fullbg" class="scene-fullbg"></div>
-      <div id="wisdom-panel" class="wisdom-panel hidden">
-        <p id="wisdom-text"></p>
+      <div class="segmented" id="history-segmented">
+        <button class="segmented-btn selected" data-range="day">Day</button>
+        <button class="segmented-btn" data-range="week">Week</button>
+        <button class="segmented-btn" data-range="month">Month</button>
+      </div>
+
+      <!-- DAY VIEW -->
+      <div id="history-day" class="history-pane">
+        <div class="pane-label">Today</div>
+        <div class="jug-card">
+          <div class="jug-art-wrap"><img class="jug-art" src="./assets/lupis/water-jug.png?v=17" alt=""></div>
+          <div class="jug-readout">
+            <span id="day-ml-label" class="jug-ml">0</span>
+            <span class="jug-ml-unit">/ <span id="day-goal-label">1,850</span> ml</span>
+          </div>
+          <div class="jug-bar-track"><div id="day-bar-fill" class="jug-bar-fill"></div></div>
+          <p id="day-blurb" class="jug-blurb"></p>
+        </div>
+
+        <div class="pane-label">By the hour</div>
+        <div class="hour-chart-card">
+          <div id="hour-bars" class="bar-row hour-bar-row"></div>
+        </div>
+      </div>
+
+      <!-- WEEK VIEW -->
+      <div id="history-week" class="history-pane hidden">
+        <div class="range-header">
+          <div>
+            <div class="pane-label">This week</div>
+            <div id="week-range-label" class="range-title"></div>
+          </div>
+          <div class="range-nav">
+            <button id="week-prev-btn" class="range-nav-btn" aria-label="Previous week">‹</button>
+            <button id="week-next-btn" class="range-nav-btn" aria-label="Next week">›</button>
+          </div>
+        </div>
+
+        <div class="week-chart-card">
+          <div id="week-bars" class="bar-row week-bar-row"></div>
+        </div>
+
+        <div class="week-stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Average per day</div>
+            <div class="stat-value"><span id="week-avg-ml">0</span> <span class="stat-unit">ml</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Average goal reached</div>
+            <div class="stat-value"><span id="week-avg-pct">0</span><span class="stat-unit">%</span></div>
+          </div>
+        </div>
+        <div class="stat-card stat-card-wide">
+          <div class="stat-label">Best day</div>
+          <div id="week-best-day" class="stat-value stat-value-inline"></div>
+        </div>
+      </div>
+
+      <!-- MONTH VIEW -->
+      <div id="history-month" class="history-pane hidden">
+        <div class="range-header">
+          <div>
+            <div class="pane-label">This month</div>
+            <div id="month-title-label" class="range-title"></div>
+          </div>
+          <div class="range-nav">
+            <button id="month-prev-btn" class="range-nav-btn" aria-label="Previous month">‹</button>
+            <button id="month-next-btn" class="range-nav-btn" aria-label="Next month">›</button>
+          </div>
+        </div>
+
+        <div id="month-summary" class="month-summary"></div>
+
+        <div class="month-card">
+          <div class="month-weekday-row">
+            <span>MO</span><span>TU</span><span>WE</span><span>TH</span><span>FR</span><span>SA</span><span>SU</span>
+          </div>
+          <div id="month-grid" class="month-grid"></div>
+        </div>
       </div>
     </div>
-
-    <div class="progress-bar-wrap">
-      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
-      <span id="progress-label">0%</span>
-    </div>
-
-    <div id="habit-icons" class="habit-icons"></div>
-
-    <footer class="byline">Care Island — by Natalia, for kuehmachine.com</footer>
   </section>
 
-  <!-- SETTINGS (edit habits, reachable from island) -->
-  <section id="settings" class="screen hidden">
-    <header class="onboard-header">
-      <h1>Edit habits</h1>
-    </header>
-    <div class="onboard-body">
-      <div id="settings-editor"></div>
-      <p class="hint">Editing habits does not affect today's already-logged progress.</p>
-      <button id="settings-done-btn" class="primary-btn">Done</button>
+  <!-- GOAL SCREEN -->
+  <section id="goal-screen" class="screen goal-screen hidden">
+    <img class="goal-bg-jug" src="./assets/lupis/water-jug.png?v=17" alt="">
+    <div class="goal-scroll">
+      <h2 id="goal-heading">Let's set<br>your goal</h2>
+      <p id="goal-subhead" class="goal-sub">First time here—tell us a bit about you</p>
+
+      <div class="goal-result-card">
+        <div class="goal-result-label" id="goal-result-kicker">Your calculated goal</div>
+        <div class="goal-result-value"><span id="goal-calc-value">1,850</span><span class="goal-result-unit">ml/day</span></div>
+        <button id="goal-save-btn" class="goal-save-btn">Set my goal</button>
+      </div>
+
+      <div class="based-on-divider"><span>Based on</span></div>
+
+      <div class="goal-inputs-card">
+        <div class="toggle-row">
+          <div class="toggle-group">
+            <div class="toggle-group-label">Sex</div>
+            <div class="pill-toggle" id="sex-toggle">
+              <button class="pill-toggle-btn" data-value="female">Female</button>
+              <button class="pill-toggle-btn" data-value="male">Male</button>
+            </div>
+          </div>
+          <div class="toggle-group">
+            <div class="toggle-group-label">Activity</div>
+            <div class="pill-toggle" id="activity-toggle">
+              <button class="pill-toggle-btn" data-value="sitting">Sitting</button>
+              <button class="pill-toggle-btn" data-value="active">Active</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stepper-row">
+          <div class="stepper-label">Weight</div>
+          <div class="stepper-control">
+            <button class="stepper-btn" id="weight-minus" aria-label="Decrease weight">−</button>
+            <div id="weight-track" class="stepper-track"><div id="weight-fill" class="stepper-fill"><div class="stepper-handle"></div></div></div>
+            <button class="stepper-btn" id="weight-plus" aria-label="Increase weight">+</button>
+          </div>
+          <div class="stepper-value"><span id="weight-value">60</span> kg</div>
+        </div>
+
+        <div class="stepper-row">
+          <div class="stepper-label">Height</div>
+          <div class="stepper-control">
+            <button class="stepper-btn" id="height-minus" aria-label="Decrease height">−</button>
+            <div id="height-track" class="stepper-track"><div id="height-fill" class="stepper-fill stepper-fill-dark"><div class="stepper-handle"></div></div></div>
+            <button class="stepper-btn" id="height-plus" aria-label="Increase height">+</button>
+          </div>
+          <div class="stepper-value"><span id="height-value">162</span> cm</div>
+        </div>
+      </div>
     </div>
   </section>
 
 </div>
 
-<!-- Habit bottom sheet: tap an icon on the island to open -->
+<!-- Persistent bottom tab bar -->
+<nav id="tab-bar" class="tab-bar">
+  <button class="tab-btn selected" data-tab="kueh" aria-label="Home">
+    <svg class="tab-icon" viewBox="0 0 24 24" fill="none"><path d="M4 11.5 12 4l8 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9a1 1 0 0 0 1 1h3v-5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20h3a1 1 0 0 0 1-1v-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="tab-btn" data-tab="history" aria-label="History">
+    <svg class="tab-icon" viewBox="0 0 24 24" fill="none"><rect x="4" y="12" width="4" height="8" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="10" y="7" width="4" height="13" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="16" y="4" width="4" height="16" rx="1.2" stroke="currentColor" stroke-width="1.8"/></svg>
+    <span>History</span>
+  </button>
+  <button class="tab-btn" data-tab="goal" aria-label="Goal">
+    <svg class="tab-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="0.9" fill="currentColor"/></svg>
+    <span>Goal</span>
+  </button>
+</nav>
+
+<!-- Water log sheet: tap anywhere on the kueh screen to open -->
 <div id="sheet-backdrop" class="sheet-backdrop"></div>
-<div id="habit-sheet" class="habit-sheet">
+<div id="water-sheet" class="water-sheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-header">
-    <span id="sheet-title" class="sheet-title"></span>
-    <button id="sheet-undo-btn" class="undo-btn" title="Undo last">↶</button>
+  <h2 class="sheet-title">How much you drink?</h2>
+  <p class="sheet-sub">Drag the handle on the water line.</p>
+
+  <div class="glass-row">
+    <div class="glass-and-ticks">
+      <div id="glass-track" class="glass-track">
+        <div id="glass-fill" class="glass-fill">
+          <div class="meniscus"></div>
+          <div class="handle-pill"></div>
+        </div>
+        <div class="glass-highlight"></div>
+        <div class="glass-rim-shade"></div>
+      </div>
+      <div id="tick-column" class="tick-column"></div>
+    </div>
+    <div class="glass-readout">
+      <div class="draft-number"><span id="draft-label">0</span><span class="draft-unit">ml</span></div>
+      <div id="size-hint" class="size-hint"></div>
+    </div>
   </div>
-  <div id="sheet-body" class="sheet-body"></div>
-  <button id="sheet-done-btn" class="primary-btn">Done</button>
+
+  <div class="stage-impact">
+    <span class="impact-dot"></span>
+    <span id="impact-text"></span>
+  </div>
+
+  <div class="sheet-actions">
+    <button id="sheet-later-btn" class="btn-later">Later</button>
+    <button id="sheet-confirm-btn" class="btn-drank">Log Now</button>
+  </div>
 </div>
 
-<!-- .island-header has no background fill of its own and isn't shown on
-     every screen (onboarding/settings don't have it), so this floats
-     top-right (default) rather than docking into it. accentColor matches
-     --accent (style.css). Loaded before scenes.js/wisdoms.js/script.js
-     (matching Ken's/Amy's/Ruth's/Liwei's own script order) — script.js
-     reads window.KuehAccount at its own top level to sync habit progress
-     with the signed-in account, so it needs to already exist by then. -->
-<script src="/shared/account-widget.js" data-accent-color="#c96a4a"></script>
-<script src="./scenes.js"></script>
-<script src="./wisdoms.js"></script>
-<script src="./script.js"></script>
+<!-- Universal Kueh Machine account. Loaded before the tracker so its
+     identity and cross-device progress API are available at startup. -->
+<script src="/shared/account-widget.js" data-accent-color="#c67139"></script>
+<script src="./lupis-wisdom.js?v=17"></script>
+<script src="./script.js?v=17"></script>
 </body>
 </html>

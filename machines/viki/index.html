@@ -1,291 +1,355 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kueh Machine — Design Studio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./landing.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kueh Machine — build a kueh nobody's auntie has made yet</title>
+  <meta name="description" content="Load the belt, pick your layers, filling and finish, and let the machine steam it into something suspiciously delicious.">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 
   <header class="site-header">
-    <div class="logo">
-      <span class="logo-mark">KM</span>
-      <span class="logo-name">Kueh Machine</span>
-    </div>
+    <!-- Inlined rather than <img> so the wordmark can use the bundled
+         Instrument Serif; an SVG loaded via <img> can't reach page fonts.
+         Source file: ./assets/kueh-machine-logo.svg -->
+    <svg class="brand" viewBox="0 0 470 120" role="img" aria-label="Kueh Machine">
+      <title>Kueh Machine</title>
+      <g transform="translate(0 21) scale(0.975)">
+        <g id="kueh">
+          <rect x="6" y="0" width="52" height="9" rx="2" fill="#c8455c"></rect>
+          <rect x="6" y="11" width="52" height="9" rx="2" fill="#e8d3ad"></rect>
+          <rect x="6" y="22" width="52" height="9" rx="2" fill="#c8455c"></rect>
+          <rect x="6" y="33" width="52" height="9" rx="2" fill="#e8d3ad"></rect>
+          <rect x="6" y="44" width="52" height="9" rx="2" fill="#4a2f14"></rect>
+          <circle cx="92" cy="33" r="20" fill="#5f8c3f"></circle>
+          <path d="M126 53V40a26 13 0 0 1 52 0v13a3 3 0 0 1-3 3h-46a3 3 0 0 1-3-3z" fill="#c8455c"></path>
+        </g>
+        <g id="belt">
+          <circle cx="10" cy="70" r="7.5" fill="#ffffff" stroke="#2c241b" stroke-width="5"></circle>
+          <circle cx="174" cy="70" r="7.5" fill="#ffffff" stroke="#2c241b" stroke-width="5"></circle>
+          <rect x="26" y="65" width="132" height="10" fill="#2c241b"></rect>
+          <circle cx="48" cy="70" r="1.75" fill="#f2ebdd"></circle>
+          <circle cx="70" cy="70" r="1.75" fill="#f2ebdd"></circle>
+          <circle cx="92" cy="70" r="1.75" fill="#f2ebdd"></circle>
+          <circle cx="114" cy="70" r="1.75" fill="#f2ebdd"></circle>
+          <circle cx="136" cy="70" r="1.75" fill="#f2ebdd"></circle>
+        </g>
+      </g>
+      <text class="brand-word" x="212" y="55">Kueh</text>
+      <text class="brand-word" x="212" y="99">Machine</text>
+    </svg>
   </header>
 
   <main>
 
-    <!-- ── Hero ── -->
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
     <section class="hero">
-      <p class="eyebrow">Design Studio</p>
-      <h1>What kueh would you like to design today?</h1>
-      <p class="hero-sub">Pick a kueh → Customise → Generate recipe or order directly.</p>
+      <div class="hero-eyebrow">Feed it &middot; fiddle with it &middot; out comes yours</div>
+      <h1>Build a kueh nobody's auntie has made yet.</h1>
+      <p class="hero-sub">Drag a kueh off the belt, open the hatch, and fiddle with its layers, filling and finish until the machine steams out something suspiciously delicious.</p>
 
-      <nav class="quicklinks" aria-label="Choose a kueh type">
+      <div class="stage">
 
-        <a class="qlink" href="./lapis.html">
-          <span class="qlink-icon">
-            <img src="./Kueh%20quicklinks/Kueh%20lapis.png" alt="Kueh Lapis" />
-          </span>
-          <span class="qlink-label">Kueh Lapis</span>
-        </a>
-
-        <a class="qlink" href="./ondeh.html">
-          <span class="qlink-icon">
-            <img src="./Kueh%20quicklinks/Ondeh%20ondeh.png" alt="Ondeh Ondeh" />
-          </span>
-          <span class="qlink-label">Ondeh Ondeh</span>
-        </a>
-
-        <div class="qlink qlink--soon">
-          <span class="qlink-icon">
-            <img src="./Kueh%20quicklinks/Tutukueh.png" alt="Tutu Kueh" />
-          </span>
-          <span class="qlink-label">Tutu Kueh</span>
-          <span class="soon-badge">Coming soon</span>
+        <div class="belt">
+          <div class="belt-side belt-side--left">
+            <div class="belt-lane" id="belt-left"></div>
+          </div>
+          <div class="belt-side belt-side--right">
+            <div class="belt-lane" id="belt-right"></div>
+          </div>
         </div>
 
-        <div class="qlink qlink--soon">
-          <span class="qlink-icon">
-            <img src="./Kueh%20quicklinks/Angkukueh.png" alt="Ang Ku Kueh" />
-          </span>
-          <span class="qlink-label">Ang Ku Kueh</span>
-          <span class="soon-badge">Coming soon</span>
-        </div>
+        <div class="belt-rail" id="belt-rail"></div>
+        <div class="belt-leg belt-leg--l"></div>
+        <div class="belt-leg belt-leg--r"></div>
 
-        <div class="qlink qlink--soon">
-          <span class="qlink-icon">
-            <img src="./Kueh%20quicklinks/kueh%20salat.png" alt="Kueh Salat" />
-          </span>
-          <span class="qlink-label">Kueh Salat</span>
-          <span class="soon-badge">Coming soon</span>
-        </div>
+        <div class="machine" id="machine">
 
-      </nav>
-    </section>
+          <div class="steam" id="steam" aria-hidden="true"><i></i><i></i><i></i></div>
 
-    <!-- ── How it works ── -->
-    <section class="how-section">
-      <h2>How it works</h2>
-      <div class="how-body">
+          <div class="hopper-hint" id="hopper-hint" hidden>Drop it in the hopper</div>
 
-        <div class="how-image-pane">
+          <div class="machine-chimney"></div>
 
-          <div class="how-step1-panel" id="how-step1-panel">
-            <div class="hs1-grid">
-              <div class="hs1-item hs1-item--dim">
-                <img src="./Kueh%20quicklinks/Ondeh%20ondeh.png" alt="Ondeh Ondeh" />
-                <span class="hs1-label">Ondeh Ondeh</span>
-              </div>
-              <div class="hs1-item hs1-item--dim">
-                <img src="./Kueh%20quicklinks/Tutukueh.png" alt="Tutu Kueh" />
-                <span class="hs1-label">Tutu Kueh</span>
-              </div>
-              <div class="hs1-item hs1-item--featured">
-                <img src="./Kueh%20quicklinks/Kueh%20lapis.png" alt="Kueh Lapis" />
-                <span class="hs1-label">Kueh Lapis</span>
-              </div>
-              <div class="hs1-item hs1-item--dim">
-                <img src="./Kueh%20quicklinks/Angkukueh.png" alt="Ang Ku Kueh" />
-                <span class="hs1-label">Ang Ku Kueh</span>
-              </div>
-              <div class="hs1-item hs1-item--dim">
-                <img src="./Kueh%20quicklinks/kueh%20salat.png" alt="Kueh Salat" />
-                <span class="hs1-label">Kueh Salat</span>
-              </div>
+          <div class="machine-body" id="machine-body">
+            <div class="machine-status">
+              <span>Unit 01 &middot; <span id="status-label">idle</span></span>
+              <span class="lamps"><i class="status-lamp"></i><i></i></span>
+            </div>
+
+            <div class="machine-window">
+              <!-- Empty state: a plate waiting for something to land on it -->
+              <svg class="machine-plate" id="machine-plate" viewBox="0 0 220 96" aria-hidden="true">
+                <ellipse cx="110" cy="78" rx="80" ry="10" fill="#000" opacity="0.45"></ellipse>
+                <path d="M18 60a92 26 0 0 0 184 0v-8a92 26 0 0 1-184 0z" fill="#8f8676"></path>
+                <ellipse cx="110" cy="52" rx="92" ry="26" fill="#e6dfcd"></ellipse>
+                <ellipse cx="110" cy="53" rx="64" ry="16" fill="#a89f8d"></ellipse>
+                <ellipse cx="110" cy="52" rx="64" ry="16" fill="#c4bbaa"></ellipse>
+                <path d="M48 52a62 15 0 0 1 42-14" fill="none" stroke="#fbf7ec"
+                  stroke-width="2.5" stroke-linecap="round" opacity="0.9"></path>
+                <path d="M172 52a62 15 0 0 1-42 14" fill="none" stroke="#fbf7ec"
+                  stroke-width="2" stroke-linecap="round" opacity="0.35"></path>
+              </svg>
+              <img class="machine-kueh" id="machine-kueh" alt="" hidden>
+              <div class="window-glare"></div>
+              <div class="window-floor"></div>
+            </div>
+
+            <div class="machine-controls">
+              <div class="readout" id="readout">&gt; feed me a kueh</div>
+              <button type="button" class="run-btn" id="modify" disabled>Modify</button>
             </div>
           </div>
 
-          <img class="how-image" id="how-img"
-            src="./Customised%20kuehs/AKK%20-%20Concept%201%20.png"
-            alt="Customise the design"
-            hidden />
-
         </div>
-
-        <ol class="how-steps" role="list">
-          <li class="how-step-item how-step-item--active">
-            <span class="how-num">01</span>
-            <span class="how-label">Pick a kueh</span>
-          </li>
-          <li class="how-step-item"
-            data-img="./Step%20images/step2.png"
-            data-alt="Customise the design">
-            <span class="how-num">02</span>
-            <span class="how-label">Customise the design</span>
-          </li>
-          <li class="how-step-item"
-            data-img="./Step%20images/step3.png"
-            data-alt="Generate recipe or order directly">
-            <span class="how-num">03</span>
-            <span class="how-label">Generate recipe or order directly</span>
-          </li>
-        </ol>
-
       </div>
     </section>
 
-    <!-- ── Featured bakeries ── -->
-    <section class="bakeries-section">
-      <h2>Featured bakeries</h2>
-      <div class="bakeries-grid">
+    <!-- ── Interior view ────────────────────────────────────────────────── -->
+    <div class="interior" id="interior" role="dialog" aria-modal="true" aria-label="Machine interior" hidden>
+      <div class="interior-panel">
 
-        <div class="bakery-tile">
-          <div class="bakery-tile-head">
-            <img class="bakery-tile-logo" src="./Bakery%20logos/bengawan%20solo%20logo.webp" alt="Bengawan Solo" />
-            <div>
-              <span class="bakery-tile-name">Bengawan Solo</span>
-              <span class="bakery-tile-desc">Traditional Peranakan kueh since 1979</span>
-            </div>
-          </div>
-          <div class="bakery-tile-meta">
-            <div class="tile-meta-row"><span class="tile-meta-label">Rating</span><span class="tile-meta-value">★ 4.5 · 2,400 reviews</span></div>
-          </div>
+        <div class="interior-head">
+          <span><i class="lamp-dot status-lamp"></i>Interior view &middot; unit 01 &middot; <span id="status-label-2">idle</span></span>
+          <button type="button" class="ghost-btn" id="close-hatch">Close hatch</button>
         </div>
 
-        <div class="bakery-tile">
-          <div class="bakery-tile-head">
-            <img class="bakery-tile-logo" src="./Bakery%20logos/thumb_OLLELLA_logo_2024_blue___gold-removebg-preview.png" alt="Ollella" />
-            <div>
-              <span class="bakery-tile-name">Ollella</span>
-              <span class="bakery-tile-desc">Modern take on heritage recipes</span>
-            </div>
+        <!-- Shown for kuehs with no studio built. The copy is generated from the
+             data in app.js so it can't drift as studios get added. -->
+        <div class="maintenance" id="maintenance" hidden>
+          <div class="maint-stripe"></div>
+          <div class="maint-body">
+            <div class="maint-label"><i class="lamp-dot maint-lamp"></i>In maintenance</div>
+            <h3 class="maint-title" id="maint-title">This line isn't running yet.</h3>
+            <p class="maint-note" id="maint-note"></p>
+            <button type="button" class="ghost-btn" id="maint-close">Back to the belt</button>
           </div>
-          <div class="bakery-tile-meta">
-            <div class="tile-meta-row"><span class="tile-meta-label">Rating</span><span class="tile-meta-value">★ 4.6 · 890 reviews</span></div>
-          </div>
+          <div class="maint-stripe"></div>
         </div>
 
-        <div class="bakery-tile">
-          <div class="bakery-tile-head">
-            <img class="bakery-tile-logo" src="./Bakery%20logos/kuehhojiak.jpeg" alt="Kueh Ho Jiak" />
-            <div>
-              <span class="bakery-tile-name">Kueh Ho Jiak</span>
-              <span class="bakery-tile-desc">Handmade kueh, small batches daily</span>
+        <div class="interior-body" id="interior-body">
+
+          <div class="rack rack--left" id="rack-left">
+            <div class="rack-group" id="filling-rack">
+              <div class="rack-label">Fillings &middot; drag in</div>
+              <div class="rack-group" id="filling-cards"></div>
+            </div>
+            <div class="rack-group" id="finish-rack">
+              <div class="rack-label">Finishes</div>
+              <div class="rack-group" id="finish-cards"></div>
+            </div>
+
+            <!-- Kueh lapis swaps fillings and finishes for v1's colour studio -->
+            <div class="lapis-studio" id="lapis-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Layers <span class="ctrl-badge" id="layers-out-l">9</span></div>
+                <input type="range" class="slider" id="layers-l" min="9" max="20" step="1" value="9" aria-label="Layers">
+                <div class="slider-range"><span>9</span><span>20</span></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Colour theme</div>
+                <div class="theme-grid" id="theme-grid"></div>
+              </div>
+              <div class="rack-group" id="custom-colors" hidden>
+                <div class="rack-label">Colours</div>
+                <div class="chips" id="custom-count"></div>
+                <div class="custom-color-row" id="custom-swatches"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Colour effect</div>
+                <div class="chips" id="effect-chips">
+                  <button type="button" class="chip is-active" data-val="plain">Plain</button>
+                  <button type="button" class="chip" data-val="gradient">Gradient</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Kueh bangkit: one decision, the mould it's pressed into -->
+            <div class="lapis-studio" id="bangkit-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Mould</div>
+                <div class="color-chip-grid" id="mould-grid"></div>
+                <p class="rack-hint" id="mould-note"></p>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Colour</div>
+                <div class="color-chip-grid" id="bangkit-colour-grid"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Flavour</div>
+                <div class="chips" id="bangkit-flavour-chips"></div>
+              </div>
+            </div>
+
+            <!-- Ang ku kueh: the press, the skin colour, and what's inside -->
+            <div class="lapis-studio" id="angku-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Mould</div>
+                <div class="color-chip-grid" id="angku-shape-grid"></div>
+                <p class="rack-hint" id="angku-shape-note"></p>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Exterior colour</div>
+                <div class="color-chip-grid" id="angku-colour-grid"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Interior filling</div>
+                <div class="color-chip-grid" id="angku-filling-grid"></div>
+              </div>
+            </div>
+
+            <!-- Kueh bahulu: the brass mould, and what it's flavoured with -->
+            <div class="lapis-studio" id="bahulu-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Mould</div>
+                <div class="color-chip-grid" id="bahulu-shape-grid"></div>
+                <p class="rack-hint" id="bahulu-shape-note"></p>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Flavour</div>
+                <div class="color-chip-grid" id="bahulu-flavour-grid"></div>
+              </div>
+            </div>
+
+            <!-- Kueh tutu: mould, the cake's colour, and what's inside it -->
+            <div class="lapis-studio" id="tutu-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Mould</div>
+                <div class="color-chip-grid" id="tutu-shape-grid"></div>
+                <p class="rack-hint" id="tutu-shape-note"></p>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Exterior colour</div>
+                <div class="color-chip-grid" id="tutu-colour-grid"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Interior filling</div>
+                <div class="color-chip-grid" id="tutu-filling-grid"></div>
+              </div>
+            </div>
+
+            <!-- Kueh salat: custard on top, dyed glutinous rice below -->
+            <div class="lapis-studio" id="salat-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Custard flavour</div>
+                <div class="color-chip-grid" id="custard-grid"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Rice colour</div>
+                <div class="color-chip-grid" id="rice-grid"></div>
+              </div>
+            </div>
+
+            <!-- Ondeh ondeh gets its own studio from v1 -->
+            <div class="lapis-studio" id="ondeh-rack" hidden>
+              <div class="rack-group">
+                <div class="rack-label">Exterior colour</div>
+                <div class="color-chip-grid" id="exterior-grid"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Interior filling</div>
+                <div class="chips" id="ondeh-filling-chips"></div>
+              </div>
+              <div class="rack-group">
+                <div class="rack-label">Coating</div>
+                <div class="chips" id="coating-chips"></div>
+              </div>
             </div>
           </div>
-          <div class="bakery-tile-meta">
-            <div class="tile-meta-row"><span class="tile-meta-label">Rating</span><span class="tile-meta-value">★ 4.8 · 340 reviews</span></div>
+
+          <div class="rack rack--main">
+            <div class="chamber" id="chamber">
+              <canvas id="chamber-canvas" role="img" aria-label="Large preview of your kueh"></canvas>
+              <canvas id="ondeh-canvas" role="img" aria-label="Large preview of your ondeh ondeh" hidden></canvas>
+              <canvas id="topview-canvas" role="img" aria-label="Top view of your kueh" hidden></canvas>
+              <div class="window-glare"></div>
+              <div class="window-floor"></div>
+              <div class="chamber-hint" id="chamber-hint">drag ingredients in</div>
+            </div>
+
+            <div class="slider-row" id="layers-row-main">
+              <div class="slider-head">
+                <span>Layers</span>
+                <span id="layers-out-2">9</span>
+              </div>
+              <input type="range" class="slider" id="layers-2" min="3" max="14" step="1" value="9" aria-label="Layers">
+            </div>
+
+            <div class="chamber-controls">
+              <div class="readout" id="readout-2">&gt; awaiting instructions</div>
+              <button type="button" class="solid-btn" id="run-chamber">Run</button>
+            </div>
           </div>
+
+          <div class="rack rack--right" id="rack-right">
+            <div class="rack-group" id="dye-rack">
+              <div class="rack-label">Dyes &middot; drag in</div>
+              <div class="rack-group" id="dye-cards"></div>
+            </div>
+
+            <div class="log" id="log"></div>
+          </div>
+
         </div>
-
       </div>
-    </section>
+    </div>
 
-    <!-- ── Gallery ── -->
-    <section class="gallery">
-      <div class="gallery-heading">
-        <p class="gallery-eyebrow">From the machine</p>
-        <h2>What others have been kueh-tomising.</h2>
-      </div>
-
-      <div class="gallery-grid">
-
-        <a class="card" href="./lapis.html">
-          <img src="./Customised%20kuehs/AKK%20-%20Concept%201%20.png" alt="Charcoal Dragon — Ang Ku Kueh" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Charcoal Dragon</span>
-            <span class="card-type">Ang Ku Kueh</span>
+    <!-- ── What the machine prints ──────────────────────────────────────── -->
+    <section class="recipe" id="recipe" hidden>
+      <div class="recipe-slot" id="recipe-slot" aria-hidden="true"></div>
+      <article class="recipe-card" id="recipe-card">
+        <div class="recipe-perf" aria-hidden="true"></div>
+        <header class="recipe-head">
+          <span class="recipe-stamp">Recipe &middot; <span id="recipe-serial">KM-0000</span></span>
+          <button type="button" class="ghost-btn recipe-print" id="recipe-print">Print this</button>
+        </header>
+        <section class="qc" id="qc" hidden>
+          <div class="qc-head">
+            <div class="qc-total">
+              <span class="qc-score" id="qc-score">0</span><span class="qc-max">/100</span>
+            </div>
+            <div class="qc-verdict">
+              <div class="qc-label">Quality control</div>
+              <div class="qc-say" id="qc-verdict"></div>
+            </div>
           </div>
-        </a>
+          <p class="qc-why" id="qc-why"></p>
+        </section>
 
-        <a class="card" href="./lapis.html">
-          <img src="./Customised%20kuehs/AKK%20-%20Concept%202.png" alt="Lotus Blossom — Ang Ku Kueh" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Lotus Blossom</span>
-            <span class="card-type">Ang Ku Kueh</span>
+        <div class="recipe-intro">
+          <div class="recipe-intro-text">
+            <h2 class="recipe-title" id="recipe-title"></h2>
+            <p class="recipe-yield" id="recipe-yield"></p>
           </div>
-        </a>
-
-        <a class="card" href="./lapis.html">
-          <img src="./Customised%20kuehs/Ondeh%20ondeh%20-%20Concept%201.png" alt="Pastel Cloud — Ondeh Ondeh" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Pastel Cloud</span>
-            <span class="card-type">Ondeh Ondeh</span>
-          </div>
-        </a>
-
-        <a class="card" href="./lapis.html">
-          <img src="./Customised%20kuehs/a63eed75-be13-4e74-919d-dc6663ae95d8.png" alt="Ocean Garden — Tutu Kueh" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Ocean Garden</span>
-            <span class="card-type">Tutu Kueh</span>
-          </div>
-        </a>
-
-        <a class="card" href="./lapis.html">
-          <img src="./Customised%20kuehs/d2de534b-4c61-4bc1-96a1-26a097712519.png" alt="Cherry Blossom — Huat Kueh" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Cherry Blossom</span>
-            <span class="card-type">Huat Kueh</span>
-          </div>
-        </a>
-
-        <a class="card" href="./lapis.html">
-          <img src="./Customised%20kuehs/19f1c0d1-1cbe-445a-a5f0-a9f889030190.png" alt="Cinnamon Glaze — Kueh Bahulu" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Cinnamon Glaze</span>
-            <span class="card-type">Kueh Bahulu</span>
-          </div>
-        </a>
-
-        <a class="card card--wide" href="./lapis.html">
-          <img src="./Customised%20kuehs/fa8ab5b5-73ef-4c3b-a9c0-e8da4e602bf0.png" alt="Garden Rolls — Kueh Dadar" loading="lazy"/>
-          <div class="card-overlay">
-            <span class="card-name">Garden Rolls</span>
-            <span class="card-type">Kueh Dadar</span>
-          </div>
-        </a>
-
-      </div>
+          <figure class="recipe-shot" id="recipe-shot" hidden>
+            <img id="recipe-shot-img" alt="The kueh you built">
+            <figcaption>Unit 01 output</figcaption>
+          </figure>
+        </div>
+        <div class="recipe-body" id="recipe-body"></div>
+        <footer class="recipe-foot">
+          <span>Kueh Machine &middot; unit 01</span>
+          <span>by Viki &middot; kuehmachine.com</span>
+        </footer>
+      </article>
     </section>
 
   </main>
 
   <footer class="site-footer">
-    <p>by Viki &middot; kuehmachine.com</p>
+    <span>Kueh Machine &middot; a very serious dessert experiment, Singapore</span>
+    <span>by Viki &middot; <a href="https://kuehmachine.com">kuehmachine.com</a></span>
   </footer>
 
-  <script>
-    const howImg    = document.getElementById('how-img');
-    const howPanel  = document.getElementById('how-step1-panel');
-    const steps     = document.querySelectorAll('.how-step-item');
-
-    function showPanel() {
-      howImg.style.opacity = '0';
-      setTimeout(() => { howImg.hidden = true; }, 220);
-      howPanel.hidden = false;
-    }
-
-    function showImage(src, alt) {
-      howPanel.hidden = true;
-      howImg.style.opacity = '0';
-      howImg.src = src;
-      howImg.alt = alt;
-      howImg.hidden = false;
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        howImg.style.opacity = '1';
-      }));
-    }
-
-    steps.forEach((item, i) => {
-      item.addEventListener('click', () => {
-        steps.forEach(s => s.classList.remove('how-step-item--active'));
-        item.classList.add('how-step-item--active');
-        if (i === 0) { showPanel(); } else { showImage(item.dataset.img, item.dataset.alt); }
-      });
-    });
-  </script>
-  <!-- Docked into .site-header — accentColor matches .logo-mark's own
-     --accent (landing.css); header bg is pale, so accentColor reads fine as
-     the icon's own color directly too. -->
+  <script src="./kueh-canvas.js"></script>
+  <script src="./ondeh-canvas.js"></script>
+  <script src="./topview-canvas.js"></script>
+  <!-- Universal Kueh Machine account. Builds and recipes are intentionally
+       ephemeral, so this project does not sync any personal data. -->
   <script src="/shared/account-widget.js"
           data-mode="docked" data-mount-into=".site-header"
-          data-accent-color="#b8712a"></script>
+          data-accent-color="#5f8c3f"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

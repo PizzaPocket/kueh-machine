@@ -1,4 +1,3 @@
-import "./style.css";
 import { searchVideos, createPlayer, PlayerState } from "./youtube.js";
 import { findLyricsCandidates, buildLyricsFromCandidate, guessArtistFromTitle, cleanChannelName } from "./lyrics.js";
 import {
@@ -8,8 +7,8 @@ import {
   deleteCollection,
   saveToRecentlyPlayed,
 } from "./collections.js";
-import { blockLyrics, getAllBlockedIds } from "./blocklist.js";
-import { getOverridesForSong, setOverrideForSong, getAllOverrides } from "./songOverrides.js";
+import { blockLyrics } from "./blocklist.js";
+import { getOverridesForSong, setOverrideForSong } from "./songOverrides.js";
 import { punifySong } from "./puns.js";
 
 const searchForm = document.getElementById("search-form");
@@ -40,7 +39,6 @@ const fixWordReplacementInput = document.getElementById("fix-word-replacement");
 const collectionsListEl = document.getElementById("collections-list");
 const collectionsCountEl = document.getElementById("collections-count");
 const emptyCollectionsEl = document.getElementById("empty-collections");
-const exportDataBtn = document.getElementById("export-data-btn");
 
 const state = {
   queue: [],
@@ -356,7 +354,17 @@ function renderLyricsList(song) {
   song.lines.forEach((line) => {
     const p = document.createElement("p");
     p.className = "lyric-line";
-    p.textContent = line.text;
+    const segments = line.segments ?? [{ text: line.text, isPun: false }];
+    segments.forEach((segment) => {
+      if (segment.isPun) {
+        const span = document.createElement("span");
+        span.className = "pun-word";
+        span.textContent = segment.text;
+        p.appendChild(span);
+      } else {
+        p.appendChild(document.createTextNode(segment.text));
+      }
+    });
     // Tapping a line re-syncs on the spot — this is what actually keeps
     // things on track when two recordings run at slightly different
     // tempos, since a single fixed offset can't correct a drift that
@@ -511,6 +519,7 @@ function renderCollections() {
       `;
       chip.querySelector(".collection-song-play").addEventListener("click", () => addSavedSongToQueue(song));
       chip.querySelector(".collection-song-remove").addEventListener("click", () => {
+        if (!confirm(`Remove "${song.title}" from "${name}"?`)) return;
         removeSongFromCollection(name, song.videoId);
         renderCollections();
       });
@@ -518,6 +527,9 @@ function renderCollections() {
     });
 
     group.querySelector(".collection-delete").addEventListener("click", () => {
+      const count = collections[name].length;
+      const songWord = count === 1 ? "song" : "songs";
+      if (!confirm(`Delete the whole "${name}" collection? This removes ${count} ${songWord} and can't be undone.`)) return;
       deleteCollection(name);
       renderCollections();
     });
@@ -525,27 +537,6 @@ function renderCollections() {
     collectionsListEl.appendChild(group);
   });
 }
-
-// Bundles everything a person has curated locally — saved collections,
-// bad lyrics matches they've reported, and per-song word fixes — into
-// one file. Dropping that file into public/seed-data.json means the
-// next person to open a fresh copy of the project (e.g. after a zip
-// handoff) starts with all of it already in place, not a blank slate.
-exportDataBtn.addEventListener("click", () => {
-  const bundle = {
-    collections: getCollections(),
-    blockedLyrics: getAllBlockedIds(),
-    songOverrides: getAllOverrides(),
-  };
-  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "seed-data.json";
-  link.click();
-  URL.revokeObjectURL(url);
-  searchStatus.textContent = "downloaded — move this into the project's public/ folder";
-});
 
 // On a completely fresh copy of the project (no local data yet at all),
 // seed from public/seed-data.json if one was bundled in. Existing local

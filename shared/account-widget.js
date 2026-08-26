@@ -53,8 +53,9 @@
 //     hovered/focused and you want the icon to match that exactly (root's
 //     nav links do; see root index.html) — falls back to data-icon-color
 //     (no dimming) if omitted.
-//     data-badge-background / data-badge-border: raw CSS values overriding
-//     the floating/absolute badge's own fill/border outright, for matching
+//     data-badge-background / data-badge-border / data-badge-shadow: raw CSS
+//     values overriding the floating/absolute badge's own fill, border, and
+//     shadow outright, for matching
 //     an *existing* button's exact look (gradient, translucency, etc.)
 //     rather than a flat accent color — see Ruth's #audioBtn.
 //   Omit all of the above and everything defaults to the fixed Kueh
@@ -63,7 +64,7 @@
 // Public API — window.KuehAccount:
 //   init(options)   { anchor, mountInto, mode: 'fixed'|'absolute'|'docked',
 //                      size, inset, accentColor, iconColor, iconColorMuted,
-//                      badgeBackground, badgeBorder }
+//                      badgeBackground, badgeBorder, badgeShadow }
 //   ready                         Promise that resolves once the Supabase client exists
 //   getClient()                   the one shared supabase-js client (or null before `ready` resolves)
 //   getUser() / getSession()      sync reads of the last-known auth state
@@ -118,6 +119,7 @@
     // #audioBtn, which this badge is styled to match exactly.
     badgeBackground: (scriptEl && scriptEl.dataset.badgeBackground) || null,
     badgeBorder: (scriptEl && scriptEl.dataset.badgeBorder) || null,
+    badgeShadow: (scriptEl && scriptEl.dataset.badgeShadow) || null,
   };
 
   // Never shrinks below this regardless of data-size or mode default —
@@ -1998,6 +2000,7 @@
     // value for good, not just while there's no avatar to show.
     defaultBadgeBackground = badgeBtn.style.background || '';
     if (currentOpts.badgeBorder) badgeBtn.style.border = currentOpts.badgeBorder;
+    if (currentOpts.badgeShadow) badgeBtn.style.boxShadow = currentOpts.badgeShadow;
     // Same restore-on-sign-out story as defaultBadgeBackground above — a
     // page-matching border (e.g. Ruth's gold ring, styled to pair with her
     // signed-out audioBtn look) is signed-out chrome, not part of the

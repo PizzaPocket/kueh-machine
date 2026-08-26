@@ -1,8 +1,7 @@
-// Dev-only tool: lets you simulate "today" being a different date, so the
-// site's date-driven reveals (scissors-cut.js's Check In cut,
-// checkin-archive.js's post-check-in archive) can be tested without
-// waiting for the real calendar. Never shown to a normal visitor — only
-// renders when the URL has ?debug=1.
+// Dev-only tool: lets you simulate "now" around the showcase boundary so
+// the final water-clock-to-ENTER transition can be tested without changing
+// the system clock. Never shown to a normal visitor; only renders with
+// ?debug=1.
 //
 // Overrides Date.now() only, not `new Date()` with no arguments (a
 // separate, unpatchable read of the system clock) — every date-driven
@@ -20,8 +19,8 @@
 // already-running state on the fly.
 
 const ASOF_PARAM = 'asOf';
-const CHECKIN_UTC = Date.UTC(2026, 6, 29, 6, 0, 0); // 29 July 2026, 2:00pm SGT — scissors-cut.js's own deadline
-const DAY_AFTER_CHECKIN_UTC = Date.UTC(2026, 6, 29, 16, 0, 0); // 30 July 2026, 00:00 SGT — checkin-archive.js's own gate
+const SHOWCASE_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // 26 August 2026, 2:00pm SGT
+const MINUTE_MS = 60 * 1000;
 
 function readParams() {
   return new URLSearchParams(window.location.search);
@@ -42,7 +41,7 @@ function pad(n) {
 // (browser) timezone — building this from getFullYear/etc. rather than
 // toISOString avoids the UTC-vs-local mismatch toISOString would introduce.
 function toDatetimeLocalValue(date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 function injectStyles() {
@@ -96,13 +95,14 @@ function buildPanel() {
   panel.innerHTML = `
     <strong>Debug: simulate date</strong>
     <div class="debug-date-row">
-      <input type="datetime-local" id="debug-date-input" />
-      <button type="button" id="debug-date-go">Reload as this date</button>
+      <input type="datetime-local" id="debug-date-input" step="1" />
+      <button type="button" id="debug-date-go">Apply time</button>
     </div>
     <div class="debug-date-row">
       <button type="button" data-preset="now">Now (real time)</button>
-      <button type="button" data-preset="checkin">Check-in day, 2pm SGT</button>
-      <button type="button" data-preset="after-checkin">Day after check-in</button>
+      <button type="button" data-preset="before-showcase">1 min before 2pm</button>
+      <button type="button" data-preset="showcase">At 2pm</button>
+      <button type="button" data-preset="after-showcase">1 min after 2pm</button>
     </div>
     <p class="debug-date-status"></p>
   `;
@@ -137,16 +137,27 @@ export function init() {
   input.value = toDatetimeLocalValue(new Date(Date.now()));
   status.textContent = asOf !== null ? `Simulating: ${new Date(asOf).toString()}` : 'Using real time.';
 
-  panel.querySelector('#debug-date-go').addEventListener('click', () => {
+  const applyInputValue = () => {
     if (!input.value) return;
-    reloadWithAsOf(new Date(input.value).getTime());
-  });
+    const timestamp = new Date(input.value).getTime();
+    if (Number.isNaN(timestamp)) {
+      status.textContent = 'Choose a valid local date and time.';
+      return;
+    }
+    reloadWithAsOf(timestamp);
+  };
+
+  panel.querySelector('#debug-date-go').addEventListener('click', applyInputValue);
+  // Committing a date-picker value should visibly affect the page even if the
+  // user does not notice the adjacent apply button.
+  input.addEventListener('change', applyInputValue);
 
   panel.querySelectorAll('[data-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (btn.dataset.preset === 'now') reloadWithAsOf(null);
-      else if (btn.dataset.preset === 'checkin') reloadWithAsOf(CHECKIN_UTC);
-      else if (btn.dataset.preset === 'after-checkin') reloadWithAsOf(DAY_AFTER_CHECKIN_UTC);
+      else if (btn.dataset.preset === 'before-showcase') reloadWithAsOf(SHOWCASE_UTC - MINUTE_MS);
+      else if (btn.dataset.preset === 'showcase') reloadWithAsOf(SHOWCASE_UTC);
+      else if (btn.dataset.preset === 'after-showcase') reloadWithAsOf(SHOWCASE_UTC + MINUTE_MS);
     });
   });
 }

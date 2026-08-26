@@ -24,6 +24,87 @@ body {
   font-family: "Quicksand", sans-serif;
 }
 
+body.holding-coin,
+body.holding-coin * {
+  cursor: none !important;
+}
+
+body.holding-coin {
+  touch-action: none;
+}
+
+.cursor-coin {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 46px;
+  height: auto;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999;
+  filter: drop-shadow(0 3px 0 rgba(91, 58, 41, 0.3));
+}
+
+.cursor-coin.show {
+  opacity: 1;
+}
+
+.cursor-coin.bounce {
+  animation: coinBounceDrop 0.9s forwards;
+}
+
+@keyframes coinBounceDrop {
+  0% {
+    transform: translate(-50%, -50%) translateY(0) scale(1);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  20% {
+    transform: translate(-50%, -50%) translateY(72px) scale(0.9);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+  }
+  35% {
+    transform: translate(-50%, -50%) translateY(26px) scale(0.86);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(72px) scale(0.83);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+  }
+  65% {
+    transform: translate(-50%, -50%) translateY(42px) scale(0.8);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  78% {
+    transform: translate(-50%, -50%) translateY(72px) scale(0.78);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translateY(78px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.cloud-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.cloud {
+  position: absolute;
+  left: -9999px;
+  height: auto;
+  opacity: 0;
+}
+
 button {
   font: inherit;
   color: inherit;
@@ -85,13 +166,105 @@ button {
   width: min(78vw, 300px);
 }
 
+.machine-body {
+  position: relative;
+}
+
 .machine-art {
   width: 100%;
   height: auto;
   display: block;
 }
 
-.machine.rolling .machine-art {
+.coin-bowl {
+  position: absolute;
+  left: -178px;
+  bottom: 0;
+  width: 148px;
+  height: 133px;
+  z-index: 2;
+  cursor: grab;
+  touch-action: none;
+  transition: transform 0.15s ease;
+}
+
+.coin-bowl:hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.coin-bowl:active {
+  transform: translateY(0) scale(0.98);
+}
+
+@media (max-width: 600px) {
+  .machine {
+    margin-bottom: 34px;
+  }
+
+  .coin-bowl {
+    width: 130px;
+    height: auto;
+    left: -24px;
+    bottom: -46px;
+  }
+}
+
+/* Coin slot (sits just above the knob on the machine art) */
+
+.coin-insert {
+  position: absolute;
+  left: 25.4545%;
+  top: 72.66%;
+  width: 46%;
+  height: 20%;
+  transform: translate(-50%, -50%);
+}
+
+.coin-slot-glow {
+  position: absolute;
+  left: 25.4545%;
+  top: 72.66%;
+  width: 17%;
+  height: 2.4%;
+  transform: translate(-50%, -50%);
+  border-radius: 4px;
+  background: rgba(240, 180, 41, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+body.holding-coin .coin-slot-glow {
+  opacity: 1;
+  animation: coinInsertPulse 1s ease-in-out infinite;
+}
+
+@keyframes coinInsertPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 180, 41, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 10px 5px rgba(240, 180, 41, 0.45);
+  }
+}
+
+.coin-drop {
+  position: absolute;
+  top: calc(50% + 4px);
+  left: 50%;
+  width: 28%;
+  height: auto;
+  transform: translate(-50%, -100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.coin-drop.show {
+  opacity: 1;
+}
+
+.machine.rolling .machine-body {
   animation: wobble 0.4s ease-in-out infinite;
   transform-origin: 50% 100%;
 }
@@ -106,6 +279,38 @@ button {
   }
   75% {
     transform: rotate(1.2deg);
+  }
+}
+
+.machine.rolling .capsule-item {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: capsule-jumble 0.5s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -0.0333s);
+}
+
+@keyframes capsule-jumble {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  14% {
+    transform: translate(3.5px, -2.8px) rotate(-5deg);
+  }
+  28% {
+    transform: translate(-3px, -4.5px) rotate(4deg);
+  }
+  42% {
+    transform: translate(-5px, 1.5px) rotate(-6deg);
+  }
+  57% {
+    transform: translate(-1.5px, 4.5px) rotate(5deg);
+  }
+  71% {
+    transform: translate(3.5px, 3px) rotate(-3.5deg);
+  }
+  86% {
+    transform: translate(4.5px, -1.8px) rotate(4deg);
   }
 }
 
@@ -142,6 +347,13 @@ button {
   transform: translate(-50%, -50%) scale(0.94);
 }
 
+.knob-dial {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
 /* Capsule */
 
 .capsule {
@@ -157,19 +369,24 @@ button {
   cursor: pointer;
 }
 
-.capsule svg {
+.capsule > svg {
   width: 100%;
   height: 100%;
   display: block;
   filter: drop-shadow(0 3px 0 rgba(91, 58, 41, 0.25));
 }
 
-.capsule.crack-1-active svg {
+.capsule.crack-1-active > svg {
   animation: capsuleShake 0.3s ease;
 }
 
-.capsule.crack-2-active svg {
-  animation: capsuleShake 0.3s ease 2;
+.capsule.crack-2-active > svg {
+  /* Distinct animation-name from crack-1's, not just a different
+     iteration-count — browsers only restart a CSS animation when
+     animation-name itself changes, so reusing "capsuleShake" here
+     (even with a different count) would silently no-op on the second
+     click since the name never changed. */
+  animation: capsuleShake2 0.3s ease 2;
 }
 
 @keyframes capsuleShake {
@@ -185,7 +402,20 @@ button {
   }
 }
 
-.capsule:hover:not(:disabled) svg {
+@keyframes capsuleShake2 {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-10deg) scale(1.04);
+  }
+  75% {
+    transform: rotate(10deg) scale(1.04);
+  }
+}
+
+.capsule:hover:not(:disabled) > svg {
   transform: scale(1.04);
 }
 
@@ -213,23 +443,56 @@ button {
   }
 }
 
-.capsule.opening svg {
-  animation: capsulePop 0.7s ease-in forwards;
+.capsule.opening > svg {
+  display: none;
 }
 
-@keyframes capsulePop {
-  0% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  45% {
-    transform: scale(1.3) rotate(10deg);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.3) rotate(-16deg);
-    opacity: 0;
-  }
+.capsule-frame {
+  display: none;
+  position: absolute;
+  inset: 0;
+  /* front1-4/inner2-4 are drawn on a 120x120 canvas with the capsule
+     itself only ~80 units across (room for the shell to pull apart in
+     later frames) — scale up by 120/80 so frame 1 matches the old
+     closed-capsule graphic's size (which fills its 80x80 viewBox edge
+     to edge) instead of visibly shrinking the instant .opening starts. */
+  transform: scale(1.5);
+  transform-origin: center;
+}
+
+.capsule.opening .capsule-frame {
+  display: block;
+}
+
+.capsule-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  filter: drop-shadow(0 3px 0 rgba(91, 58, 41, 0.25));
+}
+
+.capsule-layer svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.capsule-kueh-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+  pointer-events: none;
+}
+
+.capsule-kueh-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 /* Microcopy + controls */
@@ -286,6 +549,149 @@ button {
   outline-offset: 3px;
 }
 
+.sound-toggle {
+  position: fixed;
+  top: 15px;
+  right: 88px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream-light);
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (max-width: 479px) {
+  .sound-toggle {
+    right: 66px;
+  }
+}
+
+.sound-toggle:hover {
+  transform: translateY(-2px);
+}
+
+.sound-toggle:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.sound-toggle:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 3px;
+}
+
+.sound-toggle .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sound-toggle .icon-sound-off {
+  display: none;
+}
+
+.sound-toggle[aria-pressed="false"] .icon-sound-on {
+  display: none;
+}
+
+.sound-toggle[aria-pressed="false"] .icon-sound-off {
+  display: block;
+}
+
+#birdEye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bird-blink 4.5s ease-in-out infinite;
+}
+
+.bird-hair {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: bird-hair-sway 2.6s ease-in-out infinite;
+}
+
+.bird-hair-2 {
+  animation-duration: 2.2s;
+  animation-delay: -0.6s;
+}
+
+@keyframes bird-blink {
+  0%, 88%, 100% {
+    transform: scaleY(1);
+  }
+  92% {
+    transform: scaleY(0.1);
+  }
+  96% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes bird-hair-sway {
+  0%, 100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+.music-note {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: bird-note-float 3.6s ease-in infinite;
+}
+
+.music-note-2 {
+  animation-delay: -1.2s;
+}
+
+.music-note-3 {
+  animation-delay: -2.4s;
+}
+
+@keyframes bird-note-float {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6) rotate(-8deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-22px, -28px) scale(1.1) rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #birdEye,
+  .bird-hair,
+  .music-note,
+  .machine.rolling .capsule-item {
+    animation: none;
+  }
+
+  .music-note {
+    opacity: 0.85;
+  }
+
+  .capsule-kueh-wrap {
+    transition: none;
+  }
+}
+
 .coin-btn {
   border-color: #000;
 }
@@ -339,39 +745,148 @@ button {
 }
 
 .reveal-card {
+  position: relative;
   width: 100%;
-  max-width: 380px;
+  max-width: 360px;
   max-height: 90vh;
   overflow-y: auto;
-  background: #edf2ec;
+  background-color: #ffffff;
+  background-image: radial-gradient(circle at 85px 38.5px, #edf2ec 212px, transparent 212px);
+  background-origin: border-box;
+  background-repeat: no-repeat;
   border: 4px solid var(--ink);
   border-radius: 24px;
-  padding: 1.75rem 1.5rem 2rem;
+  padding: 24px;
   text-align: center;
   box-shadow: 0 6px 0 var(--ink);
 }
 
-.kueh-art {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 1rem;
-}
-
-.kueh-art svg {
-  width: 100%;
-  height: 100%;
-}
-
 .kueh-name {
-  font-family: "Patrick Hand", cursive;
+  text-align: left;
+  margin: 0 0 1rem;
+}
+
+.kueh-name-en {
+  font-family: "Mochiy Pop One", cursive;
   font-weight: 400;
-  font-size: 1.9rem;
-  margin: 0 0 0.5rem;
+  font-size: 20px;
+  margin: 0;
+}
+
+.kueh-name-zh {
+  font-family: "Oxygen", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--ink);
+  margin: 0.15rem 0 0;
+}
+
+.kueh-name-ja {
+  font-family: "Oxygen", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--ink);
+  margin: 0.1rem 0 0;
+}
+
+.kueh-art-wrap {
+  position: relative;
+  width: 100%;
+  margin: 0 0 1rem;
+}
+
+.kueh-art {
+  display: block;
+  width: 260px;
+  max-width: 85%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.kueh-hands {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 260px;
+  max-width: 90%;
+  aspect-ratio: 667 / 588;
+  transform: translate(-50%, -100%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kueh-hand {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+.kueh-hand-left {
+  left: 6%;
+}
+
+.kueh-hand-right {
+  right: 6%;
+}
+
+.kueh-hands-plushie {
+  position: absolute;
+  top: 74%;
+  left: 50%;
+  width: 200px;
+  max-width: 80%;
+  height: auto;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.kueh-hands.show {
+  animation: handsDropIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.kueh-hands.exit {
+  animation: handsExitUp 0.5s forwards;
+}
+
+@keyframes handsDropIn {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0%);
+    opacity: 1;
+  }
+}
+
+@keyframes handsExitUp {
+  0% {
+    transform: translate(-50%, 0%);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.3, 0.9, 0.6, 1);
+  }
+  30% {
+    transform: translate(-50%, 8%);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.2);
+  }
+  100% {
+    transform: translate(-50%, -120%);
+    opacity: 0;
+  }
 }
 
 .kueh-desc {
   margin: 0 0 1rem;
   line-height: 1.5;
+  text-align: left;
+  font-family: "Oxygen", sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: #828282;
 }
 
 .kueh-meta {
@@ -383,15 +898,20 @@ button {
 }
 
 .kueh-meta dt {
-  font-family: "Patrick Hand", cursive;
-  font-size: 1.05rem;
-  color: var(--coral);
+  font-family: "Oxygen", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
   margin-bottom: 0.15rem;
 }
 
 .kueh-meta dd {
   margin: 0;
   line-height: 1.5;
+  font-family: "Oxygen", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #828282;
 }
 
 .reveal-actions {
@@ -400,16 +920,64 @@ button {
   gap: 0.75rem;
 }
 
+.spin-coin-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.spin-coin-text {
+  font-family: "Mochiy Pop One", cursive;
+  font-size: 10px;
+  fill: #000000;
+}
+
+.coin-spin-inner {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.coin-spin-inner.spinning {
+  animation: coinSpinTwice 0.8s ease;
+}
+
+.coin-spin-inner.spinning-once {
+  animation: coinSpinOnce 0.4s ease;
+}
+
+@keyframes coinSpinTwice {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(720deg);
+  }
+}
+
+@keyframes coinSpinOnce {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
 .btn-primary {
   font-family: "Oxygen", sans-serif;
   font-weight: 700;
   font-size: 1rem;
   padding: 0.75rem 1rem;
-  border-radius: 14px;
+  border-radius: 21px;
   cursor: pointer;
-  border: 3px solid var(--ink);
+  border: 2px solid var(--ink);
   transition: transform 0.15s ease;
-  background: var(--marigold);
+  background: #ffdf78;
   box-shadow: 0 3px 0 var(--ink);
 }
 
@@ -427,6 +995,12 @@ button {
   font-size: 0.85rem;
   opacity: 0.65;
   text-align: center;
+}
+
+.site-footer-credits {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
 }
 
 

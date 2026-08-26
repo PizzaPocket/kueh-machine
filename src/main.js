@@ -7,7 +7,7 @@
 // just imports and calls them. Adding the next feature later means adding
 // one import and one call here, not new logic in this file.
 
-import { init as initDebugDate } from './dev/debug-date.js';
+import { init as initDebugDate } from './dev/debug-date.js?v=showcase-20260826';
 import { init as initIcons } from './organisms/icons.js';
 import { init as initKuehOfDay } from './organisms/kueh-of-day.js';
 import { init as initSiteNav } from './organisms/site-nav.js';

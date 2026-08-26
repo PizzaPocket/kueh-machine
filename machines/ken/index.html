@@ -3,12 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gatcha-Kueh — Pull for a Mystery Kueh</title>
+<title>Gatcha-kueh Confectionary Pte Ltd.</title>
 <meta name="description" content="Gatcha-Kueh — pull, reveal, collect your kuehs. Nine kuehs across three rarity tiers. Collect them all.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/style.css?v=5">
+<link rel="stylesheet" href="./css/style.css?v=87">
 </head>
 <body>
 
@@ -22,15 +21,21 @@
 
     <!-- MACHINE -->
     <section class="machine-section">
-      <div class="hero-tile-bg" aria-hidden="true"></div>
       <div class="wrap">
-        <h1>Pull. Reveal. Collect your <em class="accent-italic">kuehs</em>.</h1>
+        <h1>Gatcha-kueh</h1>
         <p class="hero-copy">Nine kuehs live inside this machine, across three tiers of rarity. Some are common, some take a bit of luck. What you get is entirely up to the machine.</p>
 
         <div class="machine-rig">
           <div class="machine-stage" id="machine-stage">
-            <div class="machine-illustration" id="machine-illustration"></div>
+            <div class="machine-illustration" id="machine-illustration">
+              <img class="machine-illustration-image" src="./Resources/images/new_machine.png" alt="Retro gatcha machine">
+            </div>
+            <div class="stop-motion-layer" id="stop-motion-layer" aria-hidden="true">
+              <img class="stop-motion-frame" id="stop-motion-frame-a" src="./Resources/images/Set 2/1.png" alt="">
+              <img class="stop-motion-frame" id="stop-motion-frame-b" src="./Resources/images/Set 2/2.png" alt="">
+            </div>
             <div class="dispense-window" id="dispense-window">
+              <img class="dispense-ball" id="dispense-ball" src="./Resources/images/Set 2/1.png" alt="">
               <span class="dispense-hint">?</span>
             </div>
             <div class="capsule-layer" id="capsule-layer">
@@ -51,8 +56,11 @@
             </button>
           </div>
         </div>
+        <button type="button" class="gatcha-cta" id="gatcha-cta">
+          <span>Get a Gatcha</span>
+          <img src="./Resources/images/ang coin.png" alt="">
+        </button>
 
-        <p class="odds-note">Common 60% &middot; Rare 30% &middot; Ultra Rare 10%</p>
       </div>
     </section>
 
@@ -84,13 +92,37 @@
       </div>
     </section>
 
-    <!-- LEGENDARY -->
-    <section class="legendary-section">
+    <section class="shop-section">
       <div class="wrap">
-        <p class="eyebrow eyebrow--legendary">Beyond the machine</p>
-        <h2>5 Legendary kuehs, still shrouded</h2>
-        <p class="legendary-copy">Something rarer than Ultra Rare exists. The machine isn't giving it up yet — the mechanic for how you'd actually earn one is still being figured out.</p>
-        <div class="legendary-grid" id="legendary-grid"><!-- injected by app.js --></div>
+        <p class="eyebrow">The shop</p>
+        <div class="shop-heading-row">
+          <div>
+            <h2>Take one home</h2>
+            <p class="shop-copy">Unlocked kuehs are ready to become part of your shelf.</p>
+            <p class="shop-copy shop-copy--nowrap">Classic confectionary favourites encased in glass, timelessly preserved.</p>
+          </div>
+          <button type="button" class="shop-bag-button" id="shop-bag-button" aria-label="Open shopping bag">
+            <span>Bag</span><span class="shop-bag-count" id="shop-bag-count">0</span>
+          </button>
+        </div>
+        <div class="shop-grid" id="shop-grid"></div>
+      </div>
+    </section>
+
+    <section class="makers-section" aria-labelledby="makers-title">
+      <div class="wrap">
+        <div class="makers-heading-row">
+          <div>
+            <p class="eyebrow">The real thing</p>
+            <h2 id="makers-title">Hungry? Get the real thing</h2>
+            <p class="makers-subtitle">Selections from Singapore's most famous kueh makers</p>
+          </div>
+          <div class="makers-controls" aria-label="Kueh maker carousel controls">
+            <button type="button" class="makers-control" id="makers-prev" aria-label="Previous kueh maker">&larr;</button>
+            <button type="button" class="makers-control" id="makers-next" aria-label="Next kueh maker">&rarr;</button>
+          </div>
+        </div>
+        <div class="makers-carousel" id="makers-carousel" tabindex="0" aria-label="Singapore kueh makers"></div>
       </div>
     </section>
 
@@ -127,6 +159,38 @@
     </div>
   </div>
 
+  <div class="shop-product-overlay" id="shop-product-overlay" hidden>
+    <article class="shop-product-modal" role="dialog" aria-modal="true" aria-labelledby="shop-product-title">
+      <button type="button" class="shop-product-close" id="shop-product-close" aria-label="Close product details">&times;</button>
+      <div class="shop-product-image" id="shop-product-image"></div>
+      <div class="shop-product-details">
+        <div class="shop-product-heading">
+          <span class="rarity-badge" id="shop-product-rarity"></span>
+          <h2 id="shop-product-title"></h2>
+          <p id="shop-product-subtitle"></p>
+        </div>
+        <div class="shop-product-specs">
+          <p><span>Material</span><strong>Glass marble collectible</strong></p>
+          <p><span>Edition</span><strong id="shop-product-edition"></strong></p>
+          <p><span>Story</span><strong id="shop-product-specification"></strong></p>
+        </div>
+        <div class="shop-product-buy">
+          <strong id="shop-product-price"></strong>
+          <label>Qty <input id="shop-product-quantity" type="number" min="1" max="9" value="1"></label>
+          <button type="button" class="btn btn-primary" id="shop-product-add">Add to bag</button>
+        </div>
+      </div>
+    </article>
+  </div>
+  <div class="shop-tray-overlay" id="shop-tray-overlay" hidden>
+    <aside class="shop-tray" role="dialog" aria-modal="true" aria-labelledby="shop-tray-title">
+      <div class="shop-tray-header"><div><p class="eyebrow">Your bag</p><h2 id="shop-tray-title">Kueh checkout</h2></div><button type="button" class="shop-tray-close" id="shop-tray-close" aria-label="Close shopping bag">&times;</button></div>
+      <div class="shop-tray-items" id="shop-tray-items"></div>
+      <p class="shop-tray-empty" id="shop-tray-empty">Your bag is waiting for a kueh.</p>
+      <div class="shop-tray-footer"><div class="shop-total-row"><span>Subtotal</span><strong id="shop-total">$0.00</strong></div><button type="button" class="btn btn-primary shop-checkout-button" id="shop-checkout-button" disabled>Checkout</button></div>
+    </aside>
+  </div>
+
   <footer class="site-footer">
     <div class="wrap footer-inner">
       <p>Gatcha-Kueh — a part of <strong>kuehmachine.com</strong></p>
@@ -134,18 +198,13 @@
     </div>
   </footer>
 
-  <!-- Docked into .site-header — it has no fill of its own (the dark page
-       background shows through), so accentColor doubles as the icon's own
-       color too, matching .wordmark's --gold. Loaded before data.js/svg.js/
-       app.js (matching Ruth's and Liwei's own script order) — app.js reads
-       window.KuehAccount at its own top level to sync the collection with
-       the signed-in account, so it needs to already exist by then rather
-       than being defined by a script tag further down the page. -->
+  <!-- Universal Kueh Machine account. It loads before app.js because Ken's
+       collection sync reads its auth state during startup. -->
   <script src="/shared/account-widget.js"
           data-mode="docked" data-mount-into=".site-header"
           data-accent-color="#F5C24B"></script>
-  <script src="./js/data.js?v=5"></script>
-  <script src="./js/svg.js?v=5"></script>
-  <script src="./js/app.js?v=5"></script>
+  <script src="./js/data.js?v=88"></script>
+  <script src="./js/svg.js?v=88"></script>
+  <script src="./js/app.js?v=88"></script>
 </body>
 </html>

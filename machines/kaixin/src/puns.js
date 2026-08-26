@@ -122,6 +122,16 @@ function buildPattern(word) {
   return new RegExp(isNonLatin ? escaped : `\\b${escaped}\\b`, "gi");
 }
 
+// Wrapping each replacement in a pair of Unicode private-use characters
+// (never used by any real text, so they can't collide with actual lyrics)
+// lets the UI later find exactly which words got swapped, without needing
+// to separately track positions through every regex pass. A marked span
+// is inert to every later pass too, since a dictionary key only ever
+// matches original English words, never text a previous pass replaced.
+const MARK_START = "";
+const MARK_END = "";
+const MARK_PATTERN = new RegExp(`${MARK_START}(.*?)${MARK_END}`, "g");
+
 // No caps, no rarity gating — every match gets punned, every time it
 // appears. A line that repeats a phrase on purpose ("who cares, baby...")
 // should come out punned the same way each time, not fade out partway
@@ -132,16 +142,44 @@ function punifyLine(line, overrides) {
   // Song-specific corrections go first — deliberate, hand-picked fixes
   // for one particular song, layered on top of the general dictionary.
   for (const [word, replacement] of Object.entries(overrides)) {
-    result = result.replace(buildPattern(word), (match) => matchCase(match, replacement));
+    result = result.replace(
+      buildPattern(word),
+      (match) => `${MARK_START}${matchCase(match, replacement)}${MARK_END}`
+    );
   }
 
   for (const [word, replacement] of Object.entries(PUN_DICTIONARY)) {
     if (word in overrides) continue;
-    result = result.replace(buildPattern(word), (match) => matchCase(match, replacement));
+    result = result.replace(
+      buildPattern(word),
+      (match) => `${MARK_START}${matchCase(match, replacement)}${MARK_END}`
+    );
   }
   return result;
 }
 
+// Splits a marked-up line into plain-text and pun segments, so the UI can
+// style just the words that actually got swapped without needing to
+// re-derive which ones those were.
+function splitIntoSegments(marked) {
+  const segments = [];
+  let lastIndex = 0;
+  for (const match of marked.matchAll(MARK_PATTERN)) {
+    if (match.index > lastIndex) segments.push({ text: marked.slice(lastIndex, match.index), isPun: false });
+    segments.push({ text: match[1], isPun: true });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < marked.length) segments.push({ text: marked.slice(lastIndex), isPun: false });
+  return segments;
+}
+
 export function punifySong(lines, overrides = {}) {
-  return lines.map((line) => ({ ...line, text: punifyLine(line.original, overrides) }));
+  return lines.map((line) => {
+    const marked = punifyLine(line.original, overrides);
+    return {
+      ...line,
+      text: marked.replace(MARK_PATTERN, "$1"),
+      segments: splitIntoSegments(marked),
+    };
+  });
 }

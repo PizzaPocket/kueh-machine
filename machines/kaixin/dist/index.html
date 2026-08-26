@@ -12,8 +12,15 @@
       href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-dnFBrlbm.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-C_BTTqd0.css">
+    <script>
+      // The repository's local server serves static files without Vite's env
+      // transform, so use the built app for the direct source-directory URL.
+      if (window.location.pathname.endsWith("/machines/kaixin/")) {
+        window.location.replace("./dist/");
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-Dj6m0wUp.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-3iXTmPf8.css">
   </head>
   <body>
     <div id="app">
@@ -83,9 +90,6 @@
         <p class="empty-collections" id="empty-collections">
           no saved songs yet — try one out, then save it here so it's ready for next time
         </p>
-        <button type="button" id="export-data-btn" class="export-data-btn">
-          ⬇ export for handoff
-        </button>
       </section>
 
       <section class="queue-section">
@@ -98,9 +102,8 @@
         <p>Kara-o-kueh — by Kaixin, for <a href="https://kuehmachine.com" target="_blank" rel="noopener">kuehmachine.com</a></p>
       </footer>
     </div>
-    <!-- No persistent header here to dock into — floats top-right (default).
-         accentColor matches --pink (src/style.css), the karaoke theme's
-         loudest/most distinctive accent. -->
+    <!-- Universal Kueh Machine account. Kara-o-kueh's party collections
+         intentionally remain local to this browser and host device. -->
     <script src="/shared/account-widget.js" data-accent-color="#ff2e93"></script>
   </body>
 </html>

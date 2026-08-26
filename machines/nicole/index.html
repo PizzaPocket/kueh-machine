@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Calculus</title>
+<style>
+  :root {
+    /* kueh lapis palette — retune any of these to shift the whole app */
+    --kueh-bg: #f7f3ea;
+    --kueh-pink: #c98a9c;
+    --kueh-sage: #8fa888;
+    --kueh-tan: #e8d9c4;
+    --kueh-text: #3a3530;
+    --kueh-text-muted: #8a8378;
+
+    /* derived tones — not part of the requested token set, but needed
+       so the "used/faded" layer state and hairline rules read as part
+       of the same warm, muted family rather than borrowing raw grays */
+    --kueh-faded: #d6cfc0;
+    --kueh-hairline: #e2d5c0;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--kueh-bg);
+    color: var(--kueh-text);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* single outer flex shell — guarantees centering regardless of
+     anything else in the stylesheet */
+  .app-shell {
+    display: flex;
+    justify-content: center;
+    width: 100vw;
+    min-height: 100vh;
+    padding: 3.5rem 1.5rem 5rem;
+  }
+
+  .page {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    font-size: 19px;
+    color: var(--kueh-text);
+    margin: 0 0 1.2rem;
+    letter-spacing: 0;
+  }
+
+  .kueh-note {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+
+  .kueh-label {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--kueh-text-muted);
+    cursor: pointer;
+  }
+
+  /* floating popover — hover reveals on desktop, .open (tap) covers touch */
+  .kueh-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: var(--kueh-text);
+    border-radius: 8px;
+    padding: 12px 16px;
+    width: max-content;
+    max-width: min(420px, calc(100vw - 3rem));
+    font-size: 13px;
+    line-height: 1.5;
+    color: #fff;
+    z-index: 20;
+  }
+
+  .kueh-note:hover .kueh-tooltip,
+  .kueh-note.open .kueh-tooltip {
+    display: block;
+  }
+
+  .intro {
+    font-size: 0.8rem;
+    font-style: italic;
+    line-height: 1.6;
+    color: var(--kueh-text-muted);
+    max-width: 34ch;
+    margin: 0 0 3rem;
+  }
+
+  /* ---------- tabs ---------- */
+  .frame-tabs {
+    display: flex;
+    gap: 2rem;
+    border-bottom: 1px solid var(--kueh-hairline);
+    margin-bottom: 2.5rem;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--kueh-text-muted);
+    padding: 0 0 1.1rem;
+    cursor: pointer;
+    border-bottom: 4px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .tab.active {
+    color: var(--kueh-text);
+    border-bottom-color: var(--kueh-pink);
+  }
+
+  .frame { display: none; }
+  .frame.active { display: block; }
+
+  /* ---------- audience toggle — segmented pill control ---------- */
+  .audience-toggle {
+    display: inline-flex;
+    background: var(--kueh-tan);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 2px;
+    margin-bottom: 2rem;
+  }
+
+  .audience-toggle button {
+    background: none;
+    border: none;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--kueh-text-muted);
+    cursor: pointer;
+    padding: 0.45rem 1.1rem;
+    transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .audience-toggle button.active {
+    background: var(--kueh-bg);
+    color: var(--kueh-text);
+    box-shadow: 0 1px 2px rgba(58, 53, 48, 0.15);
+  }
+
+  /* ---------- input / output zone separation ---------- */
+  .input-zone {
+    background: var(--kueh-bg);
+    padding-bottom: 28px;
+  }
+
+  .zone-divider {
+    height: 2px;
+    background: linear-gradient(90deg, #c98a9c, #8fa888, #e8d9c4);
+    border-radius: 0;
+  }
+
+  /* full-viewport bleed: the tint spans the browser width, the actual
+     content inside stays constrained to the 640px column via .output-
+     zone-inner */
+  .output-zone {
+    background: #e8ddc4;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    margin-left: -50vw;
+  }
+
+  .output-zone-inner {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 24px 24px;
+  }
+
+  /* ---------- inputs ---------- */
+  .inputs {
+    display: grid;
+    gap: 1.4rem;
+    margin-bottom: 2.5rem;
+    max-width: 420px;
+  }
+
+  .inputs[hidden] {
+    display: none;
+  }
+
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--kueh-text-muted);
+    margin-bottom: 0.4rem;
+  }
+
+  .field label span {
+    font-family: 'Courier New', monospace;
+    color: var(--kueh-text);
+    font-weight: 700;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--kueh-pink);
+  }
+
+  input[type="number"] {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--kueh-text);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--kueh-hairline);
+    padding: 0.3rem 0;
+  }
+
+  input[type="number"]:focus { outline: none; border-bottom-color: var(--kueh-pink); }
+
+  select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--kueh-text);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--kueh-hairline);
+    padding: 0.4rem 0;
+    cursor: pointer;
+  }
+
+  select:focus { outline: none; border-bottom-color: var(--kueh-pink); }
+
+  /* ---------- result / count ---------- */
+  .count {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--kueh-pink);
+    margin-bottom: 0.3rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .count span { color: var(--kueh-text-muted); font-size: 1.4rem; }
+
+  .count-label {
+    font-size: 0.85rem;
+    color: var(--kueh-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  /* ---------- dot grid ---------- */
+  .dot-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 8px;
+    max-width: 340px;
+    margin-bottom: 2.2rem;
+  }
+
+  .dot {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--kueh-faded);
+    transition: background-color 250ms ease;
+  }
+
+  /* ---------- total forgone ---------- */
+  .total-forgone {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .total-forgone .n {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 1.7rem;
+    color: var(--kueh-pink);
+  }
+
+  .total-forgone .l {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--kueh-text-muted);
+  }
+
+  /* ---------- moment list ---------- */
+  .moment-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    border-top: 1px solid var(--kueh-hairline);
+  }
+
+  .moment-list li {
+    font-size: 0.92rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--kueh-hairline);
+  }
+
+  .moment-list li .n {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: var(--kueh-pink);
+    margin-right: 0.4rem;
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .moment-list li.row-pulse {
+    animation: row-pulse 200ms ease;
+  }
+
+  @keyframes row-pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.03); }
+    100% { transform: scale(1); }
+  }
+
+  .moment-list .empty {
+    color: var(--kueh-text-muted);
+    font-style: italic;
+  }
+
+  /* ---------- reframe line ---------- */
+  .reframe {
+    font-size: 0.9rem;
+    color: var(--kueh-text);
+    border-left: 2px solid var(--kueh-sage);
+    padding-left: 0.9rem;
+    max-width: 40ch;
+    line-height: 1.5;
+  }
+
+  /* ---------- staff perk stat panels ---------- */
+  .perk-stats {
+    display: flex;
+    gap: 2.5rem;
+    margin-bottom: 2.2rem;
+    flex-wrap: wrap;
+  }
+
+  .stat-panel {
+    flex: 1;
+    min-width: 180px;
+    border-top: 1px solid var(--kueh-hairline);
+    padding-top: 0.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--kueh-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    font-size: 1.8rem;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-panel.accent .stat-value { color: var(--kueh-pink); }
+  .stat-panel.muted .stat-value { color: var(--kueh-text-muted); }
+
+  .stat-sub {
+    font-size: 0.78rem;
+    color: var(--kueh-text-muted);
+  }
+
+  /* ---------- staff perk chart ---------- */
+  .chart-wrap {
+    margin-bottom: 2.2rem;
+  }
+
+  .chart-wrap svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* ---------- footer ---------- */
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--kueh-hairline);
+    font-size: 0.8rem;
+    color: var(--kueh-text-muted);
+  }
+
+  @media (max-width: 480px) {
+    .perk-stats { flex-direction: column; gap: 1.5rem; }
+    .dot-grid { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+<div class="page">
+
+  <div class="kueh-note" id="kuehNote">
+    <button type="button" class="kueh-label" id="kuehLabel">why kuehmachine? (i)</button>
+    <div class="kueh-tooltip" role="tooltip">Kueh: warmth, hand-made with
+      love, runneth through a machine. Not unlike the Singaporean grind
+      — the tradeoffs of a worker under late-stage capitalism.</div>
+  </div>
+
+  <h1>Life Calculus</h1>
+  <p class="intro">Singapore's TFR debate refers to 'balance' like it's a
+    soft issue — but nobody's actually costing it. How does one quantify
+    the tradeoffs on time, health, relationships? This tool tries to put
+    a number on it — the bedtime stories and ice-cream runs forgone, the
+    gym classes you're late to, the distracted date nights. So you can be
+    exquisitely precise about where you spend your energy.</p>
+
+  <nav class="frame-tabs">
+    <button class="tab active" data-frame="summers">The Time Cost</button>
+    <button class="tab" data-frame="perk">Mortgage Trap</button>
+  </nav>
+
+  <!-- ============ FRAME 1 — THE TIME COST ============ -->
+  <section id="frame-summers" class="frame active">
+
+    <div class="input-zone">
+      <div class="audience-toggle">
+        <button class="active" data-audience="parent">Parent</button>
+        <button data-audience="solo">Solo / DINK</button>
+      </div>
+
+      <div class="inputs" id="parent-inputs">
+        <div class="field">
+          <label for="childAge">Child's current age</label>
+          <input type="number" id="childAge" min="0" max="18" value="8">
+        </div>
+        <div class="field">
+          <label for="parentScenario">What's the decision?</label>
+          <select id="parentScenario"></select>
+        </div>
+        <div class="field">
+          <label for="parentHours">Hours of autonomy lost per week <span id="parentHoursVal">12</span></label>
+          <input type="range" id="parentHours" min="0" max="40" value="12">
+        </div>
+      </div>
+
+      <div class="inputs" id="solo-inputs" hidden>
+        <div class="field">
+          <label for="soloAge">Your current age</label>
+          <input type="number" id="soloAge" min="18" max="90" value="34">
+        </div>
+        <div class="field">
+          <label for="soloScenario">What's the decision?</label>
+          <select id="soloScenario"></select>
+        </div>
+        <div class="field">
+          <label for="soloHours">Hours of autonomy lost per week <span id="soloHoursVal">12</span></label>
+          <input type="range" id="soloHours" min="0" max="40" value="12">
+        </div>
+      </div>
+    </div>
+
+    <div class="zone-divider"></div>
+
+    <div class="output-zone">
+      <div class="output-zone-inner">
+        <div class="count" id="summersCount"><span id="summersCountNum">10</span><span> / <span id="summersCountTotal">18</span></span></div>
+        <div class="count-label" id="summersLabel">summers remaining</div>
+        <div class="dot-grid" id="summersGrid"></div>
+
+        <div class="total-forgone" id="totalForgone"></div>
+        <ul class="moment-list" id="momentList"></ul>
+
+        <p class="reframe" id="summersReframe"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FRAME 2 — MORTGAGE TRAP ============ -->
+  <section id="frame-perk" class="frame">
+
+    <div class="input-zone">
+      <div class="inputs">
+        <div class="field">
+          <label for="perkPrincipal">Loan principal ($)</label>
+          <input type="number" id="perkPrincipal" min="0" step="10000" value="600000">
+        </div>
+        <div class="field">
+          <label for="perkStaffRate">Staff interest rate (%)</label>
+          <input type="number" id="perkStaffRate" min="0" step="0.1" value="1">
+        </div>
+        <div class="field">
+          <label for="perkMarketRate">Market interest rate (%)</label>
+          <input type="number" id="perkMarketRate" min="0" step="0.1" value="2.5">
+        </div>
+        <div class="field">
+          <label for="perkPayment">Monthly payment ($)</label>
+          <input type="number" id="perkPayment" min="0" step="50" value="2800">
+        </div>
+        <div class="field">
+          <label for="perkYears">Years remaining on loan</label>
+          <input type="number" id="perkYears" min="1" max="40" step="1" value="15">
+        </div>
+        <div class="field">
+          <label for="exitYear">Exit year — the year you're considering leaving <span id="exitYearVal">5</span></label>
+          <input type="range" id="exitYear" min="0" max="15" value="5">
+        </div>
+      </div>
+    </div>
+
+    <div class="zone-divider"></div>
+
+    <div class="output-zone">
+      <div class="output-zone-inner">
+        <div class="perk-stats">
+          <div class="stat-panel accent">
+            <div class="stat-label">Banked so far</div>
+            <div class="stat-value" id="bankedValue">$0</div>
+            <div class="stat-sub" id="bankedMonthly">$0/mo average</div>
+          </div>
+          <div class="stat-panel muted">
+            <div class="stat-label">Left on the table if you leave now</div>
+            <div class="stat-value" id="forgoneValue">$0</div>
+            <div class="stat-sub" id="forgoneMonthly">$0/mo average</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <svg id="perkChart" viewBox="0 0 580 200" preserveAspectRatio="none"></svg>
+        </div>
+
+        <p class="reframe" id="perkReframe"></p>
+      </div>
+    </div>
+  </section>
+
+  <footer>Life Calculus — made by nicole · kuehmachine.com</footer>
+
+</div>
+</div>
+
+<!-- Universal Kueh Machine account; this calculator intentionally keeps
+     no personal financial inputs or results in the shared account. -->
+<script src="/shared/account-widget.js" data-accent-color="#c98a9c"></script>
+<script>
+/* =====================================================================
+   CONFIG — this is the only part you need to touch to change what
+   the "cost" of an hour translates into. Everything below is display
+   logic only.
+
+   How a moment type works:
+     thresholdHours     — weekly hours have to exceed this before the
+                           moment starts getting displaced at all
+                           (e.g. bedtime stories only get hit once the
+                           cost is high enough to bleed into evenings)
+     hoursPerOccurrence — how many extra weekly hours it takes to
+                           displace ONE of these per week
+     maxPerWeek         — hard cap per week (can't miss more pickups
+                           than there are school days, etc.)
+     minutes             — how long one occurrence is (shown nowhere
+                           yet, kept for future use / your own copy)
+     annualDirect        — optional. If true, the math skips the
+                           weekly→annual multiply and hoursPerOccurrence
+                           / maxPerWeek are read directly as an ANNUAL
+                           rate/cap instead of a weekly one. Use this
+                           for things that aren't a weekly habit but a
+                           once-a-year block of time (e.g. a trip).
+   ===================================================================== */
+
+const CONFIG = {
+  weeksPerYear: 48,      // ~48 to allow for school holidays / time off
+  soloStartAge: 20,      // "adult life" reference point for the Solo grid
+  milestones: [40, 50, 60, 70, 80, 90],
+  maxHoursForDrain: 40,  // slider max — at this cost, the whole remaining grid drains
+
+  // Shared scenario list for the "what's the decision?" dropdown, used
+  // by both Parent and Solo/DINK modes. `hours` is the ballpark estimate
+  // of autonomy lost per week — auto-fills the slider below, still
+  // editable by hand. `hours: null` means "custom" — starts the slider
+  // at 0 and lets the person set it themselves.
+  scenarios: [
+    { id: 'fastpaced', label: 'Taking on a faster-paced role',                     hours: 12 },
+    { id: 'manager',   label: 'Becoming a people manager',                         hours: 12 },
+    { id: 'coverage',  label: "Stepping up to cover a manager's role temporarily", hours: 15 },
+    { id: 'travel',    label: 'Taking on a role with more travel',                 hours: 10 },
+    { id: 'commute',   label: 'Longer commute to an office out in the east',       hours: 4 },
+    { id: 'custom',    label: 'Custom',                                           hours: null },
+  ],
+
+  parentMoments: [
+    { id: 'pickups',    label: 'school pickups missed',                minutes: 20, thresholdHours: 0,  hoursPerOccurrence: 2, maxPerWeek: 5 },
+    { id: 'swings',     label: 'playground swings skipped',            minutes: 30, thresholdHours: 8,  hoursPerOccurrence: 6, maxPerWeek: 3 },
+    { id: 'parkruns',   label: 'afternoon park runs skipped',          minutes: 90, thresholdHours: 10, hoursPerOccurrence: 9, maxPerWeek: 1 },
+    { id: 'bedtime',    label: 'bedtime stories read distracted',      minutes: 15, thresholdHours: 4,  hoursPerOccurrence: 3, maxPerWeek: 6 },
+    { id: 'icecream',   label: 'ice cream runs that didn’t happen',    minutes: 45, thresholdHours: 6,  hoursPerOccurrence: 7, maxPerWeek: 2 },
+    { id: 'impatience', label: 'moments of impatience with spouse',    minutes: null, thresholdHours: 8, hoursPerOccurrence: 4, maxPerWeek: 4 },
+  ],
+
+  soloMoments: [
+    { id: 'fitness',    label: 'fitness sessions arrived late to',           minutes: 45,  thresholdHours: 5,  hoursPerOccurrence: 5, maxPerWeek: 3 },
+    { id: 'insomnia',   label: 'insomnia nights from a racing mind',         minutes: null, thresholdHours: 5,  hoursPerOccurrence: 5, maxPerWeek: 3 },
+    { id: 'dates',      label: 'distracted dates',                          minutes: 120, thresholdHours: 3,  hoursPerOccurrence: 4, maxPerWeek: 2 },
+    { id: 'impolite',   label: 'impolite conversations',                    minutes: null, thresholdHours: 6,  hoursPerOccurrence: 4, maxPerWeek: 4 },
+    { id: 'parentdinners', label: 'dinners missed with aging parents',      minutes: 90,   thresholdHours: 6,  hoursPerOccurrence: 6, maxPerWeek: 1 },
+    { id: 'slowtravel', label: 'weeks of slow travel in Japan/Europe never taken', minutes: null, thresholdHours: 15, hoursPerOccurrence: 5, maxPerWeek: 6, annualDirect: true },
+  ],
+};
+
+/* ===================================================================== */
+
+function computeMoments(hours, moments) {
+  return moments
+    .map(m => {
+      let annual = 0;
+      if (hours > m.thresholdHours) {
+        const rate = Math.min(m.maxPerWeek, (hours - m.thresholdHours) / m.hoursPerOccurrence);
+        annual = m.annualDirect ? rate : rate * CONFIG.weeksPerYear;
+      }
+      return { ...m, annual: Math.round(annual) };
+    })
+    .filter(m => m.annual > 0)
+    .sort((a, b) => b.annual - a.annual);
+}
+
+function nextMilestone(age) {
+  return CONFIG.milestones.find(m => m > age) ?? Math.ceil((age + 1) / 10) * 10;
+}
+
+// Reuses existing dot elements instead of tearing the grid down on every
+// call, so the background-color transition on .dot can actually animate
+// as the slider moves. Only rebuilds the dots themselves when the total
+// count changes (e.g. child's age changes how many summers remain).
+function renderDotGrid(el, total, active) {
+  const prevTotal = Number(el.dataset.total || -1);
+  if (prevTotal !== total) {
+    el.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      el.appendChild(d);
+    }
+    el.dataset.total = total;
+  }
+  const layerColors = ['var(--kueh-pink)', 'var(--kueh-sage)', 'var(--kueh-tan)'];
+  Array.from(el.children).forEach((dot, i) => {
+    dot.style.background = i < active ? layerColors[i % 3] : 'var(--kueh-faded)';
+  });
+}
+
+// Animates a number's text content from its current value to `to` over
+// `duration` ms, eased out — so a recalculation reads as something
+// happening rather than a static swap.
+function tweenNumber(el, to, duration, format) {
+  const from = Number(el.dataset.value || 0);
+  el.dataset.value = to;
+  if (from === to) { el.textContent = format ? format(to) : to; return; }
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = Math.round(from + (to - from) * eased);
+    el.textContent = format ? format(value) : value;
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function pulseElement(el) {
+  el.classList.remove('row-pulse');
+  void el.offsetWidth; // force reflow so the animation can restart
+  el.classList.add('row-pulse');
+}
+
+// Reuses existing <li> rows (keyed by moment id) instead of rebuilding the
+// list on every slider tick, so each count can tween in place. Falls back
+// to a full rebuild when the set of moment types actually changes. Returns
+// the row with the largest count change, or null if nothing changed.
+function renderMomentList(el, moments) {
+  if (moments.length === 0) {
+    el.innerHTML = '<li class="empty">Not enough hours yet to displace anything, at these thresholds.</li>';
+    el.dataset.ids = '';
+    return null;
+  }
+
+  const newIds = moments.map(m => m.id).join(',');
+  if (el.dataset.ids !== newIds) {
+    el.innerHTML = '';
+    moments.forEach(m => {
+      const li = document.createElement('li');
+      li.dataset.id = m.id;
+      const n = document.createElement('span');
+      n.className = 'n';
+      n.dataset.value = m.annual;
+      n.textContent = `≈ ${m.annual}`;
+      li.appendChild(n);
+      li.appendChild(document.createTextNode(m.label));
+      el.appendChild(li);
+    });
+    el.dataset.ids = newIds;
+    return null;
+  }
+
+  let biggestMoverLi = null, biggestDelta = 0;
+  Array.from(el.children).forEach((li, i) => {
+    const m = moments[i];
+    const n = li.querySelector('.n');
+    const from = Number(n.dataset.value || 0);
+    const delta = Math.abs(m.annual - from);
+    if (delta > biggestDelta) { biggestDelta = delta; biggestMoverLi = li; }
+    tweenNumber(n, m.annual, 350, v => `≈ ${v}`);
+  });
+  return biggestMoverLi;
+}
+
+/* ---------- Frame 1 : The Time Cost ---------- */
+
+let audience = 'parent';
+
+function updateSummers() {
+  const hours = audience === 'parent'
+    ? Number(document.getElementById('parentHours').value)
+    : Number(document.getElementById('soloHours').value);
+
+  let headerTotal, remaining, label, moments;
+
+  if (audience === 'parent') {
+    const age = Number(document.getElementById('childAge').value);
+    headerTotal = 18;
+    remaining = Math.max(0, 18 - age);
+    label = 'summers remaining';
+    moments = computeMoments(hours, CONFIG.parentMoments);
+  } else {
+    const age = Number(document.getElementById('soloAge').value);
+    const milestone = nextMilestone(age);
+    headerTotal = milestone - CONFIG.soloStartAge;
+    remaining = Math.max(0, milestone - age);
+    label = `years to ${milestone}`;
+    moments = computeMoments(hours, CONFIG.soloMoments);
+  }
+
+  tweenNumber(document.getElementById('summersCountNum'), remaining, 350);
+  document.getElementById('summersCountTotal').textContent = headerTotal;
+  document.getElementById('summersLabel').textContent = label;
+
+  // The grid itself represents the remaining years. At 0 hours lost, every
+  // dot stays filled — "life with zero cost applied." As the hours-lost
+  // slider climbs, a proportional share of those remaining dots drains
+  // from filled to faded, live, so the grid visibly shrinks with the cost.
+  const drained = Math.min(remaining, Math.round((hours / CONFIG.maxHoursForDrain) * remaining));
+  const active = remaining - drained;
+  renderDotGrid(document.getElementById('summersGrid'), remaining, active);
+
+  const totalForgone = moments.reduce((sum, m) => sum + m.annual, 0);
+  document.getElementById('totalForgone').innerHTML =
+    `<span class="n">≈ ${totalForgone}</span><span class="l">things forgone this year</span>`;
+
+  const biggestMoverLi = renderMomentList(document.getElementById('momentList'), moments);
+  if (biggestMoverLi) pulseElement(biggestMoverLi);
+
+  const reframe = document.getElementById('summersReframe');
+  if (moments.length > 0) {
+    const top = moments[0];
+    reframe.textContent = `That's ${top.annual} fewer ${top.label} this year.`;
+  } else {
+    reframe.textContent = 'At this cost, nothing gets displaced yet — the glass balls stay intact.';
+  }
+}
+
+document.getElementById('childAge').addEventListener('input', updateSummers);
+
+/* ---------- "why kuehmachine?" tooltip — tap-to-toggle for touch, hover covers desktop ---------- */
+document.getElementById('kuehLabel').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('kuehNote').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.getElementById('kuehNote').classList.remove('open');
+});
+document.getElementById('soloAge').addEventListener('input', updateSummers);
+
+/* ---------- scenario dropdown <-> hours slider, shared pattern for both modes ---------- */
+
+function setupScenarioControl(selectId, sliderId, valId) {
+  const select = document.getElementById(selectId);
+  const slider = document.getElementById(sliderId);
+  const val = document.getElementById(valId);
+
+  select.innerHTML = CONFIG.scenarios
+    .map(s => `<option value="${s.id}">${s.label}</option>`)
+    .join('');
+
+  // picking a scenario auto-fills the slider with its estimate
+  select.addEventListener('change', () => {
+    const scenario = CONFIG.scenarios.find(s => s.id === select.value);
+    slider.value = scenario && scenario.hours !== null ? scenario.hours : 0;
+    val.textContent = slider.value;
+    updateSummers();
+  });
+
+  // hand-adjusting the slider away from the scenario's default estimate
+  // silently switches the dropdown to "Custom"
+  slider.addEventListener('input', () => {
+    val.textContent = slider.value;
+    const scenario = CONFIG.scenarios.find(s => s.id === select.value);
+    const matchesScenario = scenario && scenario.hours === Number(slider.value);
+    if (!matchesScenario) select.value = 'custom';
+    updateSummers();
+  });
+}
+
+setupScenarioControl('parentScenario', 'parentHours', 'parentHoursVal');
+setupScenarioControl('soloScenario', 'soloHours', 'soloHoursVal');
+
+// initial dropdown state matches each slider's starting value
+document.getElementById('parentScenario').value =
+  CONFIG.scenarios.find(s => s.hours === Number(document.getElementById('parentHours').value))?.id || 'custom';
+document.getElementById('soloScenario').value =
+  CONFIG.scenarios.find(s => s.hours === Number(document.getElementById('soloHours').value))?.id || 'custom';
+
+document.querySelectorAll('.audience-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.audience-toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    audience = btn.dataset.audience;
+    document.getElementById('parent-inputs').hidden = audience !== 'parent';
+    document.getElementById('solo-inputs').hidden = audience !== 'solo';
+    updateSummers();
+  });
+});
+
+/* ---------- Frame 2 : Mortgage Trap ---------- */
+
+function formatUSD(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+// Straightforward monthly amortization loop — no closed-form formula.
+// Returns cumulative interest paid and remaining balance at every month,
+// index 0 = start (before any payment).
+function amortize(principal, annualRatePct, payment, months) {
+  const monthlyRate = annualRatePct / 100 / 12;
+  let balance = principal;
+  const cumInterest = [0];
+  const balances = [principal];
+  for (let m = 1; m <= months; m++) {
+    const interest = balance * monthlyRate;
+    const principalPaid = Math.min(balance, payment - interest);
+    balance = Math.max(0, balance - principalPaid);
+    cumInterest.push(cumInterest[m - 1] + interest);
+    balances.push(balance);
+  }
+  return { cumInterest, balances };
+}
+
+function computePerk() {
+  const principal = Number(document.getElementById('perkPrincipal').value);
+  const staffRate = Number(document.getElementById('perkStaffRate').value);
+  const marketRate = Number(document.getElementById('perkMarketRate').value);
+  const payment = Number(document.getElementById('perkPayment').value);
+  const years = Math.max(1, Number(document.getElementById('perkYears').value));
+
+  const exitSlider = document.getElementById('exitYear');
+  exitSlider.max = years;
+  let exitYear = Math.min(years, Number(exitSlider.value));
+  exitSlider.value = exitYear;
+  document.getElementById('exitYearVal').textContent = exitYear;
+
+  const totalMonths = years * 12;
+  const staffFull = amortize(principal, staffRate, payment, totalMonths);   // actual schedule you're on
+  const marketFull = amortize(principal, marketRate, payment, totalMonths); // hypothetical: market rate the whole way
+
+  // "banked so far" at each year Y — interest you'd have paid at market
+  // rate minus what you actually paid at staff rate, up to year Y.
+  const bankedCurve = [];
+  for (let y = 0; y <= years; y++) {
+    bankedCurve.push(marketFull.cumInterest[y * 12] - staffFull.cumInterest[y * 12]);
+  }
+
+  // "left on the table" if you exit at year Y — take the balance you'd
+  // actually have at Y (staff-rate schedule), then compare paying it off
+  // at market rate vs. staying at staff rate for the years remaining.
+  const forgoneCurve = [];
+  for (let y = 0; y <= years; y++) {
+    const balanceAtY = staffFull.balances[y * 12];
+    const remainingMonths = (years - y) * 12;
+    const remainingStaffInterest = staffFull.cumInterest[totalMonths] - staffFull.cumInterest[y * 12];
+    const marketContinuation = amortize(balanceAtY, marketRate, payment, remainingMonths);
+    const remainingMarketInterest = remainingMonths > 0 ? marketContinuation.cumInterest[remainingMonths] : 0;
+    forgoneCurve.push(remainingMarketInterest - remainingStaffInterest);
+  }
+
+  const banked = bankedCurve[exitYear];
+  const forgone = forgoneCurve[exitYear];
+
+  document.getElementById('bankedValue').textContent = formatUSD(banked);
+  document.getElementById('bankedMonthly').textContent =
+    `${formatUSD(exitYear > 0 ? banked / (exitYear * 12) : 0)}/mo average`;
+
+  document.getElementById('forgoneValue').textContent = formatUSD(forgone);
+  const monthsLeft = (years - exitYear) * 12;
+  document.getElementById('forgoneMonthly').textContent =
+    `${formatUSD(monthsLeft > 0 ? forgone / monthsLeft : 0)}/mo average`;
+
+  renderPerkChart(bankedCurve, forgoneCurve, exitYear, years);
+
+  document.getElementById('perkReframe').textContent =
+    `Leaving in year ${exitYear} banks ${formatUSD(banked)} — but leaves ${formatUSD(forgone)} on the table.`;
+}
+
+function renderPerkChart(banked, forgone, exitYear, years) {
+  const svg = document.getElementById('perkChart');
+  const W = 580, H = 200, padL = 8, padR = 8, padT = 14, padB = 22;
+  const maxVal = Math.max(...banked, ...forgone, 1);
+  const x = i => padL + (i / years) * (W - padL - padR);
+  const y = v => (H - padB) - (Math.max(0, v) / maxVal) * (H - padT - padB);
+
+  const bankedPath = 'M' + banked.map((v, i) => `${x(i)},${y(v)}`).join(' L');
+  const forgonePath = 'M' + forgone.map((v, i) => `${x(i)},${y(v)}`).join(' L');
+  const bankedArea = `${bankedPath} L${x(years)},${H - padB} L${x(0)},${H - padB} Z`;
+  const forgoneArea = `${forgonePath} L${x(years)},${H - padB} L${x(0)},${H - padB} Z`;
+  const exitX = x(exitYear);
+
+  svg.innerHTML = `
+    <line x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}" stroke="var(--kueh-hairline)" stroke-width="1" />
+    <path d="${forgoneArea}" fill="var(--kueh-text-muted)" fill-opacity="0.12" stroke="none" />
+    <path d="${bankedArea}" fill="var(--kueh-pink)" fill-opacity="0.12" stroke="none" />
+    <path d="${forgonePath}" fill="none" stroke="var(--kueh-text-muted)" stroke-width="2" />
+    <path d="${bankedPath}" fill="none" stroke="var(--kueh-pink)" stroke-width="2" />
+    <line x1="${exitX}" y1="${padT}" x2="${exitX}" y2="${H - padB}" stroke="var(--kueh-text)" stroke-width="1" stroke-dasharray="3,3" />
+    <text x="${padL}" y="${H - 6}" font-size="9" fill="var(--kueh-text-muted)" font-family="Helvetica Neue, Arial, sans-serif">0</text>
+    <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="9" fill="var(--kueh-text-muted)" font-family="Helvetica Neue, Arial, sans-serif">${years} yrs</text>
+  `;
+}
+
+['perkPrincipal', 'perkStaffRate', 'perkMarketRate', 'perkPayment', 'perkYears'].forEach(id => {
+  document.getElementById(id).addEventListener('input', computePerk);
+});
+document.getElementById('exitYear').addEventListener('input', computePerk);
+
+document.querySelectorAll('.frame-tabs .tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.frame-tabs .tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.frame').forEach(f => f.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`frame-${btn.dataset.frame}`).classList.add('active');
+  });
+});
+
+/* ---------- init ---------- */
+updateSummers();
+computePerk();
+</script>
+</body>
+</html>
