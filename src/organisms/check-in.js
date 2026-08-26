@@ -26,31 +26,25 @@ import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 // this to match the widget's drawn order back to a row, and sorts anyone
 // without a key to the bottom.
 const CONTRIBUTORS = [
-  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one where a bear serves up your placeholder content)", url: '/machines/amanda/', randomiserKey: 'Amanda' },
-  { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/machines/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }], randomiserKey: 'Amy' },
+  { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one where a bear serves up your placeholder content)", url: '/amanda/', randomiserKey: 'Amanda' },
+  { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }], randomiserKey: 'Amy' },
   { initials: 'GE', name: 'Geraldine Chua', desc: "(the one that's a ___)" },
   {
     initials: 'JN',
     name: 'Jesslyn Teo',
     title: 'A Day For Me',
     desc: "(the one that's a birthday budget planner)",
-    url: '/machines/jesslyn/',
+    url: '/jesslyn/',
     windowDecors: [{ src: 'images/checkin/pow-jesslyn.svg', position: 'top-right' }],
     randomiserKey: 'Jesslyn',
   },
-  // url: '/kaixin/', not '/machines/kaixin/' like everyone else — her
-  // project is the one Vite-built contributor page (see .gitignore's own
-  // comment on machines/kaixin/dist/), so the short route is the one
-  // vercel.json actually rewrites to the built dist/index.html. The plain
-  // /machines/kaixin/ path serves the unbuilt Vite source index.html
-  // instead (./src/main.js, never bundled) — not the working app.
   { initials: 'KC', name: 'Kaixin Cai', title: 'Kara-o-kueh', desc: "(the one that's very punny)", url: '/kaixin/', randomiserKey: 'Kaixin' },
   {
     initials: 'KN',
     name: 'Ken Lee',
     title: 'Gatcha-Kueh',
     desc: "(the one you pull, reveal, and collect)",
-    url: '/machines/ken/',
+    url: '/ken/',
     windowDecors: [{ src: 'images/checkin/ondeh-ken.svg', position: 'bottom-right-crop' }],
     randomiserKey: 'Ken',
   },
@@ -60,33 +54,33 @@ const CONTRIBUTORS = [
     name: 'Li Wei Lim',
     title: 'Lapis',
     desc: "(the one that's a snake game)",
-    url: '/machines/liwei/',
+    url: '/liwei/',
     windowDecors: [{ src: 'images/checkin/snake-peek.gif', position: 'top-left' }],
     randomiserKey: 'Liwei',
   },
-  { initials: 'MJ', name: 'Mei Jun Chew', title: 'Taste of Home', desc: "(the one that's a taste of home)", url: '/machines/meijun/', randomiserKey: 'Mei Jun' },
-  { initials: 'NA', name: 'Natalia Lionardy', title: 'Care Island', desc: "(the one where you watch today's scene come alive)", url: '/machines/natalia/', randomiserKey: 'Natalia' },
+  { initials: 'MJ', name: 'Mei Jun Chew', title: 'Taste of Home', desc: "(the one that's a taste of home)", url: '/meijun/', randomiserKey: 'Mei Jun' },
+  { initials: 'NA', name: 'Natalia Lionardy', title: 'Care Island', desc: "(the one where you watch today's scene come alive)", url: '/natalia/', randomiserKey: 'Natalia' },
   { initials: 'NE', name: 'Nicole Ng', desc: "(the one that's a ___)" },
   {
     initials: 'RY',
     name: 'Ruth Yong',
     title: 'Kueh Bakery',
     desc: "(the one that's a stacking game)",
-    url: '/machines/ruth/',
+    url: '/ruth/',
     windowDecors: [
       { src: 'images/checkin/string-lights.svg', position: 'top', inline: true },
       { src: 'images/checkin/steam.svg', position: 'bottom', inline: true },
     ],
     randomiserKey: 'Ruth',
   },
-  { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)", randomiserKey: 'Sam' },
-  { initials: 'SO', name: 'Sophia Himawan', title: 'Cat Scan', desc: "(the one that's a shared map for spotting neighborhood cats)", url: '/machines/sophia/', randomiserKey: 'Sophia' },
+  { initials: 'SA', name: 'Samantha Tan', title: 'Remember.fm', desc: "(the one that's nostalgic)", url: '/samantha/', randomiserKey: 'Sam' },
+  { initials: 'SO', name: 'Sophia Himawan', title: 'Cat Scan', desc: "(the one that's a shared map for spotting neighborhood cats)", url: '/sophia/', randomiserKey: 'Sophia' },
   {
     initials: 'VI',
     name: 'Viki Yap',
     title: 'Kueh Machine Design Studio',
     desc: "(the one that turns your kueh ideas into reality)",
-    url: '/machines/viki/',
+    url: '/viki/',
     windowDecors: [{ src: 'images/checkin/akk-viki.png', position: 'bottom-left' }],
     randomiserKey: 'Viki',
   },

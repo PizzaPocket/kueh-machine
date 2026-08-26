@@ -29,3 +29,26 @@ python3 -m http.server 8080
 ```
 
 then open `http://localhost:8080/`.
+
+## Linking to a contributor machine
+
+Always link to a machine as `/<slug>/` (e.g. `/ruth/`, `/kaixin/`), never
+`/machines/<slug>/`. `vercel.json`'s `rewrites` are the actual routing
+authority — `/<slug>/` is what it rewrites to that machine's real deployed
+output, whatever that turns out to be. `/machines/<slug>/` is just the raw
+filesystem path, and only happens to also serve the right thing for a flat,
+buildless project (most of them). Any project with a build step — Kaixin's
+Vite build, Samantha's Next.js static export — puts its real output in a
+nested subfolder (`dist/`, `out/`) that only the `/<slug>/` rewrite points
+at; the plain `/machines/<slug>/` path instead serves that folder's raw,
+unbuilt source `index.html` (or, before this was caught, 404s outright —
+see `machines/samantha/index.html` and `machines/kaixin/index.html`, both a
+small client-side redirect to their real `/<slug>/` route as a defensive
+fallback for anyone who links to or bookmarks the raw path anyway).
+
+This same rule applies inside `godot/hub/`'s NPC links
+(`hub_main.gd`'s `_contributors()`) and `src/organisms/check-in.js`'s
+`CONTRIBUTORS` roster — both already follow it. The one intentional
+exception is the Hub itself: it has no `/hub/` alias in `vercel.json` (it
+isn't a contributor "machine" in that sense), so `index.html`'s own ENTER
+button links straight to `/machines/hub/`.
