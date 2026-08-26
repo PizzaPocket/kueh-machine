@@ -569,6 +569,20 @@
       text-align: center;
     }
 
+	.countdown-grid.is-enter-state {
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	}
+
+	/* .btn-rim's own align-self: flex-start (styles/atoms.css — needed
+	   where it's nested in a flex-column container elsewhere) would
+	   otherwise win over this row's align-items: center and pin the
+	   button to the top instead of centering it. */
+	.countdown-grid.is-enter-state .btn-rim {
+	  align-self: center;
+	}
+
     .cd-unit {}
 
     /* All three read against both --countdown-bg-color and
@@ -1679,6 +1693,22 @@
     // === COUNTDOWN (SGT = UTC+8, ticks every second) ===
     var TARGET_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // Aug 26 2026 06:00 UTC = 14:00 SGT
     var PROJECT_START_UTC = Date.UTC(2026, 5, 24); // June 24 2026 kickoff
+	var COUNTDOWN_REAL_NOW = Date.now.bind(Date);
+	var COUNTDOWN_AS_OF_RAW = new URLSearchParams(window.location.search).get('asOf');
+	var COUNTDOWN_AS_OF = COUNTDOWN_AS_OF_RAW !== null ? Number(COUNTDOWN_AS_OF_RAW) : NaN;
+	var COUNTDOWN_DEBUG_STARTED_AT = COUNTDOWN_REAL_NOW();
+	var countdownGrid = document.querySelector('.countdown-grid');
+	var countdownGridMarkup = countdownGrid ? countdownGrid.innerHTML : '';
+
+	// The module-based debugger initializes after this inline script has parsed.
+	// Read its URL state directly so the very first clock render already uses
+	// the simulated time instead of briefly—or permanently—using real time.
+	function countdownNow() {
+	  if (Number.isFinite(COUNTDOWN_AS_OF)) {
+		return COUNTDOWN_AS_OF + (COUNTDOWN_REAL_NOW() - COUNTDOWN_DEBUG_STARTED_AT);
+	  }
+	  return Date.now();
+	}
 
     function pad(n) {
       return n < 10 ? '0' + n : '' + n;
@@ -1690,7 +1720,7 @@
     // released-drop wobble oscillates on top of.
     function remainingPct() {
       var totalMs = TARGET_UTC - PROJECT_START_UTC;
-      var elapsedMs = Date.now() - PROJECT_START_UTC;
+      var elapsedMs = countdownNow() - PROJECT_START_UTC;
       return 100 - Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
     }
 
@@ -1776,6 +1806,16 @@
     // it.
     var dropEl = null;
 
+    // Guards the dynamic import below against a double-build: import()
+    // resolves async, but updateCountdown's own is-enter-state class
+    // isn't set on countdownGrid until the button it's waiting on
+    // actually lands, so a second 1s tick landing inside that window
+    // would otherwise see the same "not built yet" state and start a
+    // second build. In practice the import (same-origin, already
+    // browser-cached after the first load) resolves well within the 1s
+    // gap between ticks, but this makes it correct regardless of timing.
+    var enterBuildStarted = false;
+
     function positionDrop(el) {
       // .countdown-window-bg, not .countdown-viewport itself — the latter's
       // own getBoundingClientRect() is its *border* box, which now extends
@@ -1844,16 +1884,47 @@
     }
 
     function updateCountdown() {
-      var diff = TARGET_UTC - Date.now();
+      var diff = TARGET_UTC - countdownNow();
       updateLiquidFill();
 
       if (diff <= 0) {
-        document.getElementById('js-days').textContent    = '00';
-        document.getElementById('js-hours').textContent   = '00';
-        document.getElementById('js-minutes').textContent = '00';
-        document.getElementById('js-seconds').textContent = '00';
+		var grid = countdownGrid;
+		if (grid && !grid.classList.contains('is-enter-state') && !enterBuildStarted) {
+		  enterBuildStarted = true;
+		  import('./src/atoms/button.js').then(function (mod) {
+		    var built = mod.createButton({
+		      label: 'ENTER',
+		      size: 'large',
+		      variant: 'cta',
+		      tag: 'a',
+		      href: '/machines/hub/',
+		    });
+		    built.btn.setAttribute('aria-label', 'Enter the Kueh Machine hub');
+		    grid.replaceChildren(built.rim);
+		    grid.classList.add('is-enter-state');
+		    grid.removeAttribute('role');
+		    grid.setAttribute('aria-label', 'Kueh Machine hub is open');
+		  });
+		}
+		var liquid = document.getElementById('js-countdown-liquid');
+		if (liquid) liquid.style.setProperty('--liquid-fill', '0%');
+		if (dropEl) {
+		  dropEl.remove();
+		  dropEl = null;
+		}
+		setTimeout(updateCountdown, 1000);
         return;
       }
+
+	  // The debug date can move backward across the launch boundary. Restore
+	  // the original clock DOM instead of treating ENTER as a one-way mutation.
+	  if (countdownGrid && countdownGrid.classList.contains('is-enter-state')) {
+		countdownGrid.innerHTML = countdownGridMarkup;
+		countdownGrid.classList.remove('is-enter-state');
+		countdownGrid.setAttribute('role', 'timer');
+		countdownGrid.setAttribute('aria-label', 'Countdown to showcase on 26 August 2026');
+		enterBuildStarted = false;
+	  }
 
       var totalSeconds = Math.floor(diff / 1000);
       var days    = Math.floor(totalSeconds / 86400);
@@ -1926,7 +1997,7 @@
 
   document.getElementById('footer-year').textContent = new Date().getFullYear();
   </script>
-  <script type="module" src="src/main.js"></script>
+  <script type="module" src="src/main.js?v=showcase-20260826"></script>
   <!-- Docked into the site's own nav bar rather than floating over it —
        mounted into .site-nav itself (not .site-nav-inner), anchored to its
        own right edge and vertically centered, independent of .site-nav-

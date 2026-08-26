@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b2b2b; }
+  .tl::-webkit-scrollbar { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div style="width:390px;height:844px;margin:0 auto;background:#070707;position:relative;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;border-radius:46px;border:1px solid #232323;box-shadow:inset 0 0 0 6px #0c0c0c;display:flex;flex-direction:column;">
+
+  <!-- status bar -->
+  <div style="display:flex;align-items:center;justify-content:flex-end;padding:16px 26px 2px;color:#fff;flex:none;">
+    <span style="display:flex;align-items:center;gap:6px;">
+      <svg width="17" height="12" viewBox="0 0 18 13"><rect x="0" y="9" width="3" height="4" rx="1" fill="#fff"></rect><rect x="4.5" y="6" width="3" height="7" rx="1" fill="#fff"></rect><rect x="9" y="3" width="3" height="10" rx="1" fill="#fff"></rect><rect x="13.5" y="0" width="3" height="13" rx="1" fill="#fff"></rect></svg>
+      <svg width="16" height="12" viewBox="0 0 17 13"><path d="M8.5 2.5c2.6 0 5 1 6.8 2.7l-1.5 1.6A7.6 7.6 0 0 0 8.5 5 7.6 7.6 0 0 0 3.2 6.8L1.7 5.2A9.6 9.6 0 0 1 8.5 2.5Z" fill="#fff"></path><circle cx="8.5" cy="10.5" r="1.7" fill="#fff"></circle></svg>
+      <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:23px;height:12px;border:1.5px solid rgba(255,255,255,.5);border-radius:3px;position:relative;"><span style="position:absolute;inset:1.5px;width:17px;background:#fff;border-radius:1px;"></span></span><span style="display:inline-block;width:1.5px;height:4px;background:rgba(255,255,255,.5);border-radius:1px;"></span></span>
+    </span>
+  </div>
+
+  <!-- header -->
+  <div style="padding:10px 26px 12px;flex:none;">
+    <span style="font-family:'Pixelify Sans',sans-serif;font-weight:600;font-size:26px;color:#c2f02e;letter-spacing:1px;">remember.fm</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+      <h1 style="margin:0;font-size:32px;font-weight:700;color:#f2f2f2;letter-spacing:-.5px;">Your soundtrack</h1>
+      <div style="width:62px;height:62px;border-radius:50%;background:conic-gradient(from 200deg,#c9b6ff,#9fe2ff,#bff0a0,#fff0a8,#ffc6ef,#ff9ed6,#b89dff,#9fe2ff,#c9b6ff);position:relative;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.12);overflow:hidden;animation:spin 4s linear infinite;">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle,transparent 26%,rgba(0,0,0,.45) 60%);"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:19px;height:19px;border-radius:50%;background:#0a0a0a;box-shadow:inset 0 0 0 4px rgba(120,120,120,.4);"></div>
+      </div>
+    </div>
+    <p style="margin:5px 0 0;color:#8f8f8f;font-size:16px;">{{ subtitle }}</p>
+  </div>
+
+  <!-- timeline scroll -->
+  <div class="tl" style="flex:1;overflow-y:auto;position:relative;padding:6px 22px 30px;">
+    <div style="position:relative;">
+      <!-- vertical dotted line (centered on dots) -->
+      <div style="position:absolute;left:18px;top:10px;bottom:0;width:2px;background:repeating-linear-gradient(180deg,#3b3b3b 0 4px,transparent 4px 11px);"></div>
+
+      <sc-for list="{{ eras }}" as="era" hint-placeholder-count="2">
+        <!-- era banner -->
+        <div style="position:relative;padding-left:44px;margin-bottom:14px;">
+          <div style="{{ era.dotStyle }}"></div>
+          <div style="{{ era.bannerStyle }}">
+            <img src="{{ era.img }}" alt="{{ era.device }}" style="{{ era.imgStyle }}">
+            <span style="{{ era.pillStyle }}">{{ era.range }}</span>
+            <div style="{{ era.nameStyle }}">{{ era.name }}</div>
+          </div>
+        </div>
+
+        <!-- year cards -->
+        <sc-for list="{{ era.years }}" as="yr" hint-placeholder-count="3">
+          <div style="position:relative;padding-left:44px;margin-bottom:14px;">
+            <div style="{{ yr.dotStyle }}"></div>
+            <div style="position:relative;border:1px solid #1a1a1a;border-radius:18px;background:#0c0c0e;padding:16px 18px 18px;">
+              <svg width="9" height="16" viewBox="0 0 9 16" style="position:absolute;top:50%;right:18px;transform:translateY(-50%);"><path d="M1 1 L8 8 L1 15" stroke="#555" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <div style="display:flex;align-items:baseline;gap:10px;">
+                <div style="{{ yr.yearStyle }}">{{ yr.year }}</div>
+                <div style="font-size:16px;color:#7a7a7a;">Age {{ yr.age }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+                <sc-for list="{{ yr.songs }}" as="song" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="{{ song.playStyle }}"><svg width="9" height="11" viewBox="0 0 9 11"><path d="M0 0 L9 5.5 L0 11 Z" fill="currentColor"></path></svg></span>
+                    <div style="min-width:0;">
+                      <div style="font-size:15px;font-weight:700;color:#f0f0f0;">{{ song.title }}</div>
+                      <div style="font-size:13px;color:#7d7d7d;margin-top:1px;">{{ song.artist }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  // ── Edit these in VS Code ──────────────────────────────────────────────
+
+  // Map a device key -> its image. Add a device + image here, then reference
+  // the key from an era's `device` field below and the banner image swaps.
+  DEVICE_IMAGES = {
+    crt:        'assets/crt.png',         // desktop PC / Winamp era
+    walkman:    'assets/walkman.png',     // Sony Ericsson Walkman phone
+    ipod:       'assets/ipod.png',        // iPod nano
+    blackberry: 'assets/blackberry.png',  // BlackBerry / smartphone
+    // discman:  'assets/discman.png',
+    // mixcd:    'assets/mixcd.png',
+  };
+
+  // Color palette per era. Pick one with the era's `palette` field.
+  PALETTES = {
+    purple: { acc: '#a259ff', bd: '#2a2140', glow: '162,89,255' },
+    green:  { acc: '#c2f02e', bd: '#2e3a14', glow: '194,240,46' },
+    blue:   { acc: '#4da6ff', bd: '#16314a', glow: '77,166,255' },
+    pink:   { acc: '#ff5cb8', bd: '#45203a', glow: '255,92,184' },
+  };
+
+  subtitle = 'Malaysia \u00b7 1993 \u00b7 Ages 10\u201322';
+
+  // Your data set. `device` decides the banner image, `palette` the colors.
+  eras = [
+    {
+      palette: 'purple', range: '2003 \u2013 2006', name: 'PC & WINAMP ERA',
+      device: 'crt', deviceWidth: 104, deviceRotate: 6,
+      years: [
+        { year: 2003, age: 10, songs: [
+          { title: 'In the End', artist: 'Linkin Park' },
+          { title: 'Crazy in Love', artist: 'Beyonc\u00e9' },
+          { title: 'Bring Me to Life', artist: 'Evanescence' },
+        ]},
+        { year: 2004, age: 11, songs: [
+          { title: 'Yeah!', artist: 'Usher ft. Lil Jon' },
+          { title: 'Toxic', artist: 'Britney Spears' },
+          { title: 'Burn', artist: 'Usher' },
+        ]},
+        { year: 2005, age: 12, songs: [
+          { title: 'Gold Digger', artist: 'Kanye West' },
+          { title: 'Hollaback Girl', artist: 'Gwen Stefani' },
+          { title: 'Since U Been Gone', artist: 'Kelly Clarkson' },
+        ]},
+      ],
+    },
+    {
+      palette: 'green', range: '2007 \u2013 2009', name: 'WALKMAN PHONE ERA',
+      device: 'walkman', deviceWidth: 78, deviceRotate: 8,
+      years: [
+        { year: 2007, age: 14, songs: [
+          { title: 'Umbrella', artist: 'Rihanna' },
+          { title: 'Beautiful Girls', artist: 'Sean Kingston' },
+          { title: 'Big Girls Don\u2019t Cry', artist: 'Fergie' },
+        ]},
+        { year: 2008, age: 15, songs: [
+          { title: 'Low', artist: 'Flo Rida' },
+          { title: 'Bleeding Love', artist: 'Leona Lewis' },
+          { title: 'Viva la Vida', artist: 'Coldplay' },
+        ]},
+        { year: 2009, age: 16, songs: [
+          { title: 'Poker Face', artist: 'Lady Gaga' },
+          { title: 'I Gotta Feeling', artist: 'Black Eyed Peas' },
+          { title: 'Use Somebody', artist: 'Kings of Leon' },
+        ]},
+      ],
+    },
+    {
+      palette: 'blue', range: '2010 \u2013 2012', name: 'iPOD & iTUNES ERA',
+      device: 'ipod', deviceWidth: 78, deviceRotate: 8,
+      years: [
+        { year: 2010, age: 17, songs: [
+          { title: 'Love the Way You Lie', artist: 'Eminem ft. Rihanna' },
+          { title: 'Airplanes', artist: 'B.o.B' },
+          { title: 'Just the Way You Are', artist: 'Bruno Mars' },
+        ]},
+        { year: 2011, age: 18, songs: [
+          { title: 'Rolling in the Deep', artist: 'Adele' },
+          { title: 'Someone Like You', artist: 'Adele' },
+          { title: 'Party Rock Anthem', artist: 'LMFAO' },
+        ]},
+        { year: 2012, age: 19, songs: [
+          { title: 'Payphone', artist: 'Maroon 5' },
+          { title: 'Call Me Maybe', artist: 'Carly Rae Jepsen' },
+          { title: 'Somebody That I Used to Know', artist: 'Gotye' },
+        ]},
+      ],
+    },
+    {
+      palette: 'pink', range: '2013 \u2013 2015', name: 'STREAMING ERA',
+      device: 'blackberry', deviceWidth: 96, deviceRotate: -7,
+      years: [
+        { year: 2013, age: 20, songs: [
+          { title: 'Get Lucky', artist: 'Daft Punk' },
+          { title: 'Royals', artist: 'Lorde' },
+          { title: 'Wrecking Ball', artist: 'Miley Cyrus' },
+        ]},
+        { year: 2014, age: 21, songs: [
+          { title: 'Happy', artist: 'Pharrell Williams' },
+          { title: 'All of Me', artist: 'John Legend' },
+          { title: 'Shake It Off', artist: 'Taylor Swift' },
+        ]},
+        { year: 2015, age: 22, songs: [
+          { title: 'Uptown Funk', artist: 'Mark Ronson' },
+          { title: 'Hello', artist: 'Adele' },
+          { title: 'Can\u2019t Feel My Face', artist: 'The Weeknd' },
+        ]},
+      ],
+    },
+  ];
+
+  // ── Rendering (derives styles from the data above) ─────────────────────
+  renderVals() {
+    const eras = this.eras.map((era) => {
+      const p = this.PALETTES[era.palette] || this.PALETTES.purple;
+      const img = this.DEVICE_IMAGES[era.device] || '';
+
+      const playStyle = `flex:none;width:30px;height:30px;border-radius:50%;border:1.5px solid ${p.acc};color:${p.acc};display:flex;align-items:center;justify-content:center;`;
+      const yearDotStyle = `position:absolute;left:14px;top:24px;width:11px;height:11px;border-radius:50%;background:${p.acc};box-shadow:0 0 0 4px #070707;`;
+      const yearStyle = `font-size:26px;font-weight:800;color:${p.acc};letter-spacing:-.5px;`;
+
+      const years = era.years.map((yr) => ({
+        ...yr,
+        dotStyle: yearDotStyle,
+        yearStyle,
+        songs: yr.songs.map((s) => ({ ...s, playStyle })),
+      }));
+
+      return {
+        ...era,
+        img,
+        dotStyle: `position:absolute;left:11px;top:30px;width:15px;height:15px;border-radius:50%;background:${p.acc};box-shadow:0 0 0 4px #070707,0 0 12px 2px rgba(${p.glow},.55);`,
+        bannerStyle: `position:relative;overflow:hidden;border:1px solid ${p.bd};border-radius:18px;background:linear-gradient(115deg,rgba(${p.glow},.20),rgba(11,11,13,.3) 60%);padding:15px 14px 16px 18px;box-shadow:inset 0 0 30px rgba(${p.glow},.10);`,
+        imgStyle: `position:absolute;top:-8px;right:0;width:${era.deviceWidth}px;transform:rotate(${era.deviceRotate}deg);pointer-events:none;-webkit-mask-image:linear-gradient(210deg,#000 45%,transparent 82%);mask-image:linear-gradient(210deg,#000 45%,transparent 82%);`,
+        pillStyle: `display:inline-block;border:1px solid ${p.acc};color:${p.acc};font-size:11px;font-weight:600;letter-spacing:.5px;border-radius:20px;padding:3px 11px;`,
+        nameStyle: `font-family:'Pixelify Sans',sans-serif;font-size:21px;font-weight:600;color:${p.acc};letter-spacing:.5px;margin-top:10px;text-shadow:0 0 14px rgba(${p.glow},.4);`,
+        years,
+      };
+    });
+
+    return { subtitle: this.subtitle, eras };
+  }
+}
+</script>
+</body>
+</html>

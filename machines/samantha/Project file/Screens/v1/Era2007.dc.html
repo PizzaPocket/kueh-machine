@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&amp;family=Lilita+One&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b2b2b; }
+  .scroll::-webkit-scrollbar { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div style="width:390px;height:844px;margin:0 auto;background:#070707;position:relative;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;border-radius:46px;border:1px solid #232323;box-shadow:inset 0 0 0 6px #0c0c0c;display:flex;flex-direction:column;">
+
+  <!-- status bar -->
+  <div style="display:flex;align-items:center;justify-content:flex-end;padding:16px 26px 2px;color:#fff;flex:none;">
+    <span style="display:flex;align-items:center;gap:6px;">
+      <svg width="17" height="12" viewBox="0 0 18 13"><rect x="0" y="9" width="3" height="4" rx="1" fill="#fff"></rect><rect x="4.5" y="6" width="3" height="7" rx="1" fill="#fff"></rect><rect x="9" y="3" width="3" height="10" rx="1" fill="#fff"></rect><rect x="13.5" y="0" width="3" height="13" rx="1" fill="#fff"></rect></svg>
+      <svg width="16" height="12" viewBox="0 0 17 13"><path d="M8.5 2.5c2.6 0 5 1 6.8 2.7l-1.5 1.6A7.6 7.6 0 0 0 8.5 5 7.6 7.6 0 0 0 3.2 6.8L1.7 5.2A9.6 9.6 0 0 1 8.5 2.5Z" fill="#fff"></path><circle cx="8.5" cy="10.5" r="1.7" fill="#fff"></circle></svg>
+      <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:23px;height:12px;border:1.5px solid rgba(255,255,255,.5);border-radius:3px;position:relative;"><span style="position:absolute;inset:1.5px;width:17px;background:#fff;border-radius:1px;"></span></span><span style="display:inline-block;width:1.5px;height:4px;background:rgba(255,255,255,.5);border-radius:1px;"></span></span>
+    </span>
+  </div>
+
+  <!-- scrollable content -->
+  <div class="scroll" style="flex:1;overflow-y:auto;padding:10px 26px 16px;position:relative;">
+
+    <!-- back -->
+    <button style="position:sticky;top:0;z-index:20;background:none;border:none;cursor:pointer;padding:6px 0;display:block;">
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:rgba(20,20,20,.7);backdrop-filter:blur(8px);box-shadow:0 2px 10px rgba(0,0,0,.5);">
+        <svg width="22" height="18" viewBox="0 0 26 20"><path d="M11 2 L3 10 L11 18 M3 10 L25 10" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </span>
+    </button>
+
+    <!-- header -->
+    <div style="position:relative;margin-top:22px;">
+      <!-- holographic disc -->
+      <div style="position:absolute;right:6px;top:14px;width:94px;height:94px;border-radius:50%;background:conic-gradient(from 200deg,#c9b6ff,#9fe2ff,#bff0a0,#fff0a8,#ffc6ef,#ff9ed6,#b89dff,#9fe2ff,#c9b6ff);box-shadow:0 0 0 1px rgba(255,255,255,.12),0 8px 22px rgba(0,0,0,.6);overflow:hidden;animation:spin 5s linear infinite;">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle,transparent 22%,rgba(0,0,0,.4) 60%);"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:radial-gradient(circle,#3a3a3a,#161616);box-shadow:inset 0 0 0 3px rgba(0,0,0,.4);"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:50%;background:#050505;"></div>
+      </div>
+      <!-- graffiti year -->
+      <div style="position: absolute; top: -10px; font-family: 'Lilita One',sans-serif; font-size: 54px; color: #ff4da6; transform: rotate(-8deg); -webkit-text-stroke: 2px #2a0a1c; text-shadow: 3px 4px 0 #b81e6e; line-height: 1; left: 199px">{{ year }}<div style="position: absolute; top: -1px; font-size: 18px; color: #ff8fd0; left: 112px; font-family: &quot;Helvetica Neue&quot;, Arial, sans-serif">✦</div></div>
+      
+      <div style="position:absolute;right:120px;top:30px;font-size:14px;color:#ff8fd0;">✦</div>
+      <div style="position:absolute;right:8px;top:70px;font-size:13px;color:#ff8fd0;">✦</div>
+
+      <h1 style="margin:0;font-size:30px;font-weight:700;color:#f4f4f4;letter-spacing:-.5px;max-width:230px;">Age 14</h1>
+      <div style="margin-top:10px;font-size:21px;font-weight:600;color:#c2f02e;">Teenage years</div>
+    </div>
+
+    <!-- you were there for -->
+    <h2 style="margin:34px 0 0;font-size:21px;font-weight:700;color:#fff;">You were there for</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:relative;">
+      <span style="background:#c2f02e;color:#0a0a0a;font-weight:700;font-size:13px;border-radius:16px;padding:7px 14px;">MSN Messenger</span>
+      <span style="background:#0c0c0c;border:1px solid #333;color:#eee;font-weight:600;font-size:13px;border-radius:16px;padding:7px 14px;">Friendster</span>
+      <span style="background:#0c0c0c;border:1px solid #333;color:#eee;font-weight:600;font-size:13px;border-radius:16px;padding:7px 14px;"><span style="color:#c2f02e;">SE</span> Walkman</span>
+      <span style="background:#c2f02e;color:#0a0a0a;font-weight:700;font-size:13px;border-radius:16px;padding:7px 14px;">MapleStory</span>
+      <span style="background:#0c0c0c;border:1px solid #333;color:#eee;font-weight:600;font-size:13px;border-radius:16px;padding:7px 14px;">Nokia</span>
+      <!-- sparkles + cursor -->
+      <div style="position: absolute; right: -6px; top: -59px; font-size: 14px; color: #9a6cf0; left: 327px">✦</div>
+      <div style="position:absolute;right:4px;top:62px;font-size:13px;color:#9a6cf0;">✦</div>
+      <svg width="30" height="35" viewBox="0 0 34 40" style="position:absolute;right:104px;top:60px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));"><path d="M4 2 L4 30 L11 23 L16 34 L21 32 L16 21 L26 21 Z" fill="#fff" stroke="#0a0a0a" stroke-width="2" stroke-linejoin="round"></path></svg>
+    </div>
+
+    <!-- popular songs -->
+    <div style="margin-top:54px;">
+      <span style="position:relative;display:inline-block;"><span style="position: absolute; left: -5px; right: -7px; bottom: 1px; height: 10px; background: #c2f02e; transform: skewX(-12deg); opacity: .85; border-radius: 2px"></span><h2 style="position:relative;margin:0;font-size:23px;font-weight:700;color:#fff;">Popular songs</h2></span>
+    </div>
+
+    <div style="margin-top:14px;display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #1b1b1b;">
+      <div style="width:54px;height:54px;border-radius:8px;background:linear-gradient(135deg,#7a5c3a,#2a1f14);flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);"></div>
+      <button style="width:42px;height:42px;border-radius:50%;border:1.5px solid #555;background:none;flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="13" height="15" viewBox="0 0 13 15"><path d="M1 1 L12 7.5 L1 14 Z" fill="#eee"></path></svg></button>
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:700;color:#f2f2f2;">Umbrella</div>
+        <div style="font-size:15px;color:#8f8f8f;margin-top:2px;">Rihanna</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #1b1b1b;border-bottom:1px solid #1b1b1b;">
+      <div style="width:54px;height:54px;border-radius:8px;background:linear-gradient(135deg,#3a5a7a,#16202a);flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);"></div>
+      <button style="width:42px;height:42px;border-radius:50%;border:1.5px solid #555;background:none;flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="13" height="15" viewBox="0 0 13 15"><path d="M1 1 L12 7.5 L1 14 Z" fill="#eee"></path></svg></button>
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:700;color:#f2f2f2;">Beautiful Girls</div>
+        <div style="font-size:15px;color:#8f8f8f;margin-top:2px;">Sean Kingston</div>
+      </div>
+    </div>
+
+    <!-- forgotten gems -->
+    <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;">
+      <div>
+        <span style="position:relative;display:inline-block;"><span style="position: absolute; left: -5px; right: -7px; bottom: 1px; height: 10px; background: #a259ff; transform: skewX(-12deg); opacity: .85; border-radius: 2px"></span><h2 style="position:relative;margin:0;font-size:23px;font-weight:700;color:#fff;">Forgotten gems</h2></span>
+      </div>
+      <div style="position:relative;background:#7a4fc4;color:#fff;font-size:12px;font-weight:600;line-height:1.2;border-radius:14px;padding:9px 13px;max-width:118px;flex:none;box-shadow:0 4px 14px rgba(122,79,196,.4);">How did I forget this?<div style="position:absolute;bottom:-5px;right:16px;width:12px;height:12px;background:#7a4fc4;transform:rotate(38deg);border-radius:0 0 3px 0;"></div></div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #1b1b1b;border-bottom:1px solid #1b1b1b;">
+      <div style="width:54px;height:54px;border-radius:8px;background:linear-gradient(135deg,#5a4a4a,#241c1c);flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);"></div>
+      <button style="width:42px;height:42px;border-radius:50%;border:1.5px solid #555;background:none;flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="13" height="15" viewBox="0 0 13 15"><path d="M1 1 L12 7.5 L1 14 Z" fill="#eee"></path></svg></button>
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:700;color:#f2f2f2;">Bad Day</div>
+        <div style="font-size:15px;color:#8f8f8f;margin-top:2px;">Daniel Powter</div>
+      </div>
+    </div>
+
+  <!-- windows media player bar -->
+  <div style="position:sticky;bottom:10px;margin:28px -18px 0;border-radius:14px;background:linear-gradient(180deg,#bd9bff,#7d4fd6 55%,#4f2aa0);padding:3px;box-shadow:0 -4px 24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.5);">
+    <!-- title bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 10px 4px;">
+      <span style="font-family:'Pixelify Sans',monospace;font-size:9px;color:rgba(255,255,255,.85);letter-spacing:1.5px;">MEDIA PLAYER</span>
+      <span style="display:flex;gap:4px;">
+        <span style="width:13px;height:11px;border-radius:2px;background:rgba(255,255,255,.35);"></span>
+        <span style="width:13px;height:11px;border-radius:2px;background:rgba(255,255,255,.35);"></span>
+        <span style="width:13px;height:11px;border-radius:2px;background:#e25b8a;"></span>
+      </span>
+    </div>
+    <!-- main panel -->
+    <div style="background:linear-gradient(180deg,#1c1c1c,#070707);border-radius:9px;margin:0 3px;padding:11px 13px;display:flex;align-items:center;gap:13px;border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 0 14px rgba(0,0,0,.7);">
+      <!-- win logo -->
+      <div style="width:46px;height:46px;border-radius:8px;background:linear-gradient(180deg,#2a2a2a,#101010);border:1px solid rgba(255,255,255,.15);box-shadow:inset 0 1px 2px rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none;">
+        <div style="display:grid;grid-template-columns:11px 11px;grid-template-rows:11px 11px;gap:2px;transform:perspective(40px) rotateY(-12deg);">
+          <div style="background:#f25022;border-radius:2px 0 0 0;"></div>
+          <div style="background:#7fba00;border-radius:0 2px 0 0;"></div>
+          <div style="background:#00a4ef;border-radius:0 0 0 2px;"></div>
+          <div style="background:#ffb900;border-radius:0 0 2px 0;"></div>
+        </div>
+      </div>
+      <!-- track + progress -->
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <div style="min-width:0;">
+            <div style="font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Umbrella</div>
+            <div style="font-size:13px;color:#c9b8ee;margin-top:1px;">Rihanna</div>
+          </div>
+        </div>
+        <!-- progress line -->
+        <div style="height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin-top:9px;position:relative;">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:11%;background:#c2f02e;border-radius:2px;"></div>
+          <div style="position:absolute;left:11%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 4px rgba(255,255,255,.8);"></div>
+        </div>
+        <!-- controls row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px;">
+          <span style="font-size:11px;color:#b9a8e6;font-variant-numeric:tabular-nums;">0:30</span>
+          <span style="display:flex;align-items:center;gap:16px;">
+            <svg width="18" height="14" viewBox="0 0 18 14"><path d="M8 1 L1 7 L8 13 Z M17 1 L10 7 L17 13 Z" fill="#e8e0ff"></path></svg>
+            <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#f2eaff,#c9b8ee);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.5);"><svg width="12" height="13" viewBox="0 0 12 13"><rect x="1" y="1" width="3.4" height="11" rx="1" fill="#3a1f70"></rect><rect x="7.6" y="1" width="3.4" height="11" rx="1" fill="#3a1f70"></rect></svg></span>
+            <svg width="18" height="14" viewBox="0 0 18 14"><path d="M10 1 L17 7 L10 13 Z M1 1 L8 7 L1 13 Z" fill="#e8e0ff"></path></svg>
+          </span>
+          <span style="font-size:11px;color:#b9a8e6;font-variant-numeric:tabular-nums;">4:35</span>
+        </div>
+      </div>
+    </div>
+    <!-- bottom bevel strip -->
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 10px 4px;">
+      <span style="width:26px;height:13px;border-radius:3px;background:linear-gradient(180deg,#d9c4ff,#9a72e0);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);"></span>
+      <span style="width:26px;height:13px;border-radius:3px;background:linear-gradient(180deg,#d9c4ff,#9a72e0);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);"></span>
+      <span style="width:26px;height:13px;border-radius:3px;background:linear-gradient(180deg,#d9c4ff,#9a72e0);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);"></span>
+      <span style="flex:1;"></span>
+      <span style="font-family:'Pixelify Sans',monospace;font-size:9px;color:rgba(255,255,255,.7);letter-spacing:1px;">128kbps</span>
+    </div>
+  </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;year&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;2007&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return { year: this.props.year ?? '2007' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&amp;family=Jersey+25&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #2b2b2b; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div style="width:390px;height:844px;margin:0 auto;background:#050505;position:relative;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;border-radius:44px;display:flex;flex-direction:column;">
+
+  <!-- faint grid behind disc -->
+  <div style="position:absolute;top:120px;left:70px;width:300px;height:330px;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:24px 24px;transform:rotate(-4deg);pointer-events:none;"></div>
+
+  <!-- status bar -->
+  <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:14px 24px 2px;color:#fff;flex:none;">
+    <span style="font-size:16px;font-weight:600;letter-spacing:.5px;">9:41</span>
+    <span style="display:flex;align-items:center;gap:6px;">
+      <svg width="17" height="12" viewBox="0 0 18 13"><rect x="0" y="9" width="3" height="4" rx="1" fill="#fff"></rect><rect x="4.5" y="6" width="3" height="7" rx="1" fill="#fff"></rect><rect x="9" y="3" width="3" height="10" rx="1" fill="#fff"></rect><rect x="13.5" y="0" width="3" height="13" rx="1" fill="#fff"></rect></svg>
+      <svg width="16" height="12" viewBox="0 0 17 13"><path d="M8.5 2.5c2.6 0 5 1 6.8 2.7l-1.5 1.6A7.6 7.6 0 0 0 8.5 5 7.6 7.6 0 0 0 3.2 6.8L1.7 5.2A9.6 9.6 0 0 1 8.5 2.5Z" fill="#fff"></path><circle cx="8.5" cy="10.5" r="1.7" fill="#fff"></circle></svg>
+      <span style="display:inline-flex;align-items:center;gap:2px;"><span style="display:inline-block;width:23px;height:12px;border:1.5px solid rgba(255,255,255,.5);border-radius:3px;position:relative;"><span style="position:absolute;inset:1.5px;width:17px;background:#fff;border-radius:1px;"></span></span><span style="display:inline-block;width:1.5px;height:4px;background:rgba(255,255,255,.5);border-radius:1px;"></span></span>
+    </span>
+  </div>
+
+  <!-- logo -->
+  <div style="position:relative;text-align:center;margin-top:6px;flex:none;">
+    <span style="font-family:'Pixelify Sans',sans-serif;font-weight:600;font-size:28px;color:#c2f02e;letter-spacing:1px;">remember.fm</span>
+  </div>
+
+  <!-- decorative sparkles top -->
+  <div style="position:absolute;top:150px;left:26px;font-size:18px;color:#fff;">✦</div>
+  <div style="position:absolute;top:130px;left:62px;font-size:12px;color:#b9a8ff;">✦</div>
+  <div style="position:absolute;top:162px;left:78px;font-size:13px;color:#7fb0ff;transform:rotate(15deg);">✦</div>
+  <div style="position:absolute;top:144px;left:40px;width:15px;height:15px;border:2px solid #b9a8ff;border-radius:50%;"></div>
+  <div style="position:absolute;top:142px;right:48px;font-size:21px;color:#fff;">✦</div>
+  <div style="position:absolute;top:166px;right:26px;font-size:13px;color:#fff;">✦</div>
+  <div style="position:absolute;top:78px;left:38px;font-size:10px;color:#5a5a5a;">✦</div>
+  <div style="position:absolute;top:74px;right:38px;font-size:10px;color:#5a5a5a;">✦</div>
+
+  <!-- CD disc -->
+  <div style="position:relative;display:flex;justify-content:center;margin-top:12px;height:212px;flex:none;">
+    <div style="position:relative;width:204px;height:204px;border-radius:50%;background:conic-gradient(from 200deg,#c9b6ff,#9fe2ff,#bff0a0,#fff0a8,#ffc6ef,#ff9ed6,#b89dff,#9fe2ff,#c9b6ff);box-shadow:0 0 0 1px rgba(255,255,255,.15),0 10px 30px rgba(0,0,0,.6);overflow:hidden;animation:spin 4s linear infinite;">
+      <div style="position:absolute;inset:0;background:linear-gradient(110deg,transparent 20%,rgba(255,90,90,.35) 35%,rgba(255,210,90,.3) 45%,rgba(120,255,160,.3) 55%,rgba(120,180,255,.3) 65%,transparent 80%);mix-blend-mode:screen;"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 30%,rgba(0,0,0,.25) 60%,rgba(0,0,0,.55) 100%);"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 70% 75%,rgba(0,0,0,.4),transparent 40%),radial-gradient(circle at 30% 80%,rgba(80,40,120,.4),transparent 38%);"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:radial-gradient(circle,#3a3a3a,#1a1a1a);box-shadow:inset 0 0 0 6px rgba(0,0,0,.35),inset 0 0 0 7px rgba(255,255,255,.12);"></div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:#050505;box-shadow:inset 0 0 5px rgba(255,255,255,.2);"></div>
+    </div>
+    <!-- smiley sticker (stays put, spins in place) -->
+    <div style="position:absolute;left:111px;top:21px;width:56px;height:56px;z-index:4;transform:rotate(-12deg);filter:drop-shadow(0 2px 5px rgba(0,0,0,.45));">
+      <svg width="56" height="56" viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#ffffff"></circle><circle cx="28" cy="28" r="22.5" fill="#c2f02e" stroke="#0a0a0a" stroke-width="3"></circle><ellipse cx="21" cy="22" rx="3" ry="5" fill="#0a0a0a"></ellipse><ellipse cx="35" cy="22" rx="3" ry="5" fill="#0a0a0a"></ellipse><path d="M16 34 Q28 47 40 34" stroke="#0a0a0a" stroke-width="3.4" fill="none" stroke-linecap="round"></path></svg>
+    </div>
+    <div style="position:absolute;right:34px;top:104px;transform:rotate(-7deg);display:flex;align-items:center;gap:8px;background:#ff7be0;border:2px solid #d94fc0;border-radius:34px;padding:8px 9px 8px 16px;box-shadow:0 5px 14px rgba(0,0,0,.5);">
+      <span style="font-family:'Pixelify Sans',sans-serif;font-weight:700;font-size:16px;line-height:.95;color:#1a0a18;">PRESS<br>PLAY</span>
+      <span style="width:32px;height:32px;border-radius:50%;background:#1a0a18;display:flex;align-items:center;justify-content:center;">
+        <svg width="12" height="14" viewBox="0 0 16 18"><path d="M2 1.5 14 9 2 16.5Z" fill="#ff7be0"></path></svg>
+      </span>
+    </div>
+  </div>
+
+  <!-- headline -->
+  <div style="position:relative;padding:0 26px;margin-top:14px;flex:none;">
+    <h1 style="margin:0;font-family:'Pixelify Sans',sans-serif;font-weight:700;font-size:40px;line-height:1.02;color:#fff;letter-spacing:1px;text-shadow:-1.5px 0 #ff2d6a,1.5px 0 #2fd9ff;">
+      <span style="display:block;">Rediscover</span>
+      <span style="display:block;">the songs</span>
+      <span style="display:block;">that shaped</span>
+      <span style="display:flex;align-items:center;gap:12px;">
+        <span style="color:#c2f02e;text-shadow:-1.5px 0 #ff2d6a,1.5px 0 #2fd9ff;">you</span>
+        <svg width="130" height="28" viewBox="0 0 170 36" style="flex:none;"><path d="M6 26 L40 10 L24 26 L70 8 L48 26 L96 8 L74 26 L120 10 L100 26 L148 12 L164 20" stroke="#c2f02e" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </span>
+    </h1>
+  </div>
+
+  <!-- subtext -->
+  <p style="position:relative;padding:0 26px;margin:18px 0 0;color:#cfcfcf;font-size:16px;line-height:1.4;font-weight:400;flex:none;">The songs you've forgotten.<br>The moments they carried.</p>
+
+  <!-- button -->
+  <div style="position:relative;padding:0 26px;margin-top:24px;flex:none;">
+    <button style="width:100%;border:none;cursor:pointer;background:#c2f02e;border-radius:16px;padding:18px;font-family:'Pixelify Sans',sans-serif;font-weight:600;font-size:25px;color:#0a0a0a;box-shadow:0 6px 0 #6f8a14, inset 0 0 0 2px rgba(0,0,0,.15);letter-spacing:1px;">take me back</button>
+    <svg width="28" height="34" viewBox="0 0 34 40" style="position:absolute;right:18px;bottom:-18px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));"><path d="M4 2 L4 30 L11 23 L16 34 L21 32 L16 21 L26 21 Z" fill="#fff" stroke="#0a0a0a" stroke-width="2" stroke-linejoin="round"></path></svg>
+  </div>
+
+  <!-- footer -->
+  <div style="position:relative;padding:0 26px 28px;margin-top:auto;flex:none;">
+    <p style="margin:0;color:#9a9a9a;font-size:16px;line-height:1.4;">No account. No saving.<br>Just memories.</p>
+    <div style="position:absolute;right:30px;bottom:44px;font-size:18px;color:#fff;">✦</div>
+    <div style="position:absolute;right:58px;bottom:60px;font-size:13px;color:#c98fff;">✦</div>
+    <div style="position:absolute;right:86px;bottom:48px;font-size:11px;color:#fff;">✦</div>
+    <div style="position:absolute;right:30px;bottom:16px;width:22px;height:22px;border:2px solid #c98fff;border-radius:50%;display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 18 18"><circle cx="6.5" cy="7" r="1.1" fill="#c98fff"></circle><circle cx="11.5" cy="7" r="1.1" fill="#c98fff"></circle><path d="M5.5 11c1.2 1.6 5.8 1.6 7 0" stroke="#c98fff" stroke-width="1.3" fill="none" stroke-linecap="round"></path></svg></div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}"></script>
+</body>
+</html>

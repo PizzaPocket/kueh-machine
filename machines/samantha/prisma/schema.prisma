@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Country {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  region    String
+  languages String[]
+
+  songs          SongRegion[]
+  memoryTriggers MemoryTrigger[]
+}
+
+model Song {
+  id                String  @id @default(cuid())
+  title             String
+  artist            String
+  album             String?
+  releaseYear       Int
+  peakYear          Int
+  itunesId          String  @unique
+  previewUrl        String?
+  albumArtUrl       String?
+  language          String  @default("en")
+  isForgottenGem    Boolean @default(false)
+  forgottenGemScore Float   @default(0)
+
+  regions SongRegion[]
+}
+
+model SongRegion {
+  id                   String @id @default(cuid())
+  songId               String
+  countryCode          String
+  peakYearRegional     Int
+  historicalPopularity Float
+  currentPopularity    Float
+  ageRelevance         Float
+  memoryTriggerScore   Float
+  forgottenGemScore    Float
+
+  song    Song    @relation(fields: [songId], references: [id])
+  country Country @relation(fields: [countryCode], references: [code])
+
+  @@unique([songId, countryCode])
+}
+
+model MemoryTrigger {
+  id          String          @id @default(cuid())
+  name        String
+  category    TriggerCategory
+  yearStart   Int
+  yearEnd     Int
+  countryCode String?
+  description String?
+  imageUrl    String?
+
+  country Country? @relation(fields: [countryCode], references: [code])
+}
+
+model DeviceEra {
+  id          String  @id @default(cuid())
+  name        String
+  yearStart   Int
+  yearEnd     Int
+  countryCode String?
+  imageUrl    String?
+  description String?
+}
+
+enum TriggerCategory {
+  TECHNOLOGY
+  INTERNET_CULTURE
+  GAMING
+  ENTERTAINMENT
+  FASHION
+  OTHER
+}

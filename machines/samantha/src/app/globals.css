@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #1a1a1a;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 4s linear infinite; }
+.spin-slow { animation: spin 6s linear infinite; }

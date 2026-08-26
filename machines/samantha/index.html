@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // machines/samantha/ has no page of its own — the real static
+      // export lives under out/, with every asset rooted at /samantha/...
+      // (next.config.ts's basePath), which only resolves correctly
+      // through vercel.json's /samantha/* rewrite. This redirects the Hub
+      // NPC's plain /machines/samantha/ link (same convention as
+      // machines/kaixin/index.html's own redirect-to-dist/ shim) to that
+      // canonical URL instead of the raw out/ path.
+      window.location.replace('/samantha/');
+    </script>
+  </head>
+  <body></body>
+</html>

@@ -49,6 +49,7 @@
   background: var(--color-surface);
   font-family: var(--font-sans);
   font-weight: 700;
+  text-decoration: none; /* only matters for an <a>-tag button — a <button> never has one */
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -66,6 +67,17 @@
   padding: 7px 14px;
   border-radius: var(--radius-interactive);
   font-size: 0.8125rem;
+}
+
+/* .btn-large — a prominent one-off CTA rather than a small utility
+   control (first/only consumer: the countdown clock's post-launch ENTER
+   link, index.html — replacing what used to be raw giant text with the
+   site's actual button treatment). Same chrome/shape machinery as
+   .btn-small, just sized up. */
+.btn-large {
+  padding: 20px 56px;
+  border-radius: var(--radius-interactive);
+  font-size: 1.75rem;
 }
 
 /* border-radius above is only the :focus-visible fallback shape for
@@ -86,6 +98,24 @@
 .btn-primary {
   color: var(--color-primary-strong);
   --sheen-base: var(--color-primary-strong);
+}
+
+/* .btn-cta — solid brand-colored fill + light on-primary text, the
+   inverse of .btn-primary's white-fill/brand-text treatment. For a
+   prominent one-off call to action rather than a button meant to read as
+   part of the page's surface (first/only consumer: the countdown clock's
+   post-launch ENTER link, index.html). Same --color-primary-strong/
+   --color-text-on-primary pairing .site-footer already uses, so this
+   stays correct (contrast-safe) across every day's rotated palette
+   instead of hardcoding white. */
+.btn-cta {
+  background: var(--color-primary-strong);
+  color: var(--color-text-on-primary);
+  --sheen-base: var(--color-text-on-primary);
+}
+
+.btn-cta:hover {
+  background: var(--color-primary);
 }
 
 /* .rim-matte-inner / .rim-matte-inner-glint — the static counterpart to
