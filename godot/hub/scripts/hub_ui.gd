@@ -196,11 +196,14 @@ func _build_prompt() -> void:
 ## is_action_pressed(), the mechanism the WASD movement buttons above rely
 ## on instead -- interact needs the actual event).
 func _on_prompt_gui_input(event: InputEvent) -> void:
-	var pressed := (
-		(event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		or (event is InputEventScreenTouch and event.pressed)
-	)
-	if not pressed:
+	if event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if not (mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_LEFT):
+			return
+	elif event is InputEventScreenTouch:
+		if not (event as InputEventScreenTouch).pressed:
+			return
+	else:
 		return
 	var action_event := InputEventAction.new()
 	action_event.action = "interact"
