@@ -161,7 +161,19 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/lucide@1.33.0/dist/umd/lucide.js"></script>
 
-<script src="/shared/account-widget.js" data-accent-color="#d97a5c"></script>
+<!-- Matched to .info-btn's own look (css/style.css) — same lavender
+     fill, same ink border, same 40px size the clearance math in
+     style.css's "Account widget clearance" block already assumes (it
+     was only ever assumed, never actually set here, which is why the
+     badge rendered at its 52px default and overlapped .info-btn on
+     narrow viewports). -->
+<script src="/shared/account-widget.js"
+        data-size="40"
+        data-accent-color="#f0c9fb"
+        data-badge-background="var(--header-lavender)"
+        data-badge-border="3px solid var(--ink)"
+        data-badge-shadow="3px 3px 0 rgba(0, 0, 0, 0.2)"
+        data-icon-color="var(--ink)"></script>
 
 <script src="./js/app.js?v=20"></script>
 </body>
