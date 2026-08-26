@@ -197,7 +197,10 @@
     dir=nextDir;
     updateGrid();
     var head={x:snake[0].x+dir.x, y:snake[0].y+dir.y};
-    if(head.x<0||head.x>=currentCOLS||head.y<0||head.y>=currentROWS){endGame();return;}
+    if(head.x<0) head.x=currentCOLS-1;
+    if(head.x>=currentCOLS) head.x=0;
+    if(head.y<0) head.y=currentROWS-1;
+    if(head.y>=currentROWS) head.y=0;
     if(snake.some(function(s){return s.x===head.x&&s.y===head.y;})){endGame();return;}
     snake.unshift(head);
     var now=Date.now();
@@ -219,7 +222,7 @@
         edgeFlash();
         confettiBurst(food.x*currentCellW+currentCellW/2, food.y*currentCellH);
         updateStreak(true);
-        if(boostCombo >= 2) showCombo(boostCombo);
+        if(boostCombo >= 2) showComboBurst(boostCombo);
       } else {
         soundEat();
         updateStreak(false);
@@ -811,26 +814,31 @@
 
   // Combo (boost-streak) display
   var boostCombo = 0;
-  var comboTimer = null;
-  function showCombo(n){
-    var el = document.getElementById("comboDisplay");
-    if(!el) return;
-    var color = n >= 10 ? "#E8503A" : n >= 5 ? "#8FD400" : "#FDF5EE";
-    var shadow = n >= 10 ? "0 2px 20px rgba(232,80,58,0.7)" : n >= 5 ? "0 2px 20px rgba(143,212,0,0.6)" : "0 2px 14px rgba(255,255,255,0.35)";
-    el.style.color = color;
-    el.style.textShadow = shadow;
-    el.textContent = "COMBO \xd7" + n;
-    el.style.animation = "none";
-    void el.offsetWidth;
-    el.style.animation = "comboBounce 1.25s cubic-bezier(0.34,1.56,0.64,1) forwards";
-    if(comboTimer) clearTimeout(comboTimer);
-    comboTimer = setTimeout(function(){ el.style.animation = "none"; el.textContent = ""; }, 1250);
+  function showComboBurst(count){
+    var layer = document.getElementById("comboLayer");
+    if(!layer){
+      layer = document.createElement("div");
+      layer.id = "comboLayer";
+      layer.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:45;border-radius:16px;overflow:hidden;";
+      document.querySelector(".game-wrap").appendChild(layer);
+    }
+    var el = document.createElement("div");
+    var outlined = count >= 5;
+    el.className = "combo-burst " + (outlined ? "outlined" : "plain");
+    if(!outlined){
+      el.textContent = "COMBO \xd7" + count;
+      el.style.color = "#8FD400";
+    } else if(count >= 10){
+      el.innerHTML = "🔥 COMBO \xd7" + count;
+      el.style.webkitTextStroke = "8px #FF4B4B";
+    } else {
+      el.innerHTML = "COMBO \xd7" + count;
+    }
+    layer.appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1200);
   }
   function clearCombo(){
     boostCombo = 0;
-    if(comboTimer){ clearTimeout(comboTimer); comboTimer = null; }
-    var el = document.getElementById("comboDisplay");
-    if(el){ el.style.animation = "none"; el.textContent = ""; }
   }
 
   // Streak counter
@@ -852,8 +860,6 @@
 
   function pulseScore(){
     var el=elScore;
-    var sc=Math.min(1.2+streakCount*0.06, 1.5);
-    el.style.setProperty("--pulse-scale", sc);
     el.classList.remove("pulse");
     void el.offsetWidth;
     el.classList.add("pulse");
@@ -970,12 +976,18 @@
     }
   }
 
-  document.getElementById("btnPlay").addEventListener("click",function(){
+  var lastActivatePlay=0;
+  function activatePlay(e){
+    var now=Date.now();
+    if(now-lastActivatePlay<400) return;
+    lastActivatePlay=now;
     try{ if(audioCtx && audioCtx.state==="suspended") audioCtx.resume(); } catch(e){}
     initSounds();
     try{ startBgMusic(); } catch(e){}
     showTutorial();
-  });
+  }
+  document.getElementById("btnPlay").addEventListener("touchend",function(e){ e.preventDefault(); e.stopPropagation(); activatePlay(e); },{passive:false});
+  document.getElementById("btnPlay").addEventListener("click",activatePlay);
 
   document.getElementById("btnViewLb").addEventListener("click",function(){
     document.getElementById("overlay").classList.add("hidden");
@@ -1104,16 +1116,21 @@
     if(map[e.key]){e.preventDefault();setDir(map[e.key][0],map[e.key][1]);}
   });
 
-  var tx,ty;
-  canvas.addEventListener("touchstart",function(e){e.preventDefault();tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:false});
-  canvas.addEventListener("touchmove",function(e){e.preventDefault();},{passive:false});
-  canvas.addEventListener("touchend",function(e){
-    e.preventDefault();
-    var dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
-    if(Math.abs(dx)<8&&Math.abs(dy)<8) return;
+  var STEP=16, anchorX, anchorY, dragging=false;
+  function dragStart(x,y){ dragging=true; anchorX=x; anchorY=y; }
+  function dragMove(x,y){
+    if(!dragging) return;
+    var dx=x-anchorX, dy=y-anchorY;
+    if(Math.abs(dx)<STEP && Math.abs(dy)<STEP) return;
     if(Math.abs(dx)>Math.abs(dy)) setDir(dx>0?1:-1,0);
     else setDir(0,dy>0?1:-1);
-  },{passive:false});
+    anchorX=x; anchorY=y;
+  }
+  function dragEnd(){ dragging=false; }
+
+  canvas.addEventListener("touchstart",function(e){e.preventDefault();dragStart(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+  canvas.addEventListener("touchmove",function(e){e.preventDefault();dragMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+  canvas.addEventListener("touchend",function(e){e.preventDefault();dragEnd();},{passive:false});
 
   // Attempt autoplay on load; if blocked, retry on first user interaction
   if(!bgAudio){
