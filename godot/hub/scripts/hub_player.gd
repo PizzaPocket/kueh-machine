@@ -79,7 +79,11 @@ func _ready() -> void:
 	_spine_rest_y = (_figure["spine"] as Node3D).position.y
 	_hips_rest_y = (_figure["hips"] as Node3D).position.y
 	_build_camera()
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Not captured here -- browsers require an actual user gesture (click,
+	# keypress) before granting pointer lock, so requesting it immediately
+	# on load always failed with a console "NotAllowedError: A user gesture
+	# is required" and did nothing. _unhandled_input's own mouse-button
+	# handler below already captures on the player's first real click.
 
 func _build_camera() -> void:
 	var rig := Node3D.new()

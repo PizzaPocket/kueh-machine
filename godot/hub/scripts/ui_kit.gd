@@ -6,6 +6,15 @@ extends RefCounted
 ## rather than hand-rolling Control.new() + ad hoc theme overrides inline,
 ## so the visual language stays centralized and consistent.
 
+## The one "mobile breakpoint" every responsive hub UI element checks
+## against (DialogUI's two panels, HubUI's interaction prompt and WASD
+## hint) -- centralized so they all agree on the same viewport-width cutoff
+## instead of each hand-rolling a slightly different threshold.
+const MOBILE_BREAKPOINT_WIDTH := 700.0
+
+static func is_mobile_viewport(node: Node) -> bool:
+	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH
+
 
 static func panel() -> PanelContainer:
 	var p := PanelContainer.new()

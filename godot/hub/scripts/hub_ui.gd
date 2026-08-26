@@ -219,11 +219,24 @@ func _update_prompt_width() -> void:
 	_prompt.custom_minimum_size.x = minf(PROMPT_WIDTH_DESKTOP, viewport_width - PROMPT_SIDE_MARGIN * 2.0)
 
 func _build_movement_hint() -> void:
+	# Per direct correction: the hint doubles as real touch controls on
+	# mobile (see _input() below), so it needs to actually read as
+	# comfortably tappable there, not just legible -- doubled key size,
+	# font, and spacing, computed once here rather than re-derived live on
+	# resize (unlike the plain single-property updates elsewhere in this
+	# file, redoing this nested multi-row layout live isn't worth the
+	# complexity for what's essentially a startup-only hint).
+	var is_mobile := UIKit.is_mobile_viewport(self)
+	var key_size := 156.0 if is_mobile else 78.0
+	var key_font_size := UITheme.FONT_BODY * 2 if is_mobile else UITheme.FONT_BODY
+	var row_separation := 20 if is_mobile else 10
+	var edge_margin: float = UITheme.SPACE_XL * (2.0 if is_mobile else 1.0)
+
 	_movement_hint = VBoxContainer.new()
 	_movement_hint.name = "InitialMovementHint"
-	_movement_hint.add_theme_constant_override("separation", 10)
+	_movement_hint.add_theme_constant_override("separation", row_separation)
 	_movement_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UIKit.anchor_to_edge(_movement_hint, 0.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL)
+	UIKit.anchor_to_edge(_movement_hint, 0.0, 1.0, edge_margin, edge_margin)
 	_movement_hint.visible = false
 	_movement_hint.modulate.a = 0.0
 	add_child(_movement_hint)
@@ -233,22 +246,22 @@ func _build_movement_hint() -> void:
 	# top_row/bottom_row themselves stay MOUSE_FILTER_IGNORE (pure layout
 	# boxes) -- only the individual key panels need to receive input.
 	var top_row := CenterContainer.new()
-	top_row.custom_minimum_size.x = 254
+	top_row.custom_minimum_size.x = key_size * 3.0 + row_separation * 2.0
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(_movement_key("W", "move_forward"))
+	top_row.add_child(_movement_key("W", "move_forward", key_size, key_font_size))
 	_movement_hint.add_child(top_row)
 
 	var bottom_row := HBoxContainer.new()
-	bottom_row.add_theme_constant_override("separation", 10)
+	bottom_row.add_theme_constant_override("separation", row_separation)
 	bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom_row.add_child(_movement_key("A", "move_left"))
-	bottom_row.add_child(_movement_key("S", "move_back"))
-	bottom_row.add_child(_movement_key("D", "move_right"))
+	bottom_row.add_child(_movement_key("A", "move_left", key_size, key_font_size))
+	bottom_row.add_child(_movement_key("S", "move_back", key_size, key_font_size))
+	bottom_row.add_child(_movement_key("D", "move_right", key_size, key_font_size))
 	_movement_hint.add_child(bottom_row)
 
-func _movement_key(letter: String, action: String) -> PanelContainer:
+func _movement_key(letter: String, action: String, key_size: float, font_size: int) -> PanelContainer:
 	var key := PanelContainer.new()
-	key.custom_minimum_size = Vector2(78, 78)
+	key.custom_minimum_size = Vector2(key_size, key_size)
 	# STOP (not the surrounding rows' IGNORE) so this panel's own
 	# get_global_rect() is a meaningful hit-test target in _input() below --
 	# the actual press/release is driven from there, not a gui_input signal,
@@ -260,7 +273,7 @@ func _movement_key(letter: String, action: String) -> PanelContainer:
 	_key_actions[key] = action
 	var style := SuperellipseStyleBox.new()
 	style.bg_color = Color(0.16, 0.11, 0.07, 0.64)
-	style.corner_radius = 78
+	style.corner_radius = key_size
 	style.corner_ratio = 0.34
 	style.exponent = 3.0
 	style.shadow_size = 5
@@ -270,7 +283,7 @@ func _movement_key(letter: String, action: String) -> PanelContainer:
 	label.text = letter
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", UITheme.FONT_BODY)
+	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85, 0.92))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	key.add_child(label)

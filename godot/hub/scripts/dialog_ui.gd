@@ -17,14 +17,33 @@ const AUTO_DISMISS_TIME := 6.0
 
 ## Godot has no declarative CSS-style media query, but the equivalent is this
 ## straightforward: check the viewport's own width at runtime (and again on
-## every resize/orientation change) and branch the layout on it. Below this
-## width the NPC line panel (anchored at 0.5, 0.90 -- centered, near the
-## bottom) and the response panel (anchored to the bottom-right corner) sit
-## close enough vertically, on a narrow/portrait viewport, to overlap; above
-## it there's enough spare width for both side by side as originally tuned.
-const MOBILE_BREAKPOINT_WIDTH := 700.0
+## every resize/orientation change) and branch the layout on it -- see
+## UIKit.is_mobile_viewport() for the shared cutoff every responsive hub UI
+## element uses. Below it the NPC line panel (anchored at 0.5, 0.90 --
+## centered, near the bottom) and the response panel (anchored to the
+## bottom-right corner) sit close enough vertically, on a narrow/portrait
+## viewport, to overlap; above it there's enough spare width for both side
+## by side as originally tuned.
+##
+## Per a further direct correction: moving the NPC panel's own vertical
+## anchor up wasn't enough on its own -- neither panel's WIDTH was ever
+## capped to the viewport, so the response panel (600px, anchored to the
+## bottom-RIGHT corner, growing further right-to-left as anchor_h=1.0) could
+## still extend past a narrow phone's left edge entirely regardless of the
+## NPC panel's own position. _update_responsive_layout() below now also
+## caps both panels' widths, and re-anchors the response panel to
+## bottom-CENTER on mobile (not the corner) so a capped width can't overflow
+## either edge.
 const NPC_PANEL_ANCHOR_V_DESKTOP := 0.90
-const NPC_PANEL_ANCHOR_V_MOBILE := 0.60
+const NPC_PANEL_ANCHOR_V_MOBILE := 0.52
+const NPC_PANEL_WIDTH_DESKTOP := 840.0
+const RESPONSE_PANEL_WIDTH_DESKTOP := 600.0
+const MOBILE_SIDE_MARGIN := 24.0
+## Real touch targets, per direct correction that the response options
+## weren't large enough to comfortably tap -- both bumped well past
+## BUTTON_MIN_HEIGHT/FONT_BODY's own already-touch-friendly desktop values.
+const RESPONSE_BUTTON_HEIGHT_MOBILE := 96.0
+const RESPONSE_FONT_SIZE_MOBILE := 46
 
 var _panel: PanelContainer
 var _speaker_label: Label
@@ -57,7 +76,7 @@ func _build_ui() -> void:
 
 	_panel = UIKit.panel()
 	_panel.theme = shared_theme
-	_panel.custom_minimum_size = Vector2(840, 0)
+	_panel.custom_minimum_size = Vector2(NPC_PANEL_WIDTH_DESKTOP, 0)
 	# NPC speech remains horizontally centered in the lower half of the screen.
 	# A dialog box sitting at
 	# true screen-center covers up the main 3D view/gameplay behind it. The
@@ -67,9 +86,10 @@ func _build_ui() -> void:
 	# clear of the center while still growing upward, safely, as its own
 	# content requires. Lowered another 15% of the viewport so speech sits in
 	# the intended lower-screen caption zone without altering its scale.
-	# The vertical anchor itself is finalized by _update_responsive_layout()
-	# right after _build_ui() returns (see _ready()) -- this call just gives
-	# the panel a valid anchor/offset/grow setup before then.
+	# The vertical anchor and width are both finalized by
+	# _update_responsive_layout() right after _build_ui() returns (see
+	# _ready()) -- this call just gives the panel a valid anchor/offset/grow
+	# setup before then.
 	UIKit.anchor_to_edge(_panel, 0.5, NPC_PANEL_ANCHOR_V_DESKTOP, 0.0, 0.0)
 	_panel.visible = false
 	add_child(_panel)
@@ -99,7 +119,10 @@ func _build_ui() -> void:
 func _build_response_ui(shared_theme: Theme) -> void:
 	_response_panel = UIKit.panel()
 	_response_panel.theme = shared_theme
-	_response_panel.custom_minimum_size = Vector2(600, 0)
+	_response_panel.custom_minimum_size = Vector2(RESPONSE_PANEL_WIDTH_DESKTOP, 0)
+	# Anchor/width both finalized by _update_responsive_layout() right after
+	# _build_ui() returns, same as _panel above -- this is just a valid
+	# starting setup.
 	UIKit.anchor_to_edge(
 		_response_panel, 1.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL
 	)
@@ -121,15 +144,27 @@ func _build_response_ui(shared_theme: Theme) -> void:
 	vbox.add_child(_response_list)
 
 
-## The actual "breakpoint": re-anchors just the NPC line panel's vertical
-## position based on the live viewport width, leaving its horizontal
-## centering and the response panel's own bottom-right anchor untouched in
-## both cases. Only the NPC panel needs to move -- it's the one anchored
-## into the same vertical band the response panel already occupies.
+## The actual "breakpoint": moves the NPC line panel higher (clearing the
+## response panel's own vertical band) and caps both panels' widths to the
+## live viewport so neither can overflow a narrow screen's edges. The
+## response panel also re-anchors to bottom-center on mobile instead of the
+## bottom-right corner -- a capped width still overflows the left edge from
+## a corner anchor (grow_horizontal runs right-to-left there), but centered
+## growth (BOTH directions) can't overflow either edge once actually capped.
 func _update_responsive_layout() -> void:
-	var is_mobile := get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH
+	var is_mobile := UIKit.is_mobile_viewport(self)
+	var viewport_width := get_viewport().get_visible_rect().size.x
+	var capped_width := viewport_width - MOBILE_SIDE_MARGIN * 2.0
+
 	var target_v := NPC_PANEL_ANCHOR_V_MOBILE if is_mobile else NPC_PANEL_ANCHOR_V_DESKTOP
 	UIKit.anchor_to_edge(_panel, 0.5, target_v, 0.0, 0.0)
+	_panel.custom_minimum_size.x = minf(NPC_PANEL_WIDTH_DESKTOP, capped_width)
+
+	if is_mobile:
+		UIKit.anchor_to_edge(_response_panel, 0.5, 1.0, 0.0, UITheme.SPACE_XL)
+	else:
+		UIKit.anchor_to_edge(_response_panel, 1.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL)
+	_response_panel.custom_minimum_size.x = minf(RESPONSE_PANEL_WIDTH_DESKTOP, capped_width)
 
 
 func _process(delta: float) -> void:
@@ -183,6 +218,9 @@ func _add_response(text: String, callback: Callable) -> void:
 	_response_list.add_child(row)
 
 	var option := UIKit.response_option(text, callback)
+	if UIKit.is_mobile_viewport(self):
+		option.custom_minimum_size.y = RESPONSE_BUTTON_HEIGHT_MOBILE
+		option.add_theme_font_size_override("font_size", RESPONSE_FONT_SIZE_MOBILE)
 	row.add_child(option)
 	_response_buttons.append(option)
 
