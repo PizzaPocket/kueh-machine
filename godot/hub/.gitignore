@@ -1,0 +1,5 @@
+# Godot 4's editor-managed import/shader cache — regenerated locally from
+# the tracked source assets, not meant to be versioned (also machine/
+# version-specific, and stale cache has caused hard-to-diagnose corruption
+# before — see the project's own notes on that).
+.godot/
