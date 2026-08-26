@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "contentStatus": "STRUCTURE_ONLY_RESEARCH_REQUIRED",
+  "chapters": [
+    {
+      "id": "ondeh-ondeh-01",
+      "character": {
+        "displayName": "Ondeh-Ondeh",
+        "assetSheet": "../assets/character-concepts/ondeh-ondeh-concept-v1.png",
+        "personality": ["curious", "warm", "easily surprised"],
+        "memoryQuestion": "What was hidden inside me that made the first bite feel like a surprise?"
+      },
+      "beats": [
+        {
+          "type": "dialogue",
+          "id": "arrival",
+          "purpose": "Introduce a sensory memory without giving away the answer.",
+          "lines": []
+        },
+        {
+          "type": "minigame",
+          "id": "ingredient-memory",
+          "game": "memoryFlip",
+          "config": {
+            "pairCountPhone": 4,
+            "pairCountDesktop": 6,
+            "pairs": []
+          },
+          "unlocksClueId": "clue-texture-and-filling"
+        },
+        {
+          "type": "deduction",
+          "id": "final-guess",
+          "prompt": "Which memory belongs to this customer?",
+          "choices": [],
+          "retryDialogue": []
+        },
+        {
+          "type": "reward",
+          "cardId": "card-ondeh-ondeh"
+        }
+      ],
+      "research": {
+        "status": "required",
+        "claims": [],
+        "sources": []
+      }
+    },
+    {
+      "id": "kueh-lapis-01",
+      "character": {
+        "displayName": "Kueh Lapis",
+        "assetSheet": "../assets/character-concepts/kueh-lapis-concept-v1.png",
+        "personality": ["patient", "methodical", "quietly proud"],
+        "memoryQuestion": "Why does remembering the order of my layers matter?"
+      },
+      "beats": [
+        { "type": "dialogue", "id": "arrival", "lines": [] },
+        {
+          "type": "minigame",
+          "id": "layer-memory",
+          "game": "assembly",
+          "config": { "interaction": ["drag", "tap-select-tap-place"], "pieces": [] },
+          "unlocksClueId": "clue-layer-sequence"
+        },
+        { "type": "deduction", "id": "final-guess", "choices": [], "retryDialogue": [] },
+        { "type": "reward", "cardId": "card-kueh-lapis" }
+      ],
+      "research": { "status": "required", "claims": [], "sources": [] }
+    },
+    {
+      "id": "ang-ku-kueh-01",
+      "character": {
+        "displayName": "Ang Ku Kueh",
+        "assetSheet": "../assets/character-concepts/ang-ku-kueh-concept-v1.png",
+        "personality": ["gentle", "ceremonial", "hopeful"],
+        "memoryQuestion": "What did my shape and pattern once help people celebrate or wish for?"
+      },
+      "beats": [
+        { "type": "dialogue", "id": "arrival", "lines": [] },
+        {
+          "type": "minigame",
+          "id": "symbol-memory",
+          "game": "tilePuzzle",
+          "config": { "gridPhone": "2x3", "gridDesktop": "3x3", "image": null },
+          "unlocksClueId": "clue-shape-and-occasion"
+        },
+        { "type": "deduction", "id": "final-guess", "choices": [], "retryDialogue": [] },
+        { "type": "reward", "cardId": "card-ang-ku-kueh" }
+      ],
+      "research": { "status": "required", "claims": [], "sources": [] }
+    }
+  ],
+  "cards": [
+    { "id": "card-ondeh-ondeh", "chapterId": "ondeh-ondeh-01", "status": "locked-copy-pending-research" },
+    { "id": "card-kueh-lapis", "chapterId": "kueh-lapis-01", "status": "locked-copy-pending-research" },
+    { "id": "card-ang-ku-kueh", "chapterId": "ang-ku-kueh-01", "status": "locked-copy-pending-research" }
+  ]
+}

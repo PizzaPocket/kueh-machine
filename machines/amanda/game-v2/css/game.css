@@ -1,0 +1,3122 @@
+:root {
+  --cream: #FBF3E7;
+  --card: #FFFBF3;
+  --brown-dark: #4A2E17;
+  --brown: #6B4423;
+  --brown-soft: #A9764F;
+  --pink: #E8998D;
+  --green: #8FAE7D;
+  --yellow: #E8B96A;
+  --tab-active: #C8793B;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Quicksand', system-ui, sans-serif;
+  color: var(--brown-dark);
+  background: var(--cream);
+}
+
+h1, h2, h3 {
+  font-family: 'Baloo 2', 'Quicksand', system-ui, sans-serif;
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.screen-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* The café scene, minigame, and title are fixed full-bleed single screens
+   that intentionally never scroll — but the list-style screens (card
+   collection, chapters, settings) can grow taller than the viewport as
+   more content is added, and need to actually be scrollable to reach it. */
+.screen-root[data-screen="collection"],
+.screen-root[data-screen="chapters"],
+.screen-root[data-screen="settings"] {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- Shared buttons ---------- */
+
+.icon-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--brown);
+  background: #fff;
+  color: var(--brown);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.icon-btn:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--tab-active);
+  outline-offset: 2px;
+}
+
+.primary-btn {
+  min-height: 36px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 6px 24px;
+  border-radius: 10px;
+  border: 2px solid var(--brown-dark);
+  background: var(--tab-active);
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Without this, a disabled primary-btn (e.g. Paint before a colour is
+   picked, or Kueh Lapis's spread button before a batter is chosen)
+   looked pixel-identical to an enabled one -- clicking it did nothing
+   with no visible reason why. */
+.primary-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.secondary-btn {
+  min-height: 44px;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: 2px solid var(--brown);
+  background: #fff;
+  color: var(--brown);
+  cursor: pointer;
+}
+
+.danger-btn {
+  min-height: 44px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 2px solid #B4453A;
+  background: #fff;
+  color: #B4453A;
+  cursor: pointer;
+  align-self: center;
+}
+
+/* ---------- Title / hero (reused from V1) ---------- */
+
+.hero-full {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14vh;
+}
+
+.hero-settings-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 1;
+}
+
+.hero-cta-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-storyline {
+  width: min(430px, 82vw);
+  margin: 5px 0 0;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(255, 247, 235, 0.6);
+  color: var(--brown-dark);
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+}
+
+@media (max-width: 700px) {
+  .hero-storyline {
+    width: min(350px, 78vw);
+    padding: 6px 12px;
+    font-size: 0.72rem;
+  }
+}
+
+.hero-new-game-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--brown-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hero-cta {
+  position: relative;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 600;
+  font-size: 1.3rem;
+  padding: 16px 28px;
+  border-radius: 999px;
+  border: 3px solid var(--brown-dark);
+  background: var(--cream);
+  color: var(--brown-dark);
+  cursor: pointer;
+  box-shadow: 6px 6px 0 var(--brown-dark);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  max-width: 92vw;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.hero-cta:hover {
+  transform: scale(1.08);
+  box-shadow: 9px 9px 0 var(--brown-dark);
+}
+
+.hero-cta:active {
+  transform: scale(1.02);
+  box-shadow: 3px 3px 0 var(--brown-dark);
+}
+
+.cta-star {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.cta-star svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform-origin: center;
+  animation: star-pulse 6s ease-in-out infinite;
+}
+
+@keyframes star-pulse {
+  0%, 20%, 100% { transform: scale(1); }
+  5% { transform: scale(1.3); }
+  10% { transform: scale(1); }
+  15% { transform: scale(1.3); }
+}
+
+.star-1 { width: 30px; height: 30px; top: -9px; right: -3px; transform: rotate(-10deg); }
+.star-2 { width: 16px; height: 16px; top: 6px; right: -14px; transform: rotate(14deg); }
+.star-3 { width: 14px; height: 14px; top: 45%; left: -9px; transform: translateY(-50%) rotate(-14deg); }
+.star-4 { width: 26px; height: 26px; bottom: -6px; left: -3px; transform: rotate(12deg); }
+.star-5 { width: 14px; height: 14px; bottom: -2px; right: 0; transform: rotate(-8deg); }
+
+/* ---------- Cafe scene (arrival, dialogue, deduction, restored, unlock) ---------- */
+
+.cafe-scene {
+  position: absolute;
+  inset: 0;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.cafe-pause-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 3;
+}
+
+.cafe-home-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 3;
+}
+
+/* Compact "Day 1 · Ondeh-Ondeh" label + 3-stage progress, centered between
+   the home and pause buttons. Completed/current/upcoming are distinguished
+   by more than color: border style, a checkmark badge, and scale/opacity —
+   readable in grayscale or for color-blind players. */
+.chapter-progress {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 140px);
+  padding: 5px 12px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 2px solid var(--brown-soft);
+}
+
+.chapter-progress-label {
+  margin: 0;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 0.68rem;
+  color: var(--brown-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.chapter-progress-stages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-stage {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--brown-soft);
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.progress-stage-icon {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.progress-stage-icon svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.progress-stage.is-upcoming {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.progress-stage.is-current {
+  border-style: solid;
+  border-color: var(--tab-active);
+  border-width: 2.5px;
+  transform: scale(1.2);
+}
+
+.progress-stage.is-completed {
+  border-style: solid;
+  border-color: var(--green);
+  background: #EAF6EA;
+}
+
+.progress-stage-check {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 0.5rem;
+  line-height: 11px;
+  text-align: center;
+  border: 1.5px solid var(--cream);
+}
+
+/* Fixed 1672:941 design coordinate system — background, character, and
+   counter all scale together within this box. Pinned directly to the
+   bottom of the scene with plain positioning (no flexbox), so there's no
+   ambiguity about whether it actually reaches the bottom edge. */
+/* Sized to always fully cover the scene (no letterbox gap on any side,
+   including the top) while keeping the bottom edge pinned to the true
+   viewport bottom regardless of viewport aspect ratio. min-width/min-height
+   combined with aspect-ratio makes the box grow in whichever dimension is
+   needed to cover both, cropping the overflow via .cafe-scene's
+   overflow: hidden — the standard aspect-ratio "cover" technique. */
+.cafe-stage {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  bottom: 0;
+  width: auto;
+  height: auto;
+  min-width: 100%;
+  min-height: 100%;
+  aspect-ratio: 1672 / 941;
+  transform: translateX(-50%);
+  /* Guarantees its z-indexed children (bg/character/counter) always
+     stack relative to each other and nothing from outside this scene
+     can land between them. */
+  isolation: isolate;
+}
+
+/* Same sizing rules as .cafe-stage (so its percentage children land in the
+   same place on the painted art) but z-indexed above the dialogue UI —
+   see docs/CAFE-MENU-HOTSPOTS.md layer order. Transparent and
+   pointer-events: none itself, so only the two buttons inside are
+   actually clickable — never the whole side of the screen. */
+.cafe-hotspot-layer {
+  z-index: 4;
+  pointer-events: none;
+}
+
+.menu-hotspot {
+  position: absolute;
+  pointer-events: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+/* The hit area stays a plain box, but the visible hover/focus chrome is
+   this separate rounded outline layered over it — traces the object's
+   silhouette (a soft rounded rect for the display case, a narrower one
+   for the clipboard) instead of a generic glow box. */
+.menu-hotspot-outline {
+  position: absolute;
+  inset: -6px;
+  border-radius: 26px;
+  border: 3px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-hotspot:hover .menu-hotspot-outline,
+.menu-hotspot:focus-visible .menu-hotspot-outline {
+  border-color: #F6C445;
+  box-shadow: 0 0 16px 3px rgba(246, 196, 69, 0.5), inset 0 0 10px 1px rgba(246, 196, 69, 0.25);
+}
+
+.menu-hotspot:focus-visible {
+  outline: none;
+}
+
+.menu-hotspot-star {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  opacity: 0;
+  transform: scale(0.3) rotate(-15deg);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.menu-hotspot-star svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.menu-hotspot:hover .menu-hotspot-star,
+.menu-hotspot:focus-visible .menu-hotspot-star {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  animation: hotspot-star-twinkle 1.4s ease-in-out infinite;
+}
+
+@keyframes hotspot-star-twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(0.8) rotate(6deg); opacity: 0.7; }
+}
+
+.menu-hotspot-cards {
+  left: 8%;
+  top: 55.5%;
+  width: 27%;
+  height: 21.2%;
+}
+
+.menu-hotspot-cards .menu-hotspot-outline {
+  border-radius: 30px;
+}
+
+.menu-hotspot-cards .star-a { top: -20px; right: 6%; width: 22px; height: 22px; }
+.menu-hotspot-cards .star-b { top: -28px; right: -2%; width: 15px; height: 15px; }
+.menu-hotspot-cards .star-c { bottom: -18px; left: -4%; width: 17px; height: 17px; }
+
+.menu-hotspot-chapters-home {
+  left: 63%;
+  top: 48.75%;
+  width: 9.5%;
+  height: 24.75%;
+}
+
+.menu-hotspot-chapters .menu-hotspot-outline {
+  border-radius: 14px;
+}
+
+.menu-hotspot-chapters:hover,
+.menu-hotspot-chapters:focus-visible {
+  transform: rotate(2deg);
+}
+
+.menu-hotspot-chapters .star-a { top: -14px; right: -10px; width: 20px; height: 20px; }
+.menu-hotspot-chapters .star-b { top: 32%; right: -16px; width: 14px; height: 14px; }
+
+.menu-hotspot-badge {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid var(--brown);
+  color: var(--brown-dark);
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(74, 46, 23, 0.18);
+}
+
+
+/* Always-visible fallback for narrow screens, where the painted objects
+   above may be too small or cropped to reliably tap. */
+.cafe-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .cafe-mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: absolute;
+    z-index: 5;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .cafe-mobile-nav-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border-radius: 14px;
+    border: 2px solid var(--brown);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--brown-dark);
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 0.55rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .cafe-mobile-nav-icon {
+    display: block;
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+  }
+}
+
+.cafe-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cafe-layer-bg {
+  z-index: 0;
+}
+
+.cafe-layer-counter {
+  z-index: 5;
+  /* Cropped tight to the counter itself (no longer the full 1672:941
+     canvas), so anchor it to the stage's bottom edge by its own aspect
+     ratio instead of stretching it into the full-height layer slot. */
+  top: auto;
+  height: auto;
+  object-fit: fill;
+}
+
+.cafe-character-slot {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 33.6%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+}
+
+.cafe-character-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(74, 46, 23, 0.25));
+}
+
+.cafe-character-img.kueh-enter {
+  animation: kueh-enter 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cafe-character-img.kueh-exit {
+  animation: kueh-exit 0.9s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+@keyframes kueh-exit {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(260%); opacity: 0; }
+}
+
+@keyframes kueh-enter {
+  from { transform: translateX(-260%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.cafe-bottom {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px max(16px, env(safe-area-inset-right)) max(50px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialogue-group {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.dialogue-bar {
+  width: 100%;
+  background: rgba(254, 240, 227, 0.97);
+  border: 2px solid var(--brown-soft);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 -4px 16px rgba(74, 46, 23, 0.18);
+}
+
+.dialogue-bar-kueh {
+  background: rgba(254, 233, 226, 0.97);
+  border-color: #B36F5C;
+}
+
+.dialogue-speaker {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: var(--tab-active);
+  font-size: 0.85rem;
+}
+
+.dialogue-bar-kueh .dialogue-speaker {
+  color: #B36F5C;
+}
+
+.dialogue-text {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.deduction-bar .deduction-prompt {
+  margin: 0 0 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--brown-dark);
+}
+
+.deduction-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.choice-btn {
+  min-height: 44px;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid var(--brown);
+  background: #fff;
+  color: var(--brown-dark);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.choice-btn:hover {
+  background: var(--cream);
+}
+
+
+/* ---------- Tray stage (minigame only) ---------- */
+
+.tray-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.tray-home-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 10;
+}
+
+.tray-pause-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 10;
+}
+
+/* Exact same position/size as V1's bottom-sheet tray, including the
+   slide-up-into-view entrance: starts translated off-screen below, then
+   .is-open (added just after mount) transitions it into place. */
+.tray-stage-frame {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  top: calc(360px - 30vh);
+  bottom: -80px;
+  background-image: url('../assets/tray.webp');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  transform: translateY(105%);
+  transition: transform 0.32s ease;
+}
+
+.tray-stage-frame.is-open {
+  transform: translateY(0);
+}
+
+.tray-stage-inner {
+  position: absolute;
+  left: calc(14% + 16px);
+  right: calc(14% + 16px);
+  top: calc(5% + 16px);
+  bottom: calc(18% + 16px);
+  background: #FEF0E3;
+  border-radius: 20px;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 700px) {
+  /* Mobile uses its own portrait tray so the full wood frame and both bear
+     paws remain visible instead of being cropped out of the desktop art. */
+  .tray-stage-frame {
+    left: 0;
+    right: 0;
+    top: 18vh;
+    bottom: 0;
+    background-image: url('../assets/minigames/shared/tray-mobile-v1.webp');
+    background-size: 100% auto;
+    background-position: center top;
+  }
+
+  .tray-stage-inner {
+    left: 8%;
+    right: 8%;
+    top: 5%;
+    bottom: 7%;
+    padding: 10px;
+    border-radius: 18px;
+  }
+}
+
+
+/* ---------- Memory Flip ---------- */
+
+.minigame-mount {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+}
+
+.memory-flip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 114px);
+  grid-auto-rows: 152px;
+  gap: 16px 18px;
+  justify-content: center;
+  align-content: center;
+}
+
+.memory-card {
+  position: relative;
+  width: 114px;
+  height: 152px;
+  border-radius: 10px;
+  border: 2px solid var(--brown);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+}
+
+.memory-card:disabled {
+  cursor: default;
+}
+
+.memory-card.is-face-up {
+  background: var(--cream);
+  border-color: var(--tab-active);
+  overflow: visible;
+}
+
+.memory-card.is-matched {
+  border-color: var(--green);
+  border-style: dashed;
+  overflow: visible;
+}
+
+.memory-card-back-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.memory-card-img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+}
+
+.memory-flip-status {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--tab-active);
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .tray-stage-inner:has(.memory-flip-grid) {
+    overflow: hidden;
+  }
+
+  .minigame-mount:has(.memory-flip-grid) {
+    gap: 8px;
+  }
+
+  .memory-flip-grid {
+    width: min(59.5vw, 220px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    gap: 7px;
+  }
+
+  .memory-card {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    border-radius: 8px;
+  }
+
+  .memory-flip-status {
+    font-size: 0.68rem;
+  }
+}
+
+.memory-dev-skip {
+  display: block;
+  margin: 8px auto 0;
+  padding: 4px;
+  border: none;
+  background: none;
+  font-size: 0.7rem;
+  color: rgba(74, 46, 23, 0.28);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.memory-star {
+  position: absolute;
+  font-size: 1rem;
+  color: var(--yellow);
+  pointer-events: none;
+  animation: star-pop 0.9s ease-out forwards;
+}
+
+.memory-star-1 { top: -8px; left: -8px; animation-delay: 0s; }
+.memory-star-2 { top: -10px; right: -6px; animation-delay: 0.08s; }
+.memory-star-3 { bottom: -8px; left: 50%; transform: translateX(-50%); animation-delay: 0.16s; }
+
+@keyframes star-pop {
+  0% { transform: scale(0.2); opacity: 0; }
+  40% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.memory-star-3 {
+  transform-origin: center;
+}
+
+/* Covers the entire tray frame (game + wood tray), not just the card grid.
+   Centering is done with flexbox, not percentage/transform math — that's
+   what was causing the sparkle to render low and jump on reflow (its
+   position math was tied to the tray frame's own box, which intentionally
+   extends 80px below the visible viewport). Flexbox centering doesn't care
+   about that and can't drift. */
+.memory-success-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Small local box the sparkle and kueh portrait overlap within — any
+   position math here is relative to this box, not the viewport or frame. */
+.memory-success-stack {
+  position: relative;
+  width: min(64vw, 460px);
+  aspect-ratio: 1 / 1;
+}
+
+.memory-success-sparkles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: success-sparkle 1.1s ease-out;
+}
+
+.memory-success-kueh {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48%;
+  height: 48%;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  animation: success-kueh-in 0.6s ease-out 0.3s both;
+}
+
+.memory-success-text {
+  margin: 0;
+  font-weight: 700;
+  color: var(--tab-active);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 5px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+@keyframes success-sparkle {
+  0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  55% { transform: scale(1.08) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes success-kueh-in {
+  from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-success-sparkles,
+  .memory-success-kueh {
+    animation: success-fade 0.5s ease-out !important;
+  }
+}
+
+@keyframes success-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Restore the Pattern (Ang Ku Kueh) ---------- */
+
+.pattern-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.pattern-instruction {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--brown-dark);
+  transform: translateY(16px);
+}
+
+.pattern-progress {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tab-active);
+  transform: translateY(16px);
+}
+
+.pattern-board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* The mould is a square 1254x1254 canvas (oval play area + handle below
+   it). The oval's own cavity sits at left 26.6%/top 10.2%, 46.5% wide by
+   58.8% tall, measured off the art — the base is sized/positioned to that
+   same spot (with a little clearance) rather than centered in the square. */
+.pattern-mould-wrap {
+  position: relative;
+  width: min(92vw, 450px);
+  aspect-ratio: 1 / 1;
+}
+
+.pattern-mould-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.pattern-base-wrap {
+  position: absolute;
+  left: 50%;
+  top: 39.5%;
+  width: 40%;
+  aspect-ratio: 375 / 470;
+  transform: translate(-50%, -50%);
+}
+
+.pattern-base-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.pattern-base-img:not(.pattern-reference-complete) {
+  transform: scaleX(0.99);
+  transform-origin: center;
+}
+
+.pattern-reference-complete {
+  transform: translateY(calc(-10% + 10px));
+}
+
+/* No entrance animation — this re-renders (and would otherwise re-play)
+   every time another piece moves or is dragged over a slot. Kept for
+   .layers-strip below, which doesn't have that re-render problem. */
+@keyframes pattern-lock-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.pattern-placed-piece {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.pattern-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(169, 118, 79, 0.55);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.pattern-slot:hover,
+.pattern-slot:focus-visible,
+.pattern-slot.is-hover {
+  border-color: var(--tab-active);
+  background: rgba(246, 196, 69, 0.3);
+  outline: none;
+}
+
+/* Floating clone that follows the pointer while dragging a piece. */
+.pattern-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(74, 46, 23, 0.35));
+}
+
+.pattern-piece-btn.is-dragging {
+  opacity: 0.35;
+}
+
+.pattern-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  transform: translateY(-16px);
+}
+
+.pattern-game .memory-dev-skip {
+  transform: translateY(-16px);
+}
+
+.pattern-piece-btn {
+  width: 54px;
+  height: 54px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--brown-soft);
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: none;
+}
+
+.pattern-piece-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.pattern-piece-btn.is-selected {
+  border-color: var(--tab-active);
+  box-shadow: 0 0 0 3px rgba(246, 196, 69, 0.45);
+  transform: translateY(-3px) scale(1.08);
+}
+
+@media (max-width: 700px) {
+  .tray-stage-inner:has(.pattern-game) {
+    overflow: hidden;
+    align-items: flex-start;
+  }
+
+  .pattern-game {
+    gap: 5px;
+    max-height: 100%;
+  }
+
+  .pattern-instruction,
+  .pattern-progress {
+    transform: none;
+  }
+
+  .pattern-instruction {
+    font-size: 0.72rem;
+    line-height: 1.25;
+  }
+
+  .pattern-progress {
+    font-size: 0.74rem;
+  }
+
+  .pattern-mould-wrap {
+    width: min(74vw, 318px);
+  }
+
+  .pattern-picker {
+    gap: 6px;
+    transform: translateY(-10px);
+  }
+
+  .pattern-piece-btn {
+    width: 49px;
+    height: 49px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 3px;
+  }
+
+  .pattern-game .memory-dev-skip {
+    margin-top: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.pattern-piece-btn.is-wobble {
+  animation: pattern-wobble 0.5s ease-in-out;
+}
+
+@keyframes pattern-wobble {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pattern-placed-piece,
+  .pattern-piece-btn.is-wobble {
+    animation: success-fade 0.2s ease-out !important;
+  }
+}
+
+/* ---------- Build the Layers (Kueh Lapis) ---------- */
+
+.layers-game {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+}
+
+.layers-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.layers-instruction {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--brown-dark);
+}
+
+.layers-progress {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tab-active);
+}
+
+.layers-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 12px;
+  border: 2px solid rgba(117, 70, 35, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 250, 242, 0.92);
+  color: var(--brown-dark);
+  font-size: 0.78rem;
+}
+
+.layers-colour-dot {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid rgba(91, 51, 23, 0.55);
+}
+
+.layers-next.brown .layers-colour-dot {
+  background: #B95E21;
+}
+
+.layers-next.ivory .layers-colour-dot {
+  background: #FFF0C8;
+}
+
+.layers-hint-text {
+  margin: 0;
+  min-height: 1.1em;
+  font-size: 0.75rem;
+  color: var(--brown-soft);
+  text-align: center;
+}
+
+.layers-visual {
+  position: relative;
+  width: min(72vw, 440px);
+  height: clamp(300px, 38vh, 420px);
+  flex: 0 1 auto;
+  margin-inline: auto;
+}
+
+.layers-serving-tray {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: calc(66% + 40px);
+  bottom: auto;
+  width: 68%;
+  height: auto;
+  transform: translate(-50%, -50%);
+}
+
+.layers-pouring-spoon {
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  left: 50%;
+  width: 83px;
+  height: 72px;
+  object-fit: contain;
+  transform: translateX(-50%) scaleX(-1);
+  transition: transform 0.25s ease;
+}
+
+.layers-visual.is-pouring .layers-pouring-spoon {
+  transform: translateX(-50%) translateY(3px) scaleX(-1) rotate(-4deg);
+}
+
+.layers-batter-pour {
+  position: absolute;
+  z-index: 3;
+  /* Lines the top of the pour sheet up with the spoon's bowl tip -- the
+     spoon art is mirrored (scaleX(-1)) and object-fit:contain-scaled
+     within its 83x72 box, which puts the bowl's actual pouring edge at
+     roughly (32%, 88%) of that box, not the box's own top-center. */
+  top: 67px;
+  left: calc(50% - 26px);
+  width: 59px;
+  height: 116px;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  overflow: visible;
+}
+
+.layers-pour-sheet {
+  fill: var(--pour-colour);
+  stroke: var(--pour-shadow);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  filter: drop-shadow(2px 2px 0 rgba(91, 49, 20, 0.18));
+}
+
+.layers-pour-ripple {
+  fill: none;
+  stroke: var(--pour-colour);
+  stroke-width: 4;
+  opacity: 0.88;
+}
+
+.layers-pour-pool {
+  fill: var(--pour-colour);
+  opacity: 0.94;
+}
+
+.layers-batter-pour.brown {
+  --pour-colour: #C86825;
+  --pour-shadow: #8F3E16;
+}
+
+.layers-batter-pour.ivory {
+  --pour-colour: #F5DDA3;
+  --pour-shadow: #C79C55;
+}
+
+.layers-visual.is-pouring .layers-batter-pour {
+  opacity: 1;
+  animation: layers-pour-flow 0.7s ease-in-out infinite alternate;
+}
+
+.layers-cake-stack {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: auto;
+  bottom: calc(34% - 40px);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  width: min(45%, 203px);
+  min-height: 0;
+  transform: translateX(-50%);
+}
+
+.layers-strip {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-top: -7px;
+  animation: layers-settle 0.3s ease-out both;
+}
+
+.layers-strip-wavy {
+  opacity: 0.9;
+}
+
+.layers-bowls {
+  display: flex;
+  gap: 16px;
+}
+
+.layers-bowl-btn {
+  width: 64px;
+  height: 64px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--brown-soft);
+  border-radius: 50%;
+  background: #fff;
+  padding: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.layers-bowl-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.layers-bowl-btn.is-wrong {
+  animation: pattern-wobble 0.45s ease-in-out;
+  border-color: var(--brown-soft);
+}
+
+.layers-meter-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(84vw, 300px);
+}
+
+.layers-meter {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  border-radius: 999px;
+  background: #EFE0C9;
+  border: 2px solid var(--brown-soft);
+  overflow: hidden;
+}
+
+.layers-meter-target {
+  position: absolute;
+  left: 30%;
+  width: 40%;
+  top: 0;
+  bottom: 0;
+  background: rgba(143, 174, 125, 0.45);
+}
+
+.layers-meter-indicator {
+  position: absolute;
+  left: 0%;
+  top: -3px;
+  bottom: -3px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--tab-active);
+  transform: translateX(-50%);
+}
+
+.layers-spread-btn {
+  width: 100%;
+}
+
+@keyframes layers-pour-flow {
+  from { transform: translateX(-50%) scaleX(0.92) scaleY(0.95); }
+  to { transform: translateX(-50%) scaleX(1.05) scaleY(1.04); }
+}
+
+@keyframes layers-settle {
+  from { opacity: 0; transform: translateY(-12px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 700px) {
+  .tray-stage-inner:has(.layers-game) {
+    left: calc(7% + 8px);
+    right: calc(7% + 8px);
+    top: calc(4% + 8px);
+    bottom: calc(14% + 10px);
+    padding: 20px 10px 10px;
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+
+  .layers-game {
+    justify-content: flex-start;
+    gap: 5px;
+    min-height: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .layers-instruction {
+    font-size: 0.76rem;
+  }
+
+  .layers-next {
+    min-height: 30px;
+    padding: 4px 9px;
+    font-size: 0.72rem;
+  }
+
+  .layers-visual {
+    width: min(76vw, 300px);
+    height: clamp(270px, 38vh, 340px);
+  }
+
+  .layers-strip {
+    margin-top: -2px;
+  }
+
+  .layers-pouring-spoon {
+    width: 66px;
+    height: 57px;
+  }
+
+  .layers-batter-pour {
+    /* The mobile spoon is smaller than desktop, so its visible bowl ends
+       above the image box edge. Pull the stream up to meet that bowl. */
+    top: 42px;
+    left: calc(50% - 23px);
+    width: 48px;
+    height: 97px;
+  }
+
+  .layers-visual.is-pouring .layers-batter-pour {
+    animation-name: layers-pour-flow-mobile;
+  }
+
+  .layers-meter-wrap {
+    width: min(76vw, 300px);
+    max-width: 100%;
+  }
+
+  .layers-spread-btn {
+    min-height: 40px;
+    max-width: 100%;
+    padding: 3px 16px;
+    font-size: 0.88rem;
+  }
+
+  .layers-game .memory-dev-skip {
+    margin-top: 0;
+    transform: none;
+  }
+
+  .layers-serving-tray {
+    top: calc(66% + 28px);
+  }
+
+  .layers-cake-stack {
+    bottom: calc(34% - 28px);
+  }
+
+  .layers-hint-text,
+  .layers-meter-wrap {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes layers-pour-flow-mobile {
+  from { transform: translateX(-50%) scale(0.84) scaleY(0.95); }
+  to { transform: translateX(-50%) scale(0.92) scaleY(1.04); }
+}
+
+@media (max-height: 680px) {
+  .layers-visual {
+    height: 250px;
+  }
+
+  .layers-pouring-spoon {
+    width: 57px;
+    height: 50px;
+  }
+
+  .layers-batter-pour {
+    top: 40px;
+    left: calc(50% - 20px);
+  }
+
+  .layers-hint-text {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layers-strip,
+  .layers-bowl-btn.is-wrong {
+    animation: success-fade 0.2s ease-out !important;
+  }
+}
+
+/* ---------- Shared Tray (Ube Biko) ---------- */
+
+.tray-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.tray-instruction {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--brown-dark);
+}
+
+.tray-progress {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tab-active);
+}
+
+.tray-board {
+  position: relative;
+  width: min(76vw, 330px);
+  aspect-ratio: 1 / 1;
+}
+
+.tray-empty-img,
+.tray-reference-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.tray-placed-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: grab;
+  animation: tray-portion-in 0.3s ease-out both;
+  touch-action: none;
+}
+
+.tray-placed-btn.is-dragging {
+  opacity: 0.35;
+}
+
+@keyframes tray-portion-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.tray-placed-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.tray-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(169, 118, 79, 0.5);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.tray-slot.is-match {
+  border-color: var(--tab-active);
+  background: rgba(246, 196, 69, 0.2);
+}
+
+.tray-slot.is-selectable:hover,
+.tray-slot.is-selectable:focus-visible,
+.tray-slot.is-hover {
+  border-color: var(--tab-active);
+  background: rgba(246, 196, 69, 0.28);
+  outline: none;
+}
+
+.tray-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: min(88vw, 360px);
+  margin: 0 auto;
+}
+
+.tray-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(74, 46, 23, 0.35));
+}
+
+.tray-portion-btn {
+  width: 64px;
+  height: 64px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--brown-soft);
+  border-radius: 14px;
+  background: #fff;
+  padding: 6px;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: none;
+}
+
+.tray-portion-btn.is-dragging {
+  opacity: 0.35;
+}
+
+.tray-portion-btn.is-selected {
+  border-color: var(--tab-active);
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 3px rgba(246, 196, 69, 0.45);
+}
+
+.tray-portion-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* ---------- Fold a Wish (Pink Songpyeon) ---------- */
+
+.wish-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.wish-instruction {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--brown-dark);
+}
+
+.wish-progress {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tab-active);
+}
+
+.wish-board {
+  position: relative;
+  width: min(70vw, 300px);
+  aspect-ratio: 1 / 1;
+  /* .wish-seal-point below needs to place points a fraction of the
+     board's own size away from centre -- percentages in `translate()`
+     resolve against the translated element's own tiny box, not this one,
+     so cqw is used there instead, which needs this declared here. */
+  container-type: inline-size;
+}
+
+.wish-board-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Matches .wish-dough-placed's size/position so the finished kueh
+   doesn't render much larger than the dough did at every earlier step. */
+.wish-reference-img {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 80%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Wraps the folded dough + its seal points as one unit so shrinking it
+   scales both together -- SEAL_POSITIONS in JS are percentages of this
+   box, not the full board, so the points keep tracing the dough's
+   curved edge at any size. Kept less shrunk than the other steps'
+   dough (80% vs 34%) since the 5 seal points are fixed 44px tap
+   targets that would start overlapping if the curve they sit along
+   got much smaller. */
+.wish-seal-stage {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 80%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+}
+
+.wish-dough-folded {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Sits below .wish-board (not overlapping the round board art) -- the
+   dough starts here and is dragged up onto the folding guide. */
+.wish-tray-row {
+  display: flex;
+  justify-content: center;
+}
+
+.wish-dough-btn {
+  width: 30vw;
+  max-width: 110px;
+  aspect-ratio: 1 / 1;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: grab;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: none;
+}
+
+.wish-dough-btn.is-selected {
+  box-shadow: 0 0 0 4px rgba(246, 196, 69, 0.5);
+  transform: translateY(-4px);
+}
+
+.wish-dough-btn.is-dragging {
+  opacity: 0.35;
+}
+
+.wish-dough-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Measured off board-guide-v2's actual dashed guide: it sits centred at
+   roughly 48% down the board art, not 40% -- shifting this down was
+   requested specifically to line the drop target up with the art. */
+.wish-guide-target {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 50%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(169, 118, 79, 0.55);
+  border-radius: 50%;
+  background: rgba(246, 196, 69, 0.18);
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.wish-guide-target.is-hover {
+  border-color: var(--tab-active);
+  background: rgba(246, 196, 69, 0.32);
+}
+
+.wish-dough-placed-btn {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 46%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+}
+
+.wish-dough-placed-btn.is-drop-ready,
+.wish-dough-placed-btn.is-hover {
+  box-shadow: 0 0 0 4px rgba(246, 196, 69, 0.45);
+  border-radius: 50%;
+}
+
+.wish-dough-placed-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.wish-dough-placed {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 46%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.wish-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(74, 46, 23, 0.35));
+}
+
+.wish-filling-dot {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 15%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  /* Tints the sesame filling art already baked into dough-filled.webp
+     rather than covering it with a flat circle -- multiply keeps its
+     texture and highlights visible underneath. */
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+.wish-fold-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  color: rgba(200, 104, 37, 0.75);
+  animation: wish-arrow-bounce 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes wish-arrow-bounce {
+  0%, 100% { transform: translate(-50%, 0); opacity: 0.6; }
+  50% { transform: translate(-50%, -10px); opacity: 1; }
+}
+
+.wish-fold-btn {
+  min-width: 140px;
+}
+
+.wish-picker {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.wish-filling-btn {
+  width: 76px;
+  height: 82px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--brown-soft);
+  border-radius: 16px;
+  background: #fff;
+  padding: 8px;
+  cursor: grab;
+  transition: transform 0.15s ease;
+  touch-action: none;
+}
+
+.wish-filling-btn.is-selected {
+  border-color: var(--tab-active);
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 3px rgba(246, 196, 69, 0.45);
+}
+
+.wish-filling-btn.is-dragging {
+  opacity: 0.35;
+}
+
+.wish-filling-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--brown-dark);
+  white-space: nowrap;
+}
+
+.wish-filling-btn:hover,
+.wish-filling-btn:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--tab-active);
+}
+
+.wish-spoon-img {
+  width: 100%;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.wish-seal-ring {
+  position: absolute;
+  inset: 0;
+}
+
+.wish-seal-point {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+}
+
+.wish-seal-point::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 3px dashed rgba(200, 104, 37, 0.82);
+  background: rgba(255, 248, 239, 0.72);
+}
+
+.wish-seal-point.is-sealed::before {
+  border-style: solid;
+  border-color: var(--tab-active);
+  background: rgba(246, 196, 69, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tray-placed-portion,
+  .wish-fold-arrow {
+    animation: success-fade 0.2s ease-out !important;
+  }
+}
+
+/* ---------- Shape, Paint, Shine (Luk Chup Trio) ---------- */
+
+.spshine-game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.spshine-instruction {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--brown-dark);
+}
+
+.spshine-progress {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tab-active);
+}
+
+.spshine-board {
+  position: relative;
+  width: min(72vw, 310px);
+  aspect-ratio: 1 / 1;
+}
+
+/* Tapping a fruit that still needs work swaps the whole board for this
+   -- just that one sweet, no tray, no other fruits -- so paint and
+   shine read as a deliberate close-up rather than a fiddly control on
+   a busy plate. */
+.spshine-focus {
+  position: relative;
+  width: min(72vw, 310px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.spshine-focus-back {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 4px 2px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--tab-active);
+  cursor: pointer;
+}
+
+.spshine-focus-stage {
+  position: relative;
+  width: 62%;
+  aspect-ratio: 1 / 1;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.spshine-focus-stage.is-wobble {
+  animation: pattern-wobble 0.4s ease-in-out;
+}
+
+.spshine-focus-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+  filter: brightness(1) saturate(1);
+  transition: filter 0.2s ease;
+}
+
+.spshine-brush-icon-focused {
+  font-size: 2.2rem;
+  top: -2px;
+  right: -8px;
+}
+
+.spshine-plate-img,
+.spshine-reference-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Drop target for a not-yet-placed fruit, shown directly on its own
+   well -- shape has to match (data-fruit-id), same finite/correct-slot
+   pattern as the other two rebuilt minigames. */
+.spshine-well-target {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px dashed rgba(169, 118, 79, 0.5);
+  border-radius: 45%;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.spshine-well-target.is-hover {
+  border-color: var(--tab-active);
+  background: rgba(246, 196, 69, 0.28);
+}
+
+/* A placed fruit, shown at its own plate position for the rest of the
+   game -- unpainted/mid-paint/finished art swaps in place, it never
+   moves to a separate full-screen view. */
+.spshine-plate-fruit {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  animation: spshine-fruit-in 0.3s ease-out both;
+}
+
+@keyframes spshine-fruit-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.spshine-plate-fruit.is-active {
+  filter: drop-shadow(0 0 6px rgba(246, 196, 69, 0.85));
+}
+
+.spshine-plate-fruit.is-wobble {
+  animation: pattern-wobble 0.4s ease-in-out;
+}
+
+.spshine-plate-fruit.is-done {
+  cursor: default;
+}
+
+.spshine-plate-fruit.is-ready {
+  filter: drop-shadow(0 0 5px rgba(246, 196, 69, 0.7));
+}
+
+.spshine-plate-fruit-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+  filter: brightness(1) saturate(1);
+  transition: filter 0.2s ease;
+}
+
+.spshine-gloss-1 { filter: brightness(1.05) saturate(1.1); }
+.spshine-gloss-2 { filter: brightness(1.1) saturate(1.2); }
+.spshine-gloss-3 { filter: brightness(1.16) saturate(1.3); }
+
+.spshine-brush-icon {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 1.4rem;
+  transform: rotate(25deg);
+  filter: drop-shadow(0 2px 2px rgba(74, 46, 23, 0.35));
+  pointer-events: none;
+}
+
+.spshine-highlight {
+  position: absolute;
+  width: 22%;
+  height: 12%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  filter: blur(1px);
+  pointer-events: none;
+  animation: spshine-highlight-in 0.4s ease-out both;
+}
+
+.spshine-highlight-0 { top: 22%; left: 30%; transform: rotate(-20deg); }
+.spshine-highlight-1 { top: 55%; left: 62%; transform: rotate(15deg); }
+.spshine-highlight-2 { top: 38%; left: 48%; transform: rotate(-5deg); }
+
+@keyframes spshine-highlight-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.spshine-drag-ghost {
+  position: fixed;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(74, 46, 23, 0.35));
+}
+
+.spshine-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: min(88vw, 360px);
+  margin: 0 auto;
+}
+
+.spshine-unpainted-btn {
+  width: 78px;
+  height: 78px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--brown-soft);
+  border-radius: 14px;
+  background: #fff;
+  padding: 6px;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: none;
+}
+
+.spshine-unpainted-btn.is-selected {
+  transform: translateY(-4px) scale(1.06);
+  border-color: var(--tab-active);
+  box-shadow: 0 0 0 4px rgba(246, 196, 69, 0.35);
+}
+
+.spshine-unpainted-btn.is-dragging {
+  opacity: 0.35;
+}
+
+.spshine-unpainted-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.spshine-picker {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spshine-swatch-btn {
+  width: 48px;
+  height: 48px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 3px solid #fff;
+  outline: 2px solid var(--brown-soft);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.spshine-swatch-btn.is-selected {
+  transform: scale(1.12);
+  outline-color: var(--tab-active);
+  box-shadow: 0 0 0 3px rgba(246, 196, 69, 0.45);
+}
+
+.spshine-swatch-btn span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin: auto;
+  border-radius: 50%;
+  background: #fffaf3;
+  color: var(--brown-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(74, 46, 23, 0.28);
+}
+
+.spshine-paint-btn {
+  min-width: 120px;
+}
+
+.spshine-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--brown-soft);
+  text-align: center;
+}
+
+.spshine-brush-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 86px;
+  color: var(--brown-soft);
+  font-size: 0.72rem;
+  touch-action: none;
+}
+
+.spshine-brush-tool {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: none;
+  touch-action: none;
+  transform: rotate(-34deg);
+  transform-origin: center;
+  filter: drop-shadow(0 3px 4px rgba(74, 46, 23, 0.28));
+  transition: transform 0.15s ease;
+  z-index: 3;
+}
+
+.spshine-brush-tool.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.spshine-focus-stage.is-brushed {
+  filter: drop-shadow(0 0 10px rgba(255, 230, 143, 0.9));
+}
+
+.spshine-focus-stage.is-gloss-reveal {
+  animation: spshine-gloss-pop 0.45s ease-out both;
+  filter: drop-shadow(0 0 12px rgba(255, 225, 120, 0.9));
+}
+
+.spshine-gloss-burst {
+  position: absolute;
+  top: 8%;
+  right: 9%;
+  color: #fff5b0;
+  font-size: 2.2rem;
+  text-shadow: 0 0 8px #f4b93d;
+  pointer-events: none;
+  animation: spshine-highlight-in 0.4s ease-out both;
+}
+
+.spshine-gloss-complete {
+  min-height: 86px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: var(--tab-active);
+  font-weight: 800;
+}
+
+@keyframes spshine-gloss-pop {
+  from { transform: scale(0.94); opacity: 0.7; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 520px) {
+  .spshine-board,
+  .spshine-focus {
+    width: min(76vw, 300px);
+  }
+
+  .spshine-unpainted-btn {
+    width: 70px;
+    height: 70px;
+  }
+
+  .spshine-focus-stage {
+    width: 68%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spshine-plate-fruit.is-wobble,
+  .spshine-highlight {
+    animation: success-fade 0.2s ease-out !important;
+  }
+}
+
+/* ---------- Pause menu ---------- */
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pause-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 12, 8, 0.55);
+}
+
+.pause-panel {
+  position: relative;
+  z-index: 1;
+  width: min(84vw, 320px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px 20px;
+  border-radius: 20px;
+  background: var(--cream);
+  border: 3px solid var(--brown-dark);
+  box-shadow: 0 10px 0 rgba(61, 43, 31, 0.25);
+}
+
+.pause-heading {
+  margin: 0 0 4px;
+  text-align: center;
+  color: var(--brown-dark);
+}
+
+.pause-btn {
+  width: 100%;
+}
+
+/* Settings reuses the pause menu's dim+panel look, but unlike pause (which
+   is nested inside .cafe-scene and only needs to cover that) settings can
+   be opened from any screen — title, a paused chapter, collection,
+   chapters — so it needs its own fixed, viewport-covering, top-of-everything
+   overlay rather than relying on a positioned ancestor. */
+.settings-overlay {
+  position: fixed;
+  z-index: 60;
+}
+
+.settings-panel .settings-list {
+  margin-bottom: 4px;
+}
+
+/* ---------- Card-unlock reveal ---------- */
+
+.card-reveal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.card-reveal-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 12, 8, 0.55);
+  animation: reveal-dim-in 0.5s ease-out both;
+}
+
+.card-reveal-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+}
+
+.card-reveal-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translateY(-48px);
+}
+
+.card-reveal-heading {
+  margin: 0;
+  color: #fff;
+  font-size: 2.5rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  animation: reveal-text-in 0.5s ease-out 0.15s both;
+}
+
+.card-reveal-subheading {
+  margin: -8px 0 0;
+  color: #FCE6D8;
+  font-size: 0.85rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  animation: reveal-text-in 0.5s ease-out 0.3s both;
+}
+
+.card-reveal-stack {
+  position: relative;
+  width: min(85.8vw, 330px);
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-reveal-sparkle {
+  position: absolute;
+  inset: -22%;
+  width: 144%;
+  height: 144%;
+  opacity: 0;
+  pointer-events: none;
+  animation: reveal-sparkle-swirl 1.5s ease-out 0.2s both;
+}
+
+.card-reveal-glow {
+  position: absolute;
+  inset: 6%;
+  border-radius: 24px;
+  background: radial-gradient(circle, rgba(255, 224, 160, 0.65) 0%, rgba(255, 224, 160, 0) 70%);
+  opacity: 0;
+  pointer-events: none;
+  animation: reveal-glow-pulse 1.6s ease-out 0.9s both;
+}
+
+.card-reveal-card {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  animation: reveal-card-in 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.card-reveal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+@keyframes reveal-dim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes reveal-text-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes reveal-sparkle-swirl {
+  0% { opacity: 0; transform: scale(0.7) rotate(-20deg); }
+  45% { opacity: 1; transform: scale(1.08) rotate(8deg); }
+  100% { opacity: 0.9; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes reveal-glow-pulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* Rise + scale up, then settle — no shake/wobble. */
+@keyframes reveal-card-in {
+  0% { transform: translateY(24px) scale(0.85); opacity: 0; }
+  60% { transform: translateY(-4px) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-reveal-dim,
+  .card-reveal-heading,
+  .card-reveal-subheading,
+  .card-reveal-sparkle,
+  .card-reveal-glow,
+  .card-reveal-card {
+    animation: reveal-fade-only 0.2s ease-out !important;
+  }
+}
+
+@keyframes reveal-fade-only {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Screens (collection / settings) ----------
+   The title screen is home base — reachable from the collection and
+   settings screens' back arrow, and from the home icon during a chapter. */
+
+.screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.screen-header h2 {
+  font-size: 1.15rem;
+  text-align: center;
+  flex: 1;
+}
+
+.screen-collection .screen-header h2 {
+  font-size: 2.3rem;
+}
+
+.collection-count {
+  font-size: 0.85rem;
+  color: var(--tab-active);
+  font-weight: 700;
+  min-width: 44px;
+  text-align: right;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 65px 2px;
+  padding-bottom: 24px;
+  align-items: end;
+}
+
+.card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-slot-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tab-active);
+  color: #fff;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 3-per-row means the card is much narrower than its single-card contexts
+   (reveal screen, old stacked layout) — let it shrink to fill the grid
+   column instead of the min(85.8vw, 330px) sizing used there. Then another
+   40% off that to make the whole grid more compact. */
+.card-grid .character-card {
+  width: 72%;
+}
+
+button.character-card {
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.card-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.card-preview-dim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(35, 20, 11, 0.72);
+  cursor: pointer;
+}
+
+.card-preview-panel {
+  position: relative;
+  z-index: 1;
+  width: min(78vw, 360px);
+  animation: card-preview-in 0.22s ease-out both;
+}
+
+.card-preview-card {
+  width: 100%;
+  filter: drop-shadow(0 12px 22px rgba(30, 16, 8, 0.45));
+}
+
+.card-preview-close {
+  position: absolute;
+  z-index: 2;
+  top: -14px;
+  right: -14px;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--brown);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--brown-dark);
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(30, 16, 8, 0.28);
+}
+
+@keyframes card-preview-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 700px) {
+  .card-preview-overlay {
+    padding: 16px;
+  }
+
+  .card-preview-panel {
+    width: min(82vw, 340px);
+  }
+}
+
+@media (max-width: 700px) {
+  .screen-collection {
+    padding: 14px 10px 24px;
+  }
+
+  .screen-collection .screen-header h2 {
+    font-size: 1.61rem;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 44px 4px;
+  }
+
+  .card-grid .character-card {
+    width: 72%;
+  }
+
+  .card-slot-badge {
+    max-width: 95%;
+    font-size: 0.72rem;
+    padding-inline: 6px;
+  }
+}
+
+.chapters-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Reduced to 30% of the row's old full-bleed width (a 70% cut), with a
+   floor so it stays usable on narrow phones. */
+.chapters-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 30%;
+  min-width: 160px;
+  padding: 10px 14px;
+  border: 2px solid var(--brown-soft);
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .chapters-row {
+    width: 60%;
+    min-width: 200px;
+    max-width: 260px;
+  }
+}
+
+.chapters-row-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.chapters-row-text {
+  min-width: 0;
+}
+
+.chapters-row-name {
+  margin: 0;
+  font-weight: 700;
+  color: var(--brown-dark);
+}
+
+.chapters-row-status {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--tab-active);
+}
+
+.chapters-row-locked {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.chapters-row-locked .chapters-row-name,
+.chapters-row-locked .chapters-row-status {
+  color: var(--brown-soft);
+}
+
+.chapters-row-lock {
+  width: 48px;
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  text-align: center;
+}
+
+.chapters-hint {
+  text-align: center;
+  color: var(--brown-soft);
+  font-size: 0.8rem;
+  margin-top: 20px;
+}
+
+/* ---------- Character card (frame + name + portrait + story + tags) ----------
+   Decorative frame is a background-image; everything else is real HTML
+   positioned per the percentage placement map, never baked into the art. */
+
+.character-card {
+  position: relative;
+  width: min(85.8vw, 330px);
+  aspect-ratio: 3 / 4;
+  margin: 0 auto;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: none;
+  border-radius: 7%;
+  overflow: hidden;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: default;
+  /* Text below is sized in cqw (of this card's own width), not vw — the
+     card renders at very different sizes in different places (a single
+     ~330px card on the reveal screen vs ~1/3 of a card-grid column), and
+     viewport units don't shrink with it, so at small sizes text used to
+     overflow the name box straight out of the card. */
+  container-type: inline-size;
+}
+
+button.character-card {
+  cursor: pointer;
+}
+
+.character-card-name {
+  position: absolute;
+  left: 23.94%;
+  top: 5.39%;
+  width: 51.93%;
+  height: 5.94%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: clamp(0.55rem, 8cqw, 1.05rem);
+  color: var(--brown-dark);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.character-card-portrait-area {
+  position: absolute;
+  left: 11%;
+  top: 13%;
+  width: 78%;
+  height: 44%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.character-card-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+/* Outer box is just the fixed scroll frame; the inner paragraph centers
+   itself both ways when it fits, and naturally falls back to top-anchored
+   scrolling (rather than clipping its own top) when the story is too long
+   to fit — plain flex/align-items centering on the scroll frame itself
+   would center overflowing text off both edges, cutting off the start. */
+.character-card-story {
+  position: absolute;
+  left: 11%;
+  top: 61.5%;
+  width: 78%;
+  height: 22.5%;
+  box-sizing: border-box;
+  padding: 3% 2% 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.character-card-story-inner {
+  min-height: 100%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.4rem, 4.5cqw, 0.76rem);
+  line-height: 1.32;
+  color: var(--brown-dark);
+  text-align: center;
+}
+
+.character-card-tags {
+  position: absolute;
+  left: 13.35%;
+  top: 88.08%;
+  width: 72.83%;
+  height: 5.69%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 4.28%;
+}
+
+.character-card-tag {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.38rem, 3.6cqw, 0.62rem);
+  font-weight: 700;
+  color: var(--brown-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+/* Same card shape/frame as a real card, just muted — reads as "this slot
+   exists but isn't unlocked yet" rather than a totally different object. */
+.card-locked {
+  filter: grayscale(0.7) opacity(0.6);
+}
+
+.card-locked .character-card-name,
+.card-locked .character-card-story,
+.card-locked .character-card-tag {
+  color: var(--brown-soft);
+}
+
+.card-locked-question {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1rem, 20cqw, 2.4rem);
+  color: var(--brown-soft);
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.settings-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+}
+
+.settings-row select {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 2px solid var(--brown);
+  padding: 4px 10px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  color: var(--brown-dark);
+}
