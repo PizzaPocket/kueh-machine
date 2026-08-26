@@ -48,7 +48,7 @@ fallback for anyone who links to or bookmarks the raw path anyway).
 
 This same rule applies inside `godot/hub/`'s NPC links
 (`hub_main.gd`'s `_contributors()`) and `src/organisms/check-in.js`'s
-`CONTRIBUTORS` roster — both already follow it. The one intentional
-exception is the Hub itself: it has no `/hub/` alias in `vercel.json` (it
-isn't a contributor "machine" in that sense), so `index.html`'s own ENTER
-button links straight to `/machines/hub/`.
+`CONTRIBUTORS` roster — both already follow it. It also applies to the Hub
+itself, not just the contributor machines it links out to: `vercel.json`
+has a `/hub/` alias the same as every other machine, and `index.html`'s own
+ENTER button links there, not to `/machines/hub/`.

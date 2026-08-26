@@ -1945,13 +1945,7 @@
 		      size: 'large',
 		      variant: 'cta',
 		      tag: 'a',
-		      // /machines/hub/ deliberately, not the "/<slug>/" pretty route
-		      // every contributor machine link uses (godot/hub/scripts/
-		      // hub_main.gd, src/organisms/check-in.js) — the Hub itself has
-		      // no such alias in vercel.json (it isn't a contributor
-		      // "machine" in that sense), and it's flat/buildless besides,
-		      // so this path already serves the real thing directly.
-		      href: '/machines/hub/',
+		      href: '/hub/',
 		    });
 		    built.btn.setAttribute('aria-label', 'Enter the Kueh Machine hub');
 		    grid.replaceChildren(built.rim);
