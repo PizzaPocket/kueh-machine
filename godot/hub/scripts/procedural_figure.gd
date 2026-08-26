@@ -371,7 +371,8 @@ static func build(
 	abdomen_matches_hips: bool = false,
 	leg_thickness_scale: float = 1.0,
 	upper_arm_thickness_scale: float = 1.0,
-	shirt_texture: Texture2D = null
+	shirt_texture: Texture2D = null,
+	is_female: bool = false
 ) -> Dictionary:
 	var upper_arm_color := shirt_color if sleeve_style in [SLEEVE_STYLE_LONG, SLEEVE_STYLE_COLORED_UPPER_ARM] else skin_color
 	var forearm_color := shirt_color if sleeve_style == SLEEVE_STYLE_LONG else skin_color
@@ -412,10 +413,16 @@ static func build(
 	# past the chest's own front (ABDOMEN_FRONT_OVERHANG_MAX) -- a slight
 	# belly, not a flat match -- since only the back and sides need to stay
 	# flush.
-	var abdomen_x := minf(ABDOMEN_SIZE.x * abdomen_width_scale, chest_size.x)
+	# The requested female silhouette keeps a visible thorax-to-waist step in
+	# real-world units. Divide by the rig scale because all dimensions below
+	# are local half-extents and the complete rig is scaled afterward.
+	var female_inset := 0.01 / maxf(scale, 0.001) if is_female else 0.0
+	var abdomen_x_cap := chest_size.x - female_inset if is_female else chest_size.x
+	var abdomen_front_cap := chest_front_depth - female_inset if is_female else chest_size.z * ABDOMEN_FRONT_OVERHANG_MAX
+	var abdomen_x := minf(ABDOMEN_SIZE.x * abdomen_width_scale, abdomen_x_cap)
 	var abdomen_back_depth := minf(ABDOMEN_SIZE.z * abdomen_width_scale, chest_size.z)
 	var abdomen_front_depth := minf(
-		ABDOMEN_SIZE.z * abdomen_width_scale, chest_size.z * ABDOMEN_FRONT_OVERHANG_MAX
+		ABDOMEN_SIZE.z * abdomen_width_scale, abdomen_front_cap
 	)
 	var abdomen_size := Vector3(
 		abdomen_x, ABDOMEN_SIZE.y, (abdomen_front_depth + abdomen_back_depth) * 0.5
@@ -433,7 +440,7 @@ static func build(
 		HIP_SIZE.x * hip_build_scale, HIP_SIZE.y, (hip_front_depth + hip_back_depth) * 0.5
 	)
 	var hip_back_offset := (hip_front_depth - hip_back_depth) * 0.5
-	if abdomen_matches_hips:
+	if abdomen_matches_hips and not is_female:
 		# Player-specific straight torso seam: match not only overall X/Z size,
 		# but the hips' asymmetric front/back center so both surfaces align.
 		abdomen_size = Vector3(hip_size.x, abdomen_size.y, hip_size.z)

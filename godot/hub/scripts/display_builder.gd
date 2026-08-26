@@ -858,13 +858,13 @@ static func _meijun_gas_range(parent: Node3D, position: Vector3) -> Node3D:
 	wok.mesh = wok_mesh
 	wok.material_override = wok_material
 	wok.scale = Vector3(0.72, 0.30, 0.72)
-	wok.position = active_burner + Vector3(0, 0.39, 0)
+	wok.position = active_burner + Vector3(0, 0.36, 0)
 	wok.rotation.x = PI
 	root.add_child(wok)
 	var wok_rim_mesh := TorusMesh.new()
 	wok_rim_mesh.inner_radius = 0.335
 	wok_rim_mesh.outer_radius = 0.365
-	_mesh(root, wok_rim_mesh, steel, active_burner + Vector3(0, 0.39, 0), "WokRolledRim", 0.78, 0.28)
+	_mesh(root, wok_rim_mesh, steel, active_burner + Vector3(0, 0.36, 0), "WokRolledRim", 0.78, 0.28)
 	# Each side grip is a raised metal loop in the YZ plane. Its lower arc sinks
 	# into the rolled rim, producing two visible attachment points instead of a
 	# disconnected stick projecting from the bowl. Per direct correction: the
@@ -879,7 +879,7 @@ static func _meijun_gas_range(parent: Node3D, position: Vector3) -> Node3D:
 		handle_mesh.outer_radius = 0.102
 		handle_mesh.rings = 20
 		handle_mesh.ring_segments = 10
-		var handle := _mesh(root, handle_mesh, steel, active_burner + Vector3(handle_side * 0.35, 0.45, 0), "WokLoopHandle", 0.76, 0.30)
+		var handle := _mesh(root, handle_mesh, steel, active_burner + Vector3(handle_side * 0.35, 0.42, 0), "WokLoopHandle", 0.76, 0.30)
 		# Base PI*0.5 stands the loop up into the YZ plane; the extra
 		# handle_side term (mirrored per side) then leans its top further
 		# outward, away from the wok's own center, rather than both loops

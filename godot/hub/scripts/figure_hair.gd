@@ -28,6 +28,7 @@ const STYLE_AFRO := "afro"
 const STYLE_FLAT_TOP := "flat_top"
 const STYLE_FLAT_TOP_LOW := "flat_top_low"
 const STYLE_BUN := "bun"
+const STYLE_PONYTAIL := "ponytail"
 const STYLE_LONG := "long"
 const STYLE_LONG_FULL := "long_full"
 const STYLE_LONG_EXTRA_FULL := "long_extra_full"
@@ -113,6 +114,56 @@ const FLAT_TOP_BACK_SHIFT := 0.01
 const BUN_RADIUS_FACTOR := 0.45
 const BUN_Y_FRACTION := 0.72
 const BUN_Z_FRACTION := 0.7
+
+## PONYTAIL: buzzcut base (see add_hair()'s own match) plus a tapered pipe
+## emerging from the back of the head, built along a curved centerline via
+## _build_tapered_tube() (see that function's own comment for why a curved
+## single mesh is the right tool here, over either a straight primitive or
+## several joined ones). Per direct correction, re-described more
+## precisely: the centerline is a true S-curve (a cubic Bezier, which can
+## actually hold an inflection point -- an earlier quadratic version could
+## only ever bow one direction, not cross back the other way like a real
+## S). Reading down the curve: it first reaches decisively rearward with
+## very little drop so the thick body clears the head mesh, then swings toward the
+## opposite lean around the midpoint (PONYTAIL_S_P2_FORWARD_FRACTION,
+## the S's own cross), then finishes rearward of the hanging body.
+##
+## The RADIUS profile is independent of the curve shape: per direct
+## correction, only the start and end taper (smoothly, via smoothstep,
+## down to a true point at t=0 and t=1) while the bulk of the body holds
+## one CONSTANT radius -- a capsule-like profile, not the single continuous
+## cone an earlier version used.
+const PONYTAIL_Y_FRACTION := 0.72
+const PONYTAIL_Z_FRACTION := 0.85
+const PONYTAIL_HEIGHT := 0.42
+const PONYTAIL_BODY_RADIUS := 0.065
+const PONYTAIL_RADIAL_SEGMENTS := 16
+const PONYTAIL_TUBE_SAMPLES := 24
+## Fraction of PONYTAIL_HEIGHT at which each end's taper reaches (or, for
+## the tail end, starts easing away from) the full PONYTAIL_BODY_RADIUS.
+const PONYTAIL_TAPER_IN_FRACTION := 0.15
+const PONYTAIL_TAPER_OUT_FRACTION := 0.20
+## The S-curve's own two control points, expressed as fractions of
+## PONYTAIL_HEIGHT (both the Y drop and the Z lean) so the whole shape
+## scales cleanly if PONYTAIL_HEIGHT itself changes later. P2 sits past the
+## midpoint leaning the OPPOSITE (forward) direction from P1 -- that sign
+## flip is what actually creates the S's own inflection, not just a single
+## one-sided bow.
+##
+## Per direct correction ("extend more towards the rear... before it starts
+## to go down, to get more clearance of the head"): P1's own BACK_FRACTION
+## raised well past its DROP_FRACTION (was the reverse -- mostly downward
+## with only a small back lean) so the curve's initial tangent reaches
+## backward first, clearing the head's own back surface, before it starts
+## curving toward vertical.
+const PONYTAIL_S_P1_DROP_FRACTION := 0.10
+const PONYTAIL_S_P1_BACK_FRACTION := 0.30
+const PONYTAIL_S_P2_DROP_FRACTION := 0.66
+const PONYTAIL_S_P2_FORWARD_FRACTION := 0.015
+## Pull the final point rearward so the lower tangent aims away from the
+## character's back rather than returning to the root's Z plane.
+const PONYTAIL_TIP_BACK_FRACTION := 0.22
+const PONYTAIL_ROOT_INSET := 0.05
 
 ## LONG: "extending a bit to the sides and back then making the bottom
 ## much less round and extending downwards a variable length" -- bottom
@@ -215,6 +266,9 @@ static func add_hair(
 		STYLE_BUN:
 			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
 			_build_bun(head, semi_axes, hair_color)
+		STYLE_PONYTAIL:
+			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_ponytail(head, semi_axes, hair_color)
 		STYLE_LONG:
 			_build_long(head, semi_axes, top_epsilon, hair_color, length_variance)
 		STYLE_LONG_FULL:
@@ -340,6 +394,124 @@ static func _build_bun(head: MeshInstance3D, semi_axes: Vector3, color: Color) -
 	_add_piece(
 		head, Vector3(bun_radius, bun_radius, bun_radius), bun_offset, MIN_EPSILON, MIN_EPSILON, color
 	)
+
+
+## Builds the curved S-shaped centerline (a cubic Bezier: attach -> P1,
+## leaning slightly back -> P2, leaning the opposite/forward direction --
+## that sign flip is the S's own inflection -> tip, settled back to
+## centered) paired with a taper-body-taper radius profile (smoothstep
+## easing in from a true point, holding PONYTAIL_BODY_RADIUS through the
+## bulk, then easing back out to a point), and hands both to
+## _build_tapered_tube() -- see this style's own top-of-file comment for
+## the reasoning behind a curved single-mesh tube over separate segments.
+static func _build_ponytail(head: MeshInstance3D, semi_axes: Vector3, color: Color) -> void:
+	var edges := _buzzcut_edges(semi_axes)
+	var attach := Vector3(0, edges["top"] * PONYTAIL_Y_FRACTION, edges["back"] * PONYTAIL_Z_FRACTION)
+	# Only the zero-radius root advances into the head. P1, P2, and the end
+	# point remain based on `attach`, preserving the established body curve.
+	var curve_root := attach + Vector3(0, 0, PONYTAIL_ROOT_INSET)
+	var p1 := attach + Vector3(
+		0,
+		-PONYTAIL_HEIGHT * PONYTAIL_S_P1_DROP_FRACTION,
+		-PONYTAIL_HEIGHT * PONYTAIL_S_P1_BACK_FRACTION
+	)
+	var p2 := attach + Vector3(
+		0,
+		-PONYTAIL_HEIGHT * PONYTAIL_S_P2_DROP_FRACTION,
+		PONYTAIL_HEIGHT * PONYTAIL_S_P2_FORWARD_FRACTION
+	)
+	var tip := attach + Vector3(
+		0, -PONYTAIL_HEIGHT, -PONYTAIL_HEIGHT * PONYTAIL_TIP_BACK_FRACTION
+	)
+	var taper_out_start := 1.0 - PONYTAIL_TAPER_OUT_FRACTION
+
+	var points := PackedVector3Array()
+	var radii := PackedFloat32Array()
+	for i in range(PONYTAIL_TUBE_SAMPLES + 1):
+		var t := float(i) / float(PONYTAIL_TUBE_SAMPLES)
+		var inv_t := 1.0 - t
+		var point := (
+			curve_root * (inv_t * inv_t * inv_t)
+			+ p1 * (3.0 * inv_t * inv_t * t)
+			+ p2 * (3.0 * inv_t * t * t)
+			+ tip * (t * t * t)
+		)
+		points.append(point)
+		var radius := PONYTAIL_BODY_RADIUS
+		if t < PONYTAIL_TAPER_IN_FRACTION:
+			radius = PONYTAIL_BODY_RADIUS * smoothstep(0.0, PONYTAIL_TAPER_IN_FRACTION, t)
+		elif t > taper_out_start:
+			radius = PONYTAIL_BODY_RADIUS * (1.0 - smoothstep(taper_out_start, 1.0, t))
+		radii.append(radius)
+
+	var piece := _build_tapered_tube(points, radii, PONYTAIL_RADIAL_SEGMENTS, color)
+	piece.name = "Ponytail"
+	head.add_child(piece)
+
+
+## General-purpose curved tapered tube: one ring of radial_segments
+## vertices per (points[i], radii[i]) pair, each ring oriented perpendicular
+## to the centerline's own local tangent there (not a fixed world axis, so
+## the tube's cross-section stays correctly perpendicular to its own bend
+## instead of shearing), with adjacent rings connected into quads -- the
+## same ring-connecting technique SuperEgg.build_mesh() uses for its own
+## latitude rings, just following an arbitrary path instead of a straight
+## vertical axis. Vector3.RIGHT is a safe, unchanging reference for building
+## each ring's own perpendicular basis (Gram-Schmidt against the tangent)
+## because this tube's own tangent is always dominated by -Y (hanging
+## down) with only a Z lean, so it's never close to parallel with RIGHT --
+## a fixed reference is fine here where it wouldn't be for a path that
+## doubles back through horizontal.
+static func _build_tapered_tube(
+	points: PackedVector3Array, radii: PackedFloat32Array, radial_segments: int, color: Color
+) -> MeshInstance3D:
+	var rings: Array[PackedVector3Array] = []
+	var point_count := points.size()
+	for i in range(point_count):
+		var tangent: Vector3
+		if i == 0:
+			tangent = (points[i + 1] - points[i]).normalized()
+		elif i == point_count - 1:
+			tangent = (points[i] - points[i - 1]).normalized()
+		else:
+			tangent = (points[i + 1] - points[i - 1]).normalized()
+		var right := tangent.cross(Vector3.RIGHT).normalized()
+		var up := right.cross(tangent).normalized()
+		var ring := PackedVector3Array()
+		for seg in radial_segments:
+			var theta := (float(seg) / radial_segments) * TAU
+			ring.append(points[i] + (right * cos(theta) + up * sin(theta)) * radii[i])
+		rings.append(ring)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(point_count - 1):
+		var ring_a := rings[i]
+		var ring_b := rings[i + 1]
+		for seg in radial_segments:
+			var seg_next := (seg + 1) % radial_segments
+			var a0 := ring_a[seg]
+			var a1 := ring_a[seg_next]
+			var b0 := ring_b[seg]
+			var b1 := ring_b[seg_next]
+			# The centerline samples run from the high root downward, opposite
+			# SuperEgg's bottom-to-top ring order. Reverse the triangle winding
+			# so generated normals and front-face culling point outside the tube.
+			st.add_vertex(a0)
+			st.add_vertex(a1)
+			st.add_vertex(b0)
+			st.add_vertex(a1)
+			st.add_vertex(b1)
+			st.add_vertex(b0)
+	st.generate_normals()
+
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.mesh = st.commit()
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.55
+	mesh_instance.material_override = material
+	return mesh_instance
 
 
 static func _build_long(

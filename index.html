@@ -1935,7 +1935,7 @@
 		  // Chained (not run in parallel with the button import below) so
 		  // the measurement is guaranteed to land before anything touches
 		  // the grid's content.
-		  Promise.all([document.fonts.ready, import('./src/atoms/button.js')]).then(function (results) {
+		  Promise.all([document.fonts.ready, import('./src/atoms/button.js?v=showcase-20260826')]).then(function (results) {
 		    var mod = results[1];
 		    var preSwapRect = grid.getBoundingClientRect();
 		    grid.style.minWidth = preSwapRect.width + 'px';
