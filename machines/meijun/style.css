@@ -69,8 +69,11 @@ a {
 .tagline {
   font-family: var(--font-hand);
   font-size: 1.5rem;
+  line-height: 1.35;
   color: var(--ink-soft);
-  max-width: 32ch;
+  /* Narrow enough that the line breaks after "recipes," rather than
+     stranding "one" at the end of the first line. */
+  max-width: 30ch;
   margin: 0 auto;
 }
 
@@ -203,14 +206,38 @@ a {
 }
 
 .mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-family: var(--font-body);
   font-size: 0.85rem;
   background: transparent;
   color: var(--accent);
   border: 1px solid var(--accent);
   border-radius: 999px;
-  padding: 0.3rem 0.8rem;
+  padding: 0.35rem 0.85rem;
   cursor: pointer;
+  /* The label stays on one line; the row wraps between buttons instead. */
+  white-space: nowrap;
+}
+
+/* One focus ring for the whole project, instead of the browser's blue one. */
+.mini-btn:focus-visible,
+.primary-btn:focus-visible,
+.quiet-btn:focus-visible,
+.danger-btn:focus-visible,
+.utility-link:focus-visible,
+.card-actions button:focus-visible,
+.mic-btn:focus-visible,
+.remove-row:focus-visible,
+.remove-media:focus-visible,
+.edit-term:focus-visible,
+.delete-term:focus-visible,
+.close-btn:focus-visible,
+.viewer-nav:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+  border-radius: 3px;
 }
 
 .mini-btn:hover {
@@ -271,6 +298,12 @@ body.modal-open {
   margin-top: 1.1rem;
 }
 
+/* Only the wrappers that follow a label need the gap; the ones inside
+   ingredient and step rows must sit flush so the row stays aligned. */
+.recipe-form label > .field-with-mic {
+  margin-top: 0.35rem;
+}
+
 .recipe-form input[type="text"],
 .recipe-form input[type="search"],
 .recipe-form textarea {
@@ -284,6 +317,13 @@ body.modal-open {
   border: 1px solid var(--line);
   border-radius: 3px;
   padding: 0.5rem 0.6rem;
+}
+
+/* Comes after the rule above so it wins the tie: a field inside a mic wrapper
+   takes its spacing from the wrapper. */
+.recipe-form .field-with-mic input,
+.recipe-form .field-with-mic textarea {
+  margin-top: 0;
 }
 
 .close-btn {
@@ -303,27 +343,6 @@ body.modal-open {
   cursor: pointer;
 }
 
-.voice-lang-toggle {
-  font-size: 0.85rem;
-  color: var(--ink-soft);
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-  background: var(--paper);
-  border-radius: 3px;
-  padding: 0.5rem 0.8rem;
-  margin-top: 1rem;
-}
-
-.voice-lang-toggle label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin: 0;
-  color: var(--ink);
-}
-
 .form-block {
   margin-top: 1.3rem;
 }
@@ -340,7 +359,7 @@ body.modal-open {
 .step-row-input {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   margin-top: 0.5rem;
 }
 
@@ -356,21 +375,73 @@ body.modal-open {
   min-width: 0;
 }
 
+/* The mic sits inside its own field, the way the icons sit inside a card. */
+.field-with-mic {
+  position: relative;
+  /* Flex so the wrapper is exactly as tall as the field it holds; as a block
+     it picked up line-box space and threw the icon off centre. */
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.field-with-mic > input,
+.field-with-mic > textarea {
+  flex: 1 1 auto;
+}
+
+/* Selectors specific enough to beat .recipe-form input[type="text"], which
+   otherwise resets the padding and lets the text run under the mic. */
+.field-with-mic input,
+.field-with-mic textarea,
+.recipe-form .field-with-mic input[type="text"],
+.recipe-form .field-with-mic textarea {
+  width: 100%;
+  padding-right: 2.6rem;
+}
+
 .mic-btn {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  background: var(--paper);
-  border: 1px solid var(--accent-soft);
-  border-radius: 50%;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: var(--ink-soft);
   cursor: pointer;
-  flex-shrink: 0;
-  font-size: 1.05rem;
+}
+
+/* A textarea grows downwards, so the mic keeps to the top corner. */
+.field-with-mic-area .mic-btn {
+  top: 0.45rem;
+  transform: none;
+}
+
+.mic-btn svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.mic-btn:hover {
+  color: var(--accent);
+  background: rgba(183, 71, 42, 0.08);
 }
 
 .mic-btn.listening {
+  color: var(--paper-card);
   background: var(--accent);
   animation: pulse 1s infinite;
 }
@@ -386,9 +457,28 @@ body.modal-open {
   50% { box-shadow: 0 0 0 6px rgba(183, 71, 42, 0); }
 }
 
+.remove-row svg,
+.media-row .remove-media svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.remove-row:hover,
+.media-row .remove-media:hover {
+  color: var(--accent);
+  background: rgba(183, 71, 42, 0.08);
+  border-radius: 3px;
+}
+
 .remove-row {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 1.85rem;
+  height: 1.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -613,7 +703,7 @@ body.modal-open {
 .media-fields {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   flex: 1;
   min-width: 0;
 }
@@ -643,6 +733,20 @@ body.modal-open {
 .media-row .remove-media {
   position: static;
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  /* Borderless like every other icon button; without this it fell back to
+     the browser's default button chrome. */
+  background: none;
+  border: none;
+  border-radius: 3px;
+  box-shadow: none;
+  color: var(--ink-soft);
+  cursor: pointer;
 }
 
 .audio-note {
@@ -751,8 +855,7 @@ body.modal-open {
 .mini-btn svg {
   width: 0.95rem;
   height: 0.95rem;
-  vertical-align: -0.15em;
-  margin-right: 0.15rem;
+  flex: 0 0 auto;
 }
 
 /* ---------- Recipe card previews ---------- */
@@ -1032,10 +1135,112 @@ body.modal-open {
    recipe rather than one more step. */
 .detail-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 2.25rem;
   padding-top: 1.5rem;
   border-top: 1px dashed var(--line);
+}
+
+/* ---------- Confirm dialog ---------- */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(58, 42, 30, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 200;
+}
+
+.confirm-overlay.hidden {
+  display: none;
+}
+
+.confirm-card {
+  position: relative;
+  background: var(--paper-card);
+  max-width: 400px;
+  width: 100%;
+  padding: 2rem 1.75rem 1.5rem;
+  border-radius: 2px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  transform: rotate(-0.4deg);
+}
+
+.confirm-card::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 78px;
+  height: 22px;
+  background: var(--tape);
+  opacity: 0.85;
+}
+
+.confirm-card:focus {
+  outline: none;
+}
+
+.confirm-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  line-height: 1.35;
+}
+
+.confirm-card p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line);
+}
+
+.quiet-btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  padding: 0.5rem 0.4rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.quiet-btn:hover {
+  color: var(--ink);
+}
+
+.danger-btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: var(--accent);
+  color: var(--paper-card);
+  border: none;
+  border-radius: 3px;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(58, 42, 30, 0.18);
+  white-space: nowrap;
+}
+
+.danger-btn:hover {
+  background: #9c3a22;
 }
 
 /* ---------- Media viewer ---------- */
@@ -1274,25 +1479,32 @@ body.modal-open {
 
 /* ---------- Glossary ---------- */
 
+/* One pasted-in sheet with ruled lines, rather than a stack of loose cards. */
 .glossary-list {
   list-style: none;
   padding: 0;
-  margin: 1.5rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  background: var(--paper-card);
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(58, 42, 30, 0.1);
+  overflow: hidden;
 }
 
 .glossary-list li {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
-  background: var(--paper-card);
-  padding: 0.75rem 1.1rem;
-  border-radius: 2px;
-  box-shadow: 0 3px 8px rgba(58, 42, 30, 0.08);
+  padding: 0.9rem 1.1rem;
+  /* Room for the two buttons pinned in the corner. */
+  padding-right: 4.4rem;
+  border-bottom: 1px dashed var(--line);
   font-size: 0.95rem;
+}
+
+.glossary-list li:last-child {
+  border-bottom: none;
 }
 
 .term em {
@@ -1305,6 +1517,49 @@ body.modal-open {
   color: var(--accent);
   font-weight: 600;
   margin-right: auto;
+}
+
+/* Pinned to the row's top right, so a phrase that wraps onto two lines never
+   pushes them onto a line of their own. */
+/* Same sizing and zero gap as the icon row on a recipe card. */
+.glossary-list li:not(.editing) .edit-term,
+.glossary-list li:not(.editing) .delete-term {
+  position: absolute;
+  top: 0.6rem;
+  width: 1.85rem;
+  height: 1.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 3px;
+}
+
+.glossary-list li:not(.editing) .edit-term {
+  /* A hair tighter than the recipe cards: the icons read as one pair. */
+  right: 2.15rem;
+}
+
+.glossary-list li:not(.editing) .delete-term {
+  right: 0.5rem;
+}
+
+.glossary-list .edit-term:hover,
+.glossary-list .delete-term:hover {
+  color: var(--accent);
+  background: rgba(183, 71, 42, 0.08);
+}
+
+.glossary-list .edit-term svg,
+.glossary-list .delete-term svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 
 .glossary-list .edit-term,
@@ -1324,8 +1579,10 @@ body.modal-open {
 
 .glossary-list li.editing {
   gap: 0.5rem;
-  box-shadow: 0 3px 10px rgba(58, 42, 30, 0.16);
+  padding-right: 1.1rem;
+  background: var(--paper);
   outline: 1px solid var(--accent-soft);
+  outline-offset: -1px;
 }
 
 .edit-input {
@@ -1363,37 +1620,88 @@ body.modal-open {
   color: var(--accent);
 }
 
+/* Search field with the magnifier tucked inside it. */
+.glossary-search-field {
+  position: relative;
+  margin-top: 1.5rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
 .glossary-search {
   display: block;
   width: 100%;
-  max-width: 320px;
-  margin-top: 1.25rem;
   font-family: var(--font-body);
   font-size: 0.9rem;
-  padding: 0.5rem 0.7rem;
+  padding: 0.6rem 0.8rem 0.6rem 2.3rem;
   border: 1px solid var(--line);
   border-radius: 3px;
   background: var(--paper-card);
   color: var(--ink);
 }
 
+.glossary-search:focus {
+  outline: none;
+  border-color: var(--accent-soft);
+}
+
+/* Adding a phrase is always in reach: one line, under the search. */
 .glossary-add {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-top: 1.5rem;
+  margin-top: 1.1rem;
 }
 
 .glossary-add input {
   font-family: var(--font-body);
   font-size: 0.9rem;
-  padding: 0.5rem 0.7rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid var(--line);
   border-radius: 3px;
   background: var(--paper-card);
   color: var(--ink);
   flex: 1;
-  min-width: 160px;
+  min-width: 180px;
+}
+
+.glossary-add input:focus {
+  outline: none;
+  border-color: var(--accent-soft);
+}
+
+.glossary-add .mini-btn {
+  flex: 0 0 auto;
+  padding: 0.4rem 1rem;
+}
+
+.glossary-count {
+  margin: 1.1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.glossary-empty {
+  justify-content: center;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.glossary-count {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
 }
 
 /* ---------- Footer ---------- */
@@ -1508,15 +1816,51 @@ body.modal-open {
     border-radius: 0;
   }
 
-  .ingredient-row-input,
+  /* Two half-width fields can't hold their text on a phone, so her words and
+     your translation stack, with the handle and bin spanning both. */
+  .ingredient-row-input {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    /* The handle and bin sit on the first line, centred to it, rather than
+       floating between the two fields. */
+    grid-template-areas:
+      "handle her  bin"
+      ".      mine .";
+    column-gap: 0.3rem;
+    row-gap: 0.35rem;
+    align-items: center;
+  }
+
+  .ingredient-row-input .drag-handle {
+    grid-area: handle;
+  }
+
+  .ingredient-row-input .field-with-mic:nth-of-type(1) {
+    grid-area: her;
+  }
+
+  .ingredient-row-input .field-with-mic:nth-of-type(2) {
+    grid-area: mine;
+  }
+
+  .ingredient-row-input .remove-row {
+    grid-area: bin;
+  }
+
+  /* Stacked pairs run together otherwise: a hairline marks where one
+     ingredient ends and the next begins. */
+  .ingredient-row-input + .ingredient-row-input {
+    border-top: 1px dashed var(--line);
+    padding-top: 0.7rem;
+    margin-top: 0.7rem;
+  }
+
   .step-row-input {
     flex-wrap: wrap;
   }
 
-  .ingredient-row-input input,
   .step-row-input input {
     min-width: 0;
-    flex-basis: 100%;
   }
 
   .recipe-grid {
@@ -1549,6 +1893,20 @@ body.modal-open {
     max-width: none;
     min-height: 100%;
     border-radius: 0;
+  }
+
+  /* Labels stay: the icons alone don't say what they do. Buttons keep their
+     own width and wrap onto a second line rather than stretching. */
+  .detail-actions .mini-btn {
+    padding: 0.45rem 0.85rem;
+    /* Shrinks with the screen so three pills still fit two tidy rows on a
+       320px phone, without going below a readable size. */
+    font-size: clamp(0.75rem, 0.62rem + 1.1vw, 0.85rem);
+  }
+
+  .detail-actions .mini-btn svg {
+    width: 0.9rem;
+    height: 0.9rem;
   }
 
   .recipe-detail::before {
@@ -1608,11 +1966,20 @@ body.modal-open {
   }
 
   .glossary-add {
-    flex-direction: column;
+    margin-top: 1.4rem;
   }
 
   .glossary-add input {
+    flex-basis: 100%;
     min-width: 0;
+  }
+
+  /* Stretched to full width, the label needs centring or it sits off to
+     the left of the pill. */
+  .glossary-add .mini-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.6rem 1rem;
   }
 
   .glossary-list li {

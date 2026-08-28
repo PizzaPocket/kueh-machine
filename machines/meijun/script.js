@@ -123,6 +123,10 @@ function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep 
 
 const SEED_FLAG = 'tasteOfHome.seededRecipes.v1';
 
+function canFetchLocalFiles() {
+  return location.protocol === 'http:' || location.protocol === 'https:';
+}
+
 async function seedRecipesIfNeeded() {
   if (typeof SEED_RECIPES === 'undefined') return;
   if (localStorage.getItem(SEED_FLAG)) return;
@@ -147,14 +151,17 @@ async function seedRecipesIfNeeded() {
         ...(item.poster ? { poster: item.poster } : {}),
       };
 
-      try {
-        const response = await fetch(item.src);
-        if (!response.ok) throw new Error(response.status);
-        entry.blob = await response.blob();
-      } catch {
-        /* Opened straight off the filesystem, where fetch is blocked. The
-           file still displays from its path; only sharing needs the blob. */
-        console.warn('Showing seed media from its file path:', item.src);
+      /* Opened straight off the filesystem, fetch is blocked outright, so
+         don't attempt it: the file still displays from its path, and only
+         sharing needs the blob. */
+      if (canFetchLocalFiles()) {
+        try {
+          const response = await fetch(item.src);
+          if (!response.ok) throw new Error(response.status);
+          entry.blob = await response.blob();
+        } catch {
+          console.warn('Showing seed media from its file path:', item.src);
+        }
       }
 
       media.push(entry);
@@ -194,6 +201,17 @@ async function renderGlossary(filterText = '') {
     entry.meaning.toLowerCase().includes(filterText.toLowerCase())
   );
 
+  const count = document.getElementById('glossary-count');
+  if (count) {
+    if (!all.length) {
+      count.textContent = 'Nothing pinned down yet';
+    } else if (filterText) {
+      count.textContent = `${filtered.length} of ${all.length} phrases`;
+    } else {
+      count.textContent = `${all.length} phrase${all.length === 1 ? '' : 's'} pinned down`;
+    }
+  }
+
   list.innerHTML = filtered
     .map(
       (entry) => `
@@ -201,12 +219,12 @@ async function renderGlossary(filterText = '') {
           <span class="term">${entry.term}</span>
           <span class="arrow">→</span>
           <span class="meaning">${entry.meaning}</span>
-          <button type="button" class="edit-term" aria-label="Edit this phrase">✎</button>
-          <button type="button" class="delete-term" aria-label="Remove">×</button>
+          <button type="button" class="edit-term" aria-label="Edit this phrase">${ICON.edit}</button>
+          <button type="button" class="delete-term" aria-label="Remove">${ICON.trash}</button>
         </li>
       `
     )
-    .join('') || '<li style="justify-content:center; color: var(--ink-soft);">No matches yet.</li>';
+    .join('') || `<li class="glossary-empty">Nothing matches “${filterText}”.</li>`;
 }
 
 function currentGlossaryFilter() {
@@ -281,6 +299,14 @@ function setupGlossary() {
     renderGlossary(e.target.value);
   });
 
+  ['glossary-term', 'glossary-meaning'].forEach((id) => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      document.getElementById('glossary-submit').click();
+    });
+  });
+
   document.getElementById('glossary-submit').addEventListener('click', async () => {
     const termInput = document.getElementById('glossary-term');
     const meaningInput = document.getElementById('glossary-meaning');
@@ -299,6 +325,9 @@ function setupGlossary() {
 
     termInput.value = '';
     meaningInput.value = '';
+    document.getElementById('glossary-search').value = '';
+    termInput.focus();
+    showToast(`Added “${term}”`);
     renderGlossary();
   });
 
@@ -344,10 +373,15 @@ function addIngredientRow(her = '', mine = '') {
   row.className = 'ingredient-row-input';
   row.innerHTML = `
     <button type="button" class="drag-handle" aria-label="Drag to reorder, or use the arrow keys">⠿</button>
-    <input type="text" class="ing-her" placeholder="Her words (e.g. 一把姜)" value="${her}">
-    <span class="mic-btn" title="Record with voice">🎤</span>
-    <input type="text" class="ing-mine" placeholder="Your translation (e.g. ~30g)" value="${mine}">
-    <button type="button" class="remove-row" aria-label="Remove">×</button>
+    <span class="field-with-mic">
+      <input type="text" class="ing-her" placeholder="Her words (e.g. 一把姜)" value="${her}">
+      <button type="button" class="mic-btn" data-lang="zh-CN" aria-label="Record her words with voice">${ICON.mic}</button>
+    </span>
+    <span class="field-with-mic">
+      <input type="text" class="ing-mine" placeholder="Your translation (e.g. ~30g)" value="${mine}">
+      <button type="button" class="mic-btn" data-lang="en-SG" aria-label="Record your translation with voice">${ICON.mic}</button>
+    </span>
+    <button type="button" class="remove-row" aria-label="Remove">${ICON.trash}</button>
   `;
   container.appendChild(row);
 }
@@ -358,9 +392,11 @@ function addStepRow(text = '') {
   row.className = 'step-row-input';
   row.innerHTML = `
     <button type="button" class="drag-handle" aria-label="Drag to reorder, or use the arrow keys">⠿</button>
-    <input type="text" class="step-text" placeholder="Step description" value="${text}">
-    <span class="mic-btn" title="Record with voice">🎤</span>
-    <button type="button" class="remove-row" aria-label="Remove">×</button>
+    <span class="field-with-mic">
+      <input type="text" class="step-text" placeholder="Step description" value="${text}">
+      <button type="button" class="mic-btn" data-lang="en-SG" aria-label="Record this step with voice">${ICON.mic}</button>
+    </span>
+    <button type="button" class="remove-row" aria-label="Remove">${ICON.trash}</button>
   `;
   container.appendChild(row);
 }
@@ -434,7 +470,7 @@ function renderExistingMediaPreview() {
     remove.type = 'button';
     remove.className = 'remove-media';
     remove.setAttribute('aria-label', 'Remove from gallery');
-    remove.textContent = '×';
+    remove.innerHTML = ICON.trash;
 
     row.append(handle, thumb, fields, remove);
     list.appendChild(row);
@@ -630,10 +666,10 @@ function setupRecipeForm() {
   });
 
   document.getElementById('recipe-form').addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-row')) {
+    if (e.target.closest('.remove-row')) {
       e.target.closest('.ingredient-row-input, .step-row-input').remove();
     }
-    if (e.target.classList.contains('remove-media')) {
+    if (e.target.closest('.remove-media')) {
       const id = e.target.closest('.media-row').dataset.mediaId;
       currentMedia = currentMedia.filter((m) => m.id !== id);
       renderExistingMediaPreview();
@@ -776,8 +812,26 @@ function showToast(message) {
   toastTimer = setTimeout(() => toast.classList.add('hidden'), 2600);
 }
 
-const DEFAULT_SHARE_NAME = { video: 'video.mp4', audio: 'recording.m4a', image: 'photo.jpg' };
+const DEFAULT_SHARE_NAME = { video: 'video', audio: 'recording', image: 'photo' };
 const DEFAULT_SHARE_TYPE = { video: 'video/mp4', audio: 'audio/mp4', image: 'image/jpeg' };
+const SHARE_EXT = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic',
+  'video/quicktime': 'mov', 'video/mp4': 'mp4', 'video/webm': 'webm',
+  'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/mpeg': 'mp3', 'audio/wav': 'wav',
+};
+
+/* The name typed in the form becomes the filename, tidied up and given a real
+   extension so the receiving app knows what it is. */
+function shareFileName(item) {
+  const type = (item.blob && item.blob.type) || DEFAULT_SHARE_TYPE[item.type] || 'image/jpeg';
+  const ext = SHARE_EXT[type] || type.split('/')[1] || 'jpg';
+  const base = (item.name || DEFAULT_SHARE_NAME[item.type] || 'photo')
+    .replace(/\.[a-z0-9]{2,4}$/i, '')
+    .replace(/[\\/:*?"<>|]+/g, '')
+    .trim()
+    .slice(0, 60) || 'photo';
+  return `${base}.${ext}`;
+}
 
 async function shareRecipe(recipe) {
   const lines = [`${recipe.nameEn}${recipe.nameCn ? ` · ${recipe.nameCn}` : ''}`];
@@ -800,7 +854,7 @@ async function shareRecipe(recipe) {
     try {
       const files = recipe.media.filter((m) => m.blob).slice(0, 4).map(
         (m) =>
-          new File([m.blob], m.name || DEFAULT_SHARE_NAME[m.type] || 'photo.jpg', {
+          new File([m.blob], shareFileName(m), {
             type: m.blob.type || DEFAULT_SHARE_TYPE[m.type] || 'image/jpeg',
           })
       );
@@ -1218,9 +1272,9 @@ async function openRecipeDetail(recipe) {
     ${stepsHtml}
     ${nothingYet}
     <div class="detail-actions">
-      <button type="button" class="mini-btn detail-share">${ICON.share} Share</button>
-      <button type="button" class="mini-btn detail-pdf">${ICON.pdf} Save as PDF</button>
-      <button type="button" class="mini-btn detail-edit">${ICON.edit} Edit this recipe</button>
+      <button type="button" class="mini-btn detail-share" aria-label="Share recipe">${ICON.share}<span class="btn-label">Share</span></button>
+      <button type="button" class="mini-btn detail-pdf" aria-label="Save as PDF">${ICON.pdf}<span class="btn-label">Save as PDF</span></button>
+      <button type="button" class="mini-btn detail-edit" aria-label="Edit this recipe">${ICON.edit}<span class="btn-label">Edit this recipe</span></button>
     </div>
   `;
 
@@ -1247,6 +1301,8 @@ function closeRecipeDetail() {
 const ICON = {
   grip:
     '<svg viewBox="0 0 24 24" aria-hidden="true" class="grip-icon"><circle cx="9" cy="6" r="1.3"/><circle cx="15" cy="6" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="18" r="1.3"/><circle cx="15" cy="18" r="1.3"/></svg>',
+  mic:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0013 0"/><path d="M12 18v3"/></svg>',
   pdf:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a1.5 1.5 0 00-1.5 1.5v15A1.5 1.5 0 007 21h10a1.5 1.5 0 001.5-1.5V7.5z"/><path d="M14 3v4.5h4.5"/><path d="M9 13h6M9 16.5h4"/></svg>',
   share:
@@ -1488,12 +1544,22 @@ function setupRecipeCardActions() {
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-function getVoiceLang() {
-  const checked = document.querySelector('input[name="voice-lang"]:checked');
-  return checked ? checked.value : 'zh-CN';
+/* Each field listens in the language it is normally written in: her words and
+   the Chinese name in Mandarin, everything else in English / Singlish. */
+function getVoiceLang(micBtn) {
+  return (micBtn && micBtn.dataset.lang) || 'en-SG';
+}
+
+function voiceLangName(lang) {
+  return lang === 'zh-CN' ? '中文' : 'English / Singlish';
 }
 
 function setupVoiceInput() {
+  /* The one in the markup is left empty so the icon lives in a single place. */
+  document.querySelectorAll('.mic-btn:empty').forEach((btn) => {
+    btn.innerHTML = ICON.mic;
+  });
+
   if (!SpeechRecognitionAPI) {
     document.querySelectorAll('.mic-btn').forEach((btn) => {
       btn.classList.add('unsupported');
@@ -1508,11 +1574,12 @@ function setupVoiceInput() {
 
     const targetField = micBtn.dataset.target
       ? document.getElementById(micBtn.dataset.target)
-      : micBtn.previousElementSibling;
+      : micBtn.closest('.field-with-mic').querySelector('input, textarea');
     if (!targetField) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.lang = getVoiceLang();
+    const lang = getVoiceLang(micBtn);
+    recognition.lang = lang;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -1523,7 +1590,12 @@ function setupVoiceInput() {
       targetField.value = targetField.value ? `${targetField.value} ${transcript}` : transcript;
       targetField.dispatchEvent(new Event('input'));
     };
-    recognition.onerror = () => micBtn.classList.remove('listening');
+    recognition.onerror = (event) => {
+      micBtn.classList.remove('listening');
+      if (event.error === 'no-speech') {
+        showToast(`Nothing heard in ${voiceLangName(lang)} — try again`);
+      }
+    };
     recognition.onend = () => micBtn.classList.remove('listening');
 
     recognition.start();

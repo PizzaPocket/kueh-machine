@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>家常菜 · Taste of Home</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='5' fill='%23f3e8d6'/><text x='16' y='24' font-size='22' text-anchor='middle' font-family='serif' fill='%23b7472a'>家</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
@@ -60,21 +61,23 @@
         <button type="button" id="close-recipe-form" class="close-btn" aria-label="Close">×</button>
         <h3 id="recipe-form-heading">Add a Recipe</h3>
 
-        <div class="voice-lang-toggle">
-          <span>Voice input language:</span>
-          <label><input type="radio" name="voice-lang" value="zh-CN" checked> 中文</label>
-          <label><input type="radio" name="voice-lang" value="en-SG"> English / Singlish</label>
-        </div>
-
         <label>Dish name (English)
-          <input type="text" id="field-name-en" required>
+          <span class="field-with-mic">
+            <input type="text" id="field-name-en" required>
+            <button type="button" class="mic-btn" data-target="field-name-en" data-lang="en-SG" aria-label="Record the English name with voice"></button>
+          </span>
         </label>
         <label>Dish name (Chinese)
-          <input type="text" id="field-name-cn">
+          <span class="field-with-mic">
+            <input type="text" id="field-name-cn">
+            <button type="button" class="mic-btn" data-target="field-name-cn" data-lang="zh-CN" aria-label="Record the Chinese name with voice"></button>
+          </span>
         </label>
         <label>The story
-          <span class="mic-btn" data-target="field-story" title="Record with voice">🎤</span>
-          <textarea id="field-story" rows="3" placeholder="When does she make this? For whom? Why does it matter?"></textarea>
+          <span class="field-with-mic field-with-mic-area">
+            <textarea id="field-story" rows="3" placeholder="When does she make this? For whom? Why does it matter?"></textarea>
+            <button type="button" class="mic-btn" data-target="field-story" data-lang="en-SG" aria-label="Record the story with voice"></button>
+          </span>
         </label>
 
         <div class="form-block">
@@ -108,15 +111,20 @@
       <h2>The Glossary <span class="cn">度量对照</span></h2>
       <p class="section-note">A running translation of the vague measurements mums everywhere seem to speak in fluently.</p>
 
-      <input type="search" id="glossary-search" class="glossary-search" placeholder="Search the glossary…">
-
-      <ul class="glossary-list" id="glossary-list"></ul>
+      <div class="glossary-search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8L20 20"/></svg>
+        <input type="search" id="glossary-search" class="glossary-search" placeholder="Search the glossary…" aria-label="Search the glossary">
+      </div>
 
       <div class="glossary-add">
-        <input type="text" id="glossary-term" placeholder="Her phrase (e.g. 一点点 or &quot;a splash&quot;)">
-        <input type="text" id="glossary-meaning" placeholder="Real measurement (e.g. ~1/2 tbsp)">
+        <input type="text" id="glossary-term" placeholder="Her phrase (e.g. 一点点 or &quot;a splash&quot;)" aria-label="Her phrase">
+        <input type="text" id="glossary-meaning" placeholder="Real measurement (e.g. ~1/2 tbsp)" aria-label="Real measurement">
         <button type="button" id="glossary-submit" class="mini-btn">+ Add to glossary</button>
       </div>
+
+      <p class="glossary-count" id="glossary-count"></p>
+
+      <ul class="glossary-list" id="glossary-list"></ul>
     </section>
 
   </main>
