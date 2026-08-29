@@ -75,6 +75,10 @@ const BOTTOM_EPSILON_TARGET := SuperEgg.EPSILON_FLAT
 ## THAT, back toward the fully-round starting point) is the buzzcut's
 ## current tuned value.
 const BOTTOM_EPSILON_BLEND := 0.25
+## Style-specific 0.2cm front extension. Kept out of _buzzcut_edges() so
+## hairstyles that merely use the buzzcut as a construction baseline do not
+## inherit this adjustment.
+const BUZZCUT_AFRO_FRONT_EXTRA := 0.002
 
 ## AFRO: "extend the sides, top and back" -- kept fully round (bottom
 ## epsilon = top epsilon, no boxy blend at all) since an afro doesn't have
@@ -166,6 +170,13 @@ const PONYTAIL_S_P2_FORWARD_FRACTION := 0.015
 ## character's back rather than returning to the root's Z plane.
 const PONYTAIL_TIP_BACK_FRACTION := 0.22
 const PONYTAIL_ROOT_INSET := 0.05
+const PONYTAIL_ROOT_UP_SHIFT := 0.01
+
+## Tied styles share a raised, slightly forward cap rather than the ordinary
+## buzzcut base. Its lower face keeps the same roundness as its crown so the
+## underside reads as gathered hair, not the buzzcut's trimmed lower edge.
+const TIED_BASE_UP_SHIFT := 0.01
+const TIED_BASE_FRONT_EXTRA := 0.004
 
 ## LONG: "extending a bit to the sides and back then making the bottom
 ## much less round and extending downwards a variable length" -- bottom
@@ -266,16 +277,16 @@ static func add_hair(
 		STYLE_FLAT_TOP_LOW:
 			_build_flat_top(head, semi_axes, top_epsilon, hair_color, 0.025)
 		STYLE_BUN:
-			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_tied_base(head, semi_axes, top_epsilon, hair_color)
 			_build_bun(head, semi_axes, hair_color)
 		STYLE_PONYTAIL:
-			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_tied_base(head, semi_axes, top_epsilon, hair_color)
 			_build_ponytail(head, semi_axes, hair_color)
 		STYLE_PONYTAIL_SHORT:
-			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_tied_base(head, semi_axes, top_epsilon, hair_color)
 			_build_ponytail(head, semi_axes, hair_color, 0.25, 0.045, "ShortPonytail")
 		STYLE_PONYTAIL_LONG:
-			_build_buzzcut(head, semi_axes, top_epsilon, hair_color)
+			_build_tied_base(head, semi_axes, top_epsilon, hair_color)
 			_build_ponytail(head, semi_axes, hair_color, 0.62, PONYTAIL_BODY_RADIUS, "LongPonytail")
 		STYLE_LONG:
 			_build_long(head, semi_axes, top_epsilon, hair_color, length_variance)
@@ -358,8 +369,17 @@ static func _add_piece(
 
 static func _build_buzzcut(head: MeshInstance3D, semi_axes: Vector3, top_epsilon: float, color: Color) -> void:
 	var edges := _buzzcut_edges(semi_axes)
+	edges["front"] += BUZZCUT_AFRO_FRONT_EXTRA
 	var bottom_epsilon := lerpf(top_epsilon, BOTTOM_EPSILON_TARGET, BOTTOM_EPSILON_BLEND)
 	_add_edge_piece(head, edges, top_epsilon, bottom_epsilon, color)
+
+
+static func _build_tied_base(head: MeshInstance3D, semi_axes: Vector3, top_epsilon: float, color: Color) -> void:
+	var edges := _buzzcut_edges(semi_axes)
+	edges["top"] += TIED_BASE_UP_SHIFT
+	edges["bottom"] += TIED_BASE_UP_SHIFT
+	edges["front"] += TIED_BASE_FRONT_EXTRA
+	_add_edge_piece(head, edges, top_epsilon, top_epsilon, color)
 
 
 static func _build_hero(head: MeshInstance3D, semi_axes: Vector3, top_epsilon: float, color: Color) -> void:
@@ -374,6 +394,7 @@ static func _build_hero(head: MeshInstance3D, semi_axes: Vector3, top_epsilon: f
 
 static func _build_afro(head: MeshInstance3D, semi_axes: Vector3, top_epsilon: float, color: Color) -> void:
 	var edges := _buzzcut_edges(semi_axes)
+	edges["front"] += BUZZCUT_AFRO_FRONT_EXTRA
 	edges["width"] = edges["width"] * AFRO_WIDTH_MULT - AFRO_WIDTH_REDUCTION
 	edges["top"] += AFRO_TOP_EXTRA
 	edges["back"] -= AFRO_BACK_EXTRA
@@ -421,7 +442,7 @@ static func _build_ponytail(
 	piece_name: String = "Ponytail"
 ) -> void:
 	var edges := _buzzcut_edges(semi_axes)
-	var attach := Vector3(0, edges["top"] * PONYTAIL_Y_FRACTION, edges["back"] * PONYTAIL_Z_FRACTION)
+	var attach := Vector3(0, edges["top"] * PONYTAIL_Y_FRACTION + PONYTAIL_ROOT_UP_SHIFT, edges["back"] * PONYTAIL_Z_FRACTION)
 	# Only the zero-radius root advances into the head. P1, P2, and the end
 	# point remain based on `attach`, preserving the established body curve.
 	var curve_root := attach + Vector3(0, 0, PONYTAIL_ROOT_INSET)

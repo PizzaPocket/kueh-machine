@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claim your Kueh-verse character</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles/tokens.css">
+  <link rel="stylesheet" href="./claim.css">
+</head>
+<body>
+  <main>
+    <a class="wordmark" href="/" aria-label="Kueh Machine home"><strong>Kueh</strong> <span>Machine</span></a>
+    <section aria-live="polite">
+      <h1 id="title">Checking your invitation…</h1>
+      <p id="message">This should only take a moment.</p>
+      <div id="actions" class="actions"></div>
+      <p id="status" class="status" role="status"></p>
+    </section>
+  </main>
+  <script src="/shared/account-widget.js" data-anchor="top-right"></script>
+  <script src="/shared/character-system.js"></script>
+  <script src="./claim.js"></script>
+</body>
+</html>

@@ -161,7 +161,7 @@ static func build(parent: Node3D, kind: String, position: Vector3) -> Node3D:
 		"cat_scan": return _cat_station(parent, position)
 		"remember": return _remember_station(parent, position)
 		"amanda": return _amanda_bear(parent, position)
-		"jesslyn": return _jesslyn_cake(parent, position)
+		"jesslyn": return _jesslyn_scale(parent, position)
 		"kaixin": return _kaixin_microphone(parent, position)
 		"viki": return _viki_kueh_platter(parent, position)
 		"meijun": return _meijun_gas_range(parent, position)
@@ -588,55 +588,63 @@ static func _amanda_bear(parent: Node3D, position: Vector3) -> Node3D:
 	right_blush.rotation.y = deg_to_rad(32.0)
 	return stand
 
-static func _jesslyn_cake(parent: Node3D, position: Vector3) -> Node3D:
+## A budget scale, per direct correction (the cake didn't fit her actual
+## project -- a birthday spending planner, not a party). Its base is styled
+## after the game's own kueh-lapis-like icon (screenshot reference): a teal
+## bottom band, a gold/tan middle band, and a narrower pink top layer,
+## stacked in that exact order and palette, rather than a generic plinth.
+static func _jesslyn_scale(parent: Node3D, position: Vector3) -> Node3D:
 	var stand := pedestal(parent, position, 0.62, 0.90)
-	var cake := Node3D.new()
-	cake.name = "JesslynsBirthdayCake"
-	cake.position.y = 0.90
-	cake.scale = Vector3.ONE * 0.67
+	var scale_root := Node3D.new()
+	scale_root.name = "JesslynsBudgetScale"
+	scale_root.position.y = 0.90
 	var inward := Vector3.ZERO - position
-	cake.rotation.y = atan2(inward.x, inward.z)
-	stand.add_child(cake)
-	_box_collision(cake, Vector3(1.05, 1.20, 1.05), Vector3(0, 0.60, 0), "BirthdayCakeSolidBody")
+	scale_root.rotation.y = atan2(inward.x, inward.z)
+	stand.add_child(scale_root)
+	_box_collision(scale_root, Vector3(0.45, 0.60, 0.45), Vector3(0, 0.60, 0), "BudgetScaleSolidBody")
 
-	var sponge := Color("e2a457")
-	var cream := Color("fff4df")
-	var pink_icing := Color("ef8da5")
-	var berry := Color("d94a4f")
-	var candle_blue := Color("6ba6d9")
-	var candle_yellow := Color("f1c84d")
+	var teal := Color("4aa89c")
+	var gold := Color("d9a441")
+	var pink := Color("e0567a")
+	_super_part(scale_root, Vector3(0.30, 0.08, 0.30), teal, Vector3(0, 0.08, 0), "IconBaseTeal", 0.0, 0.55)
+	_super_part(scale_root, Vector3(0.24, 0.07, 0.24), gold, Vector3(0, 0.23, 0), "IconBaseGold", 0.0, 0.50)
+	_super_part(scale_root, Vector3(0.16, 0.07, 0.16), pink, Vector3(0, 0.37, 0), "IconBasePink", 0.0, 0.50)
 
-	# Two soft cylindrical tiers echo the emoji's celebratory layer cake while
-	# retaining the hub's flat-ended superegg construction language.
-	_super_part(cake, Vector3(0.48, 0.25, 0.48), sponge, Vector3(0, 0.26, 0), "LowerSponge", 0.0, 0.82)
-	_super_part(cake, Vector3(0.50, 0.095, 0.50), cream, Vector3(0, 0.50, 0), "LowerCreamFrosting", 0.0, 0.68)
-	_super_part(cake, Vector3(0.39, 0.20, 0.39), sponge, Vector3(0, 0.67, 0), "UpperSponge", 0.0, 0.82)
-	_super_part(cake, Vector3(0.41, 0.10, 0.41), pink_icing, Vector3(0, 0.86, 0), "PinkTopFrosting", 0.0, 0.64)
+	# A simple beam balance rising from the icon base -- two pans reading as
+	# the "weighing your spending" idea her game is actually about.
+	var brass := Color("c9a24a")
+	var brass_dark := Color("8a6a2c")
+	_super_part(scale_root, Vector3(0.035, 0.35, 0.035), brass_dark, Vector3(0, 0.79, 0), "ScalePost", 0.15, 0.35)
+	# The coin side actually carries the weight, so it hangs lower -- per
+	# direct correction, a balance with a loaded pan and a level beam read as
+	# physically wrong. Tilts around the pivot; each side's hanging arm/pan
+	# then follows the beam's own tilted end height, not a fixed offset.
+	const SCALE_TILT := deg_to_rad(8.0)
+	var beam := _super_part(scale_root, Vector3(0.42, 0.025, 0.045), brass, Vector3(0, 1.14, 0), "ScaleBeam", 0.25, 0.30)
+	beam.rotation.z = SCALE_TILT
+	_sphere(scale_root, Vector3(0.05, 0.05, 0.05), brass, Vector3(0, 1.16, 0), "ScalePivotKnob")
 
-	# Rounded frosting drops make the top icing feel applied to the cake rather
-	# than stacked as one disconnected slab.
-	for drop_index in range(8):
-		var drop_angle := float(drop_index) * TAU / 8.0
-		var drop_position := Vector3(cos(drop_angle) * 0.34, 0.79, sin(drop_angle) * 0.34)
-		_sphere(cake, Vector3(0.12, 0.20, 0.12), pink_icing, drop_position, "IcingDrop%d" % drop_index)
-
-	# The emoji's red decorations become small berry-like frosting dots around
-	# the upper rim, with three striped candles as the focal point.
-	for berry_index in range(8):
-		var berry_angle := float(berry_index) * TAU / 8.0 + PI / 8.0
-		_sphere(cake, Vector3(0.11, 0.11, 0.11), berry, Vector3(cos(berry_angle) * 0.32, 0.94, sin(berry_angle) * 0.32), "BerryDecoration%d" % berry_index)
-
-	var candle_positions: Array[Vector3] = [Vector3(-0.20, 1.12, 0), Vector3(0, 1.17, -0.04), Vector3(0.20, 1.12, 0)]
-	var candle_colors: Array[Color] = [pink_icing, candle_blue, candle_yellow]
-	for candle_index in range(candle_positions.size()):
-		var candle_pos: Vector3 = candle_positions[candle_index]
-		_super_part(cake, Vector3(0.035, 0.18, 0.035), candle_colors[candle_index], candle_pos, "BirthdayCandle%d" % candle_index, 0.0, 0.55)
-		# Short cream bands provide the cheerful striped-candle detail.
-		for stripe_index in range(2):
-			_super_part(cake, Vector3(0.038, 0.018, 0.038), cream, candle_pos + Vector3(0, -0.06 + stripe_index * 0.11, 0), "CandleStripe%d_%d" % [candle_index, stripe_index], 0.0, 0.62)
-		var flame_pos := candle_pos + Vector3(0, 0.25, 0)
-		_sphere(cake, Vector3(0.075, 0.13, 0.055), Color("f59b35"), flame_pos, "CandleFlame%d" % candle_index)
-		_sphere(cake, Vector3(0.030, 0.060, 0.026), Color("fff0a6"), flame_pos + Vector3(0, 0.005, 0.028), "CandleFlameCore%d" % candle_index)
+	for side in [-1.0, 1.0]:
+		var pan_x: float = side * 0.40
+		var side_name := "Left" if side < 0.0 else "Right"
+		var hang_offset := pan_x * sin(SCALE_TILT)
+		_super_part(scale_root, Vector3(0.012, 0.12, 0.012), brass_dark, Vector3(pan_x, 1.02 + hang_offset, 0), "ScaleArm" + side_name, 0.15, 0.40)
+		var pan_mesh := CylinderMesh.new()
+		pan_mesh.top_radius = 0.16
+		pan_mesh.bottom_radius = 0.14
+		pan_mesh.height = 0.04
+		pan_mesh.radial_segments = 20
+		var pan := MeshInstance3D.new()
+		pan.name = "ScalePan" + side_name
+		pan.mesh = pan_mesh
+		pan.position = Vector3(pan_x, 0.88 + hang_offset, 0)
+		pan.material_override = HubPalette.material(brass, 0.30, 0.28)
+		scale_root.add_child(pan)
+	# A small stack of coin-like tokens in the (lower, loaded) left pan,
+	# echoing the budget theme without needing a literal currency symbol.
+	var coin_hang_offset := -0.40 * sin(SCALE_TILT)
+	for coin_index in range(3):
+		_super_part(scale_root, Vector3(0.09, 0.012, 0.09), gold, Vector3(-0.40, 0.90 + coin_hang_offset + float(coin_index) * 0.024, 0), "BudgetCoin%d" % coin_index, 0.40, 0.30)
 	return stand
 
 static func _kaixin_microphone(parent: Node3D, position: Vector3) -> Node3D:
@@ -895,10 +903,16 @@ static func _nicole_life_calculator(parent: Node3D, position: Vector3) -> Node3D
 	var stand := pedestal(parent, position, 0.62, 0.95)
 	var calculator := Node3D.new()
 	calculator.name = "NicolesLifeCalculator"
-	calculator.position.y = 0.98
-	# A shallow desktop-calculator pitch: the display sits slightly higher than
-	# the front keys, while the whole object remains a realistic 36 x 50 cm.
-	calculator.rotation.x = deg_to_rad(8.0)
+	# A more pronounced forward pitch, per direct correction, so the display
+	# (SageLCD, toward the back at local z=-0.150) reads clearly rather than
+	# sitting nearly flat -- RoundedCalculatorBody's own bottom face is at
+	# local y=0, so its front-bottom edge (z=+0.25) is the lowest point of
+	# the whole tilted assembly; position.y is solved so that edge lands
+	# exactly on the pedestal's own top (height 0.95) instead of floating
+	# above it or sinking through it.
+	const PITCH := deg_to_rad(22.0)
+	calculator.position.y = 0.95 + 0.25 * sin(PITCH)
+	calculator.rotation.x = PITCH
 	stand.add_child(calculator)
 
 	# Colors come directly from Life Calculus's CSS tokens.

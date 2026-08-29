@@ -26,17 +26,20 @@ static func build(parent: Node3D, spec: Dictionary, _player := false) -> Diction
 		hair_style = FigureHair.STYLE_LONG
 	var build_scale: float = spec.get("build_scale", 1.0)
 	var sleeve_style: String = spec.get("sleeve_style", ProceduralFigure.SLEEVE_STYLE_NONE if spec.get("sleeveless", false) else ProceduralFigure.SLEEVE_STYLE_LONG)
-	if spec.get("is_female", true) and sleeve_style == ProceduralFigure.SLEEVE_STYLE_SHORT:
+	if spec.get("is_female", true) and sleeve_style == ProceduralFigure.SLEEVE_STYLE_SHORT and not spec.get("allow_female_short_sleeves", false):
 		sleeve_style = ProceduralFigure.SLEEVE_STYLE_COLORED_UPPER_ARM
 	var wears_dress: bool = spec.get("dress", false)
 	var leg_color: Color = spec.get("skin", ProceduralFigure.SKIN_COLOR) if wears_dress else spec.get("bottom", ProceduralFigure.SKIN_COLOR)
+	var shirt_texture: Texture2D = spec.get("shirt_texture")
+	if shirt_texture == null and spec.get("shirt_pattern", "") == "kaixin_polka":
+		shirt_texture = HubPalette.polka_dot_texture(Color("150f1e"), Color("ff2e93"), 10, 256, 3.0)
 	var pivots := ProceduralFigure.build(
 		parent,
 		spec.get("skin", ProceduralFigure.SKIN_COLOR),
 		spec.get("top", ProceduralFigure.SKIN_COLOR),
 		leg_color,
 		sleeve_style,
-		spec.get("height_scale", 1.0),
+		1.0,
 		spec.get("chest_build_scale", build_scale),
 		spec.get("hip_build_scale", build_scale),
 		spec.get("abdomen_width_scale", build_scale),
@@ -51,8 +54,10 @@ static func build(parent: Node3D, spec: Dictionary, _player := false) -> Diction
 		_player or spec.get("abdomen_matches_hips", false),
 		0.72 if wears_dress else 1.0,
 		spec.get("upper_arm_thickness", 1.0),
-		spec.get("shirt_texture"),
-		spec.get("is_female", true)
+		shirt_texture,
+		spec.get("is_female", true),
+		spec.get("height_scale", 1.0),
+		wears_dress
 	)
 	pivots["root"] = parent.get_child(parent.get_child_count() - 1)
 	pivots["arms"] = [pivots["arm_left"], pivots["arm_right"]]
@@ -69,5 +74,13 @@ static func build(parent: Node3D, spec: Dictionary, _player := false) -> Diction
 			glasses.rotation.x = deg_to_rad(-22.0)
 	if wears_dress:
 		var hips: MeshInstance3D = pivots["hips"]
-		FigureDress.add_to_figure(pivots["root"], hips, spec.get("bottom", Color.WHITE), spec.get("hip_build_scale", build_scale))
+		# Exposed so a walk cycle can flare the skirt's front-to-back depth
+		# in sync with the stride (see hub_player.gd/hub_roaming_npc.gd) --
+		# otherwise the legs clip through it at the stride's extremes.
+		var dress_parts := FigureDress.add_to_figure(
+			pivots["root"], hips, spec.get("bottom", Color.WHITE),
+			spec.get("hip_build_scale", build_scale)
+		)
+		pivots["skirt"] = dress_parts["skirt"]
+		pivots["skirt_pitch_pivot"] = dress_parts["pitch_pivot"]
 	return pivots

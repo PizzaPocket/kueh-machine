@@ -55,7 +55,8 @@ static func _pow_sign(value: float, epsilon: float) -> float:
 
 
 static func build_mesh(
-	semi_axes: Vector3, epsilon_top: float = EPSILON_SOFT, epsilon_bottom: float = EPSILON_SOFT
+	semi_axes: Vector3, epsilon_top: float = EPSILON_SOFT, epsilon_bottom: float = EPSILON_SOFT,
+	local_offset: Vector3 = Vector3.ZERO
 ) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -90,17 +91,17 @@ static func build_mesh(
 			var b0: Vector3 = ring_b[seg]
 			var b1: Vector3 = ring_b[seg_next]
 			st.set_uv(Vector2(u0, v0))
-			st.add_vertex(a0)
+			st.add_vertex(a0 + local_offset)
 			st.set_uv(Vector2(u0, v1))
-			st.add_vertex(b0)
+			st.add_vertex(b0 + local_offset)
 			st.set_uv(Vector2(u1, v0))
-			st.add_vertex(a1)
+			st.add_vertex(a1 + local_offset)
 			st.set_uv(Vector2(u1, v0))
-			st.add_vertex(a1)
+			st.add_vertex(a1 + local_offset)
 			st.set_uv(Vector2(u0, v1))
-			st.add_vertex(b0)
+			st.add_vertex(b0 + local_offset)
 			st.set_uv(Vector2(u1, v1))
-			st.add_vertex(b1)
+			st.add_vertex(b1 + local_offset)
 
 	st.generate_normals()
 	return st.commit()
@@ -112,10 +113,10 @@ static func build_mesh(
 static func build_part(
 	semi_axes: Vector3, color: Color,
 	epsilon_top: float = EPSILON_SOFT, epsilon_bottom: float = EPSILON_SOFT,
-	texture: Texture2D = null
+	texture: Texture2D = null, local_offset: Vector3 = Vector3.ZERO
 ) -> MeshInstance3D:
 	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = build_mesh(semi_axes, epsilon_top, epsilon_bottom)
+	mesh_instance.mesh = build_mesh(semi_axes, epsilon_top, epsilon_bottom, local_offset)
 	var material := StandardMaterial3D.new()
 	# A textured part's own texture already carries its full pattern colors
 	# (see HubPalette.polka_dot_texture) -- albedo_color would otherwise

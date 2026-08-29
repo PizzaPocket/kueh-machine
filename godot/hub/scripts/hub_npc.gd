@@ -33,6 +33,9 @@ var _idle_spine_counter := 0.0
 var _idle_body_twist := 0.0
 var _idle_arm_left := 0.0
 var _idle_arm_right := 0.0
+var _spine_rest_y := 0.0
+var _hips_rest_y := 0.0
+var _collision: CollisionShape3D
 
 func setup(data: Dictionary, player: Node3D) -> void:
 	contributor = data
@@ -42,6 +45,8 @@ func setup(data: Dictionary, player: Node3D) -> void:
 	_figure = FigureBuilder.build(self, data["appearance"])
 	_head = _figure["head"]
 	_eyes = _figure["eyes"]
+	_spine_rest_y = (_figure["spine"] as Node3D).position.y
+	_hips_rest_y = (_figure["hips"] as Node3D).position.y
 	# The contributors form a perimeter around the hub. Aim each full figure
 	# at the center of that configuration; head tracking remains independent
 	# and can still acknowledge a nearby player.
@@ -51,18 +56,39 @@ func setup(data: Dictionary, player: Node3D) -> void:
 	_roll_idle_pose()
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
-	var collision := CollisionShape3D.new()
+	_collision = CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.38 * data["appearance"].get("build_scale", 1.0)
-	capsule.height = 1.8 * data["appearance"].get("height_scale", 1.0)
-	collision.shape = capsule
-	collision.position.y = capsule.height * 0.5
-	body.add_child(collision)
+	capsule.height = maxf(0.76, float(_figure.get("total_height", 1.8)))
+	_collision.shape = capsule
+	_collision.position.y = capsule.height * 0.5
+	body.add_child(_collision)
 	add_child(body)
+
+func apply_appearance(new_appearance: Dictionary) -> void:
+	contributor["appearance"] = new_appearance.duplicate(true)
+	var old_root := _figure.get("root") as Node3D
+	var facing := old_root.rotation.y if old_root != null else 0.0
+	if old_root != null:
+		remove_child(old_root)
+		old_root.queue_free()
+	_figure = FigureBuilder.build(self, contributor["appearance"])
+	_head = _figure["head"]
+	_eyes = _figure["eyes"]
+	_spine_rest_y = (_figure["spine"] as Node3D).position.y
+	_hips_rest_y = (_figure["hips"] as Node3D).position.y
+	(_figure["root"] as Node3D).rotation.y = facing
+	if _collision != null:
+		var capsule := _collision.shape as CapsuleShape3D
+		capsule.radius = 0.38 * new_appearance.get("build_scale", 1.0)
+		capsule.height = maxf(capsule.radius * 2.0, float(_figure.get("total_height", 1.8)))
+		_collision.position.y = capsule.height * 0.5
+	_roll_idle_pose()
 
 func _process(delta: float) -> void:
 	_idle_phase += delta
-	_settle_pose(delta)
+	if _should_settle_idle_pose():
+		_settle_pose(delta)
 	EyeBlink.apply(_eye_blink, delta, _eyes)
 	if _player == null or _head == null:
 		return
@@ -75,6 +101,9 @@ func _process(delta: float) -> void:
 		target_yaw = clampf(atan2(direction.x, direction.z), -HEAD_YAW_LIMIT, HEAD_YAW_LIMIT)
 	_head.rotation.y = lerp_angle(_head.rotation.y, target_yaw, HEAD_TURN_SPEED * delta)
 	_head.rotation.z = sin(_idle_phase * 0.7 + global_position.x) * 0.012
+
+func _should_settle_idle_pose() -> bool:
+	return true
 
 func _roll_idle_pose() -> void:
 	_idle_elbow_left = -_rng.randf_range(IDLE_ELBOW_MIN, IDLE_ELBOW_MAX)
@@ -107,6 +136,11 @@ func _settle_pose(delta: float) -> void:
 	var spine: Node3D = _figure["spine"]
 	arm_left.rotation.x = lerp_angle(arm_left.rotation.x, _idle_arm_left, POSE_SETTLE_SPEED * delta)
 	arm_right.rotation.x = lerp_angle(arm_right.rotation.x, _idle_arm_right, POSE_SETTLE_SPEED * delta)
+	# Walking drives the hip pivots on X. Ease both legs back under the body
+	# before applying the resting stance; otherwise an NPC freezes with one
+	# foot forward and one behind at whatever phase the walk cycle stopped.
+	bent_leg.rotation.x = lerp_angle(bent_leg.rotation.x, 0.0, POSE_SETTLE_SPEED * delta)
+	straight_leg.rotation.x = lerp_angle(straight_leg.rotation.x, 0.0, POSE_SETTLE_SPEED * delta)
 	bent_knee.rotation.x = lerp_angle(bent_knee.rotation.x, knee_target, POSE_SETTLE_SPEED * delta)
 	straight_knee.rotation.x = lerp_angle(straight_knee.rotation.x, 0.0, POSE_SETTLE_SPEED * delta)
 	bent_leg.rotation.z = lerp_angle(bent_leg.rotation.z, leg_z_target, POSE_SETTLE_SPEED * delta)
@@ -116,5 +150,13 @@ func _settle_pose(delta: float) -> void:
 	hips.rotation.z = lerp_angle(hips.rotation.z, hip_z_target, POSE_SETTLE_SPEED * delta)
 	spine.rotation.z = lerp_angle(spine.rotation.z, _idle_spine_counter, POSE_SETTLE_SPEED * delta)
 	spine.rotation.y = lerp_angle(spine.rotation.y, _idle_body_twist, POSE_SETTLE_SPEED * delta)
+	spine.rotation.x = lerp_angle(spine.rotation.x, 0.0, POSE_SETTLE_SPEED * delta)
+	spine.position.y = lerpf(spine.position.y, _spine_rest_y, POSE_SETTLE_SPEED * delta)
+	hips.position.y = lerpf(hips.position.y, _hips_rest_y, POSE_SETTLE_SPEED * delta)
 	elbow_left.rotation.x = lerp_angle(elbow_left.rotation.x, _idle_elbow_left, POSE_SETTLE_SPEED * delta)
 	elbow_right.rotation.x = lerp_angle(elbow_right.rotation.x, _idle_elbow_right, POSE_SETTLE_SPEED * delta)
+	# Eases a stride-flared skirt (see HubRoamingNPC._set_walk_pose()) back
+	# to its resting depth once the legs are back under the body.
+	var skirt: Node3D = _figure.get("skirt")
+	if skirt != null:
+		skirt.scale.z = lerpf(skirt.scale.z, 1.0, POSE_SETTLE_SPEED * delta)

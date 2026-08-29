@@ -35,6 +35,9 @@ const PLAYER_LOOK_DISTANCE := 6.0
 const HEAD_YAW_LIMIT := deg_to_rad(50.0)
 const HEAD_TURN_SPEED := 7.0
 const NECK_LOOK_SHARE := 0.5
+const PLAYER_PUSH_RADIUS := 0.82
+const PLAYER_PUSH_SPEED := 4.4
+const HOME_RETURN_SPEED := 1.0
 const SIT_HIPS_PITCH := deg_to_rad(-38.0)
 ## Exact vertical support extent of the pitched hip SUPEREGG. A prior pass
 ## added the rotated Y/Z bounding-box projections; that is correct for a
@@ -120,13 +123,16 @@ func _ready() -> void:
 	collision_shape.shape = shape
 	collision_shape.position.y = shape.size.y * 0.5
 	add_child(collision_shape)
-	collision_layer = 1
+	# Soft displacement handles player contact; a separate layer prevents the
+	# player capsule from being physically wedged against the small cat body.
+	collision_layer = 2
 	collision_mask = 0
 
 
 func _process(delta: float) -> void:
 	EyeBlink.apply(_blink, delta, _pivots["eyes"])
 	HubCatTail.rebuild(_pivots["_tail"] as Dictionary, delta)
+	_apply_player_push(delta)
 	if not roaming:
 		_update_player_look(delta)
 		return
@@ -152,6 +158,24 @@ func _process(delta: float) -> void:
 		_decision_timer = _rng.randf_range(WALK_TARGET_MIN_TIME, WALK_TARGET_MAX_TIME)
 	_walk(delta)
 	_update_player_look(delta)
+
+func _apply_player_push(delta: float) -> void:
+	if _player == null:
+		return
+	var here := Vector2(global_position.x, global_position.z)
+	var player_here := Vector2(_player.global_position.x, _player.global_position.z)
+	var offset := here - player_here
+	var distance := offset.length()
+	if distance < PLAYER_PUSH_RADIUS:
+		var direction := offset.normalized() if distance > 0.001 else Vector2.RIGHT
+		var needed := direction * (PLAYER_PUSH_RADIUS - distance)
+		var pushed := here + needed.limit_length(PLAYER_PUSH_SPEED * delta)
+		global_position.x = pushed.x
+		global_position.z = pushed.y
+	elif not roaming:
+		var returned := here.move_toward(_roam_center, HOME_RETURN_SPEED * delta)
+		global_position.x = returned.x
+		global_position.z = returned.y
 
 
 func _rebuild_figure() -> void:

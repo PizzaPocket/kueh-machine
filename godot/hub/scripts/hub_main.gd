@@ -1,31 +1,60 @@
 extends Node3D
 
 const INTERACT_DISTANCE := 3.2
+# CharacterEditor's own Height options -- Less tall / Tall / More tall.
+const HEIGHT_LESS_TALL := 0.94
+const HEIGHT_TALL := 1.0
+const HEIGHT_MORE_TALL := 1.06
 const KUEH_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/kueh_syne_800.obj")
 const MACHINE_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/machine_syne_600.obj")
 const PLAYER_RESPONSES := {
 	"Azri": "Er... it's hard to explain.",
-	"Geraldine Chua": "Thanks, G. You're the best.",
-	"Kevin Dreher": "Klingt gut, Kevin. Ich komme später wieder.",
+	"Kevin Dreher": "Schön, dich zu besuchen!",
+}
+const CONTRIBUTOR_KEYS := {
+	"Amanda Ng": "amanda", "Amy Fu": "amy", "Azri": "azri",
+	"Geraldine Chua": "geraldine", "Jesslyn Teo": "jesslyn",
+	"Kaixin Cai": "kaixin", "Ken Lee": "ken", "Kevin Dreher": "kevin",
+	"Leonard Reese": "leonard", "Li Wei Lim": "liwei", "Mei Jun Chew": "meijun",
+	"Natalia Lionardy": "natalia", "Nicole Ng": "nicole",
+	"Ruth Yong": "ruth", "Samantha Tan": "samantha",
+	"Sophia Himawan": "sophia", "Viki Yap": "viki",
 }
 
 var _player: HubPlayer
 var _ui: HubUI
 var _npcs: Array[HubNPC] = []
-var _nearby: HubNPC
+var _interactables: Array[Dictionary] = []
+var _nearby: Node3D
+var _nearby_data: Dictionary = {}
+var _nearby_prompt := "Talk (F)"
+var _nearby_kind := "npc"
+var _ambient_dialog_active := false
+var _street_data: Dictionary = {}
 var _logo: Node3D
 var _logo_origin_y := 0.0
 var _elapsed := 0.0
+var _account_appearance: Dictionary = {}
+var _signed_in := false
+var _owned_contributor_key := ""
+var _remote_appearances: Dictionary = {}
+var _character_editor: CharacterEditor
 
 func _ready() -> void:
+	_load_character_bootstrap()
+	if not _signed_in and _account_appearance.is_empty():
+		_account_appearance = _random_player_appearance()
 	_setup_input()
 	_build_environment()
+	_street_data = ShophouseStreet.build(self)
 	_player = HubPlayer.new()
-	_player.position = Vector3(0, 0.08, 18)
+	_player.appearance_override = _account_appearance
+	_player.position = Vector3(0, 0.22, 15)
 	add_child(_player)
 	_player.interact_requested.connect(_talk_to_nearby)
 	_build_contributors()
 	_build_sophia_cats()
+	_register_amanda_door()
 	_ui = HubUI.new()
 	add_child(_ui)
 	await get_tree().create_timer(1.35).timeout
@@ -34,6 +63,47 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_update_nearby()
+	_poll_character_editor_request()
+
+func _poll_character_editor_request() -> void:
+	if _character_editor != null or not OS.has_feature("web"):
+		return
+	var window := JavaScriptBridge.get_interface("window")
+	if window != null and bool(window.consumeKuehCharacterEditorRequest()):
+		_open_character_editor()
+
+func _open_character_editor() -> void:
+	_player.input_locked = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_ui.set_prompt(false)
+	_character_editor = CharacterEditor.new()
+	_character_editor.setup(_editor_initial_appearance(), _owned_contributor_key)
+	_character_editor.appearance_saved.connect(_apply_saved_appearance)
+	_character_editor.closed.connect(_close_character_editor)
+	add_child(_character_editor)
+
+func _apply_saved_appearance(saved_appearance: Dictionary) -> void:
+	_account_appearance = saved_appearance.duplicate(true)
+	_player.apply_appearance(_account_appearance)
+	if _owned_contributor_key.is_empty():
+		return
+	for npc in _npcs:
+		var npc_key: String = CONTRIBUTOR_KEYS.get(npc.contributor.get("name", ""), "")
+		if npc_key == _owned_contributor_key:
+			npc.apply_appearance(_account_appearance)
+
+func _close_character_editor() -> void:
+	_character_editor = null
+	_player.input_locked = false
+
+func _editor_initial_appearance() -> Dictionary:
+	if not _account_appearance.is_empty():
+		return _account_appearance.duplicate(true)
+	if not _owned_contributor_key.is_empty():
+		for contributor in _contributors():
+			if CONTRIBUTOR_KEYS.get(contributor["name"], "") == _owned_contributor_key:
+				return (contributor["appearance"] as Dictionary).duplicate(true)
+	return {}
 
 func _setup_input() -> void:
 	_add_key_action("move_forward", KEY_W)
@@ -67,19 +137,31 @@ func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("ffffff")
-	# Linear output keeps the color-background void genuinely white. Lighting
-	# energy is reduced independently below, so lowering scene brightness does
-	# not turn the sky into the grey produced by a sub-1 background multiplier.
+	environment.background_color = Color("f4f2ed")
+	# The previous pure-white background plus linear tonemapping hard-clipped
+	# highlights at silhouettes, making light materials bloom into the sky.
+	# ACES compresses that bright shoulder while this barely warm off-white
+	# still reads as the Kueh-verse's white void.
 	environment.background_energy_multiplier = 1.0
-	environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	environment.tonemap_exposure = 1.0
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
+	environment.tonemap_exposure = 0.86
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	# A restrained, slightly cool fill gives the unlit sides readable form
 	# without flattening every material to white.
 	environment.ambient_light_color = Color("e8edf2")
 	environment.ambient_light_energy = 0.18
 	environment.ambient_light_sky_contribution = 0.0
+	# Lets the Kueh Arcade signboard read as genuinely lit (its Label3D
+	# modulate is pushed past 1.0 -- see shophouse_street.gd's _sign()) without
+	# affecting anything else: only pixels above the threshold bloom, and
+	# every other material in the Hub stays within the normal 0..1 range.
+	environment.glow_enabled = true
+	environment.glow_intensity = 0.9
+	# Bloom was still bleeding bright sun-facing edges into the sky whenever
+	# the camera tilted upward. Thresholded glow remains available for authored
+	# emissive signs, but it no longer lifts the whole bright image around them.
+	environment.glow_bloom = 0.0
+	environment.glow_hdr_threshold = 1.2
 	# White fog was adding energy across the whole frame and destroying
 	# silhouettes. The white plane/background already provide the void.
 	environment.fog_enabled = false
@@ -90,7 +172,7 @@ func _build_environment() -> void:
 	key_light.name = "WarmKeyLight"
 	key_light.rotation_degrees = Vector3(-52, -38, 0)
 	key_light.light_color = Color("fff1df")
-	key_light.light_energy = 0.44
+	key_light.light_energy = 0.38
 	key_light.light_angular_distance = 3.5
 	key_light.shadow_enabled = true
 	key_light.directional_shadow_max_distance = 55.0
@@ -235,84 +317,237 @@ void fragment() {
 
 func _build_contributors() -> void:
 	for data in _contributors():
+		var contributor_key: String = CONTRIBUTOR_KEYS.get(data["name"], "")
+		# Keep the owner's contributor NPC in-world as a deliberate doppelgänger
+		# easter egg. Only that signed-in owner receives the alternate dialogue
+		# name; everyone else continues to see the contributor normally.
+		data["is_owner_doppelganger"] = not contributor_key.is_empty() and contributor_key == _owned_contributor_key
+		if _remote_appearances.has(contributor_key):
+			var remote: Dictionary = _normalize_appearance(_remote_appearances[contributor_key])
+			if not remote.is_empty():
+				(data["appearance"] as Dictionary).merge(remote, true)
 		var npc_position: Vector3 = data["position"]
 		var display_kind: String = data.get("display", "")
 		if not display_kind.is_empty():
 			var display_position: Vector3 = data["display_position"]
-			var inward: Vector3 = (Vector3.ZERO - display_position).normalized()
+			var inward: Vector3 = Vector3(0, 0, 1)
 			var display := DisplayBuilder.build(self, display_kind, display_position)
-			# Every project's interactive/front face points into the room.
-			display.rotation.y = atan2(inward.x, inward.z)
+			display.rotation.y = data.get("display_facing", atan2(inward.x, inward.z))
+			if data["name"] in ["Amy Fu", "Ken Lee"]:
+				ShophouseStreet.add_pole_support(display)
+			if data["name"] == "Samantha Tan":
+				ShophouseStreet.add_boombox_table(display)
+			if data["name"] == "Amanda Ng":
+				ShophouseStreet.add_beary_chair(display)
+			if data["name"] in ["Amy Fu", "Ken Lee", "Kaixin Cai", "Li Wei Lim", "Ruth Yong", "Samantha Tan"]:
+				var display_data := _hotspot_data(data, data.get("display_title", data["name"]), data.get("display_dialog", data["dialog"]))
+				_register_interactable(display, display_data, "View (F)", "display")
 			# Place the presenter beside—not behind—their display. There are two
 			# valid lateral sides; retain whichever one is nearest their authored
 			# layout position so the room's grouping stays intentional. A 1.12 m
 			# centre offset keeps figures visually close while clearing the widest
 			# cabinet casing and the figure's relaxed stance.
-			var lateral := Vector3(inward.z, 0, -inward.x)
-			var side_a := display_position + lateral * 1.12
-			var side_b := display_position - lateral * 1.12
-			var authored_position: Vector3 = data["position"]
-			npc_position = side_a if side_a.distance_squared_to(authored_position) <= side_b.distance_squared_to(authored_position) else side_b
-		var npc := HubNPC.new()
-		npc.position = npc_position
-		add_child(npc)
-		npc.setup(data, _player)
+			if not bool(data.get("fixed_npc_position", false)):
+				var lateral := Vector3(inward.z, 0, -inward.x)
+				var side_a := display_position + lateral * 1.12
+				var side_b := display_position - lateral * 1.12
+				var authored_position: Vector3 = data["position"]
+				npc_position = side_a if side_a.distance_squared_to(authored_position) <= side_b.distance_squared_to(authored_position) else side_b
+		var venue_center := _indoor_venue_center(String(data["name"]))
+		if data.has("npc_facing"):
+			data["facing"] = data["npc_facing"]
+		elif venue_center != Vector3.INF:
+			var toward_center := venue_center - npc_position
+			data["facing"] = atan2(toward_center.x, toward_center.z)
+		var npc: HubNPC
+		if bool(data.get("roaming", false)):
+			var roaming_npc := HubRoamingNPC.new()
+			roaming_npc.position = npc_position
+			add_child(roaming_npc)
+			roaming_npc.setup_roaming(data, _player, data.get("roam_bounds", [Rect2(-14, 7, 28, 7)]), data.get("door_waypoints", []))
+			npc = roaming_npc
+		else:
+			npc = HubNPC.new()
+			npc.position = npc_position
+			add_child(npc)
+			npc.setup(data, _player)
 		_npcs.append(npc)
+		_register_interactable(npc, data, "Talk (F)", "ambient_npc" if bool(data.get("ambient_dialog", false)) else "npc")
+
+func _load_character_bootstrap() -> void:
+	if not OS.has_feature("web"):
+		return
+	var window := JavaScriptBridge.get_interface("window")
+	if window == null or not bool(window.hasOwnProperty("getKuehCharacterBootstrapJson")):
+		return
+	var parsed: Variant = JSON.parse_string(str(window.getKuehCharacterBootstrapJson()))
+	if not (parsed is Dictionary):
+		return
+	_signed_in = not str(parsed.get("userId", "")).is_empty()
+	_owned_contributor_key = str(parsed.get("ownedContributorKey", ""))
+	_account_appearance = _normalize_appearance(parsed.get("appearance", {}))
+	for item in parsed.get("contributors", []):
+		if item is Dictionary and not str(item.get("key", "")).is_empty():
+			_remote_appearances[str(item["key"])] = item.get("appearance", {})
+
+func _normalize_appearance(value: Variant) -> Dictionary:
+	if not (value is Dictionary):
+		return {}
+	var result: Dictionary = (value as Dictionary).duplicate(true)
+	for key in ["skin", "hair", "top", "bottom", "shoes"]:
+		if result.get(key) is String and Color.html_is_valid(result[key]):
+			result[key] = Color.from_string(str(result[key]), Color.WHITE)
+	return result
 
 func _build_sophia_cats() -> void:
+	var sophia_data := _contributor_named("Sophia Himawan")
+	var cat_data := _hotspot_data(
+		sophia_data,
+		"Cat Scan",
+		"A neighborhood cat pauses just long enough to be noticed. Sophia's project helps you find more feline neighbors."
+	)
 	var first := HubCat.new()
 	first.name = "SophiasRoamingCatA"
 	first.coat_color = CatFigure.COAT_COLORS[1]
-	first.position = Vector3(7.5, 0, 9.6)
+	first.position = Vector3(-11.0, 0, 10.2)
 	add_child(first)
+	_register_interactable(first, cat_data, "Look at cat (F)", "display")
 	var second := HubCat.new()
 	second.name = "SophiasRoamingCatB"
 	second.coat_color = CatFigure.COAT_COLORS[3]
-	second.position = Vector3(5.0, 0, 12.2)
+	second.position = Vector3(9.0, 0, 11.5)
 	add_child(second)
+	_register_interactable(second, cat_data, "Look at cat (F)", "display")
+	var third := HubCat.new()
+	third.name = "SophiasRoamingCatC"
+	third.coat_color = CatFigure.COAT_COLORS[0]
+	third.position = Vector3(0.5, 0, 10.5)
+	add_child(third)
+	_register_interactable(third, cat_data, "Look at cat (F)", "display")
+
+func _register_amanda_door() -> void:
+	var door := _street_data.get("amanda_door") as Node3D
+	if door != null:
+		var door_data := _hotspot_data(
+			_contributor_named("Amanda Ng"),
+			"Beary's Kueh Shop",
+			"A cozy cafe story about helping lost Kueh piece their memories together, one sweet story at a time."
+		)
+		_register_interactable(door, door_data, "Visit Beary's (F)", "display")
+
+func _hotspot_data(source: Dictionary, title: String, line: String) -> Dictionary:
+	var result := source.duplicate(true)
+	result["name"] = title
+	result["dialog"] = line
+	result["is_owner_doppelganger"] = false
+	return result
+
+func _register_interactable(node: Node3D, data: Dictionary, prompt := "Talk (F)", interaction_kind := "npc") -> void:
+	if node == null or data.is_empty():
+		return
+	_interactables.append({"node": node, "data": data, "prompt": prompt, "kind": interaction_kind})
+
+func _contributor_named(contributor_name: String) -> Dictionary:
+	for data in _contributors():
+		if data["name"] == contributor_name:
+			return data
+	return {}
+
+## 0 = pure nearest-distance picking, 1 = strongly favors whatever the
+## player's body is currently facing over something merely closer.
+const FACING_BIAS_STRENGTH := 0.6
 
 func _update_nearby() -> void:
 	if _player == null or _ui == null or _player.input_locked:
 		return
-	var closest: HubNPC = null
-	var closest_distance := INTERACT_DISTANCE
-	for npc in _npcs:
-		var distance := _player.global_position.distance_to(npc.global_position)
-		if distance < closest_distance:
-			closest = npc
-			closest_distance = distance
+	if _ambient_dialog_active:
+		_ui.set_prompt(false)
+		return
+	var closest: Node3D = null
+	var closest_data: Dictionary = {}
+	var closest_prompt := "Talk (F)"
+	var closest_kind := "npc"
+	var best_score := INF
+	var body_forward := _player.body_forward()
+	for item in _interactables:
+		var node := item.get("node") as Node3D
+		if node == null or not is_instance_valid(node):
+			continue
+		var offset := node.global_position - _player.global_position
+		var distance := offset.length()
+		if distance >= INTERACT_DISTANCE:
+			continue
+		# A crowd of interactables within range shouldn't force picking
+		# whichever happens to be a few centimeters closer -- bias the score
+		# toward whatever the player's body is actually facing. Alignment
+		# runs -1 (behind) to 1 (straight ahead), so this shrinks the
+		# effective distance to things in front and grows it for things
+		# behind, while the raw distance above still gates what's in range
+		# at all.
+		var alignment := 0.0
+		var horizontal := Vector2(offset.x, offset.z)
+		if horizontal.length() > 0.01:
+			alignment = body_forward.dot(Vector3(horizontal.x, 0.0, horizontal.y).normalized())
+		var score := distance * (1.0 - FACING_BIAS_STRENGTH * alignment)
+		if score < best_score:
+			closest = node
+			closest_data = item.get("data", {})
+			closest_prompt = item.get("prompt", "Talk (F)")
+			closest_kind = item.get("kind", "npc")
+			best_score = score
 	_nearby = closest
-	_ui.set_prompt(_nearby != null)
+	_nearby_data = closest_data
+	_nearby_prompt = closest_prompt
+	_nearby_kind = closest_kind
+	_ui.set_prompt(_nearby != null, _nearby_prompt)
 
 func _talk_to_nearby() -> void:
-	if _nearby == null:
+	if _nearby == null or _ambient_dialog_active:
 		return
-	_player.input_locked = true
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_ui.set_prompt(false)
-	var data := _nearby.contributor
+	var data := _nearby_data
 	var actions: Array[Dictionary] = []
-	var player_response: String = PLAYER_RESPONSES.get(data["name"], "")
-	if not player_response.is_empty():
-		actions.append({
-			"label": player_response,
-			"callback": func() -> void:
-				DialogUI.hide_dialog()
-				_on_dialog_closed()
-		})
 	var url: String = data.get("url", "")
-	if not url.is_empty():
+	if _nearby_kind == "display" and not url.is_empty():
 		actions.append({
-			"label": "View project." if data["name"] == "Nicole Ng" else "Visit project.",
+			"label": "Visit project",
 			"callback": func() -> void:
 				DialogUI.hide_dialog()
 				_visit_project(url)
 				_on_dialog_closed()
 		})
-	var dismiss_label := "" if PLAYER_RESPONSES.has(data["name"]) else "Goodbye."
-	DialogUI.show_line(data["name"], data["dialog"], actions, dismiss_label, _on_dialog_closed)
+	elif _nearby_kind != "ambient_npc":
+		var player_response: String = PLAYER_RESPONSES.get(data["name"], "")
+		if not player_response.is_empty():
+			actions.append({
+				"label": player_response,
+				"callback": func() -> void:
+					DialogUI.hide_dialog()
+					_on_dialog_closed()
+			})
+		if not url.is_empty():
+			actions.append({
+				"label": "View project." if data["name"] == "Nicole Ng" else "Visit project.",
+				"callback": func() -> void:
+					DialogUI.hide_dialog()
+					_visit_project(url)
+					_on_dialog_closed()
+			})
+	if _nearby_kind == "ambient_npc" and _nearby is HubRoamingNPC:
+		(_nearby as HubRoamingNPC).pause_for_interaction()
+	var dismiss_label := "Back" if _nearby_kind == "display" else ("" if _nearby_kind == "ambient_npc" or PLAYER_RESPONSES.has(data["name"]) else "Goodbye.")
+	var speaker_name := "Mirror Universe You" if bool(data.get("is_owner_doppelganger", false)) else String(data["name"])
+	# Modal response choices own player input; ambient Eleblorb-style chatter is
+	# purely informational and remains on screen while traversal continues.
+	if actions.is_empty():
+		_ambient_dialog_active = true
+	else:
+		_player.input_locked = true
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	DialogUI.show_line(speaker_name, data["dialog"], actions, dismiss_label, _on_dialog_closed)
 
 func _on_dialog_closed() -> void:
+	_ambient_dialog_active = false
 	_player.input_locked = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -333,51 +568,61 @@ func _contributors() -> Array[Dictionary]:
 	# "/<slug>/" rewrite actually points at. See vercel.json's own header
 	# comment for the full reasoning.
 	var contributors: Array[Dictionary] = [
-		_person("Amanda Ng", Vector3(-12, 0, -13), Vector3(-10.5, 0, -11.3), "amanda", "/amanda/", "Beary is ready to serve up something sweet. Have a look around the shop.", _appearance(0.86, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, "very_long_full", Color("151515"), Color("161616"), false, false, true, true)),
-		_person("Amy Fu", Vector3(-7.0, 0, -13), Vector3(-5.2, 0, -11.3), "amy_gacha", "/amy/", "Give the knob a turn. Every capsule has a little Kueh surprise inside.", _appearance(0.90, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, "medium_long", Color("1e314d"), Color("355677"), true).merged({"hair_length_variance": 0.13})),
-		_person("Azri", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "", "", "This is pretty cool. What does Kueh Machine mean again?", _appearance(0.98, 1.02, HubPalette.TAN_SKIN, Color("443b37"), "buzzcut", Color("287fc2"), Color("242b35"), true, true, false, false, false, true)),
-		_person("Ken Lee", Vector3(-0.6, 0, -13), Vector3(-2.4, 0, -11.3), "ken_gacha", "/ken/", "Try your luck, you might get a rare one.", _appearance(0.98, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, FigureHair.STYLE_HERO, Color("171717"), Color("181818"), false, false, false, false, false, true, HubPalette.WHITE)),
-		_person("Geraldine Chua", Vector3(6, 0, -13), Vector3.ZERO, "", "", "I'm taking in everyone else's machines today. My space will be ready later.", _appearance(1.04, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, "less_shoulder", Color("171717"), Color("171717"), true).merged({"hair_length_variance": 0.05})),
-		_person("Jesslyn Teo", Vector3(-14, 0, -9), Vector3(-11.7, 0, -9), "jesslyn", "/jesslyn/", "A good birthday starts with knowing what you can spend. Mine helps you plan the whole day.", _appearance(1.04, 1.13, HubPalette.TAN_SKIN, HubPalette.DARK_BROWN_HAIR, "long", Color("efaa88"), Color("d9c6a5"), true, true, false, true)),
-		_person("Kaixin Cai", Vector3(-14, 0, -3), Vector3(-11.7, 0, -3), "kaixin", "/kaixin/", "Pick a tune and sing it properly. The Kueh puns are part of the experience.", _appearance(1.04, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, FigureHair.STYLE_PONYTAIL_SHORT, Color("150f1e"), Color("3a3a3c"), true).merged({"glasses_on_hair": true, "shirt_texture": HubPalette.polka_dot_texture(Color("150f1e"), Color("ff2e93"), 10, 256, 3.0)})),
-		_person("Kevin Dreher", Vector3(-14, 0, 3), Vector3.ZERO, "", "", "I'm still translating what my corner should become. Come back when it is ready.", _appearance(1.09, 1.08, HubPalette.FAIR_SKIN, Color("d2aa63"), "buzzcut", HubPalette.WHITE, Color("355677"), false, false, false, false, false)),
-		_person("Li Wei Lim", Vector3(14, 0, -1.8), Vector3(11.7, 0, 0), "lapis_arcade", "/liwei/", "The snake keeps growing, just like the layers of a good lapis. See how long you can last.", _appearance(1.04, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, FigureHair.STYLE_PONYTAIL_LONG, Color("315b43"), Color("a9bfd3"))),
-		_person("Mei Jun Chew", Vector3(-14, 0, 9), Vector3(-11.7, 0, 9), "meijun", "/meijun/", "Taste has a way of taking you home. This is where I keep those memories.", _appearance(0.98, 1.13, HubPalette.TAN_SKIN, Color("3f2a20"), FigureHair.STYLE_PONYTAIL, HubPalette.WHITE, Color("5f6368"), true, true).merged({"upper_arm_thickness": 1.15, "shoes": Color("3f6f9f")}, true)),
-		_person("Natalia Lionardy", Vector3(14, 0, -7.8), Vector3(11.7, 0, -6), "water_glass", "/natalia/", "Care Island changes with the day. Slow down and see what is happening there now.", _appearance(0.90, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, "shoulder", Color("f4f0e6"), Color("292d35"), true).merged({"hair_length_variance": 0.09, "sleeve_style": ProceduralFigure.SLEEVE_STYLE_LONG, "shoes": Color("c7c9cc")}, true)),
-		_person("Nicole Ng", Vector3(12, 0, -13), Vector3.ZERO, "nicole_calculator", "/nicole/", "Go on—calculate how much life you have left. Try not to take the result personally.", _appearance(0.98, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, "less_shoulder", Color("777a7c"), Color("d9c6a5"), true, false, false, false, true, false, Color("777a7c")).merged({"glasses_on_hair": true})),
-		_person("Ruth Yong", Vector3(14, 0, 4.8), Vector3(11.7, 0, 3), "bakery_arcade", "/ruth/", "Stack the Kueh carefully. The bakery gets much busier once you find your rhythm.", _appearance(0.87, 1.13, HubPalette.TAN_SKIN, HubPalette.DARK_BROWN_HAIR, "bun", Color("e887a5"), Color("355677"))),
-		_person("Samantha Tan", Vector3(14, 0, 9), Vector3(11.7, 0, 9), "remember", "/samantha/", "Pick an era and follow the devices that carried its songs. Some memories start with a play button.", _appearance(1.04, 1.13, HubPalette.TAN_SKIN, Color("443b37"), FigureHair.STYLE_PONYTAIL, HubPalette.WHITE, Color("d88778"))),
-		_person("Sophia Himawan", Vector3(14, 0, 15), Vector3(11.7, 0, 15), "cat_scan", "/sophia/", "The cats have already mapped this corner. Mine helps you spot their friends around the neighborhood.", _appearance(1.04, 1.13, HubPalette.TAN_SKIN, HubPalette.BLACK_HAIR, "full_long", Color("494949"), Color("18283f"), false, false, false, true)),
-		_person("Viki Yap", Vector3(-14, 0, 15), Vector3(-11.7, 0, 15), "viki", "/viki/", "Build a kueh nobody's auntie has made yet.", _appearance(0.90, 1.13, HubPalette.TAN_SKIN, HubPalette.DARK_BROWN_HAIR, "long", Color("151515"), Color("a9bfd3"))),
+		_person("Amanda Ng", Vector3(-12, 0, -13), Vector3(-10.5, 0, -11.3), "amanda", "/amanda/", "Beary is ready to serve up something sweet. Have a look around the shop.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "very_long_full", "none", "none", Color("191919"), true, Color("191919"), Color("5b3a29"))),
+		_person("Amy Fu", Vector3(-7.0, 0, -13), Vector3(-5.2, 0, -11.3), "amy_gacha", "/amy/", "Give the knob a turn. Every capsule has a little Kueh surprise inside.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("18283f"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Azri", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "", "", "This is pretty cool. What does Kueh Machine mean again?", _appearance("slim", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "buzzcut", "round", "short", Color("287fc2"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Ken Lee", Vector3(-0.6, 0, -13), Vector3(-2.4, 0, -11.3), "ken_gacha", "/ken/", "Try your luck, you might get a rare one.", _appearance("broad", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "hero", "none", "short", Color("191919"), false, Color("191919"), Color("fbf6ec"))),
+		_person("Geraldine Chua", Vector3(6, 0, -13), Vector3.ZERO, "", "", "Just out for a stroll today, taking it all in.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("191919"), false, Color("191919"), Color("5b3a29"))),
+		_person("Jesslyn Teo", Vector3(-14, 0, -9), Vector3(-11.7, 0, -9), "jesslyn", "/jesslyn/", "A good birthday starts with knowing what you can spend. Mine helps you plan the whole day.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("6a4632"), "full_long", "round", "none", Color("d97b66"), false, Color("f0b429"), Color("5b3a29"))),
+		_person("Kaixin Cai", Vector3(-14, 0, -3), Vector3(-11.7, 0, -3), "kaixin", "/kaixin/", "Pick a tune and sing it properly. The Kueh puns are part of the experience.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "ponytail_short", "head", "colored_upper_arm", Color("150f1e"), false, Color("191919"), Color("5b3a29")).merged({"shirt_pattern": "kaixin_polka"})),
+		_person("Kevin Dreher", Vector3(-14, 0, 3), Vector3.ZERO, "", "", "Hallo! Hier wohne ich jetzt.", _appearance("broad", HEIGHT_TALL, Color("f3cfb8"), Color("d2aa63"), "buzzcut", "none", "short", Color("fbf6ec"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Leonard Reese", Vector3(0, 0, 11), Vector3.ZERO, "", "", "I'm just glad to be here.", _appearance("slim", HEIGHT_MORE_TALL, Color("f3cfb8"), Color("3f2a20"), "hero", "none", "short", Color("191919"), false, Color("191919"), Color("5b3a29"))),
+		_person("Li Wei Lim", Vector3(14, 0, -1.8), Vector3(11.7, 0, 0), "lapis_arcade", "/liwei/", "The snake keeps growing, just like the layers of a good lapis. See how long you can last.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "ponytail_long", "none", "colored_upper_arm", Color("8fbf7f"), false, Color("8bb4d6"), Color("5b3a29"))),
+		_person("Mei Jun Chew", Vector3(-14, 0, 9), Vector3(-11.7, 0, 9), "meijun", "/meijun/", "Taste has a way of taking you home. This is where I keep those memories.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "ponytail_long", "round", "colored_upper_arm", Color("fbf6ec"), false, Color("777a7c"), Color("287fc2"))),
+		_person("Natalia Lionardy", Vector3(14, 0, -7.8), Vector3(11.7, 0, -6), "water_glass", "/natalia/", "Log a drink and watch the kueh lupis come together, stage by stage, until you hit your goal.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "long", Color("fbf6ec"), false, Color("18283f"), Color("8bb4d6"))),
+		_person("Nicole Ng", Vector3(12, 0, -13), Vector3.ZERO, "nicole_calculator", "/nicole/", "Go on—calculate how much life you have left. Try not to take the result personally.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "head", "colored_upper_arm", Color("777a7c"), false, Color("191919"), Color("777a7c"))),
+		_person("Ruth Yong", Vector3(14, 0, 4.8), Vector3(11.7, 0, 3), "bakery_arcade", "/ruth/", "Stack the Kueh carefully. The bakery gets much busier once you find your rhythm.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("6a4632"), "bun", "none", "colored_upper_arm", Color("f2b8c6"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Samantha Tan", Vector3(14, 0, 9), Vector3(11.7, 0, 9), "remember", "/samantha/", "Pick an era and follow the devices that carried its songs. Some memories start with a play button.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "ponytail_long", "none", "colored_upper_arm", Color("fbf6ec"), false, Color("d97b66"), Color("5b3a29"))),
+		_person("Sophia Himawan", Vector3(14, 0, 15), Vector3(11.7, 0, 15), "cat_scan", "/sophia/", "The cats have already mapped this corner. Mine helps you spot their friends around the neighborhood.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "full_long", "none", "none", Color("191919"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Viki Yap", Vector3(-14, 0, 15), Vector3(-11.7, 0, 15), "viki", "/viki/", "Build a kueh nobody's auntie has made yet.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("6a4632"), "full_long", "none", "colored_upper_arm", Color("191919"), false, Color("8bb4d6"), Color("5b3a29"))),
 	]
 	_apply_even_hub_layout(contributors)
 	return contributors
 
 func _apply_even_hub_layout(contributors: Array[Dictionary]) -> void:
-	# Three regular gallery runs leave the entrance side open. Each coordinate is
-	# the centre of a presenter/display module; presenter side does not affect the
-	# spacing calculation. The two thematic pairs occupy adjacent modules, with
-	# their presenters hinted toward the outside edges of each pair.
+	# Venue-local placements replace the old perimeter gallery. Every project
+	# continues to use its canonical contributor record; only its spatial role and
+	# presentation change here.
 	var layout := {
-		# Back run, left to right.
-		"Amanda Ng": {"display": Vector3(-9.0, 0, -11.0), "npc": Vector3(-10.7, 0, -11.0)},
-		"Amy Fu": {"display": Vector3(-4.5, 0, -11.0), "npc": Vector3(-6.2, 0, -11.0)},
-		"Ken Lee": {"display": Vector3(0.0, 0, -11.0), "npc": Vector3(1.7, 0, -11.0)},
-		"Geraldine Chua": {"npc": Vector3(4.5, 0, -11.0)},
-		"Mei Jun Chew": {"display": Vector3(9.0, 0, -11.0), "npc": Vector3(10.7, 0, -11.0)},
-		"Azri": {"npc": Vector3(-5.5, 0, 13.5)},
-		# Left run, back to front.
-		"Jesslyn Teo": {"display": Vector3(-11.0, 0, -6.0), "npc": Vector3(-11.0, 0, -7.7)},
-		"Kaixin Cai": {"display": Vector3(-11.0, 0, -1.5), "npc": Vector3(-11.0, 0, -3.2)},
-		"Kevin Dreher": {"npc": Vector3(-11.0, 0, 3.0)},
-		"Nicole Ng": {"display": Vector3(-11.0, 0, 7.5), "npc": Vector3(-11.0, 0, 5.8)},
-		"Viki Yap": {"display": Vector3(-11.0, 0, 12.0), "npc": Vector3(-11.0, 0, 10.3)},
-		# Right run, back to front. Li Wei and Ruth form one adjacent pair.
-		"Natalia Lionardy": {"display": Vector3(11.0, 0, -6.0), "npc": Vector3(11.0, 0, -7.7)},
-		"Li Wei Lim": {"display": Vector3(11.0, 0, -1.5), "npc": Vector3(11.0, 0, -3.2)},
-		"Ruth Yong": {"display": Vector3(11.0, 0, 3.0), "npc": Vector3(11.0, 0, 4.7)},
-		"Samantha Tan": {"display": Vector3(11.0, 0, 7.5), "npc": Vector3(11.0, 0, 5.8)},
-		"Sophia Himawan": {"display": Vector3(11.0, 0, 12.0), "npc": Vector3(11.0, 0, 10.3)},
+		# Arcade: every free-standing exhibit hugs a side wall and faces inward,
+		# preserving a wide, uninterrupted entrance-to-stage circulation spine.
+		# Gacha bank: two neighboring machines along the left wall.
+		"Amy Fu": {"display": Vector3(-15.0, 0, 0.7), "display_facing": deg_to_rad(90.0), "npc": Vector3(-13.4, 0, 2.0), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "My gacha machine is along the wall with Ken's. Go see what comes out.", "display_title": "Kueh Machine", "display_dialog": "A capsule machine filled with tiny Kueh surprises. Some pulls are rarer than others."},
+		"Ken Lee": {"display": Vector3(-15.0, 0, -2.5), "display_facing": deg_to_rad(90.0), "npc": Vector3(-13.2, 0, -1.2), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "Mine's the gacha next to Amy's. We put them together so you can compare your luck.", "display_title": "Gatcha-Kueh", "display_dialog": "Turn the knob and see which Kueh character tumbles out."},
+		# The microphone and Kaixin both sit just into the curved stage lip. A
+		# slight 4 cm visual sink removes any apparent gap against the deck.
+		"Kaixin Cai": {"display": Vector3(-12.0, 0.44, -10.15), "display_facing": PI, "npc": Vector3(-13.1, 0.44, -10.65), "fixed_npc": true, "ambient_dialog": true, "npc_dialog": "The karaoke stage is ready. The microphone is less scary once the music starts.", "display_title": "Kara-o-kueh", "display_dialog": "A karaoke stage where every song title gets a Kueh-flavored twist."},
+		# Cabinet bank: both games occupy the opposite wall and face inward.
+		"Li Wei Lim": {"display": Vector3(-8.72, 0, -0.6), "display_facing": deg_to_rad(-90.0), "npc": Vector3(-10.6, 0, 0.8), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "My cabinet has the layered snake game. Try not to tie yourself in knots.", "display_title": "Lapis", "display_dialog": "A layered spin on Snake: keep growing without folding into yourself."},
+		"Ruth Yong": {"display": Vector3(-8.72, 0, -4.7), "display_facing": deg_to_rad(-90.0), "npc": Vector3(-10.7, 0, -3.3), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "There's my game—give it a try. The bakery gets busy quickly.", "display_title": "Kueh Bakery", "display_dialog": "Stack and serve colorful Kueh as the bakery rush gets faster."},
+		"Samantha Tan": {"display": Vector3(-14.55, 0, -6.55), "display_facing": deg_to_rad(90.0), "npc": Vector3(-15.55, 0, -6.55), "fixed_npc": true, "display_title": "Remember.fm", "display_dialog": "A retro music archive tuned through the devices and sounds that carried each era."},
+		# Gallery: each presenter and plinth form a shoulder-to-shoulder pair
+		# along a side wall. They share the same x coordinate and differ in z,
+		# so neither display sits between its presenter and the room.
+		"Nicole Ng": {"display": Vector3(-1.65, 0, 2.15), "display_facing": deg_to_rad(-90.0), "npc": Vector3(-1.65, 0, 0.45), "npc_facing": deg_to_rad(-90.0), "fixed_npc": true},
+		"Jesslyn Teo": {"display": Vector3(-6.35, 0, -0.35), "display_facing": deg_to_rad(90.0), "npc": Vector3(-6.35, 0, -2.05), "npc_facing": deg_to_rad(90.0), "fixed_npc": true},
+		# Restaurant: Viki and Natalia are represented by authored fixtures
+		# supplied by ShophouseStreet, so their old pedestal kinds are disabled.
+		"Mei Jun Chew": {"display": Vector3(4.0, 0, -12.50), "npc": Vector3(3.0, 0, -11.3), "fixed_npc": true},
+		"Viki Yap": {"display_kind": "", "npc": Vector3(5.15, 0, -7.65)},
+		"Natalia Lionardy": {"display_kind": "", "npc": Vector3(2.45, 0, -4.15)},
+		# Outdoor ambient cast: all share a safe strip in front of the arcade.
+		"Azri": {"display_kind": "", "npc": Vector3(-7.0, 0, 10.5), "roaming": true},
+		"Geraldine Chua": {"display_kind": "", "npc": Vector3(-2.0, 0, 12.2), "roaming": true, "ambient_dialog": true},
+		"Kevin Dreher": {"display_kind": "", "npc": Vector3(4.5, 0, 10.0), "roaming": true},
+		"Leonard Reese": {"display_kind": "", "npc": Vector3(0.5, 0, 9.4), "roaming": true, "ambient_dialog": true, "npc_dialog": "I'm just glad to be here."},
+		"Sophia Himawan": {"display_kind": "", "npc": Vector3(10.0, 0, 12.0), "roaming": true, "ambient_dialog": true, "npc_dialog": "The cats are the real guides around here. Follow one and take a closer look."},
+		"Amanda Ng": {"display": Vector3(14.25, 0, 6.35), "display_facing": 0.0, "npc": Vector3(9.75, 0, 6.55), "fixed_npc": true, "roaming": true, "roam_bounds": [Rect2(9.45, 6.45, 3.35, 1.85)], "ambient_dialog": true, "npc_dialog": "Beary's is right here. Have a look around the shop, there's something sweet waiting inside."},
 	}
 	for index in range(contributors.size()):
 		var contributor: Dictionary = contributors[index]
@@ -386,20 +631,113 @@ func _apply_even_hub_layout(contributors: Array[Dictionary]) -> void:
 			contributor["position"] = placement["npc"]
 		if placement.has("display"):
 			contributor["display_position"] = placement["display"]
+		if placement.has("display_facing"):
+			contributor["display_facing"] = placement["display_facing"]
+		if placement.has("display_kind"):
+			contributor["display"] = placement["display_kind"]
+		if placement.has("roaming"):
+			contributor["roaming"] = placement["roaming"]
+			# The outdoor ambient cast's default area now also includes the
+			# White Gallery's and Kueh Restaurant's own interior floor (front
+			# dining area only -- short of the restaurant's kitchen and the
+			# gallery's solid rear block), so they can wander in and out of
+			# those two venues, not just pace the plaza outside every
+			# shopfront. Gallery and restaurant are kept as two SEPARATE
+			# areas (not one rect spanning both buildings' width) -- see
+			# hub_roaming_npc.gd's _pick_target(), which requires area 0 to
+			# be the connecting outdoor zone: a single combined rect let a
+			# next-target pick land on the far side of the shared party wall
+			# between the two buildings, walking the NPC straight through it
+			# instead of back out and in through the other doorway.
+			# Each interior rect is pulled in 0.5m from its own side walls (so
+			# a shoulder doesn't graze a party wall when approaching a random
+			# target at an angle) and stops 1m short of the shopfront's own
+			# door-gap threshold at z=5 -- an idle REST target landing right
+			# in the doorway itself was the actual cause of NPCs "stalling"
+			# and blocking entry; only the explicit door_waypoints below ever
+			# put a walk that close to the threshold, and those are transit
+			# points, never a resting destination.
+			contributor["roam_bounds"] = placement.get("roam_bounds", [
+				Rect2(-14.5, 8.0, 29.0, 5.8), Rect2(-7.5, -4.0, 7.0, 8.0), Rect2(0.5, -4.0, 7.0, 8.0)
+			])
+			# Gallery's and restaurant's shopfront door gaps are each exactly
+			# centered on their own bay's center_x (the two side panels sit
+			# symmetrically at center_x +/- 2.62, each 1.38 wide). Each entry
+			# is an [outer, inner] pair straddling the panel plane (it spans
+			# z=[4.7,5.3]) by 0.3m on both sides, not one point sitting inside
+			# the wall's own thickness -- see hub_roaming_npc.gd's
+			# door_waypoints doc comment for why a walk needs both, not a
+			# direct line, to keep a shoulder-width margin off the panel
+			# regardless of the angle it's approached from.
+			contributor["door_waypoints"] = placement.get("door_waypoints", [
+				null, [Vector2(-4.0, 5.6), Vector2(-4.0, 4.4)], [Vector2(4.0, 5.6), Vector2(4.0, 4.4)]
+			] if not placement.has("roam_bounds") else [])
+		if placement.has("ambient_dialog"):
+			contributor["ambient_dialog"] = placement["ambient_dialog"]
+		if placement.has("npc_dialog"):
+			contributor["dialog"] = placement["npc_dialog"]
+		if placement.has("npc_facing"):
+			contributor["npc_facing"] = placement["npc_facing"]
+		if placement.has("display_title"):
+			contributor["display_title"] = placement["display_title"]
+		if placement.has("display_dialog"):
+			contributor["display_dialog"] = placement["display_dialog"]
+		if placement.has("fixed_npc"):
+			contributor["fixed_npc_position"] = placement["fixed_npc"]
 		contributors[index] = contributor
+
+func _indoor_venue_center(contributor_name: String) -> Vector3:
+	if contributor_name in ["Amy Fu", "Ken Lee", "Kaixin Cai", "Li Wei Lim", "Ruth Yong", "Samantha Tan"]:
+		return Vector3(-12.0, 0, -3.5)
+	if contributor_name in ["Nicole Ng", "Jesslyn Teo"]:
+		return Vector3(-4.0, 0, 0.5)
+	if contributor_name in ["Mei Jun Chew", "Viki Yap", "Natalia Lionardy"]:
+		return Vector3(4.0, 0, -3.5)
+	if contributor_name == "Amanda Ng":
+		return Vector3(12.0, 0, 6.35)
+	return Vector3.INF
 
 func _person(person_name: String, position: Vector3, display_position: Vector3, display: String, url: String, dialog: String, appearance: Dictionary) -> Dictionary:
 	return {"name": person_name, "position": position, "display_position": display_position, "display": display, "url": url, "dialog": dialog, "appearance": appearance}
 
-func _appearance(height_scale: float, build_scale: float, skin: Color, hair: Color, hair_style: String, top: Color, bottom: Color, glasses := false, round_glasses := false, dress := false, sleeveless := false, is_female := true, abdomen_matches_hips := false, shoe_override := Color(0, 0, 0, 0)) -> Dictionary:
-	# Keep all contributors within a narrow adult-height band. The raised 0.99
-	# floor stops "shortest" figures such as Amanda reading miniature beside the
-	# 1.12 player, while preserving the authored ordering through 1.06.
-	var distributed_height := remap(clampf(height_scale, 0.86, 1.09), 0.86, 1.09, 0.99, 1.06)
-	var shoe_palette: Array[Color] = [Color("4c3325"), Color("714326"), Color("292827"), Color("ded6ca")]
-	var shoe_index: int = absi((str(top) + str(bottom)).hash()) % shoe_palette.size()
-	var chest_build_scale := minf(build_scale, 0.94) if is_female else build_scale
-	var hip_build_scale := build_scale if is_female else minf(build_scale, 1.04)
-	var abdomen_width_scale := build_scale if is_female else minf(build_scale, 1.08)
-	var shoes: Color = shoe_palette[shoe_index] if is_zero_approx(shoe_override.a) else shoe_override
-	return {"height_scale": distributed_height, "build_scale": build_scale, "chest_build_scale": chest_build_scale, "hip_build_scale": hip_build_scale, "abdomen_width_scale": abdomen_width_scale, "abdomen_matches_hips": abdomen_matches_hips, "skin": skin, "hair": hair, "hair_style": hair_style, "top": top, "bottom": bottom, "glasses": glasses, "round_glasses": round_glasses, "dress": dress, "sleeveless": sleeveless, "is_female": is_female, "sleeve_style": ProceduralFigure.SLEEVE_STYLE_NONE if sleeveless else ProceduralFigure.SLEEVE_STYLE_SHORT, "shoes": shoes}
+# Every contributor's look is built entirely from CharacterEditor's own
+# selectable options -- the same 3 Build presets, 3 heights, palette swatches,
+# hair styles, glasses choices, and Top/Bottom styles a claiming contributor
+# sees in the live editor -- so a claimed character's default_appearance can
+# start from exactly this dictionary with no custom tweak that only hub_main
+# itself knows how to render.
+func _appearance(body_preset: String, height_choice: float, skin: Color, hair: Color, hair_style: String, glasses_choice: String, sleeve_style: String, top: Color, wears_dress: bool, bottom: Color, shoes: Color) -> Dictionary:
+	var result := {
+		"body_preset": body_preset, "height_scale": height_choice,
+		"skin": skin, "hair": hair, "hair_style": hair_style,
+		"glasses": glasses_choice != "none",
+		"round_glasses": glasses_choice == "round",
+		"glasses_on_hair": glasses_choice == "head",
+		"sleeve_style": sleeve_style, "top": top,
+		"dress": wears_dress, "bottom": bottom, "shoes": shoes,
+	}
+	result.merge(CharacterEditor.BODY_PRESETS.get(body_preset, CharacterEditor.BODY_PRESETS["slim"]), true)
+	return result
+
+## A signed-out visitor has no saved character, so their player figure gets a
+## fresh random pick from the same CharacterEditor-selectable option space
+## every load -- never a custom value outside what the live editor could
+## itself produce. Rerolled on every Hub load; not persisted anywhere, since
+## there is no account to persist it against.
+func _random_player_appearance() -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var body_preset: String = CharacterEditor.BODY_PRESETS.keys()[rng.randi_range(0, CharacterEditor.BODY_PRESETS.size() - 1)]
+	var height_choice: float = [HEIGHT_LESS_TALL, HEIGHT_TALL, HEIGHT_MORE_TALL][rng.randi_range(0, 2)]
+	var skin := Color(CharacterEditor.SKIN_SWATCHES[rng.randi_range(0, CharacterEditor.SKIN_SWATCHES.size() - 1)])
+	var hair := Color(CharacterEditor.HAIR_SWATCHES[rng.randi_range(0, CharacterEditor.HAIR_SWATCHES.size() - 1)])
+	var hair_style: String = CharacterEditor.HAIR_STYLES[rng.randi_range(0, CharacterEditor.HAIR_STYLES.size() - 1)]["value"]
+	var glasses_choice: String = ["none", "rect", "round", "head"][rng.randi_range(0, 3)]
+	var sleeve_style: String = ["none", "short", "colored_upper_arm", "long"][rng.randi_range(0, 3)]
+	var top := Color(CharacterEditor.CLOTH_SWATCHES[rng.randi_range(0, CharacterEditor.CLOTH_SWATCHES.size() - 1)])
+	var bottom := Color(CharacterEditor.CLOTH_SWATCHES[rng.randi_range(0, CharacterEditor.CLOTH_SWATCHES.size() - 1)])
+	var shoes := Color(CharacterEditor.CLOTH_SWATCHES[rng.randi_range(0, CharacterEditor.CLOTH_SWATCHES.size() - 1)])
+	# A skirt only reads as intentional on the "Soft" preset, the same pairing
+	# every dress-wearing contributor above already uses.
+	var wears_dress := body_preset == "soft" and rng.randf() < 0.5
+	return _appearance(body_preset, height_choice, skin, hair, hair_style, glasses_choice, sleeve_style, top, wears_dress, bottom, shoes)

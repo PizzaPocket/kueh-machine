@@ -30,6 +30,30 @@ extends RefCounted
 const EYE_RADIUS_FACTOR := 0.26 * 0.5
 const EYE_HEIGHT_RATIO := 1.4  # mesh's own Y semi-axis, as a multiple of eye_radius
 
+## Preserve the appearance that was already working at the ends of the skin
+## palette: the lightest skin's former 25% darken is an approximately 0.20
+## luminance separation, while the darkest skin's former 42% lighten is about
+## 0.36. Apply those same separations throughout their respective contexts
+## rather than scaling the contrast down with the skin value.
+const EYE_ON_LIGHT_THRESHOLD := 0.36
+const EYE_ON_LIGHT_LUMINANCE_GAP := 0.20
+const EYE_ON_DARK_LUMINANCE_GAP := 0.36
+
+
+static func _eye_color_for_skin(skin_color: Color) -> Color:
+	var luminance := 0.2126 * skin_color.r + 0.7152 * skin_color.g + 0.0722 * skin_color.b
+	if luminance >= EYE_ON_LIGHT_THRESHOLD:
+		var target_luminance := maxf(luminance - EYE_ON_LIGHT_LUMINANCE_GAP, 0.04)
+		var darken_amount := clampf(1.0 - target_luminance / maxf(luminance, 0.001), 0.0, 0.92)
+		return skin_color.darkened(darken_amount)
+	var target_luminance := minf(luminance + EYE_ON_DARK_LUMINANCE_GAP, 0.94)
+	var lighten_amount := clampf(
+		(target_luminance - luminance) / maxf(1.0 - luminance, 0.001),
+		0.0,
+		0.92
+	)
+	return skin_color.lightened(lighten_amount)
+
 
 ## The eyes' own top edge, in the head's local Y (head center = 0). Eyes
 ## sit at eta=0 (the head's equator, y=0 in this frame) and add_eyes()'s
@@ -47,7 +71,7 @@ static func add_eyes(head: MeshInstance3D, semi_axes: Vector3, skin_color: Color
 	var eye_radius := semi_axes.x * EYE_RADIUS_FACTOR
 	var eta := 0.0  # exact center height (the head's own equator), not toward the top
 	var eye_offset := deg_to_rad(18.0)  # each eye this far around from dead-front
-	var eye_color := skin_color.darkened(0.25)
+	var eye_color := _eye_color_for_skin(skin_color)
 	var eyes: Array[MeshInstance3D] = []
 
 	for side in [-1.0, 1.0]:

@@ -9,6 +9,7 @@ import os
 
 
 ROUTES = {
+    "claim-character": "/claim-character",
     "amanda": "/machines/amanda",
     "amy": "/machines/amy",
     "geraldine": "/machines/geraldine",

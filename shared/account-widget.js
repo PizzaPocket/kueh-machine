@@ -132,6 +132,9 @@
   var ready = new Promise(function (resolve) { readyResolve = resolve; });
   var currentSession = null;
   var authListeners = [];
+  // Host features may add one first-level account action without forking the
+  // shared panel. Character editing uses this to stay a true account action.
+  var accountActions = [];
   var profileListeners = [];
 
   function loadSupabaseJs(cb) {
@@ -1151,7 +1154,9 @@
   // than clashing. Same circular-swatch interaction Viki's and Amanda's own
   // customizers already use (ondeh.js's .color-chip-grid, script.js's
   // .color-swatch) — active = a visible ring + a slight scale-up.
-  var AVATAR_COLORS = ['#F2B8C6', '#8FBF7F', '#F0B429', '#D97B66', '#B8D8B8', '#FBF6EC', '#C4933F', '#5B3A29'];
+  // Hue order: red/brown through yellow and green to pink, followed by the
+  // light neutral. The character editor reuses the matching clothing hues.
+  var AVATAR_COLORS = ['#D97B66', '#5B3A29', '#C4933F', '#F0B429', '#8FBF7F', '#B8D8B8', '#F2B8C6', '#FBF6EC'];
 
   // Desktop inset for a true floating (mode:'fixed') badge's horizontal
   // edge — matches root's own docked-header inset exactly (data-inset="32"
@@ -1357,6 +1362,15 @@
       value: currentName,
       maxLength: 40,
       onSave: function (val) { updateProfile({ display_name: val }); },
+    });
+
+    accountActions.forEach(function (action) {
+      var actionRow = el('div', 'row-link acct-row', '<span>' + escapeHtml(action.label) + '</span>' + (ICON_FORWARD_SVG || FALLBACK_FORWARD_SVG));
+      makeButtonLike(actionRow, function () {
+        togglePanel(false);
+        action.onActivate();
+      });
+      rowList.appendChild(actionRow);
     });
 
     // Security-sensitive stuff (email, password, delete) doesn't belong on
@@ -1715,7 +1729,9 @@
     panelBodyEl.appendChild(el('h3', '', 'Choose your avatar'));
 
     var activeIll = findIllustration(currentProfile && currentProfile.avatar_illustration) || AVATAR_ILLUSTRATIONS[0];
-    var activeColor = (currentProfile && currentProfile.avatar_color) || AVATAR_COLORS[0];
+    // Preserve the editor's established pink default even though the swatches
+    // themselves now follow hue order.
+    var activeColor = (currentProfile && currentProfile.avatar_color) || '#F2B8C6';
 
     var preview = el('div', 'avatar-preview', '<img class="avatar-img" src="' + activeIll.src + '" alt="" />');
     preview.style.background = activeColor;
@@ -2232,6 +2248,14 @@
       return function () {
         var idx = profileListeners.indexOf(fn);
         if (idx !== -1) profileListeners.splice(idx, 1);
+      };
+    },
+    registerAccountAction: function (id, label, onActivate) {
+      accountActions = accountActions.filter(function (action) { return action.id !== id; });
+      accountActions.push({ id: id, label: label, onActivate: onActivate });
+      if (currentSession && panelEl && panelEl.classList.contains('open')) renderPanel();
+      return function () {
+        accountActions = accountActions.filter(function (action) { return action.id !== id; });
       };
     },
     signUp: signUp,

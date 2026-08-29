@@ -1,6 +1,7 @@
 {
   "outputDirectory": ".",
   "redirects": [
+    { "source": "/claim-character", "destination": "/claim-character/", "permanent": false },
     { "source": "/amanda", "destination": "/amanda/", "permanent": false },
     { "source": "/amy", "destination": "/amy/", "permanent": false },
     { "source": "/geraldine", "destination": "/geraldine/", "permanent": false },
@@ -19,6 +20,8 @@
     { "source": "/viki", "destination": "/viki/", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/claim-character/", "destination": "/claim-character/index.html" },
+    { "source": "/claim-character/:path*", "destination": "/claim-character/:path*" },
     { "source": "/amanda/", "destination": "/machines/amanda/index.html" },
     { "source": "/amanda/:path*", "destination": "/machines/amanda/:path*" },
     { "source": "/amy/", "destination": "/machines/amy/index.html" },

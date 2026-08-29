@@ -77,6 +77,13 @@ func _build_ui() -> void:
 	_panel = UIKit.panel()
 	_panel.theme = shared_theme
 	_panel.custom_minimum_size = Vector2(NPC_PANEL_WIDTH_DESKTOP, 0)
+	# PanelContainer defaults to MOUSE_FILTER_STOP, which swallows mouse
+	# motion the instant the cursor position (still tracked even while
+	# MOUSE_MODE_CAPTURED) falls over its rect -- silently blocking camera
+	# look from ever reaching HubPlayer's _unhandled_input, regardless of
+	# input_locked or mouse_mode. _panel is pure caption text with no
+	# buttons in either dialog mode, so it should never intercept input.
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# NPC speech remains horizontally centered in the lower half of the screen.
 	# A dialog box sitting at
 	# true screen-center covers up the main 3D view/gameplay behind it. The
@@ -173,7 +180,7 @@ func _process(delta: float) -> void:
 	if not _is_modal and _panel.visible:
 		_auto_dismiss_timer -= delta
 		if _auto_dismiss_timer <= 0.0:
-			hide_dialog()
+			_on_dismiss_pressed()
 
 
 func show_line(
@@ -236,6 +243,17 @@ func _add_response(text: String, callback: Callable) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not _is_modal and _panel.visible and event.is_action_pressed("interact"):
+		# As with response dialogs, do not let the F press that opened this line
+		# immediately close it later in the same input dispatch.
+		if Engine.get_process_frames() == _opened_on_process_frame:
+			get_viewport().set_input_as_handled()
+			return
+		if event is InputEventKey and event.echo:
+			return
+		_on_dismiss_pressed()
+		get_viewport().set_input_as_handled()
+		return
 	if _is_modal and _response_panel.visible and not _response_buttons.is_empty():
 		if event.is_action_pressed("interact"):
 			# The F press that asks HubPlayer to begin talking can reach this

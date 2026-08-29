@@ -391,5 +391,7 @@ func finish_loading() -> void:
 	hint_reveal.set_ease(Tween.EASE_OUT)
 	hint_reveal.tween_property(_movement_hint, "modulate:a", 1.0, 0.28)
 
-func set_prompt(visible: bool) -> void:
+func set_prompt(visible: bool, text := "Talk (F)") -> void:
+	if visible:
+		UIKit.set_readout_text(_prompt, text)
 	_prompt.visible = visible

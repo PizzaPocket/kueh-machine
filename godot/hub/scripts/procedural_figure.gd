@@ -87,6 +87,29 @@ const HIP_FRONT_DEPTH := ABDOMEN_SIZE.z
 const HIP_BACK_DEPTH := 0.12  # the original, unchanged, symmetric depth
 const HIP_SIZE := Vector3(0.17, 0.09, (HIP_FRONT_DEPTH + HIP_BACK_DEPTH) * 0.5)
 const HIP_BACK_OFFSET := (HIP_FRONT_DEPTH - HIP_BACK_DEPTH) * 0.5
+## Cosmetic growth applied only to the hips MESH itself (front/back and left/
+## right, not top/bottom) -- per direct correction. HIP_SIZE itself, which
+## leg socket placement (_build_leg's hip_x) is derived from, stays
+## unmodified, so the legs don't move with it. FigureDress's own skirt
+## sizing is deliberately keyed off HIP_SIZE + this same margin, so it always
+## extends a bit past the hips' real visual size instead of drifting out of
+## sync with it.
+const HIP_VISUAL_GROWTH := 0.025
+## Dress-only growth of the visible hip mesh toward its top. This is cosmetic:
+## hip_size remains unchanged below, so hip sockets and every leg node keep
+## their existing positions. The added lower overlap also helps hide the upper
+## legs beneath the skirt during larger poses.
+## Preserve the existing crown while extending only the shell's hem downward.
+## The accumulated hem extensions mean half-height grows 6cm and the
+## generated vertices shift down 6cm. The top remains fixed;
+## neither the hip node nor any leg socket moves.
+const DRESS_HIP_VISUAL_HALF_GROWTH := 0.12
+const DRESS_HIP_VISUAL_CENTER_DROP := 0.06
+## Match the dress hips to FigureDress's resting lower-skirt footprint. Kept
+## here as visual dimensions only; hip_size remains the anatomical source for
+## every leg socket below.
+const DRESS_HIP_HALF_WIDTH := 0.17 + HIP_VISUAL_GROWTH + 0.03
+const DRESS_HIP_HALF_DEPTH := 0.11 + HIP_VISUAL_GROWTH + 0.03
 # Height (y) reduced from 0.19 per direct instruction -- brings shoulder_y
 # (computed off this below) down with it, letting the arms hang and swing
 # lower, which reads more natural than shoulders sitting high on a tall
@@ -372,7 +395,9 @@ static func build(
 	leg_thickness_scale: float = 1.0,
 	upper_arm_thickness_scale: float = 1.0,
 	shirt_texture: Texture2D = null,
-	is_female: bool = false
+	is_female: bool = false,
+	height_factor: float = 1.0,
+	dress_hip_shape: bool = false
 ) -> Dictionary:
 	var upper_arm_color := shirt_color if sleeve_style in [SLEEVE_STYLE_LONG, SLEEVE_STYLE_COLORED_UPPER_ARM] else skin_color
 	var forearm_color := shirt_color if sleeve_style == SLEEVE_STYLE_LONG else skin_color
@@ -381,6 +406,13 @@ static func build(
 	var upper_arm_texture := shirt_texture if sleeve_style in [SLEEVE_STYLE_LONG, SLEEVE_STYLE_COLORED_UPPER_ARM] else null
 	var forearm_texture := shirt_texture if sleeve_style == SLEEVE_STYLE_LONG else null
 	var resolved_shoe_color := pants_color if is_zero_approx(shoe_color.a) else shoe_color
+	# Height is anatomical rather than a uniform doll scale. Most variation
+	# lives in the legs, with a quieter response through torso and arms;
+	# head, hands, feet, and every horizontal dimension remain unchanged.
+	var height_delta := clampf(height_factor, 0.90, 1.10) - 1.0
+	var leg_length_scale := 1.0 + height_delta * 1.55
+	var torso_length_scale := 1.0 + height_delta * 0.70
+	var arm_length_scale := 1.0 + height_delta
 
 	var rig := Node3D.new()
 	rig.name = "ProceduralFigure"
@@ -401,7 +433,7 @@ static func build(
 	var chest_back_depth := CHEST_SIZE.z * minf(chest_build_scale, 1.0)
 	var chest_front_depth := CHEST_SIZE.z * chest_build_scale
 	var chest_size := Vector3(
-		CHEST_SIZE.x * chest_build_scale, CHEST_SIZE.y, (chest_front_depth + chest_back_depth) * 0.5
+		CHEST_SIZE.x * chest_build_scale, CHEST_SIZE.y * torso_length_scale, (chest_front_depth + chest_back_depth) * 0.5
 	)
 	var chest_z_offset := (chest_front_depth - chest_back_depth) * 0.5
 
@@ -425,7 +457,7 @@ static func build(
 		ABDOMEN_SIZE.z * abdomen_width_scale, abdomen_front_cap
 	)
 	var abdomen_size := Vector3(
-		abdomen_x, ABDOMEN_SIZE.y, (abdomen_front_depth + abdomen_back_depth) * 0.5
+		abdomen_x, ABDOMEN_SIZE.y * torso_length_scale, (abdomen_front_depth + abdomen_back_depth) * 0.5
 	)
 	var abdomen_z_offset := (abdomen_front_depth - abdomen_back_depth) * 0.5
 
@@ -437,7 +469,7 @@ static func build(
 	var hip_front_depth := abdomen_front_depth
 	var hip_back_depth := HIP_BACK_DEPTH * hip_build_scale
 	var hip_size := Vector3(
-		HIP_SIZE.x * hip_build_scale, HIP_SIZE.y, (hip_front_depth + hip_back_depth) * 0.5
+		HIP_SIZE.x * hip_build_scale, HIP_SIZE.y * torso_length_scale, (hip_front_depth + hip_back_depth) * 0.5
 	)
 	var hip_back_offset := (hip_front_depth - hip_back_depth) * 0.5
 	if abdomen_matches_hips and not is_female:
@@ -451,10 +483,20 @@ static func build(
 	# small FOOT_OFFSET/terrain-snap separately, this only needs internal
 	# consistency).
 	var ankle_y := FOOT_SIZE.y * 2.0
-	var knee_y := ankle_y + LOWER_LEG_SIZE.y * 2.0
-	var hip_y := knee_y + UPPER_LEG_SIZE.y * 2.0
+	var knee_y := ankle_y + LOWER_LEG_SIZE.y * 2.0 * leg_length_scale
+	var hip_y := knee_y + UPPER_LEG_SIZE.y * 2.0 * leg_length_scale
 
-	var hips := SuperEgg.build_part(hip_size, pants_color, SuperEgg.EPSILON_FLAT, SuperEgg.EPSILON_FLAT)
+	# Only dresses replace the anatomical hip mesh with the wider, deeper,
+	# rounded upper-skirt shell. Trousers retain the original hip_size and
+	# flat profile exactly; none of the skirt refinements may leak into them.
+	var hip_visual_size := Vector3(
+		DRESS_HIP_HALF_WIDTH * hip_build_scale if dress_hip_shape else hip_size.x,
+		hip_size.y + (DRESS_HIP_VISUAL_HALF_GROWTH if dress_hip_shape else 0.0),
+		DRESS_HIP_HALF_DEPTH * hip_build_scale if dress_hip_shape else hip_size.z
+	)
+	var hip_top_epsilon := 2.0 if dress_hip_shape else SuperEgg.EPSILON_FLAT
+	var hip_visual_offset := Vector3(0, -DRESS_HIP_VISUAL_CENTER_DROP, 0) if dress_hip_shape else Vector3.ZERO
+	var hips := SuperEgg.build_part(hip_visual_size, pants_color, hip_top_epsilon, SuperEgg.EPSILON_FLAT, null, hip_visual_offset)
 	hips.position = Vector3(0, hip_y + hip_size.y, hip_back_offset)
 	rig.add_child(hips)
 
@@ -641,10 +683,10 @@ static func build(
 	# confirmed this way). See the figure-rig skill's own note on this --
 	# recorded there since it's exactly the kind of hard-to-notice mistake
 	# that skill exists to flag for future rig work.
-	var arm_right := _build_arm(spine_pivot, chest_size, shoulder_y - abdomen_y, -1.0, upper_arm_color, forearm_color, skin_color, arm_build_scale, sleeve_style, shirt_color, upper_arm_thickness_scale, upper_arm_texture, forearm_texture)
-	var arm_left := _build_arm(spine_pivot, chest_size, shoulder_y - abdomen_y, 1.0, upper_arm_color, forearm_color, skin_color, arm_build_scale, sleeve_style, shirt_color, upper_arm_thickness_scale, upper_arm_texture, forearm_texture)
-	var leg_right := _build_leg(rig, hip_size, hip_y, -1.0, pants_color, resolved_shoe_color, leg_build_scale, leg_thickness_scale)
-	var leg_left := _build_leg(rig, hip_size, hip_y, 1.0, pants_color, resolved_shoe_color, leg_build_scale, leg_thickness_scale)
+	var arm_right := _build_arm(spine_pivot, chest_size, shoulder_y - abdomen_y, -1.0, upper_arm_color, forearm_color, skin_color, arm_build_scale, sleeve_style, shirt_color, upper_arm_thickness_scale, upper_arm_texture, forearm_texture, arm_length_scale)
+	var arm_left := _build_arm(spine_pivot, chest_size, shoulder_y - abdomen_y, 1.0, upper_arm_color, forearm_color, skin_color, arm_build_scale, sleeve_style, shirt_color, upper_arm_thickness_scale, upper_arm_texture, forearm_texture, arm_length_scale)
+	var leg_right := _build_leg(rig, hip_size, hip_y, -1.0, pants_color, resolved_shoe_color, leg_build_scale, leg_thickness_scale, leg_length_scale)
+	var leg_left := _build_leg(rig, hip_size, hip_y, 1.0, pants_color, resolved_shoe_color, leg_build_scale, leg_thickness_scale, leg_length_scale)
 
 	return {
 		"spine": spine_pivot,
@@ -674,6 +716,7 @@ static func build(
 		"wrist_right": arm_right["wrist"],
 		"fingertip_left": arm_left["fingertip"],
 		"fingertip_right": arm_right["fingertip"],
+		"total_height": total_height * scale,
 	}
 
 
@@ -704,7 +747,8 @@ static func _build_arm(
 	upper_arm_color: Color, forearm_color: Color, hand_color: Color, build_scale: float,
 	sleeve_style: String = SLEEVE_STYLE_LONG, sleeve_color: Color = SKIN_COLOR,
 	upper_arm_thickness_scale: float = 1.0,
-	upper_arm_texture: Texture2D = null, forearm_texture: Texture2D = null
+	upper_arm_texture: Texture2D = null, forearm_texture: Texture2D = null,
+	arm_length_scale: float = 1.0
 ) -> Dictionary:
 	# upper_arm_thickness_scale only widens the upper arm segment (x/z),
 	# unlike leg_thickness_scale which scales the whole leg chain -- per
@@ -713,6 +757,8 @@ static func _build_arm(
 	var upper_arm_size := _scaled_xz(UPPER_ARM_SIZE, build_scale * upper_arm_thickness_scale)
 	var forearm_size := _scaled_xz(FOREARM_SIZE, build_scale)
 	var hand_size := _scaled_xz(HAND_SIZE, build_scale)
+	upper_arm_size.y *= arm_length_scale
+	forearm_size.y *= arm_length_scale
 
 	# On the outside of the chest, per direct instruction -- a visible
 	# pinch where the (rounded) upper arm meets the (flat-sided) chest is
@@ -941,7 +987,7 @@ static func _scaled_xz(size: Vector3, factor: float) -> Vector3:
 
 static func _build_leg(
 	rig: Node3D, hip_size: Vector3, hip_y: float, side: float, pants_color: Color, shoe_color: Color,
-	build_scale: float, leg_thickness_scale: float = 1.0
+	build_scale: float, leg_thickness_scale: float = 1.0, leg_length_scale: float = 1.0
 ) -> Dictionary:
 	# Bare legs beneath a skirt do not carry the extra silhouette thickness
 	# that the standard trouser geometry implies. Shoes retain their normal
@@ -950,6 +996,8 @@ static func _build_leg(
 	var upper_leg_size := _scaled_xz(UPPER_LEG_SIZE, limb_scale)
 	var lower_leg_size := _scaled_xz(LOWER_LEG_SIZE, limb_scale)
 	var foot_size := _scaled_xz(FOOT_SIZE, build_scale)
+	upper_leg_size.y *= leg_length_scale
+	lower_leg_size.y *= leg_length_scale
 
 	var hip_x := side * (hip_size.x * 0.55 + HIP_OUTWARD_SHIFT)
 
