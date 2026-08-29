@@ -1410,14 +1410,6 @@
       });
       rowList.appendChild(actionRow);
     });
-
-    var signOutBtn = el('button', 'btn btn-ghost', 'Sign out');
-    signOutBtn.style.marginTop = '18px';
-    signOutBtn.addEventListener('click', function () {
-      signOut().catch(function (e) { console.error('[KuehAccount] sign out failed:', e); });
-    });
-    panelBodyEl.appendChild(signOutBtn);
-    applyRetroShapeClip(signOutBtn, null, { stroke: 'var(--ka-color-surface-border)' });
   }
 
   // ── Reusable field row: LABEL / value + Edit ──────────────────────────
@@ -1557,6 +1549,14 @@
     var passwordField = el('div', 'field acct-row');
     rowList.appendChild(passwordField);
     renderPasswordRow(passwordField);
+
+    var signOutBtn = el('button', 'btn btn-ghost', 'Sign out');
+    signOutBtn.style.marginTop = '18px';
+    signOutBtn.addEventListener('click', function () {
+      signOut().catch(function (e) { console.error('[KuehAccount] sign out failed:', e); });
+    });
+    rowList.appendChild(signOutBtn);
+    applyRetroShapeClip(signOutBtn, null, { stroke: 'var(--ka-color-surface-border)' });
 
     var dangerField = el('div', 'field acct-row');
     rowList.appendChild(dangerField);
