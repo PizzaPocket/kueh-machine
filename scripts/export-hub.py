@@ -50,6 +50,7 @@ BRIDGE = """\t\tsetStatusMode('progress');
 \t\t\t\twindow.kuehCharacterSaveState = 'error';
 \t\t\t}
 \t\t};
+\t\tif (window.KuehCharacters) window.KuehCharacters.enableEditorMenuAction();
 \t\tconst characterReady = window.KuehCharacters
 \t\t\t? window.KuehCharacters.refresh().catch((error) => console.warn('[Kueh-verse] using bundled character defaults:', error))
 \t\t\t: Promise.resolve();

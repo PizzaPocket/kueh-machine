@@ -18,6 +18,12 @@ button:hover, .button:hover { background: var(--color-text-on-surface); }
 button:focus-visible, .button:focus-visible, .wordmark:focus-visible { outline: 3px solid var(--color-highlight); outline-offset: 4px; }
 button:disabled { cursor: wait; opacity: .58; }
 .secondary { background: var(--color-surface-tint); color: var(--color-text-on-surface); }
+/* Dark pandan, distinct from the default pink CTA -- cues that "Claim my
+   character" is a different, later step than "Sign in to continue", not
+   just a re-skin of the same button. #2D6A4F is the same dark-pandan tone
+   already used as the leaf-green band in account-widget.js's HOME_ICON_SVG. */
+.claim-cta { background: #2D6A4F; }
+.claim-cta:hover { background: #1B4332; }
 .status { min-height: 1.6em; margin-top: 20px; color: var(--color-danger, #a52f28); font-size: .95rem; }
 @media (max-width: 600px) {
   main { width: min(100% - 28px, 760px); padding-top: 22px; }

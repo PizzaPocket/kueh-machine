@@ -1106,6 +1106,19 @@
     + '</g>'
     + '</svg>';
 
+  // A simple generic "portal" glyph (deep-purple field, glowing circle) --
+  // there's no dedicated Kueh-verse brand mark yet to copy the way
+  // HOME_ICON_SVG copies the site favicon, so this is deliberately plain
+  // rather than a half-guessed imitation of one.
+  var HUB_ICON_SVG = '<svg viewBox="0 0 32 32">'
+    + '<defs><clipPath id="ka-hub-icon-clip"><rect x="2" y="4" width="28" height="24" rx="5"/></clipPath></defs>'
+    + '<g clip-path="url(#ka-hub-icon-clip)">'
+    + '<rect x="0" y="4" width="32" height="24" fill="#3B2A54"/>'
+    + '<circle cx="16" cy="16" r="9" fill="#7C5CFF"/>'
+    + '<circle cx="16" cy="16" r="4" fill="#FBF6EC"/>'
+    + '</g>'
+    + '</svg>';
+
   // Avatars are real illustrations pulled from contributors' own projects,
   // not a generated/abstract avatar — signing up should feel like getting
   // handed a small piece of the actual machine, not a gradient blob. `src`
@@ -1389,6 +1402,10 @@
     var homeRow = el('a', 'row-home acct-row', '<span class="row-home-icon">' + HOME_ICON_SVG + '</span><span>Kueh Machine Home</span>');
     homeRow.href = '/';
     rowList.appendChild(homeRow);
+
+    var hubRow = el('a', 'row-home acct-row', '<span class="row-home-icon">' + HUB_ICON_SVG + '</span><span>Kueh-Verse</span>');
+    hubRow.href = '/hub/';
+    rowList.appendChild(hubRow);
 
     var signOutBtn = el('button', 'btn btn-ghost', 'Sign out');
     signOutBtn.style.marginTop = '18px';
@@ -1839,6 +1856,10 @@
     homeRow.href = '/';
     homeRow.style.cssText = 'margin-top:16px; padding-top:16px; border-top:var(--ka-stroke-width) solid var(--ka-color-surface-border);';
     panelBodyEl.appendChild(homeRow);
+
+    var hubRow = el('a', 'row-home', '<span class="row-home-icon">' + HUB_ICON_SVG + '</span><span>Kueh-Verse</span>');
+    hubRow.href = '/hub/';
+    panelBodyEl.appendChild(hubRow);
 
     function showError(msg) { errEl.textContent = msg; }
   }

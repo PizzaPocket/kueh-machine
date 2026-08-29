@@ -104,14 +104,24 @@
     onChange: function (fn) {
       listeners.push(fn);
       return function () { var i = listeners.indexOf(fn); if (i !== -1) listeners.splice(i, 1); };
+    },
+    // Opt-in, not automatic: "Edit character" only does anything on a page
+    // that actually consumes window.kuehCharacterEditorRequested (currently
+    // just the Hub's own bootstrap bridge, see export-hub.py's BRIDGE). This
+    // script is also loaded on the claim page, which has no character editor
+    // UI at all -- registering the action unconditionally here put a dead,
+    // confusing menu row in front of anyone claiming a character outside the
+    // Kueh-verse itself.
+    enableEditorMenuAction: function () {
+      if (!window.KuehAccount) return;
+      window.KuehAccount.registerAccountAction('edit-character', 'Edit character', function () {
+        window.kuehCharacterEditorRequested = true;
+        window.dispatchEvent(new CustomEvent('kueh-edit-character', { detail: getState() }));
+      });
     }
   };
 
   if (window.KuehAccount) {
-    window.KuehAccount.registerAccountAction('edit-character', 'Edit character', function () {
-      window.kuehCharacterEditorRequested = true;
-      window.dispatchEvent(new CustomEvent('kueh-edit-character', { detail: getState() }));
-    });
     window.KuehAccount.onAuthStateChange(function () {
       refresh().catch(function (error) { console.error('[KuehCharacters] refresh failed:', error); });
     });

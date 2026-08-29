@@ -230,6 +230,7 @@ const engine = new Engine(GODOT_CONFIG);
 				window.kuehCharacterSaveState = 'error';
 			}
 		};
+		if (window.KuehCharacters) window.KuehCharacters.enableEditorMenuAction();
 		const characterReady = window.KuehCharacters
 			? window.KuehCharacters.refresh().catch((error) => console.warn('[Kueh-verse] using bundled character defaults:', error))
 			: Promise.resolve();

@@ -40,6 +40,9 @@
       return;
     }
     status.textContent = '';
+    // A dark-pandan background (distinct from "Sign in to continue"'s
+    // default pink) cues that the state has actually changed -- you're no
+    // longer being asked to sign in, you're now one click from claiming.
     var claim = button('Claim my character', async function () {
       claim.disabled = true; claim.textContent = 'Claiming…'; status.textContent = '';
       try {
@@ -54,6 +57,7 @@
         status.textContent = error.message || 'The claim failed. Please try again.';
       }
     });
+    claim.classList.add('claim-cta');
     button('Not now', function () { location.href = '/'; }, true);
   }
 
