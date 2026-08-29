@@ -1377,15 +1377,6 @@
       onSave: function (val) { updateProfile({ display_name: val }); },
     });
 
-    accountActions.forEach(function (action) {
-      var actionRow = el('div', 'row-link acct-row', '<span>' + escapeHtml(action.label) + '</span>' + (ICON_FORWARD_SVG || FALLBACK_FORWARD_SVG));
-      makeButtonLike(actionRow, function () {
-        togglePanel(false);
-        action.onActivate();
-      });
-      rowList.appendChild(actionRow);
-    });
-
     // Security-sensitive stuff (email, password, delete) doesn't belong on
     // this first-level popover — same convention most account menus use
     // (Google's own: quick actions up front, a "Manage account" row out
@@ -1406,6 +1397,19 @@
     var hubRow = el('a', 'row-home acct-row', '<span class="row-home-icon">' + HUB_ICON_SVG + '</span><span>Kueh-Verse</span>');
     hubRow.href = '/hub/';
     rowList.appendChild(hubRow);
+
+    // Right underneath the Kueh-Verse link, per direct instruction --
+    // editing your character is a Kueh-verse-specific action, so it reads
+    // more naturally grouped with that link than up with the account-wide
+    // fields/settings above it.
+    accountActions.forEach(function (action) {
+      var actionRow = el('div', 'row-link acct-row', '<span>' + escapeHtml(action.label) + '</span>' + (ICON_FORWARD_SVG || FALLBACK_FORWARD_SVG));
+      makeButtonLike(actionRow, function () {
+        togglePanel(false);
+        action.onActivate();
+      });
+      rowList.appendChild(actionRow);
+    });
 
     var signOutBtn = el('button', 'btn btn-ghost', 'Sign out');
     signOutBtn.style.marginTop = '18px';
