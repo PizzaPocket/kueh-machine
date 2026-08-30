@@ -143,11 +143,9 @@ func _build_environment() -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("f4f2ed")
-	# The previous pure-white background plus linear tonemapping hard-clipped
-	# highlights at silhouettes, making light materials bloom into the sky.
-	# ACES compresses that bright shoulder while this barely warm off-white
-	# still reads as the Kueh-verse's white void.
+	environment.background_color = Color.WHITE
+	# Keep the void neutral white. ACES still compresses bright shoulders on
+	# scene geometry so this does not restore the former silhouette blowout.
 	environment.background_energy_multiplier = 1.0
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = 0.86
