@@ -63,7 +63,7 @@ static func _pow_sign(value: float, epsilon: float) -> float:
 
 static func build_mesh(
 	semi_axes: Vector3, epsilon_top: float = EPSILON_SOFT, epsilon_bottom: float = EPSILON_SOFT,
-	local_offset: Vector3 = Vector3.ZERO
+	local_offset: Vector3 = Vector3.ZERO, planar_vertical_uv: bool = false
 ) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -97,6 +97,13 @@ static func build_mesh(
 			var a1: Vector3 = ring_a[seg_next]
 			var b0: Vector3 = ring_b[seg]
 			var b1: Vector3 = ring_b[seg_next]
+			# The default latitude UV is useful for patterns wrapping around a
+			# body. A front-facing graphic such as the glasses needs Y projected
+			# directly into UV space instead, so equally tall texture bands remain
+			# equally tall across the visible face and image-top stays mesh-top.
+			if planar_vertical_uv:
+				v0 = 0.5 - a0.y / (semi_axes.y * 2.0)
+				v1 = 0.5 - b0.y / (semi_axes.y * 2.0)
 			st.set_uv(Vector2(u0, v0))
 			st.add_vertex(a0 + local_offset)
 			st.set_uv(Vector2(u0, v1))

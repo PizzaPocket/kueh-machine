@@ -116,13 +116,24 @@ func _run() -> void:
 	# randomization below deliberately uses its own separate RNG instead of
 	# drawing from this one, for exactly that reason.
 	var appearance_a := _random_appearance(rng)
-	# Short ponytail, per direct instruction (supersedes an earlier bob
-	# override). Now wearing the new Kueh Salat glasses (green-over-blue
-	# tinted lenses, green frame) on the face -- per direct follow-up
-	# instruction, replacing the earlier plain glasses-on-hair look, so the
-	# pair reads as one figure in Lapis glasses and one in Salat glasses.
+	# Short ponytail restored, along with the regular rectangular glasses
+	# perched on the hair instead of either kueh sunglasses style.
 	appearance_a["hair_style"] = "ponytail_short"
-	appearance_a["salat_glasses"] = true
+	# One palette step lighter than the seeded appearance's original hair,
+	# per direct instruction. HAIR_SWATCHES runs dark-to-light.
+	var yellow_hair_index := 0
+	for i in range(CharacterEditor.HAIR_SWATCHES.size()):
+		if Color(CharacterEditor.HAIR_SWATCHES[i]).is_equal_approx(appearance_a["hair"]):
+			yellow_hair_index = i
+			break
+	appearance_a["hair"] = Color(CharacterEditor.HAIR_SWATCHES[mini(
+		CharacterEditor.HAIR_SWATCHES.size() - 1, yellow_hair_index + 1
+	)])
+	appearance_a["glasses"] = true
+	appearance_a["round_glasses"] = false
+	appearance_a["glasses_on_hair"] = true
+	appearance_a["lapis_glasses"] = false
+	appearance_a["salat_glasses"] = false
 	var figure_a := FigureBuilder.build(world, appearance_a)
 
 	var appearance_b := _random_appearance(rng)
@@ -137,8 +148,9 @@ func _run() -> void:
 			current_skin_index = i
 			break
 	appearance_b["skin"] = Color(CharacterEditor.SKIN_SWATCHES[maxi(0, current_skin_index - 1)])
-	# New lapis glasses style, worn here per direct instruction.
+	# Kueh Lapis glasses on the black-shirt figure.
 	appearance_b["lapis_glasses"] = true
+	appearance_b["salat_glasses"] = false
 	var figure_b := FigureBuilder.build(world, appearance_b)
 
 	# Independently randomized per figure (separate RNG/seed from the
@@ -226,10 +238,10 @@ func _build_environment(viewport: SubViewport) -> void:
 	environment.ambient_light_color = Color("f5e2c4")
 	environment.ambient_light_energy = 0.22
 	environment.ambient_light_sky_contribution = 0.0
-	environment.glow_enabled = true
-	environment.glow_intensity = 1.1
-	environment.glow_bloom = 0.05
-	environment.glow_hdr_threshold = 1.05
+	# Keep the baked landing image crisp. Glow spreads bright material and
+	# lighting values outside every silhouette in the compatibility renderer,
+	# producing a white cut-out halo around figures and props.
+	environment.glow_enabled = false
 	environment.fog_enabled = false
 	world_environment.environment = environment
 	viewport.add_child(world_environment)

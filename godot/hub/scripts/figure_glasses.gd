@@ -40,13 +40,12 @@ const LAPIS_LENS_COLORS := [
 ## STUDIO hex values (CUSTARDS' "Pandan" and RICE_COLOURS' "Blue pea") for
 ## consistency with the rest of the project's kueh palette, rather than
 ## picking new ones from the reference photo by eye.
-const SALAT_LENS_COLORS := [Color("4f9a55"), Color("5a7fc0")]
+const SALAT_LENS_COLORS := [Color("72ad77"), Color("7897cc")]
 const LENS_TEXTURE_SIZE := 128
 ## Same "flat color bands, thin blended seam" construction as the hero
 ## image's own kueh lapis (see hero_photo.gd's own LAPIS_BLEND_FRACTION-era
-## comments) -- a texture here instead of stacked geometry, since a lens is
-## one thin flat disc, not a real 3D volume worth building out of separate
-## layer segments.
+## comments) -- a texture here instead of stacked geometry, since the thin
+## SuperEgg lens remains one continuous surface rather than separate layers.
 const LENS_BLEND_FRACTION := 0.14
 static var _lapis_lens_texture_cache: ImageTexture = null
 static var _salat_lens_texture_cache: ImageTexture = null
@@ -96,8 +95,8 @@ static func add_glasses(head: MeshInstance3D, semi_axes: Vector3, round_shape: b
 
 
 ## Tinted-glass "lapis" glasses, per direct instruction: a thin frame border
-## (colored to match the kueh lapis's own red band) around a flat lens per
-## eye (a solid superellipse disc, not the ring add_glasses() builds)
+## (colored to match the kueh lapis's own red band) around a thin SuperEgg
+## lens per eye (a solid surface, not the ring add_glasses() builds)
 ## carrying the same red/white/green nine-band pattern as the hero landing
 ## image's own floating kueh lapis slice, joined by a matching bridge.
 ## Named "Glasses" (matching add_glasses()'s own root name) so
@@ -112,12 +111,18 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 ## with salat's own two-band green-over-blue gradient and green frames
 ## (SALAT_LENS_COLORS' own top band) instead of lapis's nine-band red frame.
 static func add_salat_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
-	_add_banded_glasses(head, semi_axes, _salat_lens_texture(), SALAT_LENS_COLORS[0])
+	_add_banded_glasses(
+		head, semi_axes, _salat_lens_texture(),
+		SALAT_LENS_COLORS[0], SALAT_LENS_COLORS[1]
+	)
 
 
 ## Shared by add_lapis_glasses() and add_salat_glasses() -- only the lens
 ## texture and frame/bridge color differ between the two styles.
-static func _add_banded_glasses(head: MeshInstance3D, semi_axes: Vector3, lens_texture: ImageTexture, frame_color: Color) -> void:
+static func _add_banded_glasses(
+	head: MeshInstance3D, semi_axes: Vector3, lens_texture: ImageTexture,
+	frame_color: Color, frame_bottom_color: Color = Color.TRANSPARENT
+) -> void:
 	var eye_radius := semi_axes.x * FigureEyes.EYE_RADIUS_FACTOR
 	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
 	var right_eye := SuperEgg.surface_point(semi_axes, 0.0, EYE_OFFSET)
@@ -140,14 +145,13 @@ static func _add_banded_glasses(head: MeshInstance3D, semi_axes: Vector3, lens_t
 
 	var lens_material := StandardMaterial3D.new()
 	lens_material.albedo_texture = lens_texture
-	# "some transparency... so they look like tinted glass", per direct
-	# instruction -- overall alpha on top of the texture's own opaque band
-	# colors, stepped 0.6 -> 0.4 -> 0.5 across direct follow-ups.
-	lens_material.albedo_color = Color(1, 1, 1, 0.5)
+	# Match SuperEgg.build_part()'s material recipe used by every figure part
+	# and by the hero kueh, with only a light sunglasses transparency added.
+	# Back-face culling below prevents the inner surface from darkening it.
+	lens_material.albedo_color = Color(1.0, 1.0, 1.0, 0.92)
 	lens_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	lens_material.roughness = 0.15
-	lens_material.metallic = 0.1
-	lens_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	lens_material.roughness = 0.6
+	lens_material.cull_mode = BaseMaterial3D.CULL_BACK
 
 	# The frame border and bridge both stay a plain opaque color (real
 	# rimless glasses still have a visible bridge/edge piece) rather than
@@ -156,11 +160,23 @@ static func _add_banded_glasses(head: MeshInstance3D, semi_axes: Vector3, lens_t
 	frame_material.albedo_color = frame_color
 	frame_material.roughness = 0.4
 	frame_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var rim_material := frame_material
+	if frame_bottom_color.a > 0.0:
+		rim_material = StandardMaterial3D.new()
+		rim_material.albedo_color = Color.WHITE
+		rim_material.roughness = 0.4
+		rim_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		rim_material.vertex_color_use_as_albedo = true
 
 	var eye_centers: Array[float] = [left_eye.x, right_eye.x]
 	for eye_x in eye_centers:
 		var lens := MeshInstance3D.new()
-		lens.mesh = _build_lens_mesh(lens_half_width, lens_half_height, FRAME_DEPTH, SHAPE_EPSILON)
+		# A thin SuperEgg gives the lenses the exact same geometry construction
+		# and generated-normal path as the figures and the hero kueh.
+		lens.mesh = SuperEgg.build_mesh(
+			Vector3(lens_half_width, lens_half_height, FRAME_DEPTH * 0.5),
+			SHAPE_EPSILON, SHAPE_EPSILON, Vector3.ZERO, true
+		)
 		lens.position = Vector3(eye_x, 0.0, frame_z)
 		lens.set_surface_override_material(0, lens_material)
 		glasses.add_child(lens)
@@ -172,10 +188,12 @@ static func _add_banded_glasses(head: MeshInstance3D, semi_axes: Vector3, lens_t
 		var frame := MeshInstance3D.new()
 		frame.mesh = _build_rim_mesh(
 			lens_half_width + frame_thickness, lens_half_height + frame_thickness,
-			frame_thickness, FRAME_DEPTH, SHAPE_EPSILON
+			frame_thickness, FRAME_DEPTH, SHAPE_EPSILON,
+			frame_color if frame_bottom_color.a > 0.0 else Color.WHITE,
+			frame_bottom_color if frame_bottom_color.a > 0.0 else Color.WHITE
 		)
 		frame.position = Vector3(eye_x, 0.0, frame_z)
-		frame.set_surface_override_material(0, frame_material)
+		frame.set_surface_override_material(0, rim_material)
 		glasses.add_child(frame)
 
 	var left_inner_x := left_eye.x + lens_half_width - frame_thickness * 0.35
@@ -208,9 +226,8 @@ static func _build_band_lens_texture(colors: Array) -> ImageTexture:
 	var band_count := colors.size()
 	var band_h := float(LENS_TEXTURE_SIZE) / float(band_count)
 	var blend := band_h * LENS_BLEND_FRACTION
-	# y=0 is the image's own top row; UV.y=0 is mapped to the lens's own top
-	# edge in _build_lens_mesh() below, so this loop's top-to-bottom order
-	# already matches colors' own top-to-bottom order directly.
+	# y=0 is the image's top row; the rendered SuperEgg texture preserves this
+	# order directly, so colors remains an explicit top-to-bottom palette.
 	for y in range(LENS_TEXTURE_SIZE):
 		var band_f := float(y) / band_h
 		var band_i := clampi(int(band_f), 0, band_count - 1)
@@ -225,43 +242,6 @@ static func _build_band_lens_texture(colors: Array) -> ImageTexture:
 		for x in range(LENS_TEXTURE_SIZE):
 			image.set_pixel(x, y, color)
 	return ImageTexture.create_from_image(image)
-
-
-## A filled superellipse disc (front + back faces from a center-out
-## triangle fan), not the hollow ring _build_rim_mesh() builds -- this is a
-## solid lens, not an empty frame. UV.y=0 at the lens's own top
-## (+half_height) to 1 at the bottom (-half_height), matching
-## _build_lapis_lens_texture()'s own top-to-bottom row order.
-static func _build_lens_mesh(half_width: float, half_height: float, depth: float, epsilon: float) -> ArrayMesh:
-	var front_z := depth * 0.5
-	var back_z := -depth * 0.5
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var center_front := Vector3(0, 0, front_z)
-	var center_back := Vector3(0, 0, back_z)
-	for i in SEGMENTS:
-		var angle_a := TAU * float(i) / float(SEGMENTS)
-		var angle_b := TAU * float(i + 1) / float(SEGMENTS)
-		var a := _superellipse_point(half_width, half_height, angle_a, epsilon)
-		var b := _superellipse_point(half_width, half_height, angle_b, epsilon)
-		var uv_center := Vector2(0.5, 0.5)
-		var uv_a := Vector2(0.5 + a.x / (2.0 * half_width), 0.5 - a.y / (2.0 * half_height))
-		var uv_b := Vector2(0.5 + b.x / (2.0 * half_width), 0.5 - b.y / (2.0 * half_height))
-		st.set_uv(uv_center)
-		st.add_vertex(center_front)
-		st.set_uv(uv_a)
-		st.add_vertex(Vector3(a.x, a.y, front_z))
-		st.set_uv(uv_b)
-		st.add_vertex(Vector3(b.x, b.y, front_z))
-		st.set_uv(uv_center)
-		st.add_vertex(center_back)
-		st.set_uv(uv_b)
-		st.add_vertex(Vector3(b.x, b.y, back_z))
-		st.set_uv(uv_a)
-		st.add_vertex(Vector3(a.x, a.y, back_z))
-	st.generate_normals()
-	return st.commit()
-
 
 static func _superellipse_point(half_width: float, half_height: float, angle: float, epsilon: float) -> Vector2:
 	var cosine := cos(angle)
@@ -281,8 +261,19 @@ static func _add_quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Ve
 	st.add_vertex(d)
 
 
+static func _add_colored_quad(
+	st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3,
+	top_color: Color, bottom_color: Color
+) -> void:
+	var points: Array[Vector3] = [a, b, c, a, c, d]
+	for point in points:
+		st.set_color(top_color if point.y >= 0.0 else bottom_color)
+		st.add_vertex(point)
+
+
 static func _build_rim_mesh(
-	half_width: float, half_height: float, thickness: float, depth: float, epsilon: float
+	half_width: float, half_height: float, thickness: float, depth: float, epsilon: float,
+	top_color: Color = Color.WHITE, bottom_color: Color = Color.WHITE
 ) -> ArrayMesh:
 	var inner_half_width := maxf(half_width - thickness, thickness)
 	var inner_half_height := maxf(half_height - thickness, thickness)
@@ -309,10 +300,10 @@ static func _build_rim_mesh(
 
 		# Front/back annuli plus the outer and inner walls make a closed frame,
 		# while the center remains genuinely empty (there is no lens surface).
-		_add_quad(st, outer_a_front, outer_b_front, inner_b_front, inner_a_front)
-		_add_quad(st, outer_b_back, outer_a_back, inner_a_back, inner_b_back)
-		_add_quad(st, outer_b_front, outer_a_front, outer_a_back, outer_b_back)
-		_add_quad(st, inner_a_front, inner_b_front, inner_b_back, inner_a_back)
+		_add_colored_quad(st, outer_a_front, outer_b_front, inner_b_front, inner_a_front, top_color, bottom_color)
+		_add_colored_quad(st, outer_b_back, outer_a_back, inner_a_back, inner_b_back, top_color, bottom_color)
+		_add_colored_quad(st, outer_b_front, outer_a_front, outer_a_back, outer_b_back, top_color, bottom_color)
+		_add_colored_quad(st, inner_a_front, inner_b_front, inner_b_back, inner_a_back, top_color, bottom_color)
 
 	st.generate_normals()
 	return st.commit()

@@ -293,7 +293,7 @@ func _build_ui() -> void:
 	_add_choice_section(sections, "Hair style", HAIR_STYLES, "hair_style")
 	_add_color_section(sections, "Hair color", HAIR_SWATCHES, "hair")
 	_add_choice_section(sections, "Glasses", [
-		{"label": "None", "value": "none"}, {"label": "Rectangular", "value": "rect"}, {"label": "Round", "value": "round"}, {"label": "On head", "value": "head"}, {"label": "Lapis", "value": "lapis"}, {"label": "Salat", "value": "salat"}
+		{"label": "None", "value": "none"}, {"label": "Rectangular", "value": "rect"}, {"label": "Round", "value": "round"}, {"label": "On head", "value": "head"}, {"label": "Kueh Lapis", "value": "lapis"}, {"label": "Kueh Salat", "value": "salat"}
 	], "glasses_choice")
 	_add_clothing_section(sections, "Top", [
 		{"label": "Sleeveless", "value": "none"}, {"label": "Short sleeve", "value": "short"}, {"label": "Half sleeve", "value": "colored_upper_arm"}, {"label": "Long sleeve", "value": "long"}
