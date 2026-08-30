@@ -129,6 +129,12 @@ body {
 	-webkit-appearance: none;
 	position: absolute;
 	bottom: 10%;
+	/* Absolute positioning takes this out of #status's own centered flex
+	   flow, so it needs its own explicit horizontal centering -- without
+	   it the bar fell back to its flex static position, which read as
+	   weighted toward the left instead of centered. */
+	left: 50%;
+	transform: translateX(-50%);
 	width: min(420px, calc(100vw - 64px));
 	height: 4px;
 	margin: 0;
@@ -282,15 +288,20 @@ body {
 	background: #f8efdd;
 	/* A gentle, looping drift within the outer ring -- per direct
 	   instruction, hints the knob is draggable rather than sitting
-	   perfectly still and reading as a fixed icon. */
-	animation: loader-joystick-nudge 2.6s ease-in-out infinite;
+	   perfectly still and reading as a fixed icon. The forward/back drift
+	   itself still takes the original 2.6s (same keyframe shape, just
+	   compressed into the first half of a longer cycle); the second half
+	   holds at center as an explicit pause before the next cycle, per
+	   direct follow-up instruction that the original loop's pause read as
+	   too short. */
+	animation: loader-joystick-nudge 5.2s ease-in-out infinite;
 }
 
 @keyframes loader-joystick-nudge {
-	0%, 100% { transform: translate(-50%, -50%); }
-	25% { transform: translate(calc(-50% - 15px), calc(-50% - 11px)); }
-	50% { transform: translate(-50%, -50%); }
-	75% { transform: translate(calc(-50% + 15px), calc(-50% + 11px)); }
+	0%, 50%, 100% { transform: translate(-50%, -50%); }
+	12.5% { transform: translate(calc(-50% - 15px), calc(-50% - 11px)); }
+	25% { transform: translate(-50%, -50%); }
+	37.5% { transform: translate(calc(-50% + 15px), calc(-50% + 11px)); }
 }
 
 /* Narrow width OR touch-primary/no-hover, not narrow width alone -- a
