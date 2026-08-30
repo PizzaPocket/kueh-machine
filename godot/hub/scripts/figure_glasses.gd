@@ -24,13 +24,12 @@ const BRIDGE_ARCH_HEIGHT := 0.008
 ## SuperEgg segments upward) rather than shared, since that file is a
 ## standalone dev capture tool with no class_name, not something other
 ## scripts can reference.
-## The white/cream bands here get a pandan-green tint (blended 30% toward
-## the same green as LAPIS_LENS_COLORS' own green band, stepped up from an
-## initial 10% that read as too subtle), per direct instruction -- kueh
-## lapis's cream layer is plain, but pandan is such a defining
-## lapis-adjacent flavor/color that a hint of it in the lenses reads as an
-## intentional accent rather than a plain cream band.
-const LAPIS_LENS_CREAM := Color("bcd3b5")
+## The white/cream bands here are a straight light-pandan green rather than
+## a cream/pandan blend (an initial 10%, then 30%, tint both read as too
+## subtle), per direct follow-up instruction -- the same light-pandan tone
+## display_builder.gd's own pandan-kueh display already uses, for
+## consistency with the rest of the project's palette.
+const LAPIS_LENS_CREAM := Color("75c889")
 const LAPIS_LENS_COLORS := [
 	Color("d6203a"), Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"),
 	Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"), LAPIS_LENS_CREAM,
@@ -102,10 +101,17 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
 	var right_eye := SuperEgg.surface_point(semi_axes, 0.0, EYE_OFFSET)
 	# 10% wider / 25% taller than a standard rim, a further 25% on top of
-	# that, then 5% smaller overall, per direct follow-up instructions.
-	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR * 1.1 * 1.25 * 0.95
+	# that, then 5% smaller overall, per direct follow-up instructions --
+	# width then pulled in further to make room for the frame border added
+	# below, per direct follow-up instruction.
+	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR * 1.1 * 1.25 * 0.95 * 0.85
 	var lens_half_height := eye_radius * FigureEyes.EYE_HEIGHT_RATIO * RIM_HEIGHT_FACTOR * 1.25 * 1.25 * 0.95
 	var frame_z := (left_eye.z + right_eye.z) * 0.5 + FRONT_CLEARANCE + FRAME_DEPTH * 0.5
+	# Thinner than add_glasses()'s own default frame thickness, per direct
+	# instruction -- shared by both the lens border and the bridge below so
+	# the two read as one consistent frame weight. Stepped down further
+	# (0.6 to 0.45) per direct follow-up.
+	var frame_thickness := FRAME_THICKNESS * 0.45
 
 	var glasses := Node3D.new()
 	glasses.name = "Glasses"
@@ -115,12 +121,21 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	lens_material.albedo_texture = _lapis_lens_texture()
 	# "some transparency... so they look like tinted glass", per direct
 	# instruction -- overall alpha on top of the texture's own opaque band
-	# colors, dropped from an initial 0.6 to 0.4 per direct follow-up.
-	lens_material.albedo_color = Color(1, 1, 1, 0.4)
+	# colors, stepped 0.6 -> 0.4 -> 0.5 across direct follow-ups.
+	lens_material.albedo_color = Color(1, 1, 1, 0.5)
 	lens_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	lens_material.roughness = 0.15
 	lens_material.metallic = 0.1
 	lens_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	# The frame border and bridge both stay a plain opaque color (real
+	# rimless glasses still have a visible bridge/edge piece) rather than
+	# tinted like the lenses -- colored to match the kueh lapis's own red
+	# band, per direct instruction.
+	var frame_material := StandardMaterial3D.new()
+	frame_material.albedo_color = LAPIS_LENS_COLORS[0]
+	frame_material.roughness = 0.4
+	frame_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
 	var eye_centers: Array[float] = [left_eye.x, right_eye.x]
 	for eye_x in eye_centers:
@@ -130,23 +145,29 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 		lens.set_surface_override_material(0, lens_material)
 		glasses.add_child(lens)
 
-	# The bridge itself stays a plain opaque connector (real rimless glasses
-	# still have a visible bridge piece) rather than tinted like the lenses --
-	# colored to match the kueh lapis's own red band, per direct instruction.
-	var bridge_material := StandardMaterial3D.new()
-	bridge_material.albedo_color = LAPIS_LENS_COLORS[0]
-	bridge_material.roughness = 0.4
-	bridge_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var left_inner_x := left_eye.x + lens_half_width - FRAME_THICKNESS * 0.35
-	var right_inner_x := right_eye.x - lens_half_width + FRAME_THICKNESS * 0.35
+		# A thin frame ring around the lens, per direct instruction -- its
+		# inner edge sits exactly at the lens's own outer edge (outer size =
+		# lens size + frame_thickness, and _build_rim_mesh() carves the
+		# inner boundary in by exactly that thickness).
+		var frame := MeshInstance3D.new()
+		frame.mesh = _build_rim_mesh(
+			lens_half_width + frame_thickness, lens_half_height + frame_thickness,
+			frame_thickness, FRAME_DEPTH, SHAPE_EPSILON
+		)
+		frame.position = Vector3(eye_x, 0.0, frame_z)
+		frame.set_surface_override_material(0, frame_material)
+		glasses.add_child(frame)
+
+	var left_inner_x := left_eye.x + lens_half_width - frame_thickness * 0.35
+	var right_inner_x := right_eye.x - lens_half_width + frame_thickness * 0.35
 	var bridge := MeshInstance3D.new()
 	bridge.name = "GlassesBridge"
 	bridge.mesh = _build_bridge_mesh(
 		left_inner_x, right_inner_x, lens_half_height * 0.12,
-		BRIDGE_ARCH_HEIGHT, FRAME_THICKNESS, FRAME_DEPTH
+		BRIDGE_ARCH_HEIGHT, frame_thickness, FRAME_DEPTH
 	)
 	bridge.position = Vector3(0.0, 0.0, frame_z)
-	bridge.set_surface_override_material(0, bridge_material)
+	bridge.set_surface_override_material(0, frame_material)
 	glasses.add_child(bridge)
 
 
