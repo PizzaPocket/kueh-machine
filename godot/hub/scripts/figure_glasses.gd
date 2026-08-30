@@ -30,9 +30,10 @@ const BRIDGE_ARCH_HEIGHT := 0.008
 ## display_builder.gd's own pandan-kueh display already uses, for
 ## consistency with the rest of the project's palette.
 const LAPIS_LENS_CREAM := Color("75c889")
+const LAPIS_MAGENTA := Color("b72e68")
 const LAPIS_LENS_COLORS := [
-	Color("d6203a"), Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"),
-	Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"), LAPIS_LENS_CREAM,
+	LAPIS_MAGENTA, Color("2f8c46"), LAPIS_LENS_CREAM, LAPIS_MAGENTA,
+	Color("2f8c46"), LAPIS_LENS_CREAM, LAPIS_MAGENTA, LAPIS_LENS_CREAM,
 	Color("2f8c46"),
 ]
 ## Kueh Salat's own two bands, per direct instruction: pandan custard green
@@ -95,9 +96,9 @@ static func add_glasses(head: MeshInstance3D, semi_axes: Vector3, round_shape: b
 
 
 ## Tinted-glass "lapis" glasses, per direct instruction: a thin frame border
-## (colored to match the kueh lapis's own red band) around a thin SuperEgg
+## (colored to match the kueh lapis's own brand-magenta band) around a thin SuperEgg
 ## lens per eye (a solid surface, not the ring add_glasses() builds)
-## carrying the same red/white/green nine-band pattern as the hero landing
+## carrying the same magenta/white/green nine-band pattern as the hero landing
 ## image's own floating kueh lapis slice, joined by a matching bridge.
 ## Named "Glasses" (matching add_glasses()'s own root name) so
 ## figure_builder.gd's existing glasses_on_hair repositioning logic --
@@ -109,7 +110,7 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 ## Kueh Salat's own tinted-glass glasses, per direct instruction: the same
 ## banded-lens/frame/bridge construction as add_lapis_glasses() above, just
 ## with salat's own two-band green-over-blue gradient and green frames
-## (SALAT_LENS_COLORS' own top band) instead of lapis's nine-band red frame.
+## (SALAT_LENS_COLORS' own top band) instead of lapis's nine-band magenta frame.
 static func add_salat_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	_add_banded_glasses(
 		head, semi_axes, _salat_lens_texture(),

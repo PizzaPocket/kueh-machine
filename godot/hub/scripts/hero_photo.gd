@@ -25,15 +25,16 @@ const HEIGHT := 1600
 ## static file; re-running the script should reproduce the same image rather
 ## than silently drifting until someone likes a result and forgets the seed.
 const APPEARANCE_SEED := 20260830
+const LAPIS_MAGENTA := Color("b72e68")
 
 ## Ordered bottom-to-top (index 0 is the bottom-most band, see
 ## _build_lapis()) -- per direct instruction the visible top-to-bottom order
 ## should read red, green, white, red, green, white, red, white, green, so
 ## this array is that sequence reversed.
 const LAPIS_COLORS := [
-	Color("2f8c46"), Color("f8f2e4"), Color("d6203a"), Color("f8f2e4"),
-	Color("2f8c46"), Color("d6203a"), Color("f8f2e4"), Color("2f8c46"),
-	Color("d6203a"),
+	Color("2f8c46"), Color("f8f2e4"), LAPIS_MAGENTA, Color("f8f2e4"),
+	Color("2f8c46"), LAPIS_MAGENTA, Color("f8f2e4"), Color("2f8c46"),
+	LAPIS_MAGENTA,
 ]
 
 
