@@ -213,7 +213,7 @@ func _run() -> void:
 
 
 ## Same three-light recipe as hub_main.gd's _build_environment() (warm key +
-## soft secondary + cool rim, off-white ACES-toned background) so the hero
+## soft secondary + cool rim, pure-white ACES-toned background) so the hero
 ## photo and the Hub it links into read as one continuous lighting world
 ## rather than two different renders stitched together.
 ## Golden hour per direct instruction -- replaces the Hub's own neutral
@@ -230,7 +230,7 @@ func _build_environment(viewport: SubViewport) -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color("f4f2ed")
+	environment.background_color = Color.WHITE
 	environment.background_energy_multiplier = 1.0
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_exposure = 0.92
