@@ -740,7 +740,10 @@ func _build_preview_world() -> void:
 	# approximately the same on-screen size while giving more height to the
 	# editor panel.
 	camera.fov = 30.0
-	camera.look_at_from_position(camera.position, Vector3(0, 1.3, 0))
+	# Bias the frame slightly downward in world space, moving the figure up in
+	# the image so the feet clear the lower edge while using the spare room
+	# that was previously sitting above the hair.
+	camera.look_at_from_position(camera.position, Vector3(0, 1.2, 0))
 	camera.current = true
 	viewport.add_child(camera)
 	_preview_root = Node3D.new()
