@@ -9,6 +9,7 @@ const JUMP_VELOCITY := 6.4
 const TURN_SPEED := 10.0
 const MOUSE_SENSITIVITY := 0.0024
 const GAMEPAD_LOOK_SPEED := 2.2
+const NO_LOOK_TOUCH := -1
 const WALK_SWING_SPEED := 1.7
 const WALK_SWING_AMOUNT := 0.5
 ## How much extra front-to-back depth (as a fraction of the skirt's own
@@ -76,6 +77,8 @@ const PROP_STEP_PROBE_CLEARANCE := 0.18
 var input_locked := true
 var _yaw := 0.0
 var _pitch := -0.18
+var _look_touch_index := NO_LOOK_TOUCH
+var _look_touch_position := Vector2.ZERO
 var _walk_phase := 0.0
 var _figure: Dictionary
 var _camera_pivot: Node3D
@@ -201,15 +204,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not input_locked:
 		_yaw -= event.relative.x * MOUSE_SENSITIVITY
 		_pitch = clampf(_pitch - event.relative.y * MOUSE_SENSITIVITY, -0.85, 0.42)
-	# Touch has no pointer-lock/mouse_mode concept -- a drag reaches here at
-	# all only because hub_ui.gd's own _input() already consumed (and marked
-	# handled) any drag that started on one of the WASD touch buttons, so
-	# anything arriving here as unhandled genuinely started elsewhere on
-	# screen and is meant as a look gesture, same as mouse motion above.
+	# Give camera look one explicit finger owner. hub_ui.gd consumes the
+	# joystick finger before events reach this unhandled path; the first other
+	# touch becomes the look finger until release. Absolute positions are used
+	# instead of InputEventScreenDrag.relative because the web backend's shared
+	# relative stream can jump when a second touch is moving simultaneously.
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed and not input_locked and _look_touch_index == NO_LOOK_TOUCH:
+			_look_touch_index = touch.index
+			_look_touch_position = touch.position
+		elif not touch.pressed and touch.index == _look_touch_index:
+			_cancel_touch_look()
 	if event is InputEventScreenDrag and not input_locked:
 		var drag := event as InputEventScreenDrag
-		_yaw -= drag.relative.x * MOUSE_SENSITIVITY
-		_pitch = clampf(_pitch - drag.relative.y * MOUSE_SENSITIVITY, -0.85, 0.42)
+		if drag.index == _look_touch_index:
+			var look_delta := drag.position - _look_touch_position
+			_look_touch_position = drag.position
+			_yaw -= look_delta.x * MOUSE_SENSITIVITY
+			_pitch = clampf(_pitch - look_delta.y * MOUSE_SENSITIVITY, -0.85, 0.42)
 	if event.is_action_pressed("interact") and not input_locked:
 		interact_requested.emit()
 
@@ -217,13 +230,13 @@ func _physics_process(delta: float) -> void:
 	_camera_pivot.rotation = Vector3(_pitch, _yaw, 0)
 	_update_head_look(delta)
 	if input_locked:
+		_cancel_touch_look()
 		velocity.x = move_toward(velocity.x, 0.0, 18.0 * delta)
 		velocity.z = move_toward(velocity.z, 0.0, 18.0 * delta)
 		_apply_gravity(delta)
 		move_and_slide()
 		_animate(delta, Vector2.ZERO)
 		return
-
 	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down")
 	_yaw -= look.x * GAMEPAD_LOOK_SPEED * delta
 	_pitch = clampf(_pitch - look.y * GAMEPAD_LOOK_SPEED * delta, -0.85, 0.42)
@@ -250,6 +263,10 @@ func _physics_process(delta: float) -> void:
 		_landing_timer = LANDING_DURATION
 	_was_on_floor = is_on_floor()
 	_animate(delta, input)
+
+func _cancel_touch_look() -> void:
+	_look_touch_index = NO_LOOK_TOUCH
+	_look_touch_position = Vector2.ZERO
 
 func _update_head_look(delta: float) -> void:
 	# Solve the view direction in the rendered body's local basis. This is the
