@@ -1,6 +1,7 @@
 {
   "outputDirectory": ".",
   "redirects": [
+    { "source": "/brief", "destination": "/brief/", "permanent": false },
     { "source": "/claim-character", "destination": "/claim-character/", "permanent": false },
     { "source": "/amanda", "destination": "/amanda/", "permanent": false },
     { "source": "/amy", "destination": "/amy/", "permanent": false },

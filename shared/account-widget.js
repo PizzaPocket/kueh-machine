@@ -37,7 +37,12 @@
 //     docked). Never goes below 40 regardless of what's requested — small
 //     enough for a tight header row, never so small it stops reading as a
 //     real tap target.
-//   data-inset: docked mode only — px from mountInto's own edge (default 20)
+//   data-inset: px from mountInto's own edge (default 20 docked, 10 fixed/
+//     absolute unless overridden — see FIXED_BADGE_MOBILE_INSET/
+//     FIXED_BADGE_DESKTOP_INSET). Docked mode always reads this; fixed/
+//     absolute only if explicitly set, since their un-set default already
+//     comes from window.innerWidth (fixed) or an intentional flat inset
+//     (absolute, e.g. Ruth's #audioBtn mirror) rather than a fixed number.
 //
 //   Color — data-accent-color: any hex color, used for the panel's buttons/
 //     focus rings and (in fixed/absolute mode) the badge's own fill; a
@@ -1196,10 +1201,16 @@
     // (e.g. Ruth's badge, mirrored to her own #audioBtn inside a fixed-
     // width #wrapper that isn't the real viewport) keeps the original flat
     // inset regardless of window.innerWidth, which has nothing to do with
-    // its actual on-screen container.
-    var horizontalInset = opts.mode === 'fixed'
-      ? (window.innerWidth < 480 ? FIXED_BADGE_MOBILE_INSET : FIXED_BADGE_DESKTOP_INSET)
-      : FIXED_BADGE_MOBILE_INSET;
+    // its actual on-screen container. A host page can still opt into the
+    // site's own 32px desktop convention explicitly via data-inset (root
+    // index.html's absolute-mode hero badge does, to match every docked
+    // header's own inset) -- it just isn't derived from the viewport the
+    // way mode:'fixed' is.
+    var horizontalInset = opts.inset != null
+      ? opts.inset
+      : opts.mode === 'fixed'
+        ? (window.innerWidth < 480 ? FIXED_BADGE_MOBILE_INSET : FIXED_BADGE_DESKTOP_INSET)
+        : FIXED_BADGE_MOBILE_INSET;
     var pos = anchorStyle(opts.anchor, horizontalInset);
     el.style.position = opts.mode === 'absolute' ? 'absolute' : 'fixed';
     ['top', 'right', 'bottom', 'left'].forEach(function (k) { el.style[k] = pos[k] || 'auto'; });
