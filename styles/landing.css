@@ -261,6 +261,10 @@ a:focus-visible {
   color: var(--color-text-on-surface);
 }
 
+.director-credit {
+  margin: 32px 0 0;
+}
+
 .thanks {
   margin-top: clamp(72px, 9vw, 112px);
 }
