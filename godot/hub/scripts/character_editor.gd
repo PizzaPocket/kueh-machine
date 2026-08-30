@@ -229,10 +229,11 @@ func _build_ui() -> void:
 
 	_preview_container = SubViewportContainer.new()
 	_preview_container.stretch = true
-	# Preserve enough height in the stacked layout for the full-body preview
-	# to remain a primary part of the editor rather than collapsing into a
-	# thumbnail. The fixed camera remains shared across body presets.
-	_preview_container.custom_minimum_size = Vector2(0, 300) if _mobile else Vector2(480, 470)
+	# In the stacked layout the figure owns the top portion of the screen,
+	# while the controls expand into everything left below it. A viewport-
+	# relative height avoids turning the preview into a tiny strip on phones
+	# whose Godot canvas uses high-density device pixels.
+	_preview_container.custom_minimum_size = Vector2(0, _mobile_preview_height()) if _mobile else Vector2(480, 470)
 	_preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# SIZE_EXPAND_FILL on mobile previously meant _preview_container and
 	# _controls -- both EXPAND_FILL siblings in a VBoxContainer -- split
@@ -734,9 +735,10 @@ func _build_preview_world() -> void:
 	viewport.add_child(light)
 	var camera := Camera3D.new()
 	camera.position = Vector3(0, 1.55, 4.7)
-	# Tight portrait framing makes the character itself roughly three times
-	# larger than the previous 38.5-degree preview, without changing the rig.
-	camera.fov = 13.0
+	# Fit the complete figure with a small amount of air above the head and
+	# below the feet. Readable scale comes from the responsive preview region,
+	# not from cropping the body with an artificially narrow field of view.
+	camera.fov = 38.5
 	camera.look_at_from_position(camera.position, Vector3(0, 1.3, 0))
 	camera.current = true
 	viewport.add_child(camera)
@@ -753,6 +755,8 @@ func _rebuild_preview() -> void:
 func _apply_responsive_layout() -> void:
 	var wants_mobile := _is_mobile_layout()
 	if wants_mobile == _mobile:
+		if _mobile:
+			_preview_container.custom_minimum_size.y = _mobile_preview_height()
 		return
 	_mobile = wants_mobile
 	var parent := _layout.get_parent()
@@ -773,7 +777,7 @@ func _apply_responsive_layout() -> void:
 	# as before this file's own mobile-scale work (a live resize crossing the
 	# breakpoint mid-edit is a rare enough case that a full content rebuild
 	# here wasn't already worth it).
-	_preview_container.custom_minimum_size = Vector2(0, 300) if _mobile else Vector2(480, 470)
+	_preview_container.custom_minimum_size = Vector2(0, _mobile_preview_height()) if _mobile else Vector2(480, 470)
 	_preview_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if _mobile else Control.SIZE_EXPAND_FILL
 	_controls.custom_minimum_size.x = 0 if _mobile else 510
 	_panel_shell.add_theme_constant_override("margin_top", 0 if _mobile else 56)
@@ -789,6 +793,12 @@ func _is_mobile_layout() -> bool:
 		if window != null:
 			return float(window.innerWidth) < UIKit.MOBILE_BREAKPOINT_WIDTH
 	return UIKit.is_mobile_viewport(self)
+
+func _mobile_preview_height() -> float:
+	# Roughly the upper two-fifths of the stacked editor: enough room for a
+	# genuinely legible full-body preview while the panel receives the larger
+	# share of the screen and keeps its fixed action footer reachable.
+	return maxf(300.0, get_viewport().get_visible_rect().size.y * 0.42)
 
 ## Scales a float size by MOBILE_SCALE when _mobile, otherwise a no-op --
 ## the one place that ratio is actually applied, so every call site below
