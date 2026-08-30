@@ -52,6 +52,16 @@ const BODY_PRESETS := {
 	},
 }
 
+## Content scaled up 33% on mobile/touch per direct instruction (the same
+## ratio the Hub's own touchscreen dialog text landed on -- see ui_kit.gd's
+## MOBILE_BODY_FONT_SIZE) -- text, swatches, buttons, and spacing all read
+## as "puny" at their plain desktop sizes once actually tested on a phone.
+## Applied via _s()/_si() at construction time in _build_ui() and friends,
+## not live on resize -- matches how _apply_responsive_layout() already
+## only re-flows the OUTER container shape on a live mobile<->desktop
+## transition, never rebuilding the finer buttons/swatches inside.
+const MOBILE_SCALE := 4.0 / 3.0
+
 var appearance: Dictionary
 var _preview_root: Node3D
 var _preview_container: SubViewportContainer
@@ -85,6 +95,12 @@ func setup(initial: Dictionary, owned_contributor_key := "") -> void:
 
 func _ready() -> void:
 	layer = 80
+	# Determined up front now (was previously only ever set inside
+	# _apply_responsive_layout(), after _build_ui() had already run) so
+	# _build_ui() itself can bake in the correct mobile-scaled sizes from
+	# the start, instead of building desktop-sized content this same frame
+	# only leaves in place until the first resize event happens to fire.
+	_mobile = _is_mobile_layout()
 	_build_ui()
 	_build_preview_world()
 	_rebuild_preview()
@@ -125,28 +141,45 @@ func _build_ui() -> void:
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", UITheme.SPACE_LG)
 	margin.add_theme_constant_override("margin_right", UITheme.SPACE_LG)
-	margin.add_theme_constant_override("margin_top", UITheme.SPACE_LG)
+	# Top margin shrinks (not scales up like everything else) on mobile per
+	# direct instruction -- one of the two places pixels are reclaimed for
+	# the larger content below to fit in, the other being the preview's own
+	# reduced height (see _preview_container below).
+	margin.add_theme_constant_override("margin_top", UITheme.SPACE_XS if _mobile else UITheme.SPACE_LG)
 	margin.add_theme_constant_override("margin_bottom", UITheme.SPACE_LG)
 	add_child(margin)
 
-	_layout = HBoxContainer.new()
-	_layout.add_theme_constant_override("separation", UITheme.SPACE_LG)
+	# Mobile/desktop shape decided here now (matches _apply_responsive_
+	# layout()'s own formula for a live transition) instead of always
+	# building the desktop HBoxContainer shape and relying on that function
+	# to fix it up after the fact on the very first frame.
+	_layout = VBoxContainer.new() if _mobile else HBoxContainer.new()
+	_layout.add_theme_constant_override("separation", _si(UITheme.SPACE_MD) if _mobile else UITheme.SPACE_LG)
 	margin.add_child(_layout)
 
 	_preview_container = SubViewportContainer.new()
 	_preview_container.stretch = true
-	_preview_container.custom_minimum_size = Vector2(430, 420)
+	# Mobile height reduced from 255 -> 210 per direct instruction, the
+	# other half of reclaiming pixels for the larger content below (see the
+	# outer margin_top above). The camera in _build_preview_world() stays
+	# shared with desktop rather than a mobile-specific tighter crop --
+	# verified via a headless render first (SubViewportContainer.stretch
+	# scales the doll uniformly into the shorter box with no distortion or
+	# cropping, just a slightly smaller figure), and a camera re-tuned
+	# against one hand-picked body preset risked framing oddly for others
+	# (Hunky/More-tall, etc) with no way to check every combination.
+	_preview_container.custom_minimum_size = Vector2(0, 210) if _mobile else Vector2(430, 420)
 	_preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_preview_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_layout.add_child(_preview_container)
 
 	_panel_shell = MarginContainer.new()
 	_controls = _panel_shell
-	_controls.custom_minimum_size.x = 510
+	_controls.custom_minimum_size.x = 0 if _mobile else 510
 	_controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_controls.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_layout.add_child(_controls)
-	_panel_shell.add_theme_constant_override("margin_top", 56)
+	_panel_shell.add_theme_constant_override("margin_top", 0 if _mobile else 56)
 	var panel := UIKit.panel()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -163,9 +196,9 @@ func _build_ui() -> void:
 	var body_padding := MarginContainer.new()
 	body_padding.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body_padding.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body_padding.add_theme_constant_override("margin_left", UITheme.SPACE_XL)
-	body_padding.add_theme_constant_override("margin_right", UITheme.SPACE_XL)
-	body_padding.add_theme_constant_override("margin_top", UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_left", _si(UITheme.SPACE_XL))
+	body_padding.add_theme_constant_override("margin_right", _si(UITheme.SPACE_XL))
+	body_padding.add_theme_constant_override("margin_top", _si(UITheme.SPACE_XL))
 	# The scroll viewport ends directly at the footer rule. Bottom breathing
 	# room belongs inside the scrolling content, not between viewport and rule.
 	body_padding.add_theme_constant_override("margin_bottom", 0)
@@ -173,13 +206,15 @@ func _build_ui() -> void:
 	var body := VBoxContainer.new()
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", UITheme.SPACE_MD)
+	body.add_theme_constant_override("separation", _si(UITheme.SPACE_MD))
 	body_padding.add_child(body)
 	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", UITheme.SPACE_MD)
+	header.add_theme_constant_override("separation", _si(UITheme.SPACE_MD))
 	body.add_child(header)
 	var heading := UIKit.heading("Edit character")
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if _mobile:
+		heading.add_theme_font_size_override("font_size", _si(UITheme.FONT_HEADING))
 	header.add_child(heading)
 	var inner_scroll := ScrollContainer.new()
 	inner_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -188,7 +223,7 @@ func _build_ui() -> void:
 	body.add_child(inner_scroll)
 	var sections := VBoxContainer.new()
 	sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sections.add_theme_constant_override("separation", UITheme.SPACE_LG)
+	sections.add_theme_constant_override("separation", _si(UITheme.SPACE_LG))
 	inner_scroll.add_child(sections)
 	_add_choice_section(sections, "Build", [
 		{"label": "Soft", "value": "soft"}, {"label": "Skinny", "value": "slim"}, {"label": "Hunky", "value": "broad"}
@@ -214,7 +249,7 @@ func _build_ui() -> void:
 	# it. Belongs inside the scrolling content itself -- see body_padding's
 	# own zero bottom margin above for why.
 	var bottom_spacer := Control.new()
-	bottom_spacer.custom_minimum_size.y = UITheme.SPACE_LG
+	bottom_spacer.custom_minimum_size.y = _si(UITheme.SPACE_LG)
 	sections.add_child(bottom_spacer)
 
 	# The explicit discard/save choices stay fixed below the scrolling options.
@@ -233,42 +268,54 @@ func _build_ui() -> void:
 	footer_region.add_child(footer_divider)
 	var footer_padding := MarginContainer.new()
 	# A 126px action region gives the 78px controls 24px of breathing room
-	# above and below. The divider remains outside that inset as the region's
-	# exact top edge.
-	footer_padding.custom_minimum_size.y = 126
-	footer_padding.add_theme_constant_override("margin_left", UITheme.SPACE_XL)
-	footer_padding.add_theme_constant_override("margin_right", UITheme.SPACE_XL)
-	footer_padding.add_theme_constant_override("margin_top", UITheme.SPACE_MD)
-	footer_padding.add_theme_constant_override("margin_bottom", UITheme.SPACE_MD)
+	# above and below (scaled together on mobile, so that relationship
+	# still holds at the larger size). The divider remains outside that
+	# inset as the region's exact top edge.
+	footer_padding.custom_minimum_size.y = _si(126)
+	footer_padding.add_theme_constant_override("margin_left", _si(UITheme.SPACE_XL))
+	footer_padding.add_theme_constant_override("margin_right", _si(UITheme.SPACE_XL))
+	footer_padding.add_theme_constant_override("margin_top", _si(UITheme.SPACE_MD))
+	footer_padding.add_theme_constant_override("margin_bottom", _si(UITheme.SPACE_MD))
 	footer_region.add_child(footer_padding)
 	var footer := HBoxContainer.new()
 	footer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	footer.add_theme_constant_override("separation", UITheme.SPACE_SM)
+	footer.add_theme_constant_override("separation", _si(UITheme.SPACE_SM))
 	footer_padding.add_child(footer)
 	_status = UIKit.caption_label("")
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if _mobile:
+		_status.add_theme_font_size_override("font_size", _si(UITheme.FONT_CAPTION))
 	footer.add_child(_status)
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_END
 	actions.size_flags_horizontal = Control.SIZE_SHRINK_END
 	actions.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	actions.add_theme_constant_override("separation", UITheme.SPACE_SM)
+	actions.add_theme_constant_override("separation", _si(UITheme.SPACE_SM))
 	footer.add_child(actions)
 	actions.add_child(_editor_button("Cancel", _close, false))
 	_save_button = _editor_button("Save character", _save, false)
 	actions.add_child(_save_button)
 
+## Shared by every section's own title label -- font size scaled to match
+## the rest of the mobile content instead of staying at UIKit.body_label()'s
+## plain UITheme.FONT_BODY regardless of viewport.
+func _section_title(title: String) -> Label:
+	var label := UIKit.body_label(title)
+	if _mobile:
+		label.add_theme_font_size_override("font_size", _si(UITheme.FONT_BODY))
+	return label
+
 func _add_choice_section(parent: VBoxContainer, title: String, options: Array, key: String) -> void:
 	var group := VBoxContainer.new()
-	group.add_theme_constant_override("separation", UITheme.SPACE_XS)
+	group.add_theme_constant_override("separation", _si(UITheme.SPACE_XS))
 	parent.add_child(group)
-	group.add_child(UIKit.body_label(title))
+	group.add_child(_section_title(title))
 	var row := HFlowContainer.new()
-	row.add_theme_constant_override("h_separation", UITheme.SPACE_SM)
-	row.add_theme_constant_override("v_separation", UITheme.SPACE_SM)
+	row.add_theme_constant_override("h_separation", _si(UITheme.SPACE_SM))
+	row.add_theme_constant_override("v_separation", _si(UITheme.SPACE_SM))
 	group.add_child(row)
 	var selection_group := ButtonGroup.new()
 	selection_group.allow_unpress = false
@@ -283,12 +330,12 @@ func _add_choice_section(parent: VBoxContainer, title: String, options: Array, k
 
 func _add_clothing_section(parent: VBoxContainer, title: String, options: Array, style_key: String, color_key: String) -> void:
 	var group := VBoxContainer.new()
-	group.add_theme_constant_override("separation", UITheme.SPACE_SM)
+	group.add_theme_constant_override("separation", _si(UITheme.SPACE_SM))
 	parent.add_child(group)
-	group.add_child(UIKit.body_label(title))
+	group.add_child(_section_title(title))
 	var choices := HFlowContainer.new()
-	choices.add_theme_constant_override("h_separation", UITheme.SPACE_SM)
-	choices.add_theme_constant_override("v_separation", UITheme.SPACE_SM)
+	choices.add_theme_constant_override("h_separation", _si(UITheme.SPACE_SM))
+	choices.add_theme_constant_override("v_separation", _si(UITheme.SPACE_SM))
 	group.add_child(choices)
 	var selection_group := ButtonGroup.new()
 	selection_group.allow_unpress = false
@@ -303,19 +350,19 @@ func _add_clothing_section(parent: VBoxContainer, title: String, options: Array,
 
 func _add_color_section(parent: VBoxContainer, title: String, colors: Array, key: String) -> void:
 	var group := VBoxContainer.new()
-	group.add_theme_constant_override("separation", UITheme.SPACE_XS)
+	group.add_theme_constant_override("separation", _si(UITheme.SPACE_XS))
 	parent.add_child(group)
-	group.add_child(UIKit.body_label(title))
+	group.add_child(_section_title(title))
 	group.add_child(_color_row(colors, key, title))
 
 func _color_row(colors: Array, key: String, accessible_name: String) -> HFlowContainer:
 	var row := HFlowContainer.new()
-	row.add_theme_constant_override("h_separation", UITheme.SPACE_SM)
-	row.add_theme_constant_override("v_separation", UITheme.SPACE_SM)
+	row.add_theme_constant_override("h_separation", _si(UITheme.SPACE_SM))
+	row.add_theme_constant_override("v_separation", _si(UITheme.SPACE_SM))
 	for html in colors:
 		var color := Color(str(html))
 		var swatch := Button.new()
-		swatch.custom_minimum_size = Vector2(72, 72)
+		swatch.custom_minimum_size = Vector2(_s(72), _s(72))
 		swatch.tooltip_text = "Choose " + accessible_name.to_lower()
 		swatch.accessibility_name = swatch.tooltip_text
 		var normal := SuperellipseStyleBox.new()
@@ -346,12 +393,12 @@ func _kaixin_pattern_swatch() -> Button:
 	if _kaixin_pattern_texture == null:
 		_kaixin_pattern_texture = _kaixin_swatch_texture()
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(72, 72)
+	button.custom_minimum_size = Vector2(_s(72), _s(72))
 	button.tooltip_text = "Kara-o-kueh polka dots"
 	button.accessibility_name = button.tooltip_text
 	button.icon = _kaixin_pattern_texture
 	button.expand_icon = true
-	button.icon_max_width = 66
+	button.icon_max_width = _si(66)
 	for state in [&"normal", &"hover", &"pressed", &"disabled"]:
 		button.add_theme_stylebox_override(state, _swatch_style(Color("150f1e"), 3))
 	button.add_theme_stylebox_override("focus", UITheme.focus_ring_stylebox())
@@ -394,12 +441,12 @@ func _select_kaixin_pattern() -> void:
 
 func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(72, 72)
+	button.custom_minimum_size = Vector2(_s(72), _s(72))
 	button.tooltip_text = "Choose a custom " + accessible_name.to_lower()
 	button.accessibility_name = button.tooltip_text
 	button.icon = _color_map_texture()
 	button.expand_icon = true
-	button.icon_max_width = 72
+	button.icon_max_width = _si(72)
 	for state in [&"normal", &"hover", &"pressed", &"disabled"]:
 		button.add_theme_stylebox_override(state, _swatch_style(Color.TRANSPARENT, 3))
 	button.add_theme_stylebox_override("focus", UITheme.focus_ring_stylebox())
@@ -454,8 +501,8 @@ func _configure_simple_picker(picker: ColorPicker) -> void:
 
 func _editor_button(text: String, callback: Callable, selectable := true) -> Button:
 	var button := UIKit.button(text, callback)
-	button.custom_minimum_size = Vector2(164, 78)
-	button.add_theme_font_size_override("font_size", UITheme.FONT_BUTTON)
+	button.custom_minimum_size = Vector2(_s(164), _s(78))
+	button.add_theme_font_size_override("font_size", _si(UITheme.FONT_BUTTON))
 	button.toggle_mode = selectable
 	return button
 
@@ -539,10 +586,10 @@ func _swatch_style(fill: Color, border_width: int) -> SuperellipseStyleBox:
 
 func _neutral_button_style(fill: Color, border_width: int) -> SuperellipseStyleBox:
 	var style := _swatch_style(fill, border_width)
-	style.content_margin_left = UITheme.SPACE_MD
-	style.content_margin_right = UITheme.SPACE_MD
-	style.content_margin_top = UITheme.SPACE_SM
-	style.content_margin_bottom = UITheme.SPACE_SM
+	style.content_margin_left = _s(UITheme.SPACE_MD)
+	style.content_margin_right = _s(UITheme.SPACE_MD)
+	style.content_margin_top = _s(UITheme.SPACE_SM)
+	style.content_margin_bottom = _s(UITheme.SPACE_SM)
 	return style
 
 func _editor_panel_style() -> SuperellipseStyleBox:
@@ -621,11 +668,18 @@ func _apply_responsive_layout() -> void:
 	parent.remove_child(_layout)
 	_layout.queue_free()
 	_layout = VBoxContainer.new() if _mobile else HBoxContainer.new()
-	_layout.add_theme_constant_override("separation", UITheme.SPACE_MD if _mobile else UITheme.SPACE_LG)
+	_layout.add_theme_constant_override("separation", _si(UITheme.SPACE_MD) if _mobile else UITheme.SPACE_LG)
 	parent.add_child(_layout)
 	_layout.add_child(_preview_container)
 	_layout.add_child(_controls)
-	_preview_container.custom_minimum_size = Vector2(0, 255) if _mobile else Vector2(430, 420)
+	# Matches _build_ui()'s own initial values (see that function's own
+	# comments for why 210/XS instead of the desktop 255/LG) -- note this
+	# only re-flows the outer preview/controls shape, not the finer
+	# buttons/swatches/spacing _build_ui() bakes in at construction time,
+	# same pre-existing limitation as before this file's own mobile-scale
+	# work (a live resize crossing the breakpoint mid-edit is a rare enough
+	# case that a full content rebuild here wasn't already worth it).
+	_preview_container.custom_minimum_size = Vector2(0, 210) if _mobile else Vector2(430, 420)
 	_controls.custom_minimum_size.x = 0 if _mobile else 510
 	_panel_shell.add_theme_constant_override("margin_top", 0 if _mobile else 56)
 	if preview_index < 0 or controls_index < 0:
@@ -640,6 +694,18 @@ func _is_mobile_layout() -> bool:
 		if window != null:
 			return float(window.innerWidth) < UIKit.MOBILE_BREAKPOINT_WIDTH
 	return UIKit.is_mobile_viewport(self)
+
+## Scales a float size by MOBILE_SCALE when _mobile, otherwise a no-op --
+## the one place that ratio is actually applied, so every call site below
+## (spacing, swatch/button sizes, font sizes via _si()) reads as "this
+## value, mobile-scaled" rather than repeating the ternary everywhere.
+func _s(value: float) -> float:
+	return value * MOBILE_SCALE if _mobile else value
+
+## _s(), rounded to an int -- for theme constants (margins/separations) and
+## font sizes, which Godot's theme overrides require as whole numbers.
+func _si(value: float) -> int:
+	return int(round(_s(value)))
 
 func _save() -> void:
 	if _saving:
