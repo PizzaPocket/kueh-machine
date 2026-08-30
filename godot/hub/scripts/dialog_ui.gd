@@ -43,9 +43,13 @@ const MOBILE_SIDE_MARGIN := 24.0
 ## weren't large enough to comfortably tap -- bumped well past
 ## BUTTON_MIN_HEIGHT/FONT_BODY's own already-touch-friendly desktop values.
 ## That bump (96/46 -> 144/69) then read as too big once tested on an
-## actual device -- split the difference per direct correction.
+## actual device, split the difference (-> 120/58), then nudged down once
+## more per direct correction. The NPC's own dialog line (_line_label,
+## normally UITheme.FONT_BODY = 36) is sized to match this on mobile too
+## (see _update_responsive_layout()) -- it looked mismatched sitting well
+## below the response options' size right above it.
 const RESPONSE_BUTTON_HEIGHT_MOBILE := 120.0
-const RESPONSE_FONT_SIZE_MOBILE := 58
+const RESPONSE_FONT_SIZE_MOBILE := 54
 
 var _panel: PanelContainer
 var _speaker_label: Label
@@ -174,6 +178,15 @@ func _update_responsive_layout() -> void:
 	else:
 		UIKit.anchor_to_edge(_response_panel, 1.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL)
 	_response_panel.custom_minimum_size.x = minf(RESPONSE_PANEL_WIDTH_DESKTOP, capped_width)
+
+	# The NPC's own spoken line sat at UITheme.FONT_BODY (36) regardless of
+	# viewport -- noticeably smaller than the response options right below
+	# it once those got their own mobile-only bump. Matched to the same
+	# size on mobile/tablet, restored to the shared default otherwise.
+	if is_mobile:
+		_line_label.add_theme_font_size_override("font_size", RESPONSE_FONT_SIZE_MOBILE)
+	else:
+		_line_label.remove_theme_font_size_override("font_size")
 
 
 func _process(delta: float) -> void:
