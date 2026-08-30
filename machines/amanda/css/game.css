@@ -8,6 +8,15 @@
   --green: #8FAE7D;
   --yellow: #E8B96A;
   --tab-active: #C8793B;
+  /* Shared account badge: 32px inset + 44px badge + 8px breathing room. */
+  --account-safe-right: 84px;
+}
+
+@media (max-width: 480px) {
+  :root {
+    /* The badge uses a 10px inset on narrow screens. */
+    --account-safe-right: 62px;
+  }
 }
 
 * {
@@ -154,17 +163,11 @@ button:focus-visible,
 .hero-settings-btn {
   position: absolute;
   top: 15px;
-  /* Account badge: 32px desktop inset + 44px badge + 8px control gap. */
-  right: 84px;
+  right: var(--account-safe-right);
   background: rgba(255, 255, 255, 0.85);
+  font-size: 1.5rem;
+  line-height: 1;
   z-index: 1;
-}
-
-@media (max-width: 480px) {
-  .hero-settings-btn {
-    /* The shared badge reduces its viewport inset from 32px to 10px. */
-    right: 62px;
-  }
 }
 
 .hero-cta-stack {
@@ -278,7 +281,7 @@ button:focus-visible,
 .cafe-pause-btn {
   position: absolute;
   top: 16px;
-  right: 16px;
+  right: var(--account-safe-right);
   background: rgba(255, 255, 255, 0.85);
   z-index: 3;
 }
@@ -742,7 +745,7 @@ button:focus-visible,
 .tray-pause-btn {
   position: fixed;
   top: 16px;
-  right: 16px;
+  right: var(--account-safe-right);
   background: rgba(255, 255, 255, 0.85);
   z-index: 10;
 }
@@ -2737,6 +2740,9 @@ button:focus-visible,
   color: var(--tab-active);
   font-weight: 700;
   min-width: 44px;
+  /* Keep the count's right edge aligned with other controls shifted left of
+     the floating account badge. The screen itself supplies the first 20px. */
+  margin-right: calc(var(--account-safe-right) - 20px);
   text-align: right;
 }
 
@@ -2852,6 +2858,11 @@ button.character-card {
 
   .screen-collection .screen-header h2 {
     font-size: 1.61rem;
+  }
+
+  .collection-count {
+    /* Mobile collection gutters contract from 20px to 10px. */
+    margin-right: calc(var(--account-safe-right) - 10px);
   }
 
   .card-grid {
