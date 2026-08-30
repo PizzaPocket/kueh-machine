@@ -40,10 +40,12 @@ const NPC_PANEL_WIDTH_DESKTOP := 840.0
 const RESPONSE_PANEL_WIDTH_DESKTOP := 600.0
 const MOBILE_SIDE_MARGIN := 24.0
 ## Real touch targets, per direct correction that the response options
-## weren't large enough to comfortably tap -- both bumped well past
+## weren't large enough to comfortably tap -- bumped well past
 ## BUTTON_MIN_HEIGHT/FONT_BODY's own already-touch-friendly desktop values.
-const RESPONSE_BUTTON_HEIGHT_MOBILE := 144.0
-const RESPONSE_FONT_SIZE_MOBILE := 69
+## That bump (96/46 -> 144/69) then read as too big once tested on an
+## actual device -- split the difference per direct correction.
+const RESPONSE_BUTTON_HEIGHT_MOBILE := 120.0
+const RESPONSE_FONT_SIZE_MOBILE := 58
 
 var _panel: PanelContainer
 var _speaker_label: Label
