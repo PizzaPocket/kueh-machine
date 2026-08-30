@@ -82,11 +82,15 @@ func _on_prompt_gui_input(event: InputEvent) -> void:
 ## _prompt's width never grows past PROMPT_WIDTH_DESKTOP, only shrinks to
 ## fit a viewport narrower than that (plus side margins) -- so it's already
 ## the right width on a normal desktop window and never overflows a phone's.
-## On mobile/tablet, per direct correction, even that shrunk-to-fit width
-## was still wide enough to overlap the joystick and RUN/JUMP buttons in the
-## screen's own corners -- 0 lets the PanelContainer fall back to hugging
-## its Label's own natural text width instead, the same "sized to its own
-## content" a normal button already is, rather than a wide bar.
+## On mobile/tablet, custom_minimum_size.x is instead floored to
+## DialogUI's own RESPONSE_PANEL_WIDTH_DESKTOP/MOBILE_SIDE_MARGIN formula
+## per direct instruction -- the same minimum width the player-response
+## dialog already uses, rather than a bare 0 (an earlier attempt at fixing
+## corner-control overlap, since replaced by this shared floor) or this
+## panel's own much wider PROMPT_WIDTH_DESKTOP/PROMPT_SIDE_MARGIN. A
+## PanelContainer's minimum size is the greater of custom_minimum_size and
+## its content's own, so a longer prompt ("Visit Beary's") still grows
+## past this floor exactly as before.
 ## Font size also bumped to UIKit.MOBILE_BODY_FONT_SIZE on mobile/tablet to
 ## match dialog_ui.gd's own response/line text (see that file's own
 ## comment) -- previously stuck at the shared FONT_BUTTON/FONT_BODY (36)
@@ -94,12 +98,12 @@ func _on_prompt_gui_input(event: InputEvent) -> void:
 ## got their own mobile bump.
 func _update_prompt_width() -> void:
 	var label := _prompt.get_node("Label") as Label
+	var viewport_width := get_viewport().get_visible_rect().size.x
 	if UIKit.is_mobile_viewport(self):
-		_prompt.custom_minimum_size.x = 0.0
+		_prompt.custom_minimum_size.x = minf(DialogUI.RESPONSE_PANEL_WIDTH_DESKTOP, viewport_width - DialogUI.MOBILE_SIDE_MARGIN * 2.0)
 		if label != null:
 			label.add_theme_font_size_override("font_size", UIKit.MOBILE_BODY_FONT_SIZE)
 	else:
-		var viewport_width := get_viewport().get_visible_rect().size.x
 		_prompt.custom_minimum_size.x = minf(PROMPT_WIDTH_DESKTOP, viewport_width - PROMPT_SIDE_MARGIN * 2.0)
 		if label != null:
 			label.remove_theme_font_size_override("font_size")

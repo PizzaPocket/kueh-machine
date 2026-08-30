@@ -248,14 +248,20 @@ func _add_response(text: String, callback: Callable) -> void:
 	row.add_child(option)
 	_response_buttons.append(option)
 
-	var arrow := UIKit.response_arrow()
-	# Keep the arrow control present even while unfocused: Containers exclude
-	# hidden children from layout, which made the option text expand into this
-	# margin and jump left/right whenever selection changed.
-	arrow.modulate.a = 0.0
-	row.add_child(arrow)
-	option.focus_entered.connect(func(): arrow.modulate.a = 1.0)
-	option.focus_exited.connect(func(): arrow.modulate.a = 0.0)
+	# Skipped entirely on touchscreen, per direct instruction -- it's a
+	# keyboard/dpad "which option is currently focused" indicator, and a
+	# touch user just taps the option they want directly with nothing to
+	# indicate beforehand.
+	if not UIKit.is_mobile_viewport(self):
+		var arrow := UIKit.response_arrow()
+		# Keep the arrow control present even while unfocused: Containers
+		# exclude hidden children from layout, which made the option text
+		# expand into this margin and jump left/right whenever selection
+		# changed.
+		arrow.modulate.a = 0.0
+		row.add_child(arrow)
+		option.focus_entered.connect(func(): arrow.modulate.a = 1.0)
+		option.focus_exited.connect(func(): arrow.modulate.a = 0.0)
 	option.mouse_entered.connect(option.grab_focus)
 
 
