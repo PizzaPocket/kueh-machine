@@ -361,7 +361,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			fade.tween_property(_movement_hint, "modulate:a", 0.0, 0.32)
 			fade.tween_callback(func(): _movement_hint.visible = false)
 
+## Every authored prompt (hub_main.gd's own "Talk (F)", "View (F)", "Look at
+## cat (F)", "Visit Beary's (F)") ends the same " (F)" keyboard hint -- per
+## direct instruction, that's meaningless on a touchscreen with no physical
+## F key, so it's stripped here at the display layer (trim_suffix is a
+## no-op if it's ever missing) rather than needing every call site to
+## author two versions of its own string.
 func set_prompt(visible: bool, text := "Talk (F)") -> void:
 	if visible:
-		UIKit.set_readout_text(_prompt, text)
+		var display_text := text.trim_suffix(" (F)") if UIKit.is_mobile_viewport(self) else text
+		UIKit.set_readout_text(_prompt, display_text)
 	_prompt.visible = visible

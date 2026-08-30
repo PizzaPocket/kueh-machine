@@ -186,14 +186,25 @@ LOADER_CSS = """
 	gap: 24px;
 }
 
+/* Reconciled with the real in-game joystick's own colors/shape/shadow
+   (hub_ui.gd's _squircle_style(): outer Color(0.16,0.11,0.07,0.48), knob
+   Color(0.97,0.93,0.85,0.90), corner_ratio 0.34, shadow_size 5 @ 22%
+   black) -- this tooltip previously had the light/dark relationship
+   backwards (light outer ring, near-black knob) instead of the real
+   widget's dark ring with a light knob. Solid hex approximations below are
+   those same colors alpha-composited over this loading screen's own white
+   background, not just guessed. Border dropped in favor of the shadow
+   alone, matching the real widget having no separate stroke.
+   corner-shape/border-radius: 34% already matched corner_ratio -- left
+   alone. */
 .loader-joystick {
 	position: relative;
 	width: 156px;
 	height: 156px;
-	border: 1px solid #aaa59c;
 	border-radius: 34%;
 	corner-shape: squircle;
-	background: #f4f2ed;
+	background: #98928d;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
 }
 
 .loader-joystick::after {
@@ -201,12 +212,22 @@ LOADER_CSS = """
 	position: absolute;
 	top: 50%;
 	left: 50%;
-	width: 72px;
-	height: 72px;
-	transform: translate(-50%, -50%);
+	width: 68px;
+	height: 68px;
 	border-radius: 34%;
 	corner-shape: squircle;
-	background: #171311;
+	background: #f8efdd;
+	/* A gentle, looping drift within the outer ring -- per direct
+	   instruction, hints the knob is draggable rather than sitting
+	   perfectly still and reading as a fixed icon. */
+	animation: loader-joystick-nudge 2.6s ease-in-out infinite;
+}
+
+@keyframes loader-joystick-nudge {
+	0%, 100% { transform: translate(-50%, -50%); }
+	25% { transform: translate(calc(-50% - 15px), calc(-50% - 11px)); }
+	50% { transform: translate(-50%, -50%); }
+	75% { transform: translate(calc(-50% + 15px), calc(-50% + 11px)); }
 }
 
 /* Narrow width OR touch-primary/no-hover, not narrow width alone -- a
