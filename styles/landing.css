@@ -262,7 +262,10 @@ a:focus-visible {
 }
 
 .director-credit {
-  margin: 32px 0 0;
+  /* Same clamp() .thanks uses for its own margin-top below, so the gap
+     above Leonard's credit (from the contributor list) matches the gap
+     below it (to the Special Thanks heading) exactly. */
+  margin: clamp(72px, 9vw, 112px) 0 0;
 }
 
 .thanks {
