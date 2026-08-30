@@ -735,10 +735,11 @@ func _build_preview_world() -> void:
 	viewport.add_child(light)
 	var camera := Camera3D.new()
 	camera.position = Vector3(0, 1.55, 4.7)
-	# Fit the complete figure with a small amount of air above the head and
-	# below the feet. Readable scale comes from the responsive preview region,
-	# not from cropping the body with an artificially narrow field of view.
-	camera.fov = 38.5
+	# Crop away excess empty world above and below the complete figure. Paired
+	# with the shorter mobile preview region below, this keeps the character at
+	# approximately the same on-screen size while giving more height to the
+	# editor panel.
+	camera.fov = 30.0
 	camera.look_at_from_position(camera.position, Vector3(0, 1.3, 0))
 	camera.current = true
 	viewport.add_child(camera)
@@ -795,10 +796,10 @@ func _is_mobile_layout() -> bool:
 	return UIKit.is_mobile_viewport(self)
 
 func _mobile_preview_height() -> float:
-	# Roughly the upper two-fifths of the stacked editor: enough room for a
-	# genuinely legible full-body preview while the panel receives the larger
-	# share of the screen and keeps its fixed action footer reachable.
-	return maxf(300.0, get_viewport().get_visible_rect().size.y * 0.42)
+	# The camera now removes the former top/bottom dead space, so the preview
+	# only needs roughly the upper third of the stacked editor to show the
+	# figure at the same useful scale.
+	return maxf(240.0, get_viewport().get_visible_rect().size.y * 0.32)
 
 ## Scales a float size by MOBILE_SCALE when _mobile, otherwise a no-op --
 ## the one place that ratio is actually applied, so every call site below
