@@ -78,14 +78,9 @@ var _kaixin_pattern_texture: Texture2D
 var _choice_buttons: Array[Dictionary] = []
 var _color_buttons: Array[Dictionary] = []
 var _scroll: ScrollContainer
-var _scroll_touch_index := -1
-var _scroll_drag_remainder := 0.0
-var _scroll_touch_start := Vector2.ZERO
-var _scroll_touch_dragged := false
-var _custom_color_buttons: Array[Button] = []
 var _color_popups: Array[PopupPanel] = []
 
-const TOUCH_TAP_SLOP := 14.0
+const TOUCH_SCROLL_DEADZONE := 14.0
 
 func setup(initial: Dictionary, owned_contributor_key := "") -> void:
 	_kaixin_pattern_unlocked = owned_contributor_key in ["kaixin", "leonard"]
@@ -134,66 +129,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_close()
 		get_viewport().set_input_as_handled()
-
-## Godot's own touch-to-scroll behavior on ScrollContainer reads its speed
-## off however many InputEventScreenDrag events land per frame, which drifts
-## from the finger's actual on-screen movement -- per direct feedback this
-## made the scroll rate feel disconnected from the touch position. Tracked
-## by finger index (same pattern as hub_ui.gd's own joystick/action-key
-## touch handling) rather than relying on emulate_mouse_from_touch, so it
-## can give the content a true pixel-for-pixel 1:1 offset from the drag's
-## own relative delta every event, with no dependence on frame timing.
-func _input(event: InputEvent) -> void:
-	if _scroll == null:
-		return
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			if _dismiss_color_popup_at(touch.position):
-				get_viewport().set_input_as_handled()
-				return
-			if _scroll_touch_index == -1 and _scroll.get_global_rect().has_point(touch.position):
-				_scroll_touch_index = touch.index
-				_scroll_drag_remainder = 0.0
-				_scroll_touch_start = touch.position
-				_scroll_touch_dragged = false
-		elif touch.index == _scroll_touch_index:
-			_scroll_touch_index = -1
-			# Keep the dragged state alive through this release event so a Button
-			# beneath the finger cannot interpret the end of a scroll as a tap.
-			call_deferred("_finish_scroll_touch")
-	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		if drag.index == _scroll_touch_index:
-			if not _scroll_touch_dragged and drag.position.distance_to(_scroll_touch_start) > TOUCH_TAP_SLOP:
-				_scroll_touch_dragged = true
-				# Disabling an armed custom-colour button cancels Godot's pending
-				# release activation while the same gesture scrolls the panel.
-				for button in _custom_color_buttons:
-					button.disabled = true
-			# scroll_vertical is an int; carry the fractional remainder
-			# forward instead of truncating it away each event, so a slow
-			# drag doesn't lose most of its motion to rounding.
-			var total := drag.relative.y + _scroll_drag_remainder
-			var delta := int(total)
-			_scroll_drag_remainder = total - float(delta)
-			_scroll.scroll_vertical -= delta
-			get_viewport().set_input_as_handled()
-
-func _finish_scroll_touch() -> void:
-	for button in _custom_color_buttons:
-		button.disabled = false
-	_scroll_touch_dragged = false
-
-func _dismiss_color_popup_at(position: Vector2) -> bool:
-	for popup in _color_popups:
-		if not popup.visible:
-			continue
-		var popup_rect := Rect2(Vector2(popup.position), Vector2(popup.size))
-		if not popup_rect.has_point(position):
-			popup.hide()
-			return true
-	return false
 
 func _build_ui() -> void:
 	var backdrop := ColorRect.new()
@@ -293,6 +228,10 @@ func _build_ui() -> void:
 	header.add_child(heading)
 	var inner_scroll := ScrollContainer.new()
 	inner_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Let ScrollContainer arbitrate tap versus drag. Once movement crosses its
+	# native deadzone it owns the gesture and cancels any child Button press,
+	# so touch-up after scrolling cannot change a character option.
+	inner_scroll.scroll_deadzone = _si(TOUCH_SCROLL_DEADZONE)
 	inner_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inner_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(inner_scroll)
@@ -544,10 +483,7 @@ func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	popup.add_child(picker_center)
 	add_child(popup)
 	_color_popups.append(popup)
-	_custom_color_buttons.append(button)
 	button.pressed.connect(func() -> void:
-		if _scroll_touch_dragged:
-			return
 		for other_popup in _color_popups:
 			if other_popup != popup:
 				other_popup.hide()
