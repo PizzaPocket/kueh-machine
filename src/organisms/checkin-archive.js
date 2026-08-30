@@ -4,8 +4,8 @@
 // Timeline's scissors-cut apparatus that reveals Check In — none are
 // deleted, all just hidden via CSS classes (index.html: .is-archived,
 // .scissors-archived), so they can be restored for a future incarnation
-// of the site. Leveling Up needs no gating here at all — it's plain
-// always-visible markup in index.html now, same as Getting Started.
+// of the site. Leveling Up's earlier historical introduction is handled
+// separately by project-history.js; this organism only owns archiving.
 
 const GATE_UTC = Date.UTC(2026, 6, 29, 16, 0, 0); // 30 July 2026 00:00 SGT — the day after the 29 July check-in
 

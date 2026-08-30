@@ -1024,10 +1024,14 @@
       display: inline-block;
     }
 
+    /* Historical visibility is set before component enhancement by
+       project-history.js. Keep hidden content out of layout even if another
+       authored display rule would otherwise outrank the browser default. */
+    [data-history-after][hidden],
+    [data-history-before][hidden] { display: none !important; }
+
     /* === POST-CHECK-IN ARCHIVE (src/organisms/checkin-archive.js flips
-       these on the day after check-in) — Leveling Up itself needs no
-       gating: it's plain always-visible markup below, same as Getting
-       Started. Check In, the Randomiser (which only makes sense alongside
+       these on the day after check-in). Check In, the Randomiser (which only makes sense alongside
        a live check-in), and the Timeline's scissors-cut apparatus that
        reveals Check In all get archived, not deleted, so all three can be
        restored for a future incarnation of the site. === */
@@ -1212,7 +1216,8 @@
   <!-- SITE NAV -->
   <nav class="site-nav" aria-label="Section navigation">
     <div class="site-nav-inner">
-      <a href="/brief/#leveling-up" data-nav-target="leveling-up" class="text-sheen">Leveling Up</a>
+      <a href="/brief/#leveling-up" data-nav-target="leveling-up" data-history-after="leveling-up" class="text-sheen">Leveling Up</a>
+      <a href="/brief/#guide" data-nav-target="guide" data-history-before="leveling-up" class="text-sheen" hidden>Getting Started</a>
       <a href="/brief/#timeline" data-nav-target="timeline" class="text-sheen">Timeline</a>
       <a href="/brief/#brief" data-nav-target="brief" class="text-sheen">Brief</a>
     </div>
@@ -1263,15 +1268,13 @@
     </div>
   </section>
 
-  <!-- LEVELING UP — live now, same as Getting Started below it; no
-       gating of its own. (src/organisms/checkin-archive.js only archives
-       #check-in and the Timeline's scissors apparatus, the day after
-       check-in.) Netlify Drop and GitHub each get their own walkthrough
+  <!-- LEVELING UP — project-history.js reveals this from its actual
+       introduction on 27 July 2026. Netlify Drop and GitHub each get their own walkthrough
        (own title, one-liner, and numbered sub-steps, restarting at 01)
        since they're two independent skills, not one continuous flow. The
        two tips below them follow the same title + one-liner shape but
        their row has no step-num — a tip isn't a step to complete. -->
-  <section id="leveling-up" class="guide-section reveal">
+  <section id="leveling-up" class="guide-section reveal" data-history-after="leveling-up">
     <!-- Margin strips, not the full-bleed layer guide-section uses — text
          sits directly on this section's own colored background (unlike
          guide-section's step-cards, which give the full-bleed layer gaps

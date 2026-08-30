@@ -7,7 +7,8 @@
 // just imports and calls them. Adding the next feature later means adding
 // one import and one call here, not new logic in this file.
 
-import { init as initDebugDate } from './dev/debug-date.js?v=showcase-20260826';
+import { init as initDebugDate } from './dev/debug-date.js?v=archive-20260830';
+import { init as initProjectHistory } from './organisms/project-history.js';
 import { init as initIcons } from './organisms/icons.js';
 import { init as initKuehOfDay } from './organisms/kueh-of-day.js';
 import { init as initSiteNav } from './organisms/site-nav.js';
@@ -21,10 +22,13 @@ import { init as initDropChute } from './organisms/drop-chute.js';
 import { init as initCheckinArchive } from './organisms/checkin-archive.js';
 import { init as initRandomiser } from './organisms/randomiser.js';
 
-// First — a no-op unless the URL has ?debug=1, but when it does apply a
-// Date.now() override, every other organism below reads "now" via
+// First — active on /brief/ (and elsewhere with ?debug=1). It applies a
+// Date.now() override before every other organism below reads "now" via
 // Date.now() at its own init time, so this has to run before all of them.
 initDebugDate();
+// Before nav/decorative organisms collect and enhance page elements: this
+// removes sections that did not exist yet at the simulated historical date.
+initProjectHistory();
 // Runs once, scanning the whole document for data-lucide placeholders —
 // no ordering dependency on anything else, but placed early so any
 // organism below that builds its own data-lucide markup dynamically

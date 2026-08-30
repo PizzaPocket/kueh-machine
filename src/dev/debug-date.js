@@ -1,7 +1,6 @@
-// Dev-only tool: lets you simulate "now" around the showcase boundary so
-// the final water-clock-to-ENTER transition can be tested without changing
-// the system clock. Never shown to a normal visitor; only renders with
-// ?debug=1.
+// Historical time machine for the archived project brief, also available on
+// other routes with ?debug=1. It simulates the project's active period so the
+// date-driven layout can still be explored without changing the system clock.
 //
 // Overrides Date.now() only, not `new Date()` with no arguments (a
 // separate, unpatchable read of the system clock) — every date-driven
@@ -30,9 +29,12 @@ function readParams() {
 
 function reloadWithAsOf(timestamp) {
   const params = readParams();
-  if (timestamp === null) params.delete(ASOF_PARAM);
-  else params.set(ASOF_PARAM, String(timestamp));
+  params.set(ASOF_PARAM, String(timestamp));
   window.location.search = params.toString();
+}
+
+function clampToProject(timestamp) {
+  return Math.min(SHOWCASE_UTC, Math.max(PROJECT_START_UTC, timestamp));
 }
 
 function pad(n) {
@@ -93,6 +95,11 @@ function injectStyles() {
       cursor: pointer;
     }
     #debug-date-panel button:hover { background: var(--color-text-on-surface, #5c1638); }
+    #debug-date-panel button:disabled {
+      background: var(--color-surface-border, #d6c8b4);
+      color: var(--color-text-on-surface-muted, #8c4569);
+      cursor: not-allowed;
+    }
     #debug-date-panel .debug-date-step { flex: 1; font-weight: 700; }
     #debug-date-panel .debug-date-status {
       margin: 0;
@@ -123,7 +130,6 @@ function buildPanel() {
       <button type="button" data-preset="kickoff">Kick-off</button>
       <button type="button" data-preset="checkin">Check-in</button>
       <button type="button" data-preset="showcase">Showcase</button>
-      <button type="button" data-preset="now">Today</button>
     </div>
     <p class="debug-date-status"></p>
   `;
@@ -136,8 +142,12 @@ export function init() {
   if (!params.has('debug') && !isProjectBrief) return;
 
   const asOfRaw = params.get(ASOF_PARAM);
-  const asOf = asOfRaw !== null ? Number(asOfRaw) : null;
-  if (asOf !== null && !Number.isNaN(asOf)) {
+  const requestedAsOf = asOfRaw !== null ? Number(asOfRaw) : Number.NaN;
+  // The archive is a closed historical object: without an explicit date it
+  // opens at Kick-off, never at the visitor's real "today".
+  // Old or hand-edited URLs are clamped to the same project bounds.
+  const asOf = clampToProject(Number.isNaN(requestedAsOf) ? PROJECT_START_UTC : requestedAsOf);
+  {
     // Ticks forward in real time from asOf, rather than freezing on it —
     // a frozen Date.now() reads as a stopped clock to anything that polls
     // it on an interval (the countdown, the water-clock's own ball-drop
@@ -147,7 +157,7 @@ export function init() {
     // before the reassignment, so the override doesn't call itself.
     const realNow = Date.now.bind(Date);
     const offset = asOf - realNow();
-    Date.now = () => realNow() + offset;
+    Date.now = () => clampToProject(realNow() + offset);
   }
 
   injectStyles();
@@ -156,14 +166,26 @@ export function init() {
 
   const input = panel.querySelector('#debug-date-input');
   const status = panel.querySelector('.debug-date-status');
-  input.value = toDatetimeLocalValue(new Date(Date.now()));
-  status.textContent = asOf !== null ? `Simulating: ${new Date(asOf).toString()}` : 'Using real time.';
+  input.min = toDatetimeLocalValue(new Date(PROJECT_START_UTC));
+  input.max = toDatetimeLocalValue(new Date(SHOWCASE_UTC));
+  input.value = toDatetimeLocalValue(new Date(asOf));
+  status.textContent = `Simulating: ${new Date(asOf).toString()}`;
+
+  const stepButtons = [...panel.querySelectorAll('[data-step]')];
+  stepButtons.forEach((btn) => {
+    const nextTimestamp = asOf + Number(btn.dataset.step) * DAY_MS;
+    btn.disabled = nextTimestamp < PROJECT_START_UTC || nextTimestamp > SHOWCASE_UTC;
+  });
 
   const applyInputValue = () => {
     if (!input.value) return;
     const timestamp = new Date(input.value).getTime();
     if (Number.isNaN(timestamp)) {
       status.textContent = 'Choose a valid local date and time.';
+      return;
+    }
+    if (timestamp < PROJECT_START_UTC || timestamp > SHOWCASE_UTC) {
+      status.textContent = 'Choose a time between Kick-off and Showcase.';
       return;
     }
     reloadWithAsOf(timestamp);
@@ -174,16 +196,15 @@ export function init() {
   // user does not notice the adjacent apply button.
   input.addEventListener('change', applyInputValue);
 
-  panel.querySelectorAll('[data-step]').forEach((btn) => {
+  stepButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      reloadWithAsOf(Date.now() + Number(btn.dataset.step) * DAY_MS);
+      reloadWithAsOf(clampToProject(asOf + Number(btn.dataset.step) * DAY_MS));
     });
   });
 
   panel.querySelectorAll('[data-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.preset === 'now') reloadWithAsOf(null);
-      else if (btn.dataset.preset === 'kickoff') reloadWithAsOf(PROJECT_START_UTC);
+      if (btn.dataset.preset === 'kickoff') reloadWithAsOf(PROJECT_START_UTC);
       else if (btn.dataset.preset === 'checkin') reloadWithAsOf(CHECKIN_UTC);
       else if (btn.dataset.preset === 'showcase') reloadWithAsOf(SHOWCASE_UTC);
     });

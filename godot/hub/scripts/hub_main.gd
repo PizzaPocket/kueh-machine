@@ -157,17 +157,11 @@ func _build_environment() -> void:
 	environment.ambient_light_color = Color("e8edf2")
 	environment.ambient_light_energy = 0.18
 	environment.ambient_light_sky_contribution = 0.0
-	# Lets the Kueh Arcade signboard read as genuinely lit (its Label3D
-	# modulate is pushed past 1.0 -- see shophouse_street.gd's _sign()) without
-	# affecting anything else: only pixels above the threshold bloom, and
-	# every other material in the Hub stays within the normal 0..1 range.
-	environment.glow_enabled = true
-	environment.glow_intensity = 0.9
-	# Bloom was still bleeding bright sun-facing edges into the sky whenever
-	# the camera tilted upward. Thresholded glow remains available for authored
-	# emissive signs, but it no longer lifts the whole bright image around them.
-	environment.glow_bloom = 0.0
-	environment.glow_hdr_threshold = 1.2
+	# Keep silhouettes crisp against the bright sky. Even with glow_bloom at
+	# zero, the compatibility renderer spreads HDR-bright edges when the camera
+	# tilts upward -- the same failure mode removed from the hero capture.
+	# Authored signs retain their bright material values, just without a halo.
+	environment.glow_enabled = false
 	# White fog was adding energy across the whole frame and destroying
 	# silhouettes. The white plane/background already provide the void.
 	environment.fog_enabled = false
