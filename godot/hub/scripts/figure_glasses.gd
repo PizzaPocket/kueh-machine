@@ -35,6 +35,12 @@ const LAPIS_LENS_COLORS := [
 	Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"), LAPIS_LENS_CREAM,
 	Color("2f8c46"),
 ]
+## Kueh Salat's own two bands, per direct instruction: pandan custard green
+## on top, blue-pea rice on the bottom -- reusing viki/app.js's own SALAT_
+## STUDIO hex values (CUSTARDS' "Pandan" and RICE_COLOURS' "Blue pea") for
+## consistency with the rest of the project's kueh palette, rather than
+## picking new ones from the reference photo by eye.
+const SALAT_LENS_COLORS := [Color("4f9a55"), Color("5a7fc0")]
 const LENS_TEXTURE_SIZE := 128
 ## Same "flat color bands, thin blended seam" construction as the hero
 ## image's own kueh lapis (see hero_photo.gd's own LAPIS_BLEND_FRACTION-era
@@ -43,6 +49,7 @@ const LENS_TEXTURE_SIZE := 128
 ## layer segments.
 const LENS_BLEND_FRACTION := 0.14
 static var _lapis_lens_texture_cache: ImageTexture = null
+static var _salat_lens_texture_cache: ImageTexture = null
 
 
 static func add_glasses(head: MeshInstance3D, semi_axes: Vector3, round_shape: bool = false, color: Color = FRAME_COLOR) -> void:
@@ -88,15 +95,29 @@ static func add_glasses(head: MeshInstance3D, semi_axes: Vector3, round_shape: b
 	glasses.add_child(bridge)
 
 
-## Tinted-glass "lapis" glasses, per direct instruction: no surrounding
-## frame, just a flat lens per eye (a solid superellipse disc, not the ring
-## add_glasses() builds) carrying the same red/white/green nine-band
-## pattern as the hero landing image's own floating kueh lapis slice,
-## joined by the exact same bridge construction add_glasses() already
-## uses. Named "Glasses" (matching add_glasses()'s own root name) so
+## Tinted-glass "lapis" glasses, per direct instruction: a thin frame border
+## (colored to match the kueh lapis's own red band) around a flat lens per
+## eye (a solid superellipse disc, not the ring add_glasses() builds)
+## carrying the same red/white/green nine-band pattern as the hero landing
+## image's own floating kueh lapis slice, joined by a matching bridge.
+## Named "Glasses" (matching add_glasses()'s own root name) so
 ## figure_builder.gd's existing glasses_on_hair repositioning logic --
 ## which finds that node by name -- works on these too, for free.
 static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
+	_add_banded_glasses(head, semi_axes, _lapis_lens_texture(), LAPIS_LENS_COLORS[0])
+
+
+## Kueh Salat's own tinted-glass glasses, per direct instruction: the same
+## banded-lens/frame/bridge construction as add_lapis_glasses() above, just
+## with salat's own two-band green-over-blue gradient and green frames
+## (SALAT_LENS_COLORS' own top band) instead of lapis's nine-band red frame.
+static func add_salat_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
+	_add_banded_glasses(head, semi_axes, _salat_lens_texture(), SALAT_LENS_COLORS[0])
+
+
+## Shared by add_lapis_glasses() and add_salat_glasses() -- only the lens
+## texture and frame/bridge color differ between the two styles.
+static func _add_banded_glasses(head: MeshInstance3D, semi_axes: Vector3, lens_texture: ImageTexture, frame_color: Color) -> void:
 	var eye_radius := semi_axes.x * FigureEyes.EYE_RADIUS_FACTOR
 	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
 	var right_eye := SuperEgg.surface_point(semi_axes, 0.0, EYE_OFFSET)
@@ -118,7 +139,7 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	head.add_child(glasses)
 
 	var lens_material := StandardMaterial3D.new()
-	lens_material.albedo_texture = _lapis_lens_texture()
+	lens_material.albedo_texture = lens_texture
 	# "some transparency... so they look like tinted glass", per direct
 	# instruction -- overall alpha on top of the texture's own opaque band
 	# colors, stepped 0.6 -> 0.4 -> 0.5 across direct follow-ups.
@@ -130,10 +151,9 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 
 	# The frame border and bridge both stay a plain opaque color (real
 	# rimless glasses still have a visible bridge/edge piece) rather than
-	# tinted like the lenses -- colored to match the kueh lapis's own red
-	# band, per direct instruction.
+	# tinted like the lenses.
 	var frame_material := StandardMaterial3D.new()
-	frame_material.albedo_color = LAPIS_LENS_COLORS[0]
+	frame_material.albedo_color = frame_color
 	frame_material.roughness = 0.4
 	frame_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
@@ -173,29 +193,35 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 
 static func _lapis_lens_texture() -> ImageTexture:
 	if _lapis_lens_texture_cache == null:
-		_lapis_lens_texture_cache = _build_lapis_lens_texture()
+		_lapis_lens_texture_cache = _build_band_lens_texture(LAPIS_LENS_COLORS)
 	return _lapis_lens_texture_cache
 
 
-static func _build_lapis_lens_texture() -> ImageTexture:
+static func _salat_lens_texture() -> ImageTexture:
+	if _salat_lens_texture_cache == null:
+		_salat_lens_texture_cache = _build_band_lens_texture(SALAT_LENS_COLORS)
+	return _salat_lens_texture_cache
+
+
+static func _build_band_lens_texture(colors: Array) -> ImageTexture:
 	var image := Image.create(LENS_TEXTURE_SIZE, LENS_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
-	var band_count := LAPIS_LENS_COLORS.size()
+	var band_count := colors.size()
 	var band_h := float(LENS_TEXTURE_SIZE) / float(band_count)
 	var blend := band_h * LENS_BLEND_FRACTION
 	# y=0 is the image's own top row; UV.y=0 is mapped to the lens's own top
 	# edge in _build_lens_mesh() below, so this loop's top-to-bottom order
-	# already matches LAPIS_LENS_COLORS' own top-to-bottom order directly.
+	# already matches colors' own top-to-bottom order directly.
 	for y in range(LENS_TEXTURE_SIZE):
 		var band_f := float(y) / band_h
 		var band_i := clampi(int(band_f), 0, band_count - 1)
 		var within := float(y) - float(band_i) * band_h
-		var color: Color = LAPIS_LENS_COLORS[band_i]
+		var color: Color = colors[band_i]
 		if within < blend * 0.5 and band_i > 0:
 			var t := (within + blend * 0.5) / blend
-			color = LAPIS_LENS_COLORS[band_i - 1].lerp(color, t)
+			color = colors[band_i - 1].lerp(color, t)
 		elif within > band_h - blend * 0.5 and band_i + 1 < band_count:
 			var t := (within - (band_h - blend * 0.5)) / blend
-			color = color.lerp(LAPIS_LENS_COLORS[band_i + 1], t)
+			color = color.lerp(colors[band_i + 1], t)
 		for x in range(LENS_TEXTURE_SIZE):
 			image.set_pixel(x, y, color)
 	return ImageTexture.create_from_image(image)

@@ -398,7 +398,8 @@ static func build(
 	is_female: bool = false,
 	height_factor: float = 1.0,
 	dress_hip_shape: bool = false,
-	lapis_glasses: bool = false
+	lapis_glasses: bool = false,
+	salat_glasses: bool = false
 ) -> Dictionary:
 	var upper_arm_color := shirt_color if sleeve_style in [SLEEVE_STYLE_LONG, SLEEVE_STYLE_COLORED_UPPER_ARM] else skin_color
 	var forearm_color := shirt_color if sleeve_style == SLEEVE_STYLE_LONG else skin_color
@@ -645,6 +646,8 @@ static func build(
 		)
 		if lapis_glasses:
 			FigureGlasses.add_lapis_glasses(head_mesh, HEAD_SIZE)
+		elif salat_glasses:
+			FigureGlasses.add_salat_glasses(head_mesh, HEAD_SIZE)
 		elif has_glasses:
 			FigureGlasses.add_glasses(head_mesh, HEAD_SIZE, round_glasses)
 

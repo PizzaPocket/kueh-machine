@@ -293,7 +293,7 @@ func _build_ui() -> void:
 	_add_choice_section(sections, "Hair style", HAIR_STYLES, "hair_style")
 	_add_color_section(sections, "Hair color", HAIR_SWATCHES, "hair")
 	_add_choice_section(sections, "Glasses", [
-		{"label": "None", "value": "none"}, {"label": "Rectangular", "value": "rect"}, {"label": "Round", "value": "round"}, {"label": "On head", "value": "head"}, {"label": "Lapis", "value": "lapis"}
+		{"label": "None", "value": "none"}, {"label": "Rectangular", "value": "rect"}, {"label": "Round", "value": "round"}, {"label": "On head", "value": "head"}, {"label": "Lapis", "value": "lapis"}, {"label": "Salat", "value": "salat"}
 	], "glasses_choice")
 	_add_clothing_section(sections, "Top", [
 		{"label": "Sleeveless", "value": "none"}, {"label": "Short sleeve", "value": "short"}, {"label": "Half sleeve", "value": "colored_upper_arm"}, {"label": "Long sleeve", "value": "long"}
@@ -570,10 +570,11 @@ func _editor_button(text: String, callback: Callable, selectable := true) -> But
 
 func _set_option(key: String, value: Variant) -> void:
 	if key == "glasses_choice":
-		appearance["glasses"] = value != "none" and value != "lapis"
+		appearance["glasses"] = value != "none" and value != "lapis" and value != "salat"
 		appearance["round_glasses"] = value == "round"
 		appearance["glasses_on_hair"] = value == "head"
 		appearance["lapis_glasses"] = value == "lapis"
+		appearance["salat_glasses"] = value == "salat"
 	elif key == "body_preset":
 		appearance["body_preset"] = value
 		_apply_body_preset(str(value))
@@ -613,11 +614,13 @@ func _refresh_selection_states() -> void:
 
 func _current_choice_value(key: String) -> Variant:
 	if key == "glasses_choice":
-		# Checked first -- lapis_glasses/glasses are mutually exclusive (see
-		# _set_option()), so a lapis-wearing character has glasses=false and
-		# would otherwise fall through to "none" below.
+		# Checked first -- lapis_glasses/salat_glasses/glasses are mutually
+		# exclusive (see _set_option()), so either would otherwise have
+		# glasses=false and fall through to "none" below.
 		if appearance.get("lapis_glasses", false):
 			return "lapis"
+		if appearance.get("salat_glasses", false):
+			return "salat"
 		if not appearance.get("glasses", false):
 			return "none"
 		if appearance.get("glasses_on_hair", false):

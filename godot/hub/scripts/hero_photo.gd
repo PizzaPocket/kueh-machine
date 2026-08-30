@@ -116,12 +116,13 @@ func _run() -> void:
 	# randomization below deliberately uses its own separate RNG instead of
 	# drawing from this one, for exactly that reason.
 	var appearance_a := _random_appearance(rng)
-	# Short ponytail + glasses worn on top of the head, per direct
-	# instruction, for the yellow-shirt figure (supersedes an earlier bob
-	# override).
+	# Short ponytail, per direct instruction (supersedes an earlier bob
+	# override). Now wearing the new Kueh Salat glasses (green-over-blue
+	# tinted lenses, green frame) on the face -- per direct follow-up
+	# instruction, replacing the earlier plain glasses-on-hair look, so the
+	# pair reads as one figure in Lapis glasses and one in Salat glasses.
 	appearance_a["hair_style"] = "ponytail_short"
-	appearance_a["glasses"] = true
-	appearance_a["glasses_on_hair"] = true
+	appearance_a["salat_glasses"] = true
 	var figure_a := FigureBuilder.build(world, appearance_a)
 
 	var appearance_b := _random_appearance(rng)
