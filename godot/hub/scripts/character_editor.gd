@@ -77,6 +77,9 @@ var _kaixin_pattern_unlocked := false
 var _kaixin_pattern_texture: Texture2D
 var _choice_buttons: Array[Dictionary] = []
 var _color_buttons: Array[Dictionary] = []
+var _scroll: ScrollContainer
+var _scroll_touch_index := -1
+var _scroll_drag_remainder := 0.0
 
 func setup(initial: Dictionary, owned_contributor_key := "") -> void:
 	_kaixin_pattern_unlocked = owned_contributor_key in ["kaixin", "leonard"]
@@ -101,23 +104,11 @@ func _ready() -> void:
 	# the start, instead of building desktop-sized content this same frame
 	# only leaves in place until the first resize event happens to fire.
 	_mobile = _is_mobile_layout()
-	# ScrollContainer's touch-drag-to-scroll depends on Godot synthesizing a
-	# mouse-motion event from each touch drag -- exactly what project.godot's
-	# pointing/emulate_mouse_from_touch=false intentionally turns off during
-	# gameplay, to stop it fighting hub_ui.gd's own raw per-finger joystick/
-	# action-button tracking. That tradeoff doesn't apply here (this editor
-	# has no joystick to conflict with), so turn it back on for as long as
-	# the editor is open, and hand it back to gameplay's setting in
-	# _exit_tree() below.
-	Input.emulate_mouse_from_touch = true
 	_build_ui()
 	_build_preview_world()
 	_rebuild_preview()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
-
-func _exit_tree() -> void:
-	Input.emulate_mouse_from_touch = false
 
 func _process(_delta: float) -> void:
 	if not _saving or not OS.has_feature("web"):
@@ -137,6 +128,37 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_close()
 		get_viewport().set_input_as_handled()
+
+## Godot's own touch-to-scroll behavior on ScrollContainer reads its speed
+## off however many InputEventScreenDrag events land per frame, which drifts
+## from the finger's actual on-screen movement -- per direct feedback this
+## made the scroll rate feel disconnected from the touch position. Tracked
+## by finger index (same pattern as hub_ui.gd's own joystick/action-key
+## touch handling) rather than relying on emulate_mouse_from_touch, so it
+## can give the content a true pixel-for-pixel 1:1 offset from the drag's
+## own relative delta every event, with no dependence on frame timing.
+func _input(event: InputEvent) -> void:
+	if _scroll == null:
+		return
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			if _scroll_touch_index == -1 and _scroll.get_global_rect().has_point(touch.position):
+				_scroll_touch_index = touch.index
+				_scroll_drag_remainder = 0.0
+		elif touch.index == _scroll_touch_index:
+			_scroll_touch_index = -1
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index == _scroll_touch_index:
+			# scroll_vertical is an int; carry the fractional remainder
+			# forward instead of truncating it away each event, so a slow
+			# drag doesn't lose most of its motion to rounding.
+			var total := drag.relative.y + _scroll_drag_remainder
+			var delta := int(total)
+			_scroll_drag_remainder = total - float(delta)
+			_scroll.scroll_vertical -= delta
+			get_viewport().set_input_as_handled()
 
 func _build_ui() -> void:
 	var backdrop := ColorRect.new()
@@ -173,8 +195,8 @@ func _build_ui() -> void:
 	_preview_container = SubViewportContainer.new()
 	_preview_container.stretch = true
 	# Mobile height reduced further per direct follow-up instruction
-	# (255 -> 210 -> 170 now) to keep reclaiming pixels for the larger
-	# content below (see the outer margin_top above). The camera in
+	# (255 -> 210 -> 170 -> 140 now) to keep reclaiming pixels for the
+	# larger content below (see the outer margin_top above). The camera in
 	# _build_preview_world() stays shared with desktop rather than a
 	# mobile-specific tighter crop -- verified via a headless render first
 	# (SubViewportContainer.stretch scales the doll uniformly into the
@@ -186,9 +208,17 @@ func _build_ui() -> void:
 	# direct instruction -- the side-by-side layout has room to let the
 	# doll read bigger, unlike the stacked layout's own space-conservation
 	# principle below.
-	_preview_container.custom_minimum_size = Vector2(0, 170) if _mobile else Vector2(480, 470)
+	_preview_container.custom_minimum_size = Vector2(0, 140) if _mobile else Vector2(480, 470)
 	_preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_preview_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# SIZE_EXPAND_FILL on mobile previously meant _preview_container and
+	# _controls -- both EXPAND_FILL siblings in a VBoxContainer -- split
+	# whatever vertical space was left over roughly evenly by stretch ratio,
+	# which silently overrode the small custom_minimum_size above and was
+	# why earlier height reductions never actually read as compact on
+	# screen. SHRINK_BEGIN makes the preview take exactly its minimum
+	# height and nothing more, handing literally all the leftover space to
+	# _controls below, per direct instruction.
+	_preview_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if _mobile else Control.SIZE_EXPAND_FILL
 	_layout.add_child(_preview_container)
 
 	_panel_shell = MarginContainer.new()
@@ -248,6 +278,7 @@ func _build_ui() -> void:
 	inner_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inner_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(inner_scroll)
+	_scroll = inner_scroll
 	var sections := VBoxContainer.new()
 	sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sections.add_theme_constant_override("separation", _si(UITheme.SPACE_LG))
@@ -715,7 +746,8 @@ func _apply_responsive_layout() -> void:
 	# as before this file's own mobile-scale work (a live resize crossing the
 	# breakpoint mid-edit is a rare enough case that a full content rebuild
 	# here wasn't already worth it).
-	_preview_container.custom_minimum_size = Vector2(0, 170) if _mobile else Vector2(480, 470)
+	_preview_container.custom_minimum_size = Vector2(0, 140) if _mobile else Vector2(480, 470)
+	_preview_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if _mobile else Control.SIZE_EXPAND_FILL
 	_controls.custom_minimum_size.x = 0 if _mobile else 510
 	_panel_shell.add_theme_constant_override("margin_top", 0 if _mobile else 56)
 	if preview_index < 0 or controls_index < 0:
