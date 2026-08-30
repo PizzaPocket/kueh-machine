@@ -44,12 +44,14 @@ const MOBILE_SIDE_MARGIN := 24.0
 ## BUTTON_MIN_HEIGHT/FONT_BODY's own already-touch-friendly desktop values.
 ## That bump (96/46 -> 144/69) then read as too big once tested on an
 ## actual device, split the difference (-> 120/58), then nudged down once
-## more per direct correction. The NPC's own dialog line (_line_label,
-## normally UITheme.FONT_BODY = 36) is sized to match this on mobile too
-## (see _update_responsive_layout()) -- it looked mismatched sitting well
-## below the response options' size right above it.
+## more (-> 120/54, now UIKit.MOBILE_BODY_FONT_SIZE -- centralized there
+## once hub_ui.gd's own interaction prompt converged on the same value too).
+## The NPC's own dialog line (_line_label, normally UITheme.FONT_BODY = 36)
+## is sized to match this on mobile too (see _update_responsive_layout())
+## -- it looked mismatched sitting well below the response options' size
+## right above it.
 const RESPONSE_BUTTON_HEIGHT_MOBILE := 120.0
-const RESPONSE_FONT_SIZE_MOBILE := 54
+const RESPONSE_FONT_SIZE_MOBILE := UIKit.MOBILE_BODY_FONT_SIZE
 
 var _panel: PanelContainer
 var _speaker_label: Label
@@ -269,6 +271,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_dismiss_pressed()
 		get_viewport().set_input_as_handled()
 		return
+	# Tap/click the dialog itself to dismiss early instead of waiting out
+	# AUTO_DISMISS_TIME, per direct instruction. Routed through
+	# _unhandled_input (checking the event's own position against _panel's
+	# rect) rather than giving _panel a real mouse_filter/gui_input, which
+	# would swallow mouse motion the instant the cursor's logical position
+	# falls over its rect and silently block camera look while
+	# MOUSE_MODE_CAPTURED -- see _build_ui()'s own comment on
+	# _panel.mouse_filter for the exact bug that already burned once.
+	if not _is_modal and _panel.visible and Engine.get_process_frames() != _opened_on_process_frame:
+		var tapped := false
+		if event is InputEventMouseButton:
+			var mouse_button := event as InputEventMouseButton
+			tapped = mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_LEFT and _panel.get_global_rect().has_point(mouse_button.position)
+		elif event is InputEventScreenTouch:
+			var touch := event as InputEventScreenTouch
+			tapped = touch.pressed and _panel.get_global_rect().has_point(touch.position)
+		if tapped:
+			_on_dismiss_pressed()
+			get_viewport().set_input_as_handled()
+			return
 	if _is_modal and _response_panel.visible and not _response_buttons.is_empty():
 		if event.is_action_pressed("interact"):
 			# The F press that asks HubPlayer to begin talking can reach this

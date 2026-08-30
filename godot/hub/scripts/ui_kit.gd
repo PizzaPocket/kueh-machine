@@ -22,6 +22,14 @@ const MOBILE_BREAKPOINT_WIDTH := 700.0
 static func is_mobile_viewport(node: Node) -> bool:
 	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH or DisplayServer.is_touchscreen_available()
 
+## Shared touchscreen body-text size -- dialog_ui.gd's response options and
+## NPC line, and hub_ui.gd's own interaction prompt ("Talk (F)" etc), all
+## converged on this same value over several rounds of on-device feedback,
+## so it's centralized here rather than left as three separately-drifting
+## literals the way MOBILE_BREAKPOINT_WIDTH's own comment already warns
+## against.
+const MOBILE_BODY_FONT_SIZE := 54
+
 
 static func panel() -> PanelContainer:
 	var p := PanelContainer.new()

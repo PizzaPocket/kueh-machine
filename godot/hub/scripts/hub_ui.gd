@@ -82,9 +82,27 @@ func _on_prompt_gui_input(event: InputEvent) -> void:
 ## _prompt's width never grows past PROMPT_WIDTH_DESKTOP, only shrinks to
 ## fit a viewport narrower than that (plus side margins) -- so it's already
 ## the right width on a normal desktop window and never overflows a phone's.
+## On mobile/tablet, per direct correction, even that shrunk-to-fit width
+## was still wide enough to overlap the joystick and RUN/JUMP buttons in the
+## screen's own corners -- 0 lets the PanelContainer fall back to hugging
+## its Label's own natural text width instead, the same "sized to its own
+## content" a normal button already is, rather than a wide bar.
+## Font size also bumped to UIKit.MOBILE_BODY_FONT_SIZE on mobile/tablet to
+## match dialog_ui.gd's own response/line text (see that file's own
+## comment) -- previously stuck at the shared FONT_BUTTON/FONT_BODY (36)
+## regardless of viewport, reading small next to everything else once those
+## got their own mobile bump.
 func _update_prompt_width() -> void:
-	var viewport_width := get_viewport().get_visible_rect().size.x
-	_prompt.custom_minimum_size.x = minf(PROMPT_WIDTH_DESKTOP, viewport_width - PROMPT_SIDE_MARGIN * 2.0)
+	var label := _prompt.get_node("Label") as Label
+	if UIKit.is_mobile_viewport(self):
+		_prompt.custom_minimum_size.x = 0.0
+		if label != null:
+			label.add_theme_font_size_override("font_size", UIKit.MOBILE_BODY_FONT_SIZE)
+	else:
+		var viewport_width := get_viewport().get_visible_rect().size.x
+		_prompt.custom_minimum_size.x = minf(PROMPT_WIDTH_DESKTOP, viewport_width - PROMPT_SIDE_MARGIN * 2.0)
+		if label != null:
+			label.remove_theme_font_size_override("font_size")
 
 func _build_movement_hint() -> void:
 	_mobile_controls = UIKit.is_mobile_viewport(self)

@@ -7,8 +7,12 @@ const HEIGHT_TALL := 1.0
 const HEIGHT_MORE_TALL := 1.06
 const KUEH_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/kueh_syne_800.obj")
 const MACHINE_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/machine_syne_600.obj")
+## Azri's own entry dropped per direct instruction -- his line now falls
+## straight through to the same ambient, non-modal auto-dismiss every
+## ambient_npc already uses (see _talk_to_nearby(): an empty actions array
+## sets _ambient_dialog_active instead of locking player input for a
+## response).
 const PLAYER_RESPONSES := {
-	"Azri": "Er... it's hard to explain.",
 	"Kevin Dreher": "Schön, dich zu besuchen!",
 }
 const CONTRIBUTOR_KEYS := {
