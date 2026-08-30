@@ -37,6 +37,16 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_update_prompt_width)
 	_update_prompt_width()
 
+func set_input_enabled(enabled: bool) -> void:
+	if not enabled:
+		# Release every gameplay action before suspending _input(), otherwise a
+		# finger held as the editor opens could leave movement latched on.
+		if _joystick_touch != JOYSTICK_NO_TOUCH:
+			_end_joystick()
+		for touch_index in _active_touches.keys():
+			_release_touch(int(touch_index))
+	set_process_input(enabled)
+
 func _build_prompt() -> void:
 	# Use the same construction, shared theme, type size, panel treatment, and
 	# screen footprint as Eleblorb's bottom-center interaction readout. Keeping

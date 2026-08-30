@@ -482,6 +482,9 @@ func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	picker_center.add_child(picker)
 	popup.add_child(picker_center)
 	add_child(popup)
+	# Popup windows report both an outside press and a system close action via
+	# close_requested; Window does not hide itself automatically.
+	popup.close_requested.connect(popup.hide)
 	_color_popups.append(popup)
 	button.pressed.connect(func() -> void:
 		for other_popup in _color_popups:
