@@ -94,8 +94,9 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	var eye_radius := semi_axes.x * FigureEyes.EYE_RADIUS_FACTOR
 	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
 	var right_eye := SuperEgg.surface_point(semi_axes, 0.0, EYE_OFFSET)
-	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR
-	var lens_half_height := eye_radius * FigureEyes.EYE_HEIGHT_RATIO * RIM_HEIGHT_FACTOR
+	# 10% wider / 25% taller than a standard rim, per direct instruction.
+	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR * 1.1
+	var lens_half_height := eye_radius * FigureEyes.EYE_HEIGHT_RATIO * RIM_HEIGHT_FACTOR * 1.25
 	var frame_z := (left_eye.z + right_eye.z) * 0.5 + FRONT_CLEARANCE + FRAME_DEPTH * 0.5
 
 	var glasses := Node3D.new()
@@ -122,9 +123,10 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 		glasses.add_child(lens)
 
 	# The bridge itself stays a plain opaque connector (real rimless glasses
-	# still have a visible bridge piece) rather than tinted like the lenses.
+	# still have a visible bridge piece) rather than tinted like the lenses --
+	# colored to match the kueh lapis's own red band, per direct instruction.
 	var bridge_material := StandardMaterial3D.new()
-	bridge_material.albedo_color = FRAME_COLOR
+	bridge_material.albedo_color = LAPIS_LENS_COLORS[0]
 	bridge_material.roughness = 0.4
 	bridge_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var left_inner_x := left_eye.x + lens_half_width - FRAME_THICKNESS * 0.35

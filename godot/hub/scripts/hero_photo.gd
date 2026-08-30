@@ -387,8 +387,9 @@ func _build_lapis(half_extents: Vector3) -> Node3D:
 		# caused the darkness in the hand-rolled version.
 		var material := segment.get_surface_override_material(0) as StandardMaterial3D
 		material.roughness = 0.45
-		# A hint of transparency, per direct instruction.
-		material.albedo_color.a = 0.95
+		# A hint of transparency, per direct instruction -- reduced from an
+		# earlier 5% down to 2%.
+		material.albedo_color.a = 0.98
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		container.add_child(segment)
 	return container
