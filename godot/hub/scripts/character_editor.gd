@@ -270,8 +270,8 @@ func _build_ui() -> void:
 	body_padding.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	# Give the enlarged touch controls a deliberate frame instead of letting
 	# the heading and first row crowd the panel's curved edge.
-	body_padding.add_theme_constant_override("margin_left", _si(UITheme.SPACE_LG) if _mobile else UITheme.SPACE_XL)
-	body_padding.add_theme_constant_override("margin_right", _si(UITheme.SPACE_LG) if _mobile else UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_left", _si(UITheme.SPACE_XL * 1.5) if _mobile else UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_right", _si(UITheme.SPACE_XL * 1.5) if _mobile else UITheme.SPACE_XL)
 	body_padding.add_theme_constant_override("margin_top", _si(UITheme.SPACE_MD) if _mobile else UITheme.SPACE_XL)
 	# The scroll viewport ends directly at the footer rule. Bottom breathing
 	# room belongs inside the scrolling content, not between viewport and rule.
@@ -734,9 +734,9 @@ func _build_preview_world() -> void:
 	viewport.add_child(light)
 	var camera := Camera3D.new()
 	camera.position = Vector3(0, 1.55, 4.7)
-	# Narrowing the camera from its 75° default makes the doll read at roughly
-	# 2.2× its former on-screen size without scaling or moving the figure rig.
-	camera.fov = 38.5
+	# Tight portrait framing makes the character itself roughly three times
+	# larger than the previous 38.5-degree preview, without changing the rig.
+	camera.fov = 13.0
 	camera.look_at_from_position(camera.position, Vector3(0, 1.3, 0))
 	camera.current = true
 	viewport.add_child(camera)
