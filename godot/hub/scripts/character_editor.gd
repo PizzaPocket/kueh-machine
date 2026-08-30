@@ -101,11 +101,23 @@ func _ready() -> void:
 	# the start, instead of building desktop-sized content this same frame
 	# only leaves in place until the first resize event happens to fire.
 	_mobile = _is_mobile_layout()
+	# ScrollContainer's touch-drag-to-scroll depends on Godot synthesizing a
+	# mouse-motion event from each touch drag -- exactly what project.godot's
+	# pointing/emulate_mouse_from_touch=false intentionally turns off during
+	# gameplay, to stop it fighting hub_ui.gd's own raw per-finger joystick/
+	# action-button tracking. That tradeoff doesn't apply here (this editor
+	# has no joystick to conflict with), so turn it back on for as long as
+	# the editor is open, and hand it back to gameplay's setting in
+	# _exit_tree() below.
+	Input.emulate_mouse_from_touch = true
 	_build_ui()
 	_build_preview_world()
 	_rebuild_preview()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_apply_responsive_layout()
+
+func _exit_tree() -> void:
+	Input.emulate_mouse_from_touch = false
 
 func _process(_delta: float) -> void:
 	if not _saving or not OS.has_feature("web"):
