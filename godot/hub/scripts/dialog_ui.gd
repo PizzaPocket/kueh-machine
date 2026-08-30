@@ -245,6 +245,12 @@ func _add_response(text: String, callback: Callable) -> void:
 	if UIKit.is_mobile_viewport(self):
 		option.custom_minimum_size.y = RESPONSE_BUTTON_HEIGHT_MOBILE
 		option.add_theme_font_size_override("font_size", RESPONSE_FONT_SIZE_MOBILE)
+		# Same reasoning as dropping the focus arrow below, per direct
+		# instruction: response_option()'s own dim TEXT_SECONDARY normal
+		# color (vs TEXT_PRIMARY once focused/hovered) exists to distinguish
+		# a keyboard/dpad-focused option from the rest. Touch has no such
+		# state -- every option shows at the same full brightness instead.
+		option.add_theme_color_override("font_color", UITheme.TEXT_PRIMARY)
 	row.add_child(option)
 	_response_buttons.append(option)
 
