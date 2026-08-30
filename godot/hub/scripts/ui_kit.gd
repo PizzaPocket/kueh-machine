@@ -12,8 +12,15 @@ extends RefCounted
 ## instead of each hand-rolling a slightly different threshold.
 const MOBILE_BREAKPOINT_WIDTH := 700.0
 
+## Narrow width OR touch hardware, not narrow width alone -- a tablet held
+## in landscape (or even portrait, for the larger ones) is comfortably wider
+## than MOBILE_BREAKPOINT_WIDTH but still has no keyboard/mouse, so a
+## width-only check left it stuck with the WASD hint and desktop-only input
+## handling. DisplayServer.is_touchscreen_available() reflects the actual
+## hardware regardless of window size, matching the loader screen's own
+## touch-or-narrow media query (see scripts/export-hub.py's LOADER_CSS).
 static func is_mobile_viewport(node: Node) -> bool:
-	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH
+	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH or DisplayServer.is_touchscreen_available()
 
 
 static func panel() -> PanelContainer:

@@ -12,8 +12,6 @@ const IDLE_KNEE_MAX := deg_to_rad(11.0)
 const IDLE_HIP_OUTWARD_ANGLE := deg_to_rad(3.5)
 const IDLE_HIP_EXTERNAL_ROTATION := deg_to_rad(8.0)
 const IDLE_HIP_DROP_ANGLE := deg_to_rad(3.8)
-const IDLE_SPINE_COUNTER_ANGLE := deg_to_rad(2.8)
-const IDLE_BODY_TWIST_MAX := deg_to_rad(2.0)
 const IDLE_ARM_SWAY_MAX := deg_to_rad(3.0)
 
 var contributor: Dictionary
@@ -29,8 +27,6 @@ var _idle_elbow_right := 0.0
 var _idle_leg_variant_active := false
 var _idle_bent_leg_side := 1.0
 var _idle_knee_bend := 0.0
-var _idle_spine_counter := 0.0
-var _idle_body_twist := 0.0
 var _idle_arm_left := 0.0
 var _idle_arm_right := 0.0
 var _spine_rest_y := 0.0
@@ -114,8 +110,6 @@ func _roll_idle_pose() -> void:
 	_idle_leg_variant_active = not wears_dress and _rng.randf() < CONTRAPPOSTO_CHANCE
 	_idle_bent_leg_side = 1.0 if _rng.randf() < 0.5 else -1.0
 	_idle_knee_bend = _rng.randf_range(IDLE_KNEE_MIN, IDLE_KNEE_MAX)
-	_idle_spine_counter = _idle_bent_leg_side * IDLE_SPINE_COUNTER_ANGLE if _idle_leg_variant_active else _rng.randf_range(-0.012, 0.012)
-	_idle_body_twist = _rng.randf_range(-IDLE_BODY_TWIST_MAX, IDLE_BODY_TWIST_MAX)
 	_idle_arm_left = _rng.randf_range(-IDLE_ARM_SWAY_MAX, IDLE_ARM_SWAY_MAX)
 	_idle_arm_right = _rng.randf_range(-IDLE_ARM_SWAY_MAX, IDLE_ARM_SWAY_MAX)
 
@@ -148,8 +142,11 @@ func _settle_pose(delta: float) -> void:
 	bent_leg.rotation.y = lerp_angle(bent_leg.rotation.y, leg_y_target, POSE_SETTLE_SPEED * delta)
 	straight_leg.rotation.y = lerp_angle(straight_leg.rotation.y, 0.0, POSE_SETTLE_SPEED * delta)
 	hips.rotation.z = lerp_angle(hips.rotation.z, hip_z_target, POSE_SETTLE_SPEED * delta)
-	spine.rotation.z = lerp_angle(spine.rotation.z, _idle_spine_counter, POSE_SETTLE_SPEED * delta)
-	spine.rotation.y = lerp_angle(spine.rotation.y, _idle_body_twist, POSE_SETTLE_SPEED * delta)
+	# Per eleblorb: the idle contrapposto lean lives entirely in the legs (z/y)
+	# and hips (z) above -- the spine itself never rolls or twists, only its
+	# forward lean (x) resets to level here.
+	spine.rotation.z = lerp_angle(spine.rotation.z, 0.0, POSE_SETTLE_SPEED * delta)
+	spine.rotation.y = lerp_angle(spine.rotation.y, 0.0, POSE_SETTLE_SPEED * delta)
 	spine.rotation.x = lerp_angle(spine.rotation.x, 0.0, POSE_SETTLE_SPEED * delta)
 	spine.position.y = lerpf(spine.position.y, _spine_rest_y, POSE_SETTLE_SPEED * delta)
 	hips.position.y = lerpf(hips.position.y, _hips_rest_y, POSE_SETTLE_SPEED * delta)

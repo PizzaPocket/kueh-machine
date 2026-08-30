@@ -57,8 +57,6 @@ func _ready() -> void:
 	_register_amanda_door()
 	_ui = HubUI.new()
 	add_child(_ui)
-	await get_tree().create_timer(1.35).timeout
-	await _ui.finish_loading()
 	_player.input_locked = false
 
 func _process(_delta: float) -> void:
@@ -554,7 +552,10 @@ func _on_dialog_closed() -> void:
 func _visit_project(url: String) -> void:
 	if OS.has_feature("web"):
 		var window := JavaScriptBridge.get_interface("window")
-		window.open(url, "_self")
+		# Contributor projects are destinations branching out from the shared
+		# Kueh-verse. Keep the world alive in its current tab so visitors can
+		# return without downloading and initializing the Godot scene again.
+		window.open(url, "_blank", "noopener,noreferrer")
 	else:
 		OS.shell_open(url)
 

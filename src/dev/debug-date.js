@@ -19,8 +19,10 @@
 // already-running state on the fly.
 
 const ASOF_PARAM = 'asOf';
+const PROJECT_START_UTC = Date.UTC(2026, 5, 24, 6, 0, 0); // 24 June 2026, 2:00pm SGT
+const CHECKIN_UTC = Date.UTC(2026, 6, 29, 6, 0, 0); // 29 July 2026, 2:00pm SGT
 const SHOWCASE_UTC = Date.UTC(2026, 7, 26, 6, 0, 0); // 26 August 2026, 2:00pm SGT
-const MINUTE_MS = 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function readParams() {
   return new URLSearchParams(window.location.search);
@@ -52,17 +54,24 @@ function injectStyles() {
       bottom: 12px;
       right: 12px;
       z-index: 9999;
-      background: #1a1a1a;
-      color: #f0f0f0;
+      background: var(--color-surface, #fff8f0);
+      color: var(--color-text-on-surface, #5c1638);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 12px;
       line-height: 1.5;
-      padding: 12px 14px;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-      max-width: 280px;
+      padding: 14px;
+      border: 1px solid var(--color-surface-border, #d6c8b4);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(92, 22, 56, 0.2);
+      max-width: 310px;
     }
-    #debug-date-panel strong { display: block; margin-bottom: 8px; color: #ffd166; }
+    #debug-date-panel strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--color-primary-strong, #b72e68);
+      font-family: "Syne", sans-serif;
+      font-size: 14px;
+    }
     #debug-date-panel .debug-date-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     #debug-date-panel input[type="datetime-local"] {
       flex: 1;
@@ -70,21 +79,29 @@ function injectStyles() {
       font-size: 12px;
       padding: 3px 5px;
       border-radius: 4px;
-      border: 1px solid #444;
-      background: #2a2a2a;
-      color: #f0f0f0;
+      border: 1px solid var(--color-surface-border, #d6c8b4);
+      background: #fff;
+      color: var(--color-text-on-surface, #5c1638);
     }
     #debug-date-panel button {
       font-size: 11px;
       padding: 4px 8px;
       border-radius: 4px;
-      border: 1px solid #555;
-      background: #333;
-      color: #f0f0f0;
+      border: none;
+      background: var(--color-primary-strong, #b72e68);
+      color: var(--color-text-on-primary, #fbe0ec);
       cursor: pointer;
     }
-    #debug-date-panel button:hover { background: #444; }
-    #debug-date-panel .debug-date-status { margin: 0; color: #aaa; word-break: break-word; }
+    #debug-date-panel button:hover { background: var(--color-text-on-surface, #5c1638); }
+    #debug-date-panel .debug-date-step { flex: 1; font-weight: 700; }
+    #debug-date-panel .debug-date-status {
+      margin: 0;
+      color: var(--color-text-on-surface-muted, #8c4569);
+      word-break: break-word;
+    }
+    @media (max-width: 640px) {
+      #debug-date-panel { left: 10px; right: 10px; bottom: 10px; max-width: none; }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -93,16 +110,20 @@ function buildPanel() {
   const panel = document.createElement('div');
   panel.id = 'debug-date-panel';
   panel.innerHTML = `
-    <strong>Debug: simulate date</strong>
+    <strong>Project Brief Time Machine</strong>
     <div class="debug-date-row">
-      <input type="datetime-local" id="debug-date-input" step="1" />
-      <button type="button" id="debug-date-go">Apply time</button>
+      <button class="debug-date-step" type="button" data-step="-1">← Previous day</button>
+      <button class="debug-date-step" type="button" data-step="1">Next day →</button>
     </div>
     <div class="debug-date-row">
-      <button type="button" data-preset="now">Now (real time)</button>
-      <button type="button" data-preset="before-showcase">1 min before 2pm</button>
-      <button type="button" data-preset="showcase">At 2pm</button>
-      <button type="button" data-preset="after-showcase">1 min after 2pm</button>
+      <input type="datetime-local" id="debug-date-input" step="1" />
+      <button type="button" id="debug-date-go">Go</button>
+    </div>
+    <div class="debug-date-row">
+      <button type="button" data-preset="kickoff">Kick-off</button>
+      <button type="button" data-preset="checkin">Check-in</button>
+      <button type="button" data-preset="showcase">Showcase</button>
+      <button type="button" data-preset="now">Today</button>
     </div>
     <p class="debug-date-status"></p>
   `;
@@ -111,7 +132,8 @@ function buildPanel() {
 
 export function init() {
   const params = readParams();
-  if (!params.has('debug')) return;
+  const isProjectBrief = window.location.pathname === '/brief/' || window.location.pathname === '/brief';
+  if (!params.has('debug') && !isProjectBrief) return;
 
   const asOfRaw = params.get(ASOF_PARAM);
   const asOf = asOfRaw !== null ? Number(asOfRaw) : null;
@@ -152,12 +174,18 @@ export function init() {
   // user does not notice the adjacent apply button.
   input.addEventListener('change', applyInputValue);
 
+  panel.querySelectorAll('[data-step]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      reloadWithAsOf(Date.now() + Number(btn.dataset.step) * DAY_MS);
+    });
+  });
+
   panel.querySelectorAll('[data-preset]').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (btn.dataset.preset === 'now') reloadWithAsOf(null);
-      else if (btn.dataset.preset === 'before-showcase') reloadWithAsOf(SHOWCASE_UTC - MINUTE_MS);
+      else if (btn.dataset.preset === 'kickoff') reloadWithAsOf(PROJECT_START_UTC);
+      else if (btn.dataset.preset === 'checkin') reloadWithAsOf(CHECKIN_UTC);
       else if (btn.dataset.preset === 'showcase') reloadWithAsOf(SHOWCASE_UTC);
-      else if (btn.dataset.preset === 'after-showcase') reloadWithAsOf(SHOWCASE_UTC + MINUTE_MS);
     });
   });
 }

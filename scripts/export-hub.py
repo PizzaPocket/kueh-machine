@@ -15,6 +15,209 @@ SCRIPT_TAGS = """\t\t<script src="/shared/account-widget.js" data-anchor="top-ri
 \t\t<script src="/shared/character-system.js"></script>
 \t\t<script src="index.js"></script>"""
 
+STYLE_END = "\t\t</style>"
+LOADER_CSS = """
+
+/* Kueh-verse's only loading surface: the real Godot download progress. */
+#status {
+	background: #ffffff;
+	gap: 24px;
+	z-index: 2147483646;
+}
+
+#status-progress {
+	appearance: none;
+	-webkit-appearance: none;
+	position: absolute;
+	bottom: 10%;
+	width: min(420px, calc(100vw - 64px));
+	height: 4px;
+	margin: 0;
+	border: 0;
+	border-radius: 2px;
+	background: #dedbd4;
+	overflow: hidden;
+}
+
+#status-progress::-webkit-progress-bar {
+	background: #dedbd4;
+}
+
+#status-progress::-webkit-progress-value {
+	background: #171311;
+}
+
+#status-progress::-moz-progress-bar {
+	background: #171311;
+}
+
+#loading-controls {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: min(760px, calc(100vw - 64px));
+	transform: translate(-50%, -50%);
+	color: #5c564e;
+	font-family: Syne, Arial, sans-serif;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+	text-align: center;
+}
+
+.loader-desktop {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 54px;
+}
+
+.loader-control {
+	display: flex;
+	min-width: 150px;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+}
+
+.loader-wasd {
+	display: grid;
+	grid-template-columns: repeat(3, 38px);
+	grid-template-rows: repeat(2, 38px);
+	gap: 5px;
+}
+
+.loader-wasd .key:first-child {
+	grid-column: 2;
+	grid-row: 1;
+}
+
+.loader-wasd .key:nth-child(2) { grid-column: 1; grid-row: 2; }
+.loader-wasd .key:nth-child(3) { grid-column: 2; grid-row: 2; }
+.loader-wasd .key:nth-child(4) { grid-column: 3; grid-row: 2; }
+
+.key,
+.mouse-control {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	border: 1px solid #aaa59c;
+	background: #f4f2ed;
+	color: #171311;
+	font: inherit;
+}
+
+.key {
+	width: 38px;
+	height: 38px;
+	border-radius: 10px;
+}
+
+.space-key {
+	width: 142px;
+	height: 38px;
+	border-radius: 10px;
+	font-size: 12px;
+	letter-spacing: 0.08em;
+}
+
+.mouse-control {
+	width: 52px;
+	height: 70px;
+	border-radius: 24px;
+}
+
+.mouse-control::before {
+	content: '';
+	width: 4px;
+	height: 15px;
+	border-radius: 2px;
+	background: #171311;
+}
+
+.loader-mobile {
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	gap: 24px;
+}
+
+.loader-joystick {
+	position: relative;
+	width: 156px;
+	height: 156px;
+	border: 1px solid #aaa59c;
+	border-radius: 34%;
+	corner-shape: squircle;
+	background: #f4f2ed;
+}
+
+.loader-joystick::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 72px;
+	height: 72px;
+	transform: translate(-50%, -50%);
+	border-radius: 34%;
+	corner-shape: squircle;
+	background: #171311;
+}
+
+/* Narrow width OR touch-primary/no-hover, not narrow width alone -- a
+   tablet in landscape is comfortably wider than 700px but still has no
+   keyboard/mouse, so a width-only query left it showing the WASD/mouse
+   hint. (hover: none) and (pointer: coarse) reflects the actual input
+   hardware regardless of window size, matching ui_kit.gd's own
+   is_mobile_viewport() (DisplayServer.is_touchscreen_available()). */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+	.loader-desktop { display: none; }
+	.loader-mobile { display: flex; }
+}
+"""
+
+SPLASH_IMAGE = '\t\t\t<img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="index.png" alt="">\n'
+PROGRESS_ELEMENT = '\t\t\t<progress id="status-progress"></progress>'
+PROGRESS_WITH_TIP = """\t\t\t<progress id="status-progress"></progress>
+\t\t\t<div id="loading-controls">
+\t\t\t\t<div class="loader-desktop">
+\t\t\t\t\t<div class="loader-control">
+\t\t\t\t\t\t<div class="loader-wasd" aria-hidden="true"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></div>
+\t\t\t\t\t\t<span>Use WASD to move</span>
+\t\t\t\t\t</div>
+\t\t\t\t\t<div class="loader-control">
+\t\t\t\t\t\t<div class="mouse-control" aria-hidden="true"></div>
+\t\t\t\t\t\t<span>Click to control the camera with the mouse</span>
+\t\t\t\t\t</div>
+\t\t\t\t\t<div class="loader-control">
+\t\t\t\t\t\t<div class="key space-key" aria-hidden="true">SPACE</div>
+\t\t\t\t\t\t<span>Press Spacebar to jump</span>
+\t\t\t\t\t</div>
+\t\t\t\t</div>
+\t\t\t\t<div class="loader-mobile">
+\t\t\t\t\t<div class="loader-joystick" aria-hidden="true"></div>
+\t\t\t\t\t<span>Drag the joystick to move</span>
+\t\t\t\t</div>
+\t\t\t</div>"""
+
+STATUS_VARIABLES = """\tconst statusProgress = document.getElementById('status-progress');
+\tconst statusNotice = document.getElementById('status-notice');"""
+STATUS_VARIABLES_WITH_TIPS = """\tconst statusProgress = document.getElementById('status-progress');
+\tconst statusNotice = document.getElementById('status-notice');
+\tconst loadingControls = document.getElementById('loading-controls');"""
+
+HIDE_STATUS = """\t\tif (mode === 'hidden') {
+\t\t\tstatusOverlay.remove();"""
+HIDE_STATUS_WITH_TIP_CLEANUP = """\t\tif (mode === 'hidden') {
+\t\t\tstatusOverlay.remove();"""
+
+PROGRESS_VISIBILITY = "\t\tstatusProgress.style.display = mode === 'progress' ? 'block' : 'none';"
+PROGRESS_AND_TIP_VISIBILITY = """\t\tstatusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+\t\tloadingControls.style.display = mode === 'progress' ? 'block' : 'none';"""
+
 START = """\t\tsetStatusMode('progress');
 \t\tengine.startGame({"""
 
@@ -76,7 +279,13 @@ def main() -> None:
     )
     html = HTML.read_text()
     html = replace_once(html, "<title>Kueh Machine Hub</title>", "<title>Kueh-verse — Kueh Machine</title>", "title")
+    html = replace_once(html, STYLE_END, LOADER_CSS + STYLE_END, "loader styles")
+    html = replace_once(html, SPLASH_IMAGE, "", "unused splash image")
+    html = replace_once(html, PROGRESS_ELEMENT, PROGRESS_WITH_TIP, "progress tooltip")
     html = replace_once(html, SCRIPT_TAG, SCRIPT_TAGS, "script")
+    html = replace_once(html, STATUS_VARIABLES, STATUS_VARIABLES_WITH_TIPS, "tooltip variables")
+    html = replace_once(html, HIDE_STATUS, HIDE_STATUS_WITH_TIP_CLEANUP, "tooltip cleanup")
+    html = replace_once(html, PROGRESS_VISIBILITY, PROGRESS_AND_TIP_VISIBILITY, "tooltip visibility")
     html = replace_once(html, START, BRIDGE, "engine start")
     html = replace_once(html, END, BRIDGED_END, "engine completion")
     HTML.write_text(html)

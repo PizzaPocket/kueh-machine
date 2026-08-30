@@ -89,6 +89,167 @@ body {
 	text-align: center;
 	z-index: 1;
 }
+
+
+/* Kueh-verse's only loading surface: the real Godot download progress. */
+#status {
+	background: #ffffff;
+	gap: 24px;
+	z-index: 2147483646;
+}
+
+#status-progress {
+	appearance: none;
+	-webkit-appearance: none;
+	position: absolute;
+	bottom: 10%;
+	width: min(420px, calc(100vw - 64px));
+	height: 4px;
+	margin: 0;
+	border: 0;
+	border-radius: 2px;
+	background: #dedbd4;
+	overflow: hidden;
+}
+
+#status-progress::-webkit-progress-bar {
+	background: #dedbd4;
+}
+
+#status-progress::-webkit-progress-value {
+	background: #171311;
+}
+
+#status-progress::-moz-progress-bar {
+	background: #171311;
+}
+
+#loading-controls {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: min(760px, calc(100vw - 64px));
+	transform: translate(-50%, -50%);
+	color: #5c564e;
+	font-family: Syne, Arial, sans-serif;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+	text-align: center;
+}
+
+.loader-desktop {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 54px;
+}
+
+.loader-control {
+	display: flex;
+	min-width: 150px;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+}
+
+.loader-wasd {
+	display: grid;
+	grid-template-columns: repeat(3, 38px);
+	grid-template-rows: repeat(2, 38px);
+	gap: 5px;
+}
+
+.loader-wasd .key:first-child {
+	grid-column: 2;
+	grid-row: 1;
+}
+
+.loader-wasd .key:nth-child(2) { grid-column: 1; grid-row: 2; }
+.loader-wasd .key:nth-child(3) { grid-column: 2; grid-row: 2; }
+.loader-wasd .key:nth-child(4) { grid-column: 3; grid-row: 2; }
+
+.key,
+.mouse-control {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	border: 1px solid #aaa59c;
+	background: #f4f2ed;
+	color: #171311;
+	font: inherit;
+}
+
+.key {
+	width: 38px;
+	height: 38px;
+	border-radius: 10px;
+}
+
+.space-key {
+	width: 142px;
+	height: 38px;
+	border-radius: 10px;
+	font-size: 12px;
+	letter-spacing: 0.08em;
+}
+
+.mouse-control {
+	width: 52px;
+	height: 70px;
+	border-radius: 24px;
+}
+
+.mouse-control::before {
+	content: '';
+	width: 4px;
+	height: 15px;
+	border-radius: 2px;
+	background: #171311;
+}
+
+.loader-mobile {
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	gap: 24px;
+}
+
+.loader-joystick {
+	position: relative;
+	width: 156px;
+	height: 156px;
+	border: 1px solid #aaa59c;
+	border-radius: 34%;
+	corner-shape: squircle;
+	background: #f4f2ed;
+}
+
+.loader-joystick::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 72px;
+	height: 72px;
+	transform: translate(-50%, -50%);
+	border-radius: 34%;
+	corner-shape: squircle;
+	background: #171311;
+}
+
+/* Narrow width OR touch-primary/no-hover, not narrow width alone -- a
+   tablet in landscape is comfortably wider than 700px but still has no
+   keyboard/mouse, so a width-only query left it showing the WASD/mouse
+   hint. (hover: none) and (pointer: coarse) reflects the actual input
+   hardware regardless of window size, matching ui_kit.gd's own
+   is_mobile_viewport() (DisplayServer.is_touchscreen_available()). */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+	.loader-desktop { display: none; }
+	.loader-mobile { display: flex; }
+}
 		</style>
 		<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 	</head>
@@ -102,8 +263,27 @@ body {
 		</noscript>
 
 		<div id="status">
-			<img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="index.png" alt="">
 			<progress id="status-progress"></progress>
+			<div id="loading-controls">
+				<div class="loader-desktop">
+					<div class="loader-control">
+						<div class="loader-wasd" aria-hidden="true"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></div>
+						<span>Use WASD to move</span>
+					</div>
+					<div class="loader-control">
+						<div class="mouse-control" aria-hidden="true"></div>
+						<span>Click to control the camera with the mouse</span>
+					</div>
+					<div class="loader-control">
+						<div class="key space-key" aria-hidden="true">SPACE</div>
+						<span>Press Spacebar to jump</span>
+					</div>
+				</div>
+				<div class="loader-mobile">
+					<div class="loader-joystick" aria-hidden="true"></div>
+					<span>Drag the joystick to move</span>
+				</div>
+			</div>
 			<div id="status-notice"></div>
 		</div>
 
@@ -111,7 +291,7 @@ body {
 		<script src="/shared/character-system.js"></script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":888276,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":896472,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -119,6 +299,7 @@ const engine = new Engine(GODOT_CONFIG);
 	const statusOverlay = document.getElementById('status');
 	const statusProgress = document.getElementById('status-progress');
 	const statusNotice = document.getElementById('status-notice');
+	const loadingControls = document.getElementById('loading-controls');
 
 	let initializing = true;
 	let statusMode = '';
@@ -134,6 +315,7 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 		statusOverlay.style.visibility = 'visible';
 		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		loadingControls.style.display = mode === 'progress' ? 'block' : 'none';
 		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
 		statusMode = mode;
 	}

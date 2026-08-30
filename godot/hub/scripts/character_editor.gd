@@ -9,7 +9,11 @@ const HAIR_SWATCHES := ["171311", "3f2a20", "6a4632", "a66d45", "d2aa63", "b8654
 # Chromatic colors follow the hue wheel, followed by the neutral clothing
 # colors. The shared hues match the account-badge avatar palette exactly
 # (shared/account-widget.js's AVATAR_COLORS) where a swatch is shared with it.
-const CLOTH_SWATCHES := ["d97b66", "5b3a29", "f0b429", "8fbf7f", "8bb4d6", "287fc2", "18283f", "f2b8c6", "fbf6ec", "777a7c", "191919"]
+# c0392b replaces the old chocolate-brown swatch (5b3a29) per direct
+# instruction -- its hue sits slightly earlier on the wheel than d97b66's
+# coral (~6 deg vs ~11 deg), so it leads the chromatic run rather than
+# following it, keeping the hue-wheel ordering intact.
+const CLOTH_SWATCHES := ["c0392b", "d97b66", "f0b429", "8fbf7f", "8bb4d6", "287fc2", "18283f", "f2b8c6", "fbf6ec", "777a7c", "191919"]
 const HAIR_STYLES := [
 	{"label": "Buzz cut", "value": "buzzcut"},
 	{"label": "Hero crop", "value": "hero"},

@@ -35,15 +35,15 @@ const AUTO_DISMISS_TIME := 6.0
 ## bottom-CENTER on mobile (not the corner) so a capped width can't overflow
 ## either edge.
 const NPC_PANEL_ANCHOR_V_DESKTOP := 0.90
-const NPC_PANEL_ANCHOR_V_MOBILE := 0.52
+const NPC_PANEL_ANCHOR_V_MOBILE := 0.10
 const NPC_PANEL_WIDTH_DESKTOP := 840.0
 const RESPONSE_PANEL_WIDTH_DESKTOP := 600.0
 const MOBILE_SIDE_MARGIN := 24.0
 ## Real touch targets, per direct correction that the response options
 ## weren't large enough to comfortably tap -- both bumped well past
 ## BUTTON_MIN_HEIGHT/FONT_BODY's own already-touch-friendly desktop values.
-const RESPONSE_BUTTON_HEIGHT_MOBILE := 96.0
-const RESPONSE_FONT_SIZE_MOBILE := 46
+const RESPONSE_BUTTON_HEIGHT_MOBILE := 144.0
+const RESPONSE_FONT_SIZE_MOBILE := 69
 
 var _panel: PanelContainer
 var _speaker_label: Label

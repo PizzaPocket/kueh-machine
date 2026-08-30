@@ -158,6 +158,51 @@ static func _double_diamond_frame(image: Image, size: float, frame_color: Color,
 	inner.a = 0.55
 	_fill_polygon(image, _diamond_polygon(c, c, size * 0.2667), inner)
 
+## Same construction as the source's cornerRosette(cx,cy,mA,mB): a
+## background disc, a ring of 8 comma-shaped petals, and a small center dot.
+## Meant to be drawn once per tile corner -- see generate_corner_drop_tile()
+## for why only a quarter of it is ever visible in a single tile.
+static func _corner_rosette(image: Image, cx: float, cy: float, color_a: Color, color_b: Color) -> void:
+	_fill_ellipse(image, Vector2(cx, cy), 27.0, 27.0, color_b)
+	for i in range(8):
+		_fill_polygon(image, _petal_polygon(cx, cy, float(i) * 45.0, 14.0 * 1.15, 6.0 * 1.15), color_a)
+	_fill_ellipse(image, Vector2(cx, cy), 9.0, 9.0, color_a)
+	_fill_ellipse(image, Vector2(cx, cy), 4.0, 4.0, color_b)
+
+## A single straight stroke of the given thickness, built as a thin filled
+## quad rather than a true line primitive -- there's no stroked-line drawing
+## call on Image, only polygon fills.
+static func _stroke_segment(image: Image, from: Vector2, to: Vector2, thickness: float, color: Color) -> void:
+	var dir := (to - from).normalized()
+	var perp := Vector2(-dir.y, dir.x) * (thickness * 0.5)
+	_fill_polygon(image, PackedVector2Array([from + perp, to + perp, to - perp, from - perp]), color)
+
+## Ports the source's generateCornerDropTile(p): a second tile *composition*,
+## not just a new motif -- its medallions sit on the tile's four corners
+## instead of its center. Each corner only ever shows its own quarter of a
+## rosette (the rest falls outside this TILE_PXxTILE_PX canvas and is simply
+## never drawn), but four tiles repeating edge-to-edge each contribute their
+## matching quarter, and together they reconstruct one whole rosette
+## straddling the grout line where the tiles meet -- the same trick real
+## tile sets use. `palette` needs the extra "corner" key (the small
+## edge-midpoint dots) alongside the five generate_tile() already uses.
+static func generate_corner_drop_tile(palette: Dictionary) -> ImageTexture:
+	var image := Image.create(TILE_PX, TILE_PX, false, Image.FORMAT_RGBA8)
+	image.fill(palette["bg"])
+	var frame: Color = palette["frame"]
+	frame.a = 0.6
+	var size := float(TILE_PX)
+	_stroke_segment(image, Vector2(0, 0), Vector2(size, size), 3.0, frame)
+	_stroke_segment(image, Vector2(size, 0), Vector2(0, size), 3.0, frame)
+	var line: Color = palette["line"]
+	line.a = 0.5
+	_stroke_rect(image, size, 1.5, line)
+	for corner in [Vector2(0, 0), Vector2(size, 0), Vector2(0, size), Vector2(size, size)]:
+		_corner_rosette(image, corner.x, corner.y, palette["medallion_a"], palette["medallion_b"])
+	for mid in [Vector2(size * 0.5, 0), Vector2(size * 0.5, size), Vector2(0, size * 0.5), Vector2(size, size * 0.5)]:
+		_fill_ellipse(image, mid, 6.0, 6.0, palette["corner"])
+	return ImageTexture.create_from_image(image)
+
 ## One full tile: background, double-diamond frame, inset border, and a
 ## centered quatrefoil medallion -- the source's standard (non-corner-drop)
 ## tile composition. `palette` is one of TILE_PALETTES below.
@@ -178,7 +223,19 @@ static func generate_tile(palette: Dictionary, variant: int = 0) -> ImageTexture
 ## terracotta/cream Peranakan look in the reference photo, rather than
 ## porting all 8 (several of which, e.g. Night Market's near-black
 ## background, read as a nightclub floor rather than a sun-worn five-foot-way).
+## Index 1 was originally the source's "Azulejo Blue" (blue/white) -- swapped
+## for "Peranakan Ink" per direct instruction, and paired with the
+## corner-drop composition above instead of the centered-medallion one, so
+## the two runs read as genuinely different generated options rather than
+## the same tile recolored. Both entries carry "corner" (the corner-drop
+## composition's small edge-midpoint dots) even though only index 1
+## currently uses it, so either can be passed to either generator.
+## medallion_a/line were originally the source palette's near-black
+## ("1D1710") -- swapped for HubPalette.INK's own deep plum per direct
+## instruction (the black read wrong against the rest of the walkway), which
+## also ties this tile back to the site's own established ink color instead
+## of an unrelated one-off value.
 const TILE_PALETTES := [
-	{"bg": Color("F6ECD9"), "frame": Color("B4552F"), "medallion_a": Color("8B3A3A"), "medallion_b": Color("D9A441"), "line": Color("2A2118")},
-	{"bg": Color("F5F3ED"), "frame": Color("2B4C9B"), "medallion_a": Color("2B4C9B"), "medallion_b": Color("F5F3ED"), "line": Color("1D3166")},
+	{"bg": Color("F6ECD9"), "frame": Color("B4552F"), "medallion_a": Color("8B3A3A"), "medallion_b": Color("D9A441"), "corner": Color("3E8E7E"), "line": Color("2A2118")},
+	{"bg": Color("FBF8EF"), "frame": Color("D9A441"), "medallion_a": Color("4B1734"), "medallion_b": Color("3F8F5F"), "corner": Color("C1553B"), "line": Color("4B1734")},
 ]

@@ -2,23 +2,22 @@ class_name HubUI
 extends CanvasLayer
 
 const MACHINE_FONT: Font = preload("res://assets/fonts/Syne-SemiBold.ttf")
-const LOADING_WORDMARK: Texture2D = preload("res://assets/wordmark/loading-wordmark.svg")
 
-var _loading: Control
-var _loading_logo: Control
-var _tip: Label
-var _progress: ProgressBar
 var _prompt: PanelContainer
-var _movement_hint: VBoxContainer
+var _movement_hint: Control
 var _movement_hint_dismissing := false
-var _tip_index := 0
-var _tip_elapsed := 0.0
-var _loading_elapsed := 0.0
-# Doubles the WASD hint as real touch controls, per direct instruction: the
-# hint should only disappear on an actual keyboard press (see
-# _unhandled_input's own InputEventKey check below, left untouched), so a
-# touch/mouse user gets persistent on-screen movement buttons instead of
-# ever losing them. Maps each key Control to the movement action it drives.
+var _mobile_controls := false
+var _joystick_outer: Panel
+var _joystick_knob: Panel
+var _joystick_touch := -2
+const JOYSTICK_NO_TOUCH := -2
+const JOYSTICK_OUTER_SIZE := 292.0
+const JOYSTICK_KNOB_SIZE := 128.0
+const MOBILE_ACTION_SIZE := 156.0
+const MOBILE_CONTROL_MARGIN := 54.0
+const MOBILE_ACTION_GAP := 24.0
+# Maps each mobile action button (or desktop hint key) to the input action it
+# drives. Joystick movement uses four continuously variable action strengths.
 var _key_actions: Dictionary = {}
 # Which pointer (a real touch's own event.index, or MOUSE_TOUCH_INDEX for a
 # mouse button) currently "owns" which key Control -- lets a drag slide
@@ -31,143 +30,12 @@ const MOUSE_TOUCH_INDEX := -1
 # screen.
 const PROMPT_WIDTH_DESKTOP := 900.0
 const PROMPT_SIDE_MARGIN := 32.0
-var _tips := [
-	"WASD to move",
-	"Hold Shift to run",
-	"Space to jump",
-	"Move the mouse to look around",
-	"Press F when someone is nearby",
-]
-
 func _ready() -> void:
 	layer = 20
-	_build_loading()
 	_build_prompt()
 	_build_movement_hint()
 	get_viewport().size_changed.connect(_update_prompt_width)
 	_update_prompt_width()
-
-func _process(delta: float) -> void:
-	if _loading.visible:
-		_loading_elapsed += delta
-		_progress.value = minf(_loading_elapsed / 1.35, 1.0) * 100.0
-		_tip_elapsed += delta
-		if _tip_elapsed > 0.8:
-			_tip_elapsed = 0.0
-			_tip_index = (_tip_index + 1) % _tips.size()
-			_tip.text = _tips[_tip_index]
-
-func _build_loading() -> void:
-	_loading = Control.new()
-	_loading.name = "LoadingScreen"
-	_loading.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(_loading)
-	var background := ColorRect.new()
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color.WHITE
-	_loading.add_child(background)
-	var center_anchor := CenterContainer.new()
-	center_anchor.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center_anchor.offset_left = 24
-	center_anchor.offset_right = -24
-	center_anchor.offset_top = 24
-	center_anchor.offset_bottom = -24
-	_loading.add_child(center_anchor)
-	var center := VBoxContainer.new()
-	center.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.custom_minimum_size = Vector2(900, 0)
-	center.add_theme_constant_override("separation", 36)
-	center_anchor.add_child(center)
-	_loading_logo = _build_logo_2d()
-	center.add_child(_loading_logo)
-	_progress = ProgressBar.new()
-	_progress.custom_minimum_size = Vector2(540, 6)
-	_progress.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_progress.show_percentage = false
-	_progress.value = 0
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color("4c5570")
-	track.corner_radius_top_left = 2
-	track.corner_radius_top_right = 2
-	track.corner_radius_bottom_left = 2
-	track.corner_radius_bottom_right = 2
-	_progress.add_theme_stylebox_override("background", track)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = Color("f7d774")
-	fill.corner_radius_top_left = 2
-	fill.corner_radius_top_right = 2
-	fill.corner_radius_bottom_left = 2
-	fill.corner_radius_bottom_right = 2
-	_progress.add_theme_stylebox_override("fill", fill)
-	center.add_child(_progress)
-
-	# Controls are supporting information, anchored independently at the bottom
-	# so they do not compete with the wordmark or loading state.
-	var tip_anchor := CenterContainer.new()
-	tip_anchor.name = "SubtleLoadingTipAnchor"
-	tip_anchor.anchor_left = 0.0
-	tip_anchor.anchor_right = 1.0
-	tip_anchor.anchor_top = 1.0
-	tip_anchor.anchor_bottom = 1.0
-	tip_anchor.offset_top = -108.0
-	tip_anchor.offset_bottom = -36.0
-	tip_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_loading.add_child(tip_anchor)
-	var tip_panel := PanelContainer.new()
-	tip_panel.name = "LoadingActionPrompt"
-	tip_panel.custom_minimum_size = Vector2(500, 0)
-	tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var panel_style := SuperellipseStyleBox.new()
-	panel_style.bg_color = Color(0.16, 0.11, 0.07, 0.55)
-	panel_style.corner_radius = 96
-	panel_style.corner_ratio = 0.46
-	panel_style.exponent = 3.0
-	panel_style.shadow_size = 5
-	panel_style.shadow_color = Color(0, 0, 0, 0.22)
-	panel_style.content_margin_left = 30
-	panel_style.content_margin_right = 30
-	panel_style.content_margin_top = 14
-	panel_style.content_margin_bottom = 14
-	tip_panel.add_theme_stylebox_override("panel", panel_style)
-	tip_anchor.add_child(tip_panel)
-	_tip = Label.new()
-	_tip.text = _tips[0]
-	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_tip.add_theme_font_size_override("font_size", UITheme.FONT_CAPTION)
-	_tip.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85, 0.88))
-	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tip_panel.add_child(_tip)
-
-func _build_logo_2d() -> Control:
-	var logo := TextureRect.new()
-	logo.texture = LOADING_WORDMARK
-	logo.custom_minimum_size = Vector2(900, 191)
-	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	return logo
-
-func _hero_background_material() -> ShaderMaterial:
-	var shader := Shader.new()
-	shader.code = """
-shader_type canvas_item;
-float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
-void fragment() {
-	vec2 uv = UV;
-	float grain = hash(floor(uv * vec2(1280.0, 720.0)));
-	float vignette = 1.0 - smoothstep(0.18, 0.82, distance(uv, vec2(0.5)));
-	// Kueh Machine's deep pandan green (#037031), with the same restrained
-	// paper-like grain retained from the original loading treatment.
-	vec3 base = vec3(0.012, 0.439, 0.192);
-	base *= mix(0.93, 1.025, grain * 0.42 + vignette * 0.58);
-	COLOR = vec4(base, 1.0);
-}
-"""
-	var material := ShaderMaterial.new()
-	material.shader = shader
-	return material
 
 func _build_prompt() -> void:
 	# Use the same construction, shared theme, type size, panel treatment, and
@@ -219,26 +87,22 @@ func _update_prompt_width() -> void:
 	_prompt.custom_minimum_size.x = minf(PROMPT_WIDTH_DESKTOP, viewport_width - PROMPT_SIDE_MARGIN * 2.0)
 
 func _build_movement_hint() -> void:
-	# Per direct correction: the hint doubles as real touch controls on
-	# mobile (see _input() below), so it needs to actually read as
-	# comfortably tappable there, not just legible -- doubled key size,
-	# font, and spacing, computed once here rather than re-derived live on
-	# resize (unlike the plain single-property updates elsewhere in this
-	# file, redoing this nested multi-row layout live isn't worth the
-	# complexity for what's essentially a startup-only hint).
-	var is_mobile := UIKit.is_mobile_viewport(self)
-	var key_size := 156.0 if is_mobile else 78.0
-	var key_font_size := UITheme.FONT_BODY * 2 if is_mobile else UITheme.FONT_BODY
-	var row_separation := 20 if is_mobile else 10
-	var edge_margin: float = UITheme.SPACE_XL * (2.0 if is_mobile else 1.0)
+	_mobile_controls = UIKit.is_mobile_viewport(self)
+	if _mobile_controls:
+		_build_mobile_controls()
+	else:
+		_build_desktop_movement_hint()
 
+func _build_desktop_movement_hint() -> void:
+	var key_size := 78.0
+	var row_separation := 10
 	_movement_hint = VBoxContainer.new()
 	_movement_hint.name = "InitialMovementHint"
-	_movement_hint.add_theme_constant_override("separation", row_separation)
+	(_movement_hint as VBoxContainer).add_theme_constant_override("separation", row_separation)
 	_movement_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UIKit.anchor_to_edge(_movement_hint, 0.0, 1.0, edge_margin, edge_margin)
-	_movement_hint.visible = false
-	_movement_hint.modulate.a = 0.0
+	UIKit.anchor_to_edge(_movement_hint, 0.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL)
+	_movement_hint.visible = true
+	_movement_hint.modulate.a = 1.0
 	add_child(_movement_hint)
 
 	# A full three-key row establishes the alignment width; CenterContainer
@@ -248,16 +112,61 @@ func _build_movement_hint() -> void:
 	var top_row := CenterContainer.new()
 	top_row.custom_minimum_size.x = key_size * 3.0 + row_separation * 2.0
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(_movement_key("W", "move_forward", key_size, key_font_size))
+	top_row.add_child(_movement_key("W", "move_forward", key_size, UITheme.FONT_BODY))
 	_movement_hint.add_child(top_row)
 
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", row_separation)
 	bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom_row.add_child(_movement_key("A", "move_left", key_size, key_font_size))
-	bottom_row.add_child(_movement_key("S", "move_back", key_size, key_font_size))
-	bottom_row.add_child(_movement_key("D", "move_right", key_size, key_font_size))
+	bottom_row.add_child(_movement_key("A", "move_left", key_size, UITheme.FONT_BODY))
+	bottom_row.add_child(_movement_key("S", "move_back", key_size, UITheme.FONT_BODY))
+	bottom_row.add_child(_movement_key("D", "move_right", key_size, UITheme.FONT_BODY))
 	_movement_hint.add_child(bottom_row)
+
+func _build_mobile_controls() -> void:
+	_movement_hint = Control.new()
+	_movement_hint.name = "MobileTraversalControls"
+	_movement_hint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_movement_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_movement_hint)
+
+	_joystick_outer = Panel.new()
+	_joystick_outer.name = "MovementJoystickOuter"
+	_joystick_outer.custom_minimum_size = Vector2.ONE * JOYSTICK_OUTER_SIZE
+	_joystick_outer.mouse_filter = Control.MOUSE_FILTER_STOP
+	_joystick_outer.add_theme_stylebox_override("panel", _squircle_style(Color(0.16, 0.11, 0.07, 0.48), JOYSTICK_OUTER_SIZE))
+	UIKit.anchor_to_edge(_joystick_outer, 0.0, 1.0, MOBILE_CONTROL_MARGIN, MOBILE_CONTROL_MARGIN)
+	_movement_hint.add_child(_joystick_outer)
+
+	_joystick_knob = Panel.new()
+	_joystick_knob.name = "MovementJoystickKnob"
+	_joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_joystick_knob.anchor_left = 0.5
+	_joystick_knob.anchor_right = 0.5
+	_joystick_knob.anchor_top = 0.5
+	_joystick_knob.anchor_bottom = 0.5
+	_joystick_knob.add_theme_stylebox_override("panel", _squircle_style(Color(0.97, 0.93, 0.85, 0.90), JOYSTICK_KNOB_SIZE))
+	_set_joystick_knob_offset(Vector2.ZERO)
+	_joystick_outer.add_child(_joystick_knob)
+
+	var action_stack := VBoxContainer.new()
+	action_stack.name = "MobileActionButtons"
+	action_stack.add_theme_constant_override("separation", int(MOBILE_ACTION_GAP))
+	action_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UIKit.anchor_to_edge(action_stack, 1.0, 1.0, MOBILE_CONTROL_MARGIN, MOBILE_CONTROL_MARGIN)
+	action_stack.add_child(_movement_key("JUMP", "jump", MOBILE_ACTION_SIZE, UITheme.FONT_BUTTON))
+	action_stack.add_child(_movement_key("RUN", "run", MOBILE_ACTION_SIZE, UITheme.FONT_BUTTON))
+	_movement_hint.add_child(action_stack)
+
+func _squircle_style(color: Color, size: float) -> SuperellipseStyleBox:
+	var style := SuperellipseStyleBox.new()
+	style.bg_color = color
+	style.corner_radius = size
+	style.corner_ratio = 0.34
+	style.exponent = 4.0
+	style.shadow_size = 5
+	style.shadow_color = Color(0, 0, 0, 0.22)
+	return style
 
 func _movement_key(letter: String, action: String, key_size: float, font_size: int) -> PanelContainer:
 	var key := PanelContainer.new()
@@ -271,14 +180,7 @@ func _movement_key(letter: String, action: String, key_size: float, font_size: i
 	# forward+strafe held together for a diagonal).
 	key.mouse_filter = Control.MOUSE_FILTER_STOP
 	_key_actions[key] = action
-	var style := SuperellipseStyleBox.new()
-	style.bg_color = Color(0.16, 0.11, 0.07, 0.64)
-	style.corner_radius = key_size
-	style.corner_ratio = 0.34
-	style.exponent = 3.0
-	style.shadow_size = 5
-	style.shadow_color = Color(0, 0, 0, 0.22)
-	key.add_theme_stylebox_override("panel", style)
+	key.add_theme_stylebox_override("panel", _squircle_style(Color(0.16, 0.11, 0.07, 0.64), key_size))
 	var label := Label.new()
 	label.text = letter
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -302,32 +204,91 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			var key := _key_at_position(touch.position)
-			if key != null:
-				_press_touch(touch.index, key)
+			if _mobile_controls and _joystick_outer.get_global_rect().has_point(touch.position):
+				_begin_joystick(touch.index, touch.position)
 				get_viewport().set_input_as_handled()
+			else:
+				var key := _key_at_position(touch.position)
+				if key != null:
+					_press_touch(touch.index, key)
+					get_viewport().set_input_as_handled()
+		elif touch.index == _joystick_touch:
+			_end_joystick()
+			get_viewport().set_input_as_handled()
 		elif _active_touches.has(touch.index):
 			_release_touch(touch.index)
 			get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
-		if _active_touches.has(drag.index):
+		if drag.index == _joystick_touch:
+			_update_joystick(drag.position)
+			get_viewport().set_input_as_handled()
+		elif _active_touches.has(drag.index):
 			_update_touch(drag.index, drag.position)
 			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton:
 		var mouse_button := event as InputEventMouseButton
 		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
 			if mouse_button.pressed:
-				var key := _key_at_position(mouse_button.position)
-				if key != null:
-					_press_touch(MOUSE_TOUCH_INDEX, key)
+				if _mobile_controls and _joystick_outer.get_global_rect().has_point(mouse_button.position):
+					_begin_joystick(MOUSE_TOUCH_INDEX, mouse_button.position)
 					get_viewport().set_input_as_handled()
+				else:
+					var key := _key_at_position(mouse_button.position)
+					if key != null:
+						_press_touch(MOUSE_TOUCH_INDEX, key)
+						get_viewport().set_input_as_handled()
+			elif _joystick_touch == MOUSE_TOUCH_INDEX:
+				_end_joystick()
+				get_viewport().set_input_as_handled()
 			elif _active_touches.has(MOUSE_TOUCH_INDEX):
 				_release_touch(MOUSE_TOUCH_INDEX)
 				get_viewport().set_input_as_handled()
-	elif event is InputEventMouseMotion and _active_touches.has(MOUSE_TOUCH_INDEX):
-		_update_touch(MOUSE_TOUCH_INDEX, (event as InputEventMouseMotion).position)
-		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion:
+		if _joystick_touch == MOUSE_TOUCH_INDEX:
+			_update_joystick((event as InputEventMouseMotion).position)
+			get_viewport().set_input_as_handled()
+		elif _active_touches.has(MOUSE_TOUCH_INDEX):
+			_update_touch(MOUSE_TOUCH_INDEX, (event as InputEventMouseMotion).position)
+			get_viewport().set_input_as_handled()
+
+func _begin_joystick(index: int, position: Vector2) -> void:
+	if _joystick_touch != JOYSTICK_NO_TOUCH:
+		return
+	_joystick_touch = index
+	_update_joystick(position)
+
+func _update_joystick(position: Vector2) -> void:
+	var center := _joystick_outer.get_global_rect().get_center()
+	var radius := (JOYSTICK_OUTER_SIZE - JOYSTICK_KNOB_SIZE) * 0.5
+	var offset := (position - center).limit_length(radius)
+	_set_joystick_knob_offset(offset)
+	var direction := offset / radius
+	if direction.length() < 0.12:
+		direction = Vector2.ZERO
+	_set_action_strength("move_left", maxf(-direction.x, 0.0))
+	_set_action_strength("move_right", maxf(direction.x, 0.0))
+	_set_action_strength("move_forward", maxf(-direction.y, 0.0))
+	_set_action_strength("move_back", maxf(direction.y, 0.0))
+
+func _end_joystick() -> void:
+	_joystick_touch = JOYSTICK_NO_TOUCH
+	_set_joystick_knob_offset(Vector2.ZERO)
+	for action in ["move_left", "move_right", "move_forward", "move_back"]:
+		Input.action_release(action)
+
+func _set_action_strength(action: StringName, strength: float) -> void:
+	if strength > 0.0:
+		Input.action_press(action, strength)
+	else:
+		Input.action_release(action)
+
+func _set_joystick_knob_offset(offset: Vector2) -> void:
+	var half := JOYSTICK_KNOB_SIZE * 0.5
+	_joystick_knob.offset_left = -half + offset.x
+	_joystick_knob.offset_right = half + offset.x
+	_joystick_knob.offset_top = -half + offset.y
+	_joystick_knob.offset_bottom = half + offset.y
 
 func _key_at_position(pos: Vector2) -> Control:
 	for key in _key_actions:
@@ -362,6 +323,8 @@ func _update_touch(index: int, pos: Vector2) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _movement_hint.visible or _movement_hint_dismissing:
 		return
+	if _mobile_controls:
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key_event := event as InputEventKey
 		var movement_keys := [KEY_W, KEY_A, KEY_S, KEY_D]
@@ -379,17 +342,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			fade.set_ease(Tween.EASE_OUT)
 			fade.tween_property(_movement_hint, "modulate:a", 0.0, 0.32)
 			fade.tween_callback(func(): _movement_hint.visible = false)
-
-func finish_loading() -> void:
-	var tween := create_tween()
-	tween.tween_property(_loading, "modulate:a", 0.0, 0.45)
-	await tween.finished
-	_loading.visible = false
-	_movement_hint.visible = true
-	var hint_reveal := create_tween()
-	hint_reveal.set_trans(Tween.TRANS_QUAD)
-	hint_reveal.set_ease(Tween.EASE_OUT)
-	hint_reveal.tween_property(_movement_hint, "modulate:a", 1.0, 0.28)
 
 func set_prompt(visible: bool, text := "Talk (F)") -> void:
 	if visible:

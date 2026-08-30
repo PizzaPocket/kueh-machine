@@ -57,6 +57,17 @@ static func build(parent: Node3D) -> Dictionary:
 ## Real-world span (meters) one tile texture repeat covers -- small enough
 ## to read as individual mosaic tiles rather than one stretched decal.
 const FIVE_FOOT_WAY_TILE_SIZE := 0.5
+## Each run's footprint, rounded up from the walkway's natural 16.4 x 3.3 m
+## span to the nearest whole multiple of FIVE_FOOT_WAY_TILE_SIZE (33 x 7
+## tiles). The UV anchor below already starts each run cleanly on a tile
+## boundary at its front-left corner; a non-whole-tile footprint still left
+## the far (right/bottom) edge ending mid-tile, cutting the pattern off
+## there. Growing the slab by a few centimeters -- imperceptible for a floor
+## decal -- is preferable to shrinking tile size down to 0.1 m (16.4 and 3.3
+## share no larger common divisor), which would read as a dense carpet
+## instead of individual pavers.
+const FIVE_FOOT_WAY_WIDTH := 16.5
+const FIVE_FOOT_WAY_DEPTH := 3.5
 
 static func _build_walkway(root: Node3D) -> void:
 	# A custom quad with explicit world-unit UVs instead of _part()'s
@@ -68,15 +79,21 @@ static func _build_walkway(root: Node3D) -> void:
 	# pavement edge but no longer demands a jump.
 	# Two continuous two-shop runs, each using a different motif and palette
 	# from Ken's backdoor tile generator. Their edges meet exactly at x=0.
-	var left_floor := _build_tiled_floor(16.4, 3.3, FIVE_FOOT_WAY_TILE_SIZE, TilePattern.generate_tile(TilePattern.TILE_PALETTES[0], 0))
+	var half_width := FIVE_FOOT_WAY_WIDTH * 0.5
+	var left_floor := _build_tiled_floor(FIVE_FOOT_WAY_WIDTH, FIVE_FOOT_WAY_DEPTH, FIVE_FOOT_WAY_TILE_SIZE, TilePattern.generate_tile(TilePattern.TILE_PALETTES[0], 0))
 	left_floor.name = "LeftTwoShopFiveFootWay"
-	left_floor.position = Vector3(-8.2, 0.04, FRONT_Z + 1.55)
+	left_floor.position = Vector3(-half_width, 0.04, FRONT_Z + 1.55)
 	root.add_child(left_floor)
-	var right_floor := _build_tiled_floor(16.4, 3.3, FIVE_FOOT_WAY_TILE_SIZE, TilePattern.generate_tile(TilePattern.TILE_PALETTES[1], 1))
+	# Corner-drop composition (see TilePattern.generate_corner_drop_tile):
+	# each tile only draws its own quarter of a rosette at its four corners,
+	# so the full motif only reconstructs across a 2x2 block of adjacent
+	# tiles once repeated -- a different generated option from the same
+	# engine, not just a recolor of the centered-medallion tile.
+	var right_floor := _build_tiled_floor(FIVE_FOOT_WAY_WIDTH, FIVE_FOOT_WAY_DEPTH, FIVE_FOOT_WAY_TILE_SIZE, TilePattern.generate_corner_drop_tile(TilePattern.TILE_PALETTES[1]))
 	right_floor.name = "RightTwoShopFiveFootWay"
-	right_floor.position = Vector3(8.2, 0.04, FRONT_Z + 1.55)
+	right_floor.position = Vector3(half_width, 0.04, FRONT_Z + 1.55)
 	root.add_child(right_floor)
-	_collision(root, Vector3(32.8, 0.04, 3.3), Vector3(0, 0.02, FRONT_Z + 1.55), "FiveFootWayFloor")
+	_collision(root, Vector3(FIVE_FOOT_WAY_WIDTH * 2.0, 0.04, FIVE_FOOT_WAY_DEPTH), Vector3(0, 0.02, FRONT_Z + 1.55), "FiveFootWayFloor")
 	# No separate soffit slab here anymore -- each bay's own SolidUpperStorey
 	# now extends forward to the pillar line and serves as the walkway's
 	# ceiling directly (see _build_upper_facade), so a second overlapping
@@ -102,7 +119,9 @@ static func _build_tiled_floor(width: float, depth: float, tile_size: float, tex
 	for i in [0, 1, 2, 0, 2, 3]:
 		var c: Vector3 = corners[i]
 		# Anchor UV zero to this run's own front-left corner. Using centered
-		# coordinates made a 16.4 m run begin 0.8 of a repeat into the motif.
+		# coordinates made a 16.4 m run begin 0.8 of a repeat into the motif
+		# (see FIVE_FOOT_WAY_WIDTH/_DEPTH's own comment for the follow-up fix
+		# once even this anchored version still cut off the far edges).
 		st.set_uv(Vector2(c.x + half_w, c.z + half_d) / tile_size)
 		st.add_vertex(c)
 	var mesh_instance := MeshInstance3D.new()

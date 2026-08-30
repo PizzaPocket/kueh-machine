@@ -49,8 +49,6 @@ const IDLE_KNEE_MAX := deg_to_rad(11.0)
 const IDLE_HIP_OUTWARD_ANGLE := deg_to_rad(3.5)
 const IDLE_HIP_EXTERNAL_ROTATION := deg_to_rad(8.0)
 const IDLE_HIP_DROP_ANGLE := deg_to_rad(3.8)
-const IDLE_SPINE_COUNTER_ANGLE := deg_to_rad(2.8)
-const IDLE_BODY_TWIST_MAX := deg_to_rad(2.0)
 const IDLE_ARM_SWAY_MAX := deg_to_rad(3.0)
 const JUMP_ARM_SWING := deg_to_rad(35.0)
 const JUMP_ARM_ASYMMETRY := deg_to_rad(5.0)
@@ -97,8 +95,6 @@ var _idle_elbow_right := 0.0
 var _idle_leg_variant_active := false
 var _idle_bent_leg_side := 1.0
 var _idle_knee_bend := 0.0
-var _idle_spine_counter := 0.0
-var _idle_body_twist := 0.0
 var _idle_arm_left := 0.0
 var _idle_arm_right := 0.0
 
@@ -353,6 +349,14 @@ func _animate(delta: float, input: Vector2) -> void:
 		elbow_right.rotation.x = lerp_angle(elbow_right.rotation.x, -(JUMP_ELBOW_BEND + JUMP_ELBOW_ASYMMETRY * asymmetry), t)
 		leg_left.rotation.x = lerp_angle(leg_left.rotation.x, -(JUMP_HIP_BEND - JUMP_HIP_ASYMMETRY * asymmetry) * apex_fraction, t)
 		leg_right.rotation.x = lerp_angle(leg_right.rotation.x, -(JUMP_HIP_BEND + JUMP_HIP_ASYMMETRY * asymmetry) * apex_fraction, t)
+		# Same idle-contrapposto reset as the walk branch above -- a jump
+		# launched straight out of a resting stance must not keep the idle
+		# leg abduction/external rotation or hip drop while airborne.
+		leg_left.rotation.z = lerp_angle(leg_left.rotation.z, 0.0, t)
+		leg_right.rotation.z = lerp_angle(leg_right.rotation.z, 0.0, t)
+		leg_left.rotation.y = lerp_angle(leg_left.rotation.y, 0.0, t)
+		leg_right.rotation.y = lerp_angle(leg_right.rotation.y, 0.0, t)
+		hips.rotation.z = lerp_angle(hips.rotation.z, 0.0, t)
 		if skirt != null and skirt_pitch_pivot != null:
 			# Follow the live mean hip-joint pitch directly. This keeps the
 			# garment synchronized with both asymmetric legs without maintaining
@@ -409,6 +413,16 @@ func _animate(delta: float, input: Vector2) -> void:
 		var swing := sin(phase) * swing_amount
 		leg_left.rotation.x = swing
 		leg_right.rotation.x = -swing
+		# Per eleblorb: walking has to reset the idle contrapposto's leg
+		# abduction/external rotation and hip drop back to level, not leave
+		# them frozen at whatever the idle pose last held -- the walk cycle
+		# above only ever touches rotation.x on the legs, never .y/.z.
+		var pose_settle_t := POSE_SETTLE_SPEED * delta
+		leg_left.rotation.z = lerp_angle(leg_left.rotation.z, 0.0, pose_settle_t)
+		leg_right.rotation.z = lerp_angle(leg_right.rotation.z, 0.0, pose_settle_t)
+		leg_left.rotation.y = lerp_angle(leg_left.rotation.y, 0.0, pose_settle_t)
+		leg_right.rotation.y = lerp_angle(leg_right.rotation.y, 0.0, pose_settle_t)
+		hips.rotation.z = lerp_angle(hips.rotation.z, 0.0, pose_settle_t)
 		if skirt != null:
 			var upper_envelope := FigureDress.upper_skirt_envelope(hips, leg_left, leg_right, knee_left, knee_right)
 			hips.rotation.y = float(upper_envelope["yaw"])
@@ -463,8 +477,6 @@ func _roll_idle_pose() -> void:
 	_idle_leg_variant_active = not wears_dress and _rng.randf() < CONTRAPPOSTO_CHANCE
 	_idle_bent_leg_side = 1.0 if _rng.randf() < 0.5 else -1.0
 	_idle_knee_bend = _rng.randf_range(IDLE_KNEE_MIN, IDLE_KNEE_MAX)
-	_idle_spine_counter = _idle_bent_leg_side * IDLE_SPINE_COUNTER_ANGLE if _idle_leg_variant_active else _rng.randf_range(-0.012, 0.012)
-	_idle_body_twist = _rng.randf_range(-IDLE_BODY_TWIST_MAX, IDLE_BODY_TWIST_MAX)
 	_idle_arm_left = _rng.randf_range(-IDLE_ARM_SWAY_MAX, IDLE_ARM_SWAY_MAX)
 	_idle_arm_right = _rng.randf_range(-IDLE_ARM_SWAY_MAX, IDLE_ARM_SWAY_MAX)
 
@@ -492,8 +504,11 @@ func _settle_idle_pose(delta: float, arm_left: Node3D, arm_right: Node3D, elbow_
 	bent_leg.rotation.y = lerp_angle(bent_leg.rotation.y, leg_y_target, t)
 	straight_leg.rotation.y = lerp_angle(straight_leg.rotation.y, 0.0, t)
 	hips.rotation.z = lerp_angle(hips.rotation.z, hip_z_target, t)
-	spine.rotation.z = lerp_angle(spine.rotation.z, _idle_spine_counter, t)
-	spine.rotation.y = lerp_angle(spine.rotation.y, _idle_body_twist, t)
+	# Per eleblorb: the idle contrapposto lean lives entirely in the legs (z/y)
+	# and hips (z) above -- the spine itself never rolls or twists, only its
+	# forward lean (x) resets to level here.
+	spine.rotation.z = lerp_angle(spine.rotation.z, 0.0, t)
+	spine.rotation.y = lerp_angle(spine.rotation.y, 0.0, t)
 	spine.rotation.x = lerp_angle(spine.rotation.x, 0.0, t)
 	spine.position.y = lerpf(spine.position.y, _spine_rest_y, t)
 	hips.position.y = lerpf(hips.position.y, _hips_rest_y, t)
