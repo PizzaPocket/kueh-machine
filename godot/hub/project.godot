@@ -21,6 +21,20 @@ boot_splash/show_image=false
 UIState="*res://scripts/ui_state.gd"
 DialogUI="*res://scripts/dialog_ui.gd"
 
+[input_devices]
+
+; Godot's default synthesizes a mouse event for every real touch, which is
+; pure redundant risk here rather than a convenience -- hub_ui.gd already
+; has comprehensive, explicit, per-finger-index touch handling (the
+; joystick and every WASD/action key), and a duplicate synthesized mouse
+; event competing with the real touch events it shadows is a well-known
+; source of exactly the kind of "multiple simultaneous touches don't track
+; right" symptom reported (holding an action button while dragging the
+; joystick, or free-look dragging with a second finger while the first
+; drives the joystick). Disabling it removes that ambiguity outright rather
+; than trying to work around it in game logic.
+pointing/emulate_mouse_from_touch=false
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

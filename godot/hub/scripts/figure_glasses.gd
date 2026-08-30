@@ -19,6 +19,26 @@ const BRIDGE_SEGMENTS := 10
 const BRIDGE_ARCH_HEIGHT := 0.008
 
 
+## Ordered top-to-bottom, per direct instruction -- duplicated from
+## hero_photo.gd's own LAPIS_COLORS (bottom-to-top there, for stacking
+## SuperEgg segments upward) rather than shared, since that file is a
+## standalone dev capture tool with no class_name, not something other
+## scripts can reference.
+const LAPIS_LENS_COLORS := [
+	Color("d6203a"), Color("2f8c46"), Color("f8f2e4"), Color("d6203a"),
+	Color("2f8c46"), Color("f8f2e4"), Color("d6203a"), Color("f8f2e4"),
+	Color("2f8c46"),
+]
+const LENS_TEXTURE_SIZE := 128
+## Same "flat color bands, thin blended seam" construction as the hero
+## image's own kueh lapis (see hero_photo.gd's own LAPIS_BLEND_FRACTION-era
+## comments) -- a texture here instead of stacked geometry, since a lens is
+## one thin flat disc, not a real 3D volume worth building out of separate
+## layer segments.
+const LENS_BLEND_FRACTION := 0.14
+static var _lapis_lens_texture_cache: ImageTexture = null
+
+
 static func add_glasses(head: MeshInstance3D, semi_axes: Vector3, round_shape: bool = false, color: Color = FRAME_COLOR) -> void:
 	var eye_radius := semi_axes.x * FigureEyes.EYE_RADIUS_FACTOR
 	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
@@ -60,6 +80,130 @@ static func add_glasses(head: MeshInstance3D, semi_axes: Vector3, round_shape: b
 	bridge.position = Vector3(0.0, 0.0, frame_z)
 	bridge.set_surface_override_material(0, material)
 	glasses.add_child(bridge)
+
+
+## Tinted-glass "lapis" glasses, per direct instruction: no surrounding
+## frame, just a flat lens per eye (a solid superellipse disc, not the ring
+## add_glasses() builds) carrying the same red/white/green nine-band
+## pattern as the hero landing image's own floating kueh lapis slice,
+## joined by the exact same bridge construction add_glasses() already
+## uses. Named "Glasses" (matching add_glasses()'s own root name) so
+## figure_builder.gd's existing glasses_on_hair repositioning logic --
+## which finds that node by name -- works on these too, for free.
+static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
+	var eye_radius := semi_axes.x * FigureEyes.EYE_RADIUS_FACTOR
+	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
+	var right_eye := SuperEgg.surface_point(semi_axes, 0.0, EYE_OFFSET)
+	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR
+	var lens_half_height := eye_radius * FigureEyes.EYE_HEIGHT_RATIO * RIM_HEIGHT_FACTOR
+	var frame_z := (left_eye.z + right_eye.z) * 0.5 + FRONT_CLEARANCE + FRAME_DEPTH * 0.5
+
+	var glasses := Node3D.new()
+	glasses.name = "Glasses"
+	head.add_child(glasses)
+
+	var lens_material := StandardMaterial3D.new()
+	lens_material.albedo_texture = _lapis_lens_texture()
+	# "some transparency... so they look like tinted glass", per direct
+	# instruction -- 0.6 overall alpha on top of the texture's own opaque
+	# band colors.
+	lens_material.albedo_color = Color(1, 1, 1, 0.6)
+	lens_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	lens_material.roughness = 0.15
+	lens_material.metallic = 0.1
+	lens_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var eye_centers: Array[float] = [left_eye.x, right_eye.x]
+	for eye_x in eye_centers:
+		var lens := MeshInstance3D.new()
+		lens.mesh = _build_lens_mesh(lens_half_width, lens_half_height, FRAME_DEPTH, SHAPE_EPSILON)
+		lens.position = Vector3(eye_x, 0.0, frame_z)
+		lens.set_surface_override_material(0, lens_material)
+		glasses.add_child(lens)
+
+	# The bridge itself stays a plain opaque connector (real rimless glasses
+	# still have a visible bridge piece) rather than tinted like the lenses.
+	var bridge_material := StandardMaterial3D.new()
+	bridge_material.albedo_color = FRAME_COLOR
+	bridge_material.roughness = 0.4
+	bridge_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var left_inner_x := left_eye.x + lens_half_width - FRAME_THICKNESS * 0.35
+	var right_inner_x := right_eye.x - lens_half_width + FRAME_THICKNESS * 0.35
+	var bridge := MeshInstance3D.new()
+	bridge.name = "GlassesBridge"
+	bridge.mesh = _build_bridge_mesh(
+		left_inner_x, right_inner_x, lens_half_height * 0.12,
+		BRIDGE_ARCH_HEIGHT, FRAME_THICKNESS, FRAME_DEPTH
+	)
+	bridge.position = Vector3(0.0, 0.0, frame_z)
+	bridge.set_surface_override_material(0, bridge_material)
+	glasses.add_child(bridge)
+
+
+static func _lapis_lens_texture() -> ImageTexture:
+	if _lapis_lens_texture_cache == null:
+		_lapis_lens_texture_cache = _build_lapis_lens_texture()
+	return _lapis_lens_texture_cache
+
+
+static func _build_lapis_lens_texture() -> ImageTexture:
+	var image := Image.create(LENS_TEXTURE_SIZE, LENS_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	var band_count := LAPIS_LENS_COLORS.size()
+	var band_h := float(LENS_TEXTURE_SIZE) / float(band_count)
+	var blend := band_h * LENS_BLEND_FRACTION
+	# y=0 is the image's own top row; UV.y=0 is mapped to the lens's own top
+	# edge in _build_lens_mesh() below, so this loop's top-to-bottom order
+	# already matches LAPIS_LENS_COLORS' own top-to-bottom order directly.
+	for y in range(LENS_TEXTURE_SIZE):
+		var band_f := float(y) / band_h
+		var band_i := clampi(int(band_f), 0, band_count - 1)
+		var within := float(y) - float(band_i) * band_h
+		var color: Color = LAPIS_LENS_COLORS[band_i]
+		if within < blend * 0.5 and band_i > 0:
+			var t := (within + blend * 0.5) / blend
+			color = LAPIS_LENS_COLORS[band_i - 1].lerp(color, t)
+		elif within > band_h - blend * 0.5 and band_i + 1 < band_count:
+			var t := (within - (band_h - blend * 0.5)) / blend
+			color = color.lerp(LAPIS_LENS_COLORS[band_i + 1], t)
+		for x in range(LENS_TEXTURE_SIZE):
+			image.set_pixel(x, y, color)
+	return ImageTexture.create_from_image(image)
+
+
+## A filled superellipse disc (front + back faces from a center-out
+## triangle fan), not the hollow ring _build_rim_mesh() builds -- this is a
+## solid lens, not an empty frame. UV.y=0 at the lens's own top
+## (+half_height) to 1 at the bottom (-half_height), matching
+## _build_lapis_lens_texture()'s own top-to-bottom row order.
+static func _build_lens_mesh(half_width: float, half_height: float, depth: float, epsilon: float) -> ArrayMesh:
+	var front_z := depth * 0.5
+	var back_z := -depth * 0.5
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var center_front := Vector3(0, 0, front_z)
+	var center_back := Vector3(0, 0, back_z)
+	for i in SEGMENTS:
+		var angle_a := TAU * float(i) / float(SEGMENTS)
+		var angle_b := TAU * float(i + 1) / float(SEGMENTS)
+		var a := _superellipse_point(half_width, half_height, angle_a, epsilon)
+		var b := _superellipse_point(half_width, half_height, angle_b, epsilon)
+		var uv_center := Vector2(0.5, 0.5)
+		var uv_a := Vector2(0.5 + a.x / (2.0 * half_width), 0.5 - a.y / (2.0 * half_height))
+		var uv_b := Vector2(0.5 + b.x / (2.0 * half_width), 0.5 - b.y / (2.0 * half_height))
+		st.set_uv(uv_center)
+		st.add_vertex(center_front)
+		st.set_uv(uv_a)
+		st.add_vertex(Vector3(a.x, a.y, front_z))
+		st.set_uv(uv_b)
+		st.add_vertex(Vector3(b.x, b.y, front_z))
+		st.set_uv(uv_center)
+		st.add_vertex(center_back)
+		st.set_uv(uv_b)
+		st.add_vertex(Vector3(b.x, b.y, back_z))
+		st.set_uv(uv_a)
+		st.add_vertex(Vector3(a.x, a.y, back_z))
+	st.generate_normals()
+	return st.commit()
 
 
 static func _superellipse_point(half_width: float, half_height: float, angle: float, epsilon: float) -> Vector2:

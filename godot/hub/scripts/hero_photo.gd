@@ -136,6 +136,8 @@ func _run() -> void:
 			current_skin_index = i
 			break
 	appearance_b["skin"] = Color(CharacterEditor.SKIN_SWATCHES[maxi(0, current_skin_index - 1)])
+	# New lapis glasses style, worn here per direct instruction.
+	appearance_b["lapis_glasses"] = true
 	var figure_b := FigureBuilder.build(world, appearance_b)
 
 	# Independently randomized per figure (separate RNG/seed from the
@@ -385,5 +387,8 @@ func _build_lapis(half_extents: Vector3) -> Node3D:
 		# caused the darkness in the hand-rolled version.
 		var material := segment.get_surface_override_material(0) as StandardMaterial3D
 		material.roughness = 0.45
+		# A hint of transparency, per direct instruction.
+		material.albedo_color.a = 0.95
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		container.add_child(segment)
 	return container

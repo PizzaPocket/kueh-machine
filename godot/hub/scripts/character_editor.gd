@@ -141,11 +141,12 @@ func _build_ui() -> void:
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", UITheme.SPACE_LG)
 	margin.add_theme_constant_override("margin_right", UITheme.SPACE_LG)
-	# Top margin shrinks (not scales up like everything else) on mobile per
-	# direct instruction -- one of the two places pixels are reclaimed for
-	# the larger content below to fit in, the other being the preview's own
-	# reduced height (see _preview_container below).
-	margin.add_theme_constant_override("margin_top", UITheme.SPACE_XS if _mobile else UITheme.SPACE_LG)
+	# Top margin shrinks to 0 (not scaled up like content, and further
+	# reduced from an earlier SPACE_XS per direct follow-up instruction) on
+	# mobile -- one of several places pixels are reclaimed for the larger
+	# content below to fit in, alongside the preview's own reduced height
+	# (see _preview_container below) and body_padding's own shrunk insets.
+	margin.add_theme_constant_override("margin_top", 0 if _mobile else UITheme.SPACE_LG)
 	margin.add_theme_constant_override("margin_bottom", UITheme.SPACE_LG)
 	add_child(margin)
 
@@ -159,16 +160,21 @@ func _build_ui() -> void:
 
 	_preview_container = SubViewportContainer.new()
 	_preview_container.stretch = true
-	# Mobile height reduced from 255 -> 210 per direct instruction, the
-	# other half of reclaiming pixels for the larger content below (see the
-	# outer margin_top above). The camera in _build_preview_world() stays
-	# shared with desktop rather than a mobile-specific tighter crop --
-	# verified via a headless render first (SubViewportContainer.stretch
-	# scales the doll uniformly into the shorter box with no distortion or
-	# cropping, just a slightly smaller figure), and a camera re-tuned
-	# against one hand-picked body preset risked framing oddly for others
-	# (Hunky/More-tall, etc) with no way to check every combination.
-	_preview_container.custom_minimum_size = Vector2(0, 210) if _mobile else Vector2(430, 420)
+	# Mobile height reduced further per direct follow-up instruction
+	# (255 -> 210 -> 170 now) to keep reclaiming pixels for the larger
+	# content below (see the outer margin_top above). The camera in
+	# _build_preview_world() stays shared with desktop rather than a
+	# mobile-specific tighter crop -- verified via a headless render first
+	# (SubViewportContainer.stretch scales the doll uniformly into the
+	# shorter box with no distortion or cropping, just a slightly smaller
+	# figure), and a camera re-tuned against one hand-picked body preset
+	# risked framing oddly for others (Hunky/More-tall, etc) with no way to
+	# check every combination.
+	# Desktop's own minimum grown a little too (430x420 -> 480x470) per
+	# direct instruction -- the side-by-side layout has room to let the
+	# doll read bigger, unlike the stacked layout's own space-conservation
+	# principle below.
+	_preview_container.custom_minimum_size = Vector2(0, 170) if _mobile else Vector2(480, 470)
 	_preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_preview_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_layout.add_child(_preview_container)
@@ -196,9 +202,18 @@ func _build_ui() -> void:
 	var body_padding := MarginContainer.new()
 	body_padding.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body_padding.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body_padding.add_theme_constant_override("margin_left", _si(UITheme.SPACE_XL))
-	body_padding.add_theme_constant_override("margin_right", _si(UITheme.SPACE_XL))
-	body_padding.add_theme_constant_override("margin_top", _si(UITheme.SPACE_XL))
+	# Shrunk on mobile (was scaled UP like content, same as everything
+	# else) per direct correction -- growing this outer inset shrank the
+	# width actually available to each section's own swatch/button rows,
+	# forcing extra wrapping on top of each item's own larger size and
+	# inflating the scrollable height well past the intended 33%, which
+	# read as the scrolling itself feeling "out of sync" with the content.
+	# This is chrome, not touch-target spacing -- it should conserve space
+	# for the panel the same way the outer margin above does, not grow
+	# with everything else.
+	body_padding.add_theme_constant_override("margin_left", UITheme.SPACE_MD if _mobile else UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_right", UITheme.SPACE_MD if _mobile else UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_top", UITheme.SPACE_SM if _mobile else UITheme.SPACE_XL)
 	# The scroll viewport ends directly at the footer rule. Bottom breathing
 	# room belongs inside the scrolling content, not between viewport and rule.
 	body_padding.add_theme_constant_override("margin_bottom", 0)
@@ -235,7 +250,7 @@ func _build_ui() -> void:
 	_add_choice_section(sections, "Hair style", HAIR_STYLES, "hair_style")
 	_add_color_section(sections, "Hair color", HAIR_SWATCHES, "hair")
 	_add_choice_section(sections, "Glasses", [
-		{"label": "None", "value": "none"}, {"label": "Rectangular", "value": "rect"}, {"label": "Round", "value": "round"}, {"label": "On head", "value": "head"}
+		{"label": "None", "value": "none"}, {"label": "Rectangular", "value": "rect"}, {"label": "Round", "value": "round"}, {"label": "On head", "value": "head"}, {"label": "Lapis", "value": "lapis"}
 	], "glasses_choice")
 	_add_clothing_section(sections, "Top", [
 		{"label": "Sleeveless", "value": "none"}, {"label": "Short sleeve", "value": "short"}, {"label": "Half sleeve", "value": "colored_upper_arm"}, {"label": "Long sleeve", "value": "long"}
@@ -453,10 +468,14 @@ func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	var popup := PopupPanel.new()
 	popup.theme = UITheme.get_theme()
 	popup.add_theme_stylebox_override("panel", _editor_panel_style())
+	# Scaled to match everything else in the editor now, per direct
+	# instruction -- this sub-modal was left out of the first mobile-scale
+	# pass entirely.
+	var popup_size := Vector2i(int(_s(430)), int(_s(340)))
 	var picker_center := CenterContainer.new()
-	picker_center.custom_minimum_size = Vector2(430, 340)
+	picker_center.custom_minimum_size = Vector2(popup_size)
 	var picker := ColorPicker.new()
-	picker.custom_minimum_size = Vector2(360, 270)
+	picker.custom_minimum_size = Vector2(_s(360), _s(270))
 	picker.color = appearance.get(key, Color.WHITE)
 	_configure_simple_picker(picker)
 	picker.color_changed.connect(func(color: Color) -> void: _set_option(key, color))
@@ -465,7 +484,7 @@ func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	add_child(popup)
 	button.pressed.connect(func() -> void:
 		picker.color = appearance.get(key, Color.WHITE)
-		popup.popup_centered(Vector2i(430, 340))
+		popup.popup_centered(popup_size)
 	)
 	return button
 
@@ -508,9 +527,10 @@ func _editor_button(text: String, callback: Callable, selectable := true) -> But
 
 func _set_option(key: String, value: Variant) -> void:
 	if key == "glasses_choice":
-		appearance["glasses"] = value != "none"
+		appearance["glasses"] = value != "none" and value != "lapis"
 		appearance["round_glasses"] = value == "round"
 		appearance["glasses_on_hair"] = value == "head"
+		appearance["lapis_glasses"] = value == "lapis"
 	elif key == "body_preset":
 		appearance["body_preset"] = value
 		_apply_body_preset(str(value))
@@ -550,6 +570,11 @@ func _refresh_selection_states() -> void:
 
 func _current_choice_value(key: String) -> Variant:
 	if key == "glasses_choice":
+		# Checked first -- lapis_glasses/glasses are mutually exclusive (see
+		# _set_option()), so a lapis-wearing character has glasses=false and
+		# would otherwise fall through to "none" below.
+		if appearance.get("lapis_glasses", false):
+			return "lapis"
 		if not appearance.get("glasses", false):
 			return "none"
 		if appearance.get("glasses_on_hair", false):
@@ -672,14 +697,13 @@ func _apply_responsive_layout() -> void:
 	parent.add_child(_layout)
 	_layout.add_child(_preview_container)
 	_layout.add_child(_controls)
-	# Matches _build_ui()'s own initial values (see that function's own
-	# comments for why 210/XS instead of the desktop 255/LG) -- note this
-	# only re-flows the outer preview/controls shape, not the finer
-	# buttons/swatches/spacing _build_ui() bakes in at construction time,
-	# same pre-existing limitation as before this file's own mobile-scale
-	# work (a live resize crossing the breakpoint mid-edit is a rare enough
-	# case that a full content rebuild here wasn't already worth it).
-	_preview_container.custom_minimum_size = Vector2(0, 210) if _mobile else Vector2(430, 420)
+	# Matches _build_ui()'s own initial values -- note this only re-flows the
+	# outer preview/controls shape, not the finer buttons/swatches/spacing
+	# _build_ui() bakes in at construction time, same pre-existing limitation
+	# as before this file's own mobile-scale work (a live resize crossing the
+	# breakpoint mid-edit is a rare enough case that a full content rebuild
+	# here wasn't already worth it).
+	_preview_container.custom_minimum_size = Vector2(0, 170) if _mobile else Vector2(480, 470)
 	_controls.custom_minimum_size.x = 0 if _mobile else 510
 	_panel_shell.add_theme_constant_override("margin_top", 0 if _mobile else 56)
 	if preview_index < 0 or controls_index < 0:

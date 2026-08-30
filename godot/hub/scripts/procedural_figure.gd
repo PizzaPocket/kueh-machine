@@ -397,7 +397,8 @@ static func build(
 	shirt_texture: Texture2D = null,
 	is_female: bool = false,
 	height_factor: float = 1.0,
-	dress_hip_shape: bool = false
+	dress_hip_shape: bool = false,
+	lapis_glasses: bool = false
 ) -> Dictionary:
 	var upper_arm_color := shirt_color if sleeve_style in [SLEEVE_STYLE_LONG, SLEEVE_STYLE_COLORED_UPPER_ARM] else skin_color
 	var forearm_color := shirt_color if sleeve_style == SLEEVE_STYLE_LONG else skin_color
@@ -642,7 +643,9 @@ static func build(
 		FigureHair.add_hair(
 			head_mesh, HEAD_SIZE, HEAD_EPSILON_TOP, hair_color, hair_style, hair_length_variance
 		)
-		if has_glasses:
+		if lapis_glasses:
+			FigureGlasses.add_lapis_glasses(head_mesh, HEAD_SIZE)
+		elif has_glasses:
 			FigureGlasses.add_glasses(head_mesh, HEAD_SIZE, round_glasses)
 
 	# A chunkier abdomen should carry through to visibly thicker arms/legs

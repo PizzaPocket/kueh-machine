@@ -57,7 +57,8 @@ static func build(parent: Node3D, spec: Dictionary, _player := false) -> Diction
 		shirt_texture,
 		spec.get("is_female", true),
 		spec.get("height_scale", 1.0),
-		wears_dress
+		wears_dress,
+		spec.get("lapis_glasses", false)
 	)
 	pivots["root"] = parent.get_child(parent.get_child_count() - 1)
 	pivots["arms"] = [pivots["arm_left"], pivots["arm_right"]]
