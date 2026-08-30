@@ -26,8 +26,15 @@ extends RefCounted
 ## where it meets its neighbors, or EPSILON_SOFT on both for a limb
 ## segment that should read as a smooth capsule-like "post" instead.
 
-const RINGS := 18
-const SEGMENTS := 24
+## Lowered from 18/24 per direct instruction (noticeable lag with many NPCs
+## on screen at once) -- every SuperEgg part in the game shares these two
+## numbers (every figure's ~10+ body parts, every building piece), so this
+## one change cuts triangle count roughly in half sitewide (14*18=252 vs
+## 18*24=432 per part) with the lowest risk of any lever available: no call
+## sites change, and this rig's own rounded-cube aesthetic already doesn't
+## depend on knife-smooth curvature the way a realistic character would.
+const RINGS := 14
+const SEGMENTS := 18
 
 ## Default "soft rounded cube" roundness -- most parts (limb segments,
 ## torso segment sides, the head's crown).

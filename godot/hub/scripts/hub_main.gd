@@ -467,6 +467,7 @@ func _update_nearby() -> void:
 	var closest_kind := "npc"
 	var best_score := INF
 	var body_forward := _player.body_forward()
+	var space_state := get_world_3d().direct_space_state
 	for item in _interactables:
 		var node := item.get("node") as Node3D
 		if node == null or not is_instance_valid(node):
@@ -487,12 +488,32 @@ func _update_nearby() -> void:
 		if horizontal.length() > 0.01:
 			alignment = body_forward.dot(Vector3(horizontal.x, 0.0, horizontal.y).normalized())
 		var score := distance * (1.0 - FACING_BIAS_STRENGTH * alignment)
-		if score < best_score:
-			closest = node
-			closest_data = item.get("data", {})
-			closest_prompt = item.get("prompt", "Talk (F)")
-			closest_kind = item.get("kind", "npc")
-			best_score = score
+		if score >= best_score:
+			continue
+		# Straight-line distance alone doesn't know about walls -- standing
+		# in the gallery facing the arcade's shared wall used to offer
+		# whatever NPC/cabinet sat just past it, closer in a straight line
+		# than anything actually reachable. Only cast this ray for whatever
+		# would otherwise win (not every candidate every frame): if it's
+		# blocked, leave the previous best in place instead of promoting a
+		# now-invalid one, so a farther-but-visible item can still be picked
+		# up on a later iteration.
+		var eye_height := Vector3.UP * 1.3
+		var query := PhysicsRayQueryParameters3D.create(_player.global_position + eye_height, node.global_position + eye_height, 1)
+		query.exclude = [_player]
+		var hit := space_state.intersect_ray(query)
+		# NPCs (hub_npc.gd's own StaticBody3D) and some other interactables
+		# carry their own collider as a child of the registered node itself
+		# -- the ray reaching THAT is arriving at the target, not being
+		# blocked by something else, so only a hit outside the target's own
+		# hierarchy counts as an obstruction.
+		if not hit.is_empty() and not node.is_ancestor_of(hit.get("collider")):
+			continue
+		closest = node
+		closest_data = item.get("data", {})
+		closest_prompt = item.get("prompt", "Talk (F)")
+		closest_kind = item.get("kind", "npc")
+		best_score = score
 	_nearby = closest
 	_nearby_data = closest_data
 	_nearby_prompt = closest_prompt
@@ -574,7 +595,7 @@ func _contributors() -> Array[Dictionary]:
 		_person("Azri", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "", "", "This is pretty cool. What does Kueh Machine mean again?", _appearance("slim", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "buzzcut", "round", "short", Color("287fc2"), false, Color("18283f"), Color("5b3a29"))),
 		_person("Ken Lee", Vector3(-0.6, 0, -13), Vector3(-2.4, 0, -11.3), "ken_gacha", "/ken/", "Try your luck, you might get a rare one.", _appearance("broad", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "hero", "none", "short", Color("191919"), false, Color("191919"), Color("fbf6ec"))),
 		_person("Geraldine Chua", Vector3(6, 0, -13), Vector3.ZERO, "", "", "Just out for a stroll today, taking it all in.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("191919"), false, Color("191919"), Color("5b3a29"))),
-		_person("Jesslyn Teo", Vector3(-14, 0, -9), Vector3(-11.7, 0, -9), "jesslyn", "/jesslyn/", "A good birthday starts with knowing what you can spend. Mine helps you plan the whole day.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("6a4632"), "full_long", "round", "none", Color("d97b66"), false, Color("f0b429"), Color("5b3a29"))),
+		_person("Jesslyn Teo", Vector3(-14, 0, -9), Vector3(-11.7, 0, -9), "jesslyn", "/jesslyn/", "A good birthday starts with knowing what you can spend. Mine helps you plan the whole day.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "full_long", "round", "none", Color("d97b66"), false, Color("f0b429"), Color("5b3a29"))),
 		_person("Kaixin Cai", Vector3(-14, 0, -3), Vector3(-11.7, 0, -3), "kaixin", "/kaixin/", "Pick a tune and sing it properly. The Kueh puns are part of the experience.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "ponytail_short", "head", "colored_upper_arm", Color("150f1e"), false, Color("191919"), Color("5b3a29")).merged({"shirt_pattern": "kaixin_polka"})),
 		_person("Kevin Dreher", Vector3(-14, 0, 3), Vector3.ZERO, "", "", "Hallo! Hier wohne ich jetzt.", _appearance("broad", HEIGHT_TALL, Color("f3cfb8"), Color("d2aa63"), "buzzcut", "none", "short", Color("fbf6ec"), false, Color("18283f"), Color("5b3a29"))),
 		_person("Leonard Reese", Vector3(0, 0, 11), Vector3.ZERO, "", "", "I'm just glad to be here.", _appearance("slim", HEIGHT_MORE_TALL, Color("f3cfb8"), Color("3f2a20"), "hero", "none", "short", Color("191919"), false, Color("191919"), Color("5b3a29"))),

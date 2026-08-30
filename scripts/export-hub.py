@@ -15,6 +15,16 @@ SCRIPT_TAGS = """\t\t<script src="/shared/account-widget.js" data-anchor="top-ri
 \t\t<script src="/shared/character-system.js"></script>
 \t\t<script src="index.js"></script>"""
 
+HEAD_END = "\t</head>"
+# The account-widget badge and the root landing page's wordmark both need
+# Syne (Kueh-verse's own Label3D text uses a bundled .ttf, not a web font --
+# this page never had a reason to load Syne before the wordmark below
+# needed it).
+FONT_LINKS = """\t<link rel="preconnect" href="https://fonts.googleapis.com">
+\t<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+\t<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+"""
+
 STYLE_END = "\t\t</style>"
 LOADER_CSS = """
 
@@ -22,8 +32,34 @@ LOADER_CSS = """
 #status {
 	background: #ffffff;
 	gap: 24px;
-	z-index: 2147483646;
+	/* Just below account-widget.js's own hardcoded badge z-index (2147483000,
+	   not something this page controls) rather than the previous
+	   2147483646 -- per direct instruction, the account button should show
+	   through the loading screen the same way it does on the landing page,
+	   which a higher z-index here was silently hiding it behind. Still far
+	   above the canvas/everything else on the page. */
+	z-index: 2147482999;
 }
+
+/* Same wordmark markup/look as the root landing page's own .landing-header
+   .wordmark, per direct instruction -- a child of #status rather than a
+   separate persistent header, so it shares #status's own show/hide
+   lifecycle (setStatusMode('hidden') below) instead of lingering once
+   loading finishes and gameplay starts. */
+.wordmark {
+	position: absolute;
+	top: 24px;
+	left: 32px;
+	color: #B72E68;
+	font-family: Syne, Arial, sans-serif;
+	font-size: 16px;
+	letter-spacing: -0.025em;
+	line-height: 1;
+	text-decoration: none;
+}
+
+.wordmark-kueh { font-weight: 800; }
+.wordmark-machine { font-weight: 600; }
 
 #status-progress {
 	appearance: none;
@@ -127,13 +163,19 @@ LOADER_CSS = """
 	width: 52px;
 	height: 70px;
 	border-radius: 24px;
+	/* Overrides the shared .key/.mouse-control center alignment above --
+	   per direct correction, a vertically-centered line just reads as a
+	   mouse cut in half, not a scroll wheel; shifted toward the top of the
+	   shape (padding-top, not touching the border) reads more like one. */
+	align-items: flex-start;
+	padding-top: 16px;
 }
 
 .mouse-control::before {
 	content: '';
-	width: 4px;
-	height: 15px;
-	border-radius: 2px;
+	width: 2px;
+	height: 14px;
+	border-radius: 1px;
 	background: #171311;
 }
 
@@ -181,7 +223,8 @@ LOADER_CSS = """
 
 SPLASH_IMAGE = '\t\t\t<img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="index.png" alt="">\n'
 PROGRESS_ELEMENT = '\t\t\t<progress id="status-progress"></progress>'
-PROGRESS_WITH_TIP = """\t\t\t<progress id="status-progress"></progress>
+WORDMARK_HTML = '\t\t\t<a class="wordmark" href="/" aria-label="Kueh Machine home"><span class="wordmark-kueh">Kueh</span> <span class="wordmark-machine">Machine</span></a>\n'
+PROGRESS_WITH_TIP = WORDMARK_HTML + """\t\t\t<progress id="status-progress"></progress>
 \t\t\t<div id="loading-controls">
 \t\t\t\t<div class="loader-desktop">
 \t\t\t\t\t<div class="loader-control">
@@ -279,6 +322,7 @@ def main() -> None:
     )
     html = HTML.read_text()
     html = replace_once(html, "<title>Kueh Machine Hub</title>", "<title>Kueh-verse — Kueh Machine</title>", "title")
+    html = replace_once(html, HEAD_END, FONT_LINKS + HEAD_END, "font links")
     html = replace_once(html, STYLE_END, LOADER_CSS + STYLE_END, "loader styles")
     html = replace_once(html, SPLASH_IMAGE, "", "unused splash image")
     html = replace_once(html, PROGRESS_ELEMENT, PROGRESS_WITH_TIP, "progress tooltip")

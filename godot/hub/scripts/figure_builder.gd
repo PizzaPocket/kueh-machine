@@ -67,9 +67,10 @@ static func build(parent: Node3D, spec: Dictionary, _player := false) -> Diction
 		if glasses != null:
 			# Rest the frames above the face, pitched back against the front of
 			# the hairstyle, rather than leaving them over the figure's eyes.
-			# At this height the lower rim clears the long-hair shell by roughly
-			# one centimetre; the former 0.17 m lift visibly floated above it.
-			glasses.position.y += 0.12
+			# Split the difference per direct correction -- 0.08 (down from
+			# 0.12) turned out to be too much of a drop; 0.10 lands between
+			# the two.
+			glasses.position.y += 0.10
 			glasses.position.z -= 0.02
 			glasses.rotation.x = deg_to_rad(-22.0)
 	if wears_dress:

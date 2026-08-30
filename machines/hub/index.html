@@ -95,8 +95,34 @@ body {
 #status {
 	background: #ffffff;
 	gap: 24px;
-	z-index: 2147483646;
+	/* Just below account-widget.js's own hardcoded badge z-index (2147483000,
+	   not something this page controls) rather than the previous
+	   2147483646 -- per direct instruction, the account button should show
+	   through the loading screen the same way it does on the landing page,
+	   which a higher z-index here was silently hiding it behind. Still far
+	   above the canvas/everything else on the page. */
+	z-index: 2147482999;
 }
+
+/* Same wordmark markup/look as the root landing page's own .landing-header
+   .wordmark, per direct instruction -- a child of #status rather than a
+   separate persistent header, so it shares #status's own show/hide
+   lifecycle (setStatusMode('hidden') below) instead of lingering once
+   loading finishes and gameplay starts. */
+.wordmark {
+	position: absolute;
+	top: 24px;
+	left: 32px;
+	color: #B72E68;
+	font-family: Syne, Arial, sans-serif;
+	font-size: 16px;
+	letter-spacing: -0.025em;
+	line-height: 1;
+	text-decoration: none;
+}
+
+.wordmark-kueh { font-weight: 800; }
+.wordmark-machine { font-weight: 600; }
 
 #status-progress {
 	appearance: none;
@@ -200,13 +226,19 @@ body {
 	width: 52px;
 	height: 70px;
 	border-radius: 24px;
+	/* Overrides the shared .key/.mouse-control center alignment above --
+	   per direct correction, a vertically-centered line just reads as a
+	   mouse cut in half, not a scroll wheel; shifted toward the top of the
+	   shape (padding-top, not touching the border) reads more like one. */
+	align-items: flex-start;
+	padding-top: 16px;
 }
 
 .mouse-control::before {
 	content: '';
-	width: 4px;
-	height: 15px;
-	border-radius: 2px;
+	width: 2px;
+	height: 14px;
+	border-radius: 1px;
 	background: #171311;
 }
 
@@ -252,6 +284,9 @@ body {
 }
 		</style>
 		<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 	</head>
 	<body>
 		<canvas id="canvas">
@@ -263,6 +298,7 @@ body {
 		</noscript>
 
 		<div id="status">
+			<a class="wordmark" href="/" aria-label="Kueh Machine home"><span class="wordmark-kueh">Kueh</span> <span class="wordmark-machine">Machine</span></a>
 			<progress id="status-progress"></progress>
 			<div id="loading-controls">
 				<div class="loader-desktop">
@@ -291,7 +327,7 @@ body {
 		<script src="/shared/character-system.js"></script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":896472,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":896968,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

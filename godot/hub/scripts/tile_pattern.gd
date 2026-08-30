@@ -230,12 +230,21 @@ static func generate_tile(palette: Dictionary, variant: int = 0) -> ImageTexture
 ## the same tile recolored. Both entries carry "corner" (the corner-drop
 ## composition's small edge-midpoint dots) even though only index 1
 ## currently uses it, so either can be passed to either generator.
-## medallion_a/line were originally the source palette's near-black
-## ("1D1710") -- swapped for HubPalette.INK's own deep plum per direct
-## instruction (the black read wrong against the rest of the walkway), which
-## also ties this tile back to the site's own established ink color instead
-## of an unrelated one-off value.
+## Index 1's medallion_a/line were originally the source palette's
+## near-black ("1D1710") -- swapped for HubPalette.INK's own deep plum per
+## direct instruction (the black read wrong against the rest of the
+## walkway). Index 0's own "line" was a separate near-black
+## ("2A2118", the source's own Sunset Clay border color) that follow-up
+## feedback caught still sitting there -- swapped to the same plum for
+## consistency between the two floors' border lines, instead of leaving one
+## fixed and one not. Index 0's medallion_a ("8B3A3A", the source's own
+## Sunset Clay medallion color) was a THIRD, still-remaining case of the
+## same complaint -- not literally black, but dark/desaturated enough under
+## the walkway's actual lighting to read as a black flower rather than a
+## red one; brightened to a proper visible terracotta-red. All of the above
+## ties back to the site's own established ink color, or a genuinely
+## legible warm hue, instead of the source's own muddier originals.
 const TILE_PALETTES := [
-	{"bg": Color("F6ECD9"), "frame": Color("B4552F"), "medallion_a": Color("8B3A3A"), "medallion_b": Color("D9A441"), "corner": Color("3E8E7E"), "line": Color("2A2118")},
+	{"bg": Color("F6ECD9"), "frame": Color("B4552F"), "medallion_a": Color("C1552E"), "medallion_b": Color("D9A441"), "corner": Color("3E8E7E"), "line": Color("4B1734")},
 	{"bg": Color("FBF8EF"), "frame": Color("D9A441"), "medallion_a": Color("4B1734"), "medallion_b": Color("3F8F5F"), "corner": Color("C1553B"), "line": Color("4B1734")},
 ]

@@ -163,6 +163,21 @@ static func _build_bay_pillars(bay: Node3D, center_x: float, color: Color) -> vo
 		_part(bay, Vector3(PILLAR_HALF_WIDTH, pillar_height * 0.5, PILLAR_HALF_WIDTH), color, Vector3(pillar_x, pillar_height * 0.5, UPPER_FACADE_Z), "FiveFootWayColumn")
 		_collision(bay, Vector3(PILLAR_HALF_WIDTH * 2.0, pillar_height, PILLAR_HALF_WIDTH * 2.0), Vector3(pillar_x, pillar_height * 0.5, UPPER_FACADE_Z), "WalkwayColumnSolid")
 
+## Same (x,z) positions _build_bay_pillars() places its columns at, exposed
+## so a roaming NPC can avoid walking through one (see hub_roaming_npc.gd's
+## own _can_move_to()) via a plain 2D distance check against this short list
+## instead of a live physics query every frame -- the player already
+## collides with these properly (they're real StaticBody3D colliders), this
+## is only for NPCs, which move by setting global_position directly with no
+## physics involved at all.
+static func pillar_positions() -> Array[Vector2]:
+	var positions: Array[Vector2] = []
+	for center_x in CENTERS:
+		for side in [-1.0, 1.0]:
+			var pillar_x: float = center_x + side * (BAY_WIDTH * 0.5 - PILLAR_HALF_WIDTH)
+			positions.append(Vector2(pillar_x, UPPER_FACADE_Z))
+	return positions
+
 static func _build_bay(root: Node3D, index: int, center_x: float) -> void:
 	var facade_color := FACADE_COLORS[index]
 	var room_color := ROOM_COLORS[index]

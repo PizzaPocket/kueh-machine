@@ -104,17 +104,23 @@ func _process(delta: float) -> void:
 			_enter_rest(_rng.randf_range(1.0, 2.2))
 			return
 		global_position = proposed
-		var root := _figure["root"] as Node3D
-		root.rotation.y = lerp_angle(root.rotation.y, atan2(direction.x, direction.y), TURN_SPEED * delta)
-		_walk_phase += delta * WALK_CYCLE_SPEED
-		_set_walk_pose(delta, sin(_walk_phase) * 0.44)
+		# AI/movement (target picking, timers, global_position above) stays
+		# unconditional -- only the per-bone walk-cycle animation below is
+		# distance-gated (see HubNPC's own _far_from_player()/its doc
+		# comment), so a far-away NPC keeps walking its route correctly and
+		# is just visibly mid-stride whenever the player next gets close.
+		if not _far_from_player():
+			var root := _figure["root"] as Node3D
+			root.rotation.y = lerp_angle(root.rotation.y, atan2(direction.x, direction.y), TURN_SPEED * delta)
+			_walk_phase += delta * WALK_CYCLE_SPEED
+			_set_walk_pose(delta, sin(_walk_phase) * 0.44)
 	else:
 		_rest_timer -= delta
 		# HubNPC's process has already eased toward the idle pose rolled when
 		# this rest began. Do not overwrite it with the neutral walk pose.
 		var resting_hips := _figure["hips"] as Node3D
 		var resting_skirt: Node3D = _figure.get("skirt")
-		if resting_skirt != null:
+		if resting_skirt != null and not _far_from_player():
 			var settle := POSE_SETTLE_SPEED * delta
 			resting_hips.scale.x = lerpf(resting_hips.scale.x, 1.0, settle)
 			resting_hips.scale.z = lerpf(resting_hips.scale.z, 1.0, settle)
@@ -145,12 +151,31 @@ func _separation_steering() -> Vector2:
 			steering += offset.normalized() * (1.25 - distance) * 1.8
 	return steering
 
+## Radius from a pillar's own center a roaming NPC won't cross into: the
+## pillar's own half-diagonal (PILLAR_HALF_WIDTH * sqrt(2) =~ 0.34) plus
+## roughly an NPC's own collision capsule radius (hub_npc.gd's own
+## 0.38 * build_scale), rounded up for a clean margin.
+const PILLAR_AVOID_RADIUS := 0.7
+## Computed once and shared across every roaming NPC instance (a static var,
+## not per-instance) -- there's nothing NPC-specific about where the
+## pillars are, so there's no reason to rebuild this list per NPC, let alone
+## every frame each one calls _can_move_to().
+static var _pillar_positions: Array[Vector2] = []
+static var _pillar_positions_ready := false
+
 func _can_move_to(proposed: Vector3) -> bool:
 	for other_node in get_tree().get_nodes_in_group("roaming_hub_npc"):
 		var other := other_node as Node3D
 		if other == null or other == self:
 			continue
 		if Vector2(proposed.x - other.global_position.x, proposed.z - other.global_position.z).length() < 0.82:
+			return false
+	if not _pillar_positions_ready:
+		_pillar_positions = ShophouseStreet.pillar_positions()
+		_pillar_positions_ready = true
+	var proposed_xz := Vector2(proposed.x, proposed.z)
+	for pillar in _pillar_positions:
+		if proposed_xz.distance_to(pillar) < PILLAR_AVOID_RADIUS:
 			return false
 	return true
 

@@ -13,6 +13,16 @@ const IDLE_HIP_OUTWARD_ANGLE := deg_to_rad(3.5)
 const IDLE_HIP_EXTERNAL_ROTATION := deg_to_rad(8.0)
 const IDLE_HIP_DROP_ANGLE := deg_to_rad(3.8)
 const IDLE_ARM_SWAY_MAX := deg_to_rad(3.0)
+## Squared distance (20m) beyond which per-frame bone animation (idle
+## settling, eye blink, and -- see hub_roaming_npc.gd's own _process() --
+## the walk cycle) is skipped, per direct instruction after noticeable lag
+## with every contributor NPC always running this regardless of whether the
+## player is anywhere near them. Movement/AI (target picking, resting,
+## global_position itself) is untouched -- an NPC still walks to and
+## arrives at its destination on schedule while far away, it just stops
+## visibly animating until the player is close enough to actually see it,
+## then resumes from wherever it already is.
+const FAR_FROM_PLAYER_DISTANCE_SQUARED := 400.0
 
 var contributor: Dictionary
 var _head: Node3D
@@ -81,11 +91,18 @@ func apply_appearance(new_appearance: Dictionary) -> void:
 		_collision.position.y = capsule.height * 0.5
 	_roll_idle_pose()
 
+## Cheap enough to call every frame (one distance_squared_to, no sqrt) --
+## shared with hub_roaming_npc.gd's own _process() override so both the
+## idle and walking animation paths agree on the same threshold.
+func _far_from_player() -> bool:
+	return _player == null or global_position.distance_squared_to(_player.global_position) > FAR_FROM_PLAYER_DISTANCE_SQUARED
+
 func _process(delta: float) -> void:
 	_idle_phase += delta
-	if _should_settle_idle_pose():
-		_settle_pose(delta)
-	EyeBlink.apply(_eye_blink, delta, _eyes)
+	if not _far_from_player():
+		if _should_settle_idle_pose():
+			_settle_pose(delta)
+		EyeBlink.apply(_eye_blink, delta, _eyes)
 	if _player == null or _head == null:
 		return
 	var distance := global_position.distance_to(_player.global_position)
