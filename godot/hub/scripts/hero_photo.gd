@@ -26,16 +26,15 @@ const HEIGHT := 1600
 ## than silently drifting until someone likes a result and forgets the seed.
 const APPEARANCE_SEED := 20260830
 
+## Ordered bottom-to-top (index 0 is the bottom-most band, see
+## _build_lapis()) -- per direct instruction the visible top-to-bottom order
+## should read red, green, white, red, green, white, red, white, green, so
+## this array is that sequence reversed.
 const LAPIS_COLORS := [
-	Color("d6203a"), Color("f8f2e4"), Color("2f8c46"), Color("f8f2e4"),
-	Color("d6203a"), Color("f8f2e4"), Color("2f8c46"), Color("f8f2e4"),
+	Color("2f8c46"), Color("f8f2e4"), Color("d6203a"), Color("f8f2e4"),
+	Color("2f8c46"), Color("d6203a"), Color("f8f2e4"), Color("2f8c46"),
 	Color("d6203a"),
 ]
-## Fraction of one band's height spent blending into the next band, split
-## across both of that band's edges -- small, per "very tight transitions
-## between layers" (a sticky-jelly kueh lapis reads as flat color bands with
-## a thin wet seam between them, not a smooth vertical gradient).
-const LAPIS_BLEND_FRACTION := 0.16
 
 
 func _init() -> void:
@@ -72,20 +71,98 @@ func _run() -> void:
 	var base_camera_position := Vector3(-0.6, 1.5, 2.5)
 	var base_camera_target := Vector3(-0.05, 1.32, 0.0)
 	var camera_basis := Basis.looking_at(base_camera_target - base_camera_position, Vector3.UP)
-	var strafe_left_amount := 0.6
-	var camera_position := base_camera_position - camera_basis.x * strafe_left_amount
+	# Strafed further left again (same fixed-orientation lateral slide as
+	# before, more of it), then a separate turn back toward the right --
+	# re-aiming at the same target the strafe alone would otherwise have
+	# left further out of frame -- brings both figures and the kueh back
+	# into shot from this new, further-left vantage. Per direct instruction,
+	# these are two distinct moves in sequence, not one recentered orbit.
+	var strafe_left_amount := 1.2
+	# Strafed upward too (fixed-orientation vertical slide, same as the
+	# horizontal strafe above), with the kueh raised by the same amount so
+	# it stays where it was relative to the figures instead of sinking
+	# toward the bottom of frame as the camera rises above it.
+	var strafe_up_amount := 0.65
+	# Dollied closer to the subjects too -- translated along the fixed
+	# orientation's own forward axis (basis.z is local back, so subtracting
+	# it moves forward), same "translate along a fixed local axis" strafe
+	# technique as the left/up moves above, just the forward axis instead.
+	var dolly_in_amount := 0.5
+	var camera_position := base_camera_position - camera_basis.x * strafe_left_amount + camera_basis.y * strafe_up_amount - camera_basis.z * dolly_in_amount
+	# Panned up per direct instruction: the final re-aim (see the
+	# strafe-then-turn comment above) now looks at a point raised above
+	# base_camera_target instead of the target itself, tilting the view
+	# upward rather than translating the camera.
+	var pan_up_amount := 0.3
+	var reframe_target := base_camera_target + Vector3(0.0, pan_up_amount, 0.0)
+	var camera_basis_turned := Basis.looking_at(reframe_target - camera_position, Vector3.UP)
+
+	# Fixed independently of wherever the camera ends up -- per direct
+	# correction, the figures' own facing was tracking camera_position, so
+	# every camera experiment above also re-aimed the figures at the lens
+	# like a portrait instead of holding a candid pose the camera could be
+	# angled around. FACING_REFERENCE_POINT stands in for "roughly toward
+	# the viewer," computed once against the ORIGINAL base_camera_position,
+	# not the live (now-strafed-and-turned) camera_position.
+	var facing_reference := base_camera_position
 
 	var pos_a := Vector3(-1.05, 0.0, 0.25)
 	var pos_b := Vector3(-0.45, 0.0, -0.25)
-	var figure_a := FigureBuilder.build(world, _random_appearance(rng))
-	var figure_b := FigureBuilder.build(world, _random_appearance(rng))
-	# Base yaw faces the camera (same atan2(dx,dz) toward-a-point formula
-	# hub_npc.gd's own setup() already uses to aim a figure inward -- trusted
-	# rather than re-guessed), then a small extra turn toward the other
-	# figure layers the "glancing at each other mid-conversation" read on
-	# top, instead of a flat, identical stare into the lens for both.
-	_pose_talking_stride(figure_a, -1, pos_a, _yaw_toward(pos_a, camera_position) - deg_to_rad(18.0), 0.5)
-	_pose_talking_stride(figure_b, 1, pos_b, _yaw_toward(pos_b, camera_position) + deg_to_rad(20.0), -0.45)
+	# Appearance draws stay in this exact order/count -- pos_a's figure
+	# (yellow shirt) and pos_b's figure (black shirt) are identified by eye
+	# from earlier renders, and any new RNG draw inserted before these two
+	# calls would shift the whole seeded sequence and could hand the swatch
+	# either figure currently wears to the other one. Stride-phase
+	# randomization below deliberately uses its own separate RNG instead of
+	# drawing from this one, for exactly that reason.
+	var appearance_a := _random_appearance(rng)
+	# Short ponytail + glasses worn on top of the head, per direct
+	# instruction, for the yellow-shirt figure (supersedes an earlier bob
+	# override).
+	appearance_a["hair_style"] = "ponytail_short"
+	appearance_a["glasses"] = true
+	appearance_a["glasses_on_hair"] = true
+	var figure_a := FigureBuilder.build(world, appearance_a)
+
+	var appearance_b := _random_appearance(rng)
+	# Dark hair -- one shade lighter than the darkest swatch now, per direct
+	# follow-up instruction -- and one skin shade lighter, for the
+	# black-shirt figure. Both SKIN_SWATCHES and HAIR_SWATCHES run
+	# light-to-dark, so "lighter" is one index toward the front.
+	appearance_b["hair"] = Color(CharacterEditor.HAIR_SWATCHES[1])
+	var current_skin_index := 0
+	for i in range(CharacterEditor.SKIN_SWATCHES.size()):
+		if Color(CharacterEditor.SKIN_SWATCHES[i]).is_equal_approx(appearance_b["skin"]):
+			current_skin_index = i
+			break
+	appearance_b["skin"] = Color(CharacterEditor.SKIN_SWATCHES[maxi(0, current_skin_index - 1)])
+	var figure_b := FigureBuilder.build(world, appearance_b)
+
+	# Independently randomized per figure (separate RNG/seed from the
+	# appearance draws above) so the two figures' stride phases don't land
+	# in sync -- per direct instruction. Each is pinned near +-90 degrees
+	# (sin near +-1) so both read as a clear mid-stride rather than risking
+	# a near-zero swing that looks like standing still.
+	var pose_rng := RandomNumberGenerator.new()
+	pose_rng.seed = APPEARANCE_SEED + 1
+	var phase_a := (PI * 0.5) * (1.0 if pose_rng.randf() < 0.5 else -1.0) + pose_rng.randf_range(-0.5, 0.5)
+	var phase_b := (PI * 0.5) * (1.0 if pose_rng.randf() < 0.5 else -1.0) + pose_rng.randf_range(-0.5, 0.5)
+	# The yellow-shirt figure (figure_a) pushed 10% of a full stride cycle
+	# further along, per direct instruction.
+	phase_a += TAU * 0.1
+
+	# Both bodies now aim the same direction (same atan2(dx,dz)
+	# toward-a-point formula hub_npc.gd's own setup() already uses to aim a
+	# figure inward, computed once from the pair's own midpoint rather than
+	# separately per figure) -- walking side by side rather than angled
+	# toward one another, per direct instruction. The individual +-18/20
+	# degree body turns that used to sell "facing each other" are gone; the
+	# conversational read now lives entirely in the head_yaw below, which
+	# still turns each head toward the other figure while the bodies stay
+	# parallel -- how two people actually walk and talk side by side.
+	var shared_body_yaw := _yaw_toward((pos_a + pos_b) * 0.5, facing_reference)
+	_pose_talking_stride(figure_a, -1, pos_a, shared_body_yaw, 0.5, phase_a)
+	_pose_talking_stride(figure_b, 1, pos_b, shared_body_yaw, -0.45, phase_b)
 
 	# Depth (local Z) pushed well past width (local X) per direct
 	# instruction -- more than double it, a genuine log/prism proportion
@@ -93,13 +170,17 @@ func _run() -> void:
 	# wider range of camera angles instead of needing one exact azimuth to
 	# reveal any depth at all.
 	var lapis := _build_lapis(Vector3(0.21, 0.47, 0.55))
-	lapis.position = Vector3(0.65, 1.35, 0.35)
-	lapis.rotation_degrees = Vector3(4.0, -38.0, 6.0)
+	# Raised by strafe_up_amount to stay put relative to the figures as the
+	# camera rises above it, then lowered 16cm total (5cm, 5cm, then 6cm)
+	# per direct instruction; rotation is Y-only now (was X/Z-tilted too) so
+	# it stands straight up and down, per direct instruction.
+	lapis.position = Vector3(0.65, 1.35 + strafe_up_amount - 0.16, 0.35)
+	lapis.rotation_degrees = Vector3(0.0, -38.0, 0.0)
 	world.add_child(lapis)
 
 	var camera := Camera3D.new()
 	camera.fov = 42.0
-	camera.transform = Transform3D(camera_basis, camera_position)
+	camera.transform = Transform3D(camera_basis_turned, camera_position)
 	camera.current = true
 	world.add_child(camera)
 
@@ -120,6 +201,16 @@ func _run() -> void:
 ## soft secondary + cool rim, off-white ACES-toned background) so the hero
 ## photo and the Hub it links into read as one continuous lighting world
 ## rather than two different renders stitched together.
+## Golden hour per direct instruction -- replaces the Hub's own neutral
+## off-white/cool-fill recipe (this scene no longer needs to match the
+## in-game lighting exactly; the hero photo can have its own mood). A low
+## warm key (the setting sun itself), a cool complementary shadow-fill
+## (the sky's own blue showing through where the sun doesn't reach -- the
+## classic golden-hour look comes from that warm/cool contrast, not just
+## an orange key on its own), and a warm rim standing in for the sun's own
+## glow along edges facing away from it. Background kept white/neutral per
+## direct instruction (reverted from an earlier warm-gold attempt) -- the
+## golden-hour mood lives entirely in the lights and the ambient tint below.
 func _build_environment(viewport: SubViewport) -> void:
 	var world_environment := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -127,37 +218,47 @@ func _build_environment(viewport: SubViewport) -> void:
 	environment.background_color = Color("f4f2ed")
 	environment.background_energy_multiplier = 1.0
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	environment.tonemap_exposure = 0.86
+	environment.tonemap_exposure = 0.92
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("e8edf2")
+	environment.ambient_light_color = Color("f5e2c4")
 	environment.ambient_light_energy = 0.22
 	environment.ambient_light_sky_contribution = 0.0
 	environment.glow_enabled = true
-	environment.glow_intensity = 0.9
-	environment.glow_bloom = 0.0
-	environment.glow_hdr_threshold = 1.2
+	environment.glow_intensity = 1.1
+	environment.glow_bloom = 0.05
+	environment.glow_hdr_threshold = 1.05
 	environment.fog_enabled = false
 	world_environment.environment = environment
 	viewport.add_child(world_environment)
 
+	# The sun itself, low on the horizon (a golden hour's defining trait --
+	# a steep angle like the old -52 degree key reads as midday). Color
+	# pulled back toward a lighter, less saturated gold per direct
+	# correction (was reading as too tinted overall) -- still clearly warm,
+	# just not a full orange wash.
 	var key_light := DirectionalLight3D.new()
-	key_light.rotation_degrees = Vector3(-52, -38, 0)
-	key_light.light_color = Color("fff1df")
-	key_light.light_energy = 0.62
+	key_light.rotation_degrees = Vector3(-16, -50, 0)
+	key_light.light_color = Color("ffb578")
+	key_light.light_energy = 0.85
 	key_light.light_angular_distance = 3.5
 	viewport.add_child(key_light)
 
+	# Cool blue-lavender shadow-fill -- the sky's own light, not the sun's --
+	# is what actually makes golden hour read as golden hour; without a
+	# cool counterpoint the warm key alone just looks like an orange filter.
 	var secondary_light := DirectionalLight3D.new()
 	secondary_light.rotation_degrees = Vector3(-38, 82, 0)
-	secondary_light.light_color = Color("edf3f7")
-	secondary_light.light_energy = 0.22
+	secondary_light.light_color = Color("8fa3d1")
+	secondary_light.light_energy = 0.16
 	secondary_light.light_angular_distance = 5.0
 	viewport.add_child(secondary_light)
 
+	# Warm rim standing in for the low sun's own glow along edges facing
+	# away from the key.
 	var rim_light := DirectionalLight3D.new()
-	rim_light.rotation_degrees = Vector3(-28, 142, 0)
-	rim_light.light_color = Color("dce9f5")
-	rim_light.light_energy = 0.14
+	rim_light.rotation_degrees = Vector3(-22, 142, 0)
+	rim_light.light_color = Color("ffdcae")
+	rim_light.light_energy = 0.20
 	viewport.add_child(rim_light)
 
 
@@ -206,18 +307,22 @@ func _yaw_toward(from: Vector3, to: Vector3) -> float:
 ## head toward the other figure; `lean_side` gives the torso a small
 ## opposite-of-stride counter-rotation so the pose reads as a caught moment
 ## rather than a stiff mannequin.
-func _pose_talking_stride(figure: Dictionary, side: int, world_position: Vector3, facing_yaw: float, head_yaw: float) -> void:
+func _pose_talking_stride(figure: Dictionary, side: int, world_position: Vector3, facing_yaw: float, head_yaw: float, stride_phase: float) -> void:
 	var root := figure["root"] as Node3D
 	root.position = world_position
 	root.rotation.y = facing_yaw
 
-	var swing := 0.42 * side
+	# stride_phase is independently randomized per figure (see _run()) so
+	# the two gaits aren't locked to a shared mirror of one another; `side`
+	# below is used only to pick which arm gestures, not the leg phase.
+	var swing := sin(stride_phase) * 0.42
 	(figure["leg_left"] as Node3D).rotation.x = swing
 	(figure["leg_right"] as Node3D).rotation.x = -swing
 	# The trailing leg (the one swung backward) is the one that bends at the
-	# knee mid-stride; the leading leg stays nearly straight.
-	var bent_knee: Node3D = figure["knee_right"] if side > 0 else figure["knee_left"]
-	var straight_knee: Node3D = figure["knee_left"] if side > 0 else figure["knee_right"]
+	# knee mid-stride; the leading leg stays nearly straight -- derived from
+	# this figure's own swing direction now, not the shared `side` value.
+	var bent_knee: Node3D = figure["knee_right"] if swing > 0.0 else figure["knee_left"]
+	var straight_knee: Node3D = figure["knee_left"] if swing > 0.0 else figure["knee_right"]
 	bent_knee.rotation.x = ProceduralFigure.KNEE_BEND_AMOUNT * 0.85
 	straight_knee.rotation.x = 0.05
 
@@ -240,85 +345,45 @@ func _pose_talking_stride(figure: Dictionary, side: int, world_position: Vector3
 	(figure["head"] as Node3D).rotation.x = -0.03
 
 
-## Built as a stack of thin, mostly-flat-colored quads (a few short gradient
-## seams at the band boundaries) rather than a textured box -- the flat
-## middle of each band and the short lerp at its edges directly express
-## "very tight transitions between layers" as geometry/vertex-color, with no
-## texture-space UV-seam risk across the box's four different side faces
-## (see shophouse_street.gd's own FIVE_FOOT_WAY_WIDTH/_DEPTH comment for the
-## kind of UV-alignment bug a textured box would otherwise risk here).
+## Per direct correction, a hand-rolled SurfaceTool box was never going to
+## read as a real 3D solid the way this project's own signature primitive
+## does -- every other object in this scene (every part of both figures) is
+## a SuperEgg, so the kueh is now nine of them too: one thin superegg per
+## color band, stacked flush with no gap. That directly gives "very tight
+## transitions between layers" as a hard seam between two solid-color
+## parts (closer to how a real cut kueh lapis actually looks than a
+## deliberately blended gradient was), reuses SuperEgg.build_part()'s own
+## proven-correct generated normals and material recipe (the same one every
+## correctly-lit figure part in this render already uses) instead of
+## hand-derived face normals, and needs no defensive CULL_DISABLED. `epsilon`
+## very high (see super_egg.gd's own doc comment: higher = boxier, flatter
+## faces) for "very minimal rounding" per direct instruction, applied
+## uniformly so every edge -- top, bottom, and the vertical corners -- gets
+## the same slight softening rather than a stack-seam-specific flat epsilon.
 ## `half_extents` is (half-width X, half-height Y, half-depth Z).
-func _build_lapis(half_extents: Vector3) -> MeshInstance3D:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var segments := _lapis_segments(half_extents.y)
-	var hx := half_extents.x
-	var hz := half_extents.z
-	var hy := half_extents.y
-	for seg in segments:
-		var y0: float = seg["y0"]
-		var y1: float = seg["y1"]
-		var c0: Color = seg["c0"]
-		var c1: Color = seg["c1"]
-		_add_side_quad(st, Vector3(-hx, y0, hz), Vector3(hx, y0, hz), Vector3(hx, y1, hz), Vector3(-hx, y1, hz), Vector3(0, 0, 1), c0, c1)
-		_add_side_quad(st, Vector3(hx, y0, -hz), Vector3(-hx, y0, -hz), Vector3(-hx, y1, -hz), Vector3(hx, y1, -hz), Vector3(0, 0, -1), c0, c1)
-		_add_side_quad(st, Vector3(hx, y0, hz), Vector3(hx, y0, -hz), Vector3(hx, y1, -hz), Vector3(hx, y1, hz), Vector3(1, 0, 0), c0, c1)
-		_add_side_quad(st, Vector3(-hx, y0, -hz), Vector3(-hx, y0, hz), Vector3(-hx, y1, hz), Vector3(-hx, y1, -hz), Vector3(-1, 0, 0), c0, c1)
-	var top_color: Color = LAPIS_COLORS.back()
-	var bottom_color: Color = LAPIS_COLORS.front()
-	_add_side_quad(st, Vector3(-hx, hy, hz), Vector3(hx, hy, hz), Vector3(hx, hy, -hz), Vector3(-hx, hy, -hz), Vector3(0, 1, 0), top_color, top_color)
-	_add_side_quad(st, Vector3(-hx, -hy, -hz), Vector3(hx, -hy, -hz), Vector3(hx, -hy, hz), Vector3(-hx, -hy, hz), Vector3(0, -1, 0), bottom_color, bottom_color)
-
-	var mesh_instance := MeshInstance3D.new()
-	mesh_instance.mesh = st.commit()
-	var material := StandardMaterial3D.new()
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.22
-	material.clearcoat_enabled = true
-	material.clearcoat = 0.75
-	material.clearcoat_roughness = 0.15
-	# Disables backface culling instead of hand-verifying winding order for
-	# eight differently-oriented side faces plus two caps -- a wrong-wound
-	# quad would otherwise just silently vanish rather than fail loudly.
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mesh_instance.material_override = material
-	return mesh_instance
-
-
-## Splits the block's full height into LAPIS_COLORS.size() equal bands, each
-## broken into a flat solid-color run plus short gradient seams shared with
-## its neighbors (half the blend budget on each shared edge, so the seam
-## only ever appears once between any two bands, not doubled).
-func _lapis_segments(half_height: float) -> Array:
+func _build_lapis(half_extents: Vector3) -> Node3D:
+	const EPSILON_MINIMAL := 9.0
+	var container := Node3D.new()
 	var band_count := LAPIS_COLORS.size()
-	var band_h := (half_height * 2.0) / float(band_count)
-	var blend := band_h * LAPIS_BLEND_FRACTION
-	var segments: Array = []
+	var segment_height := (half_extents.y * 2.0) / float(band_count)
+	var segment_half_height := segment_height * 0.5
+	# Compressed into each other by ~2cm per layer now (1cm, then another
+	# 1cm), per direct instruction -- each segment keeps its own full height
+	# (so it still overlaps its neighbor rather than shrinking), only the
+	# center-to-center spacing between successive layers is reduced, fusing
+	# them tighter together.
+	var layer_compression := 0.02
 	for i in range(band_count):
-		var y0 := -half_height + float(i) * band_h
-		var y1 := y0 + band_h
-		var color: Color = LAPIS_COLORS[i]
-		var solid_y0 := y0 + (blend * 0.5 if i > 0 else 0.0)
-		var solid_y1 := y1 - (blend * 0.5 if i < band_count - 1 else 0.0)
-		if i > 0:
-			var prev_color: Color = LAPIS_COLORS[i - 1]
-			segments.append({"y0": y0 - blend * 0.5, "y1": solid_y0, "c0": prev_color, "c1": color})
-		segments.append({"y0": solid_y0, "y1": solid_y1, "c0": color, "c1": color})
-	return segments
-
-
-func _add_side_quad(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, normal: Vector3, c_bottom: Color, c_top: Color) -> void:
-	st.set_normal(normal)
-	st.set_color(c_bottom)
-	st.add_vertex(p0)
-	st.set_color(c_bottom)
-	st.add_vertex(p1)
-	st.set_color(c_top)
-	st.add_vertex(p2)
-	st.set_normal(normal)
-	st.set_color(c_bottom)
-	st.add_vertex(p0)
-	st.set_color(c_top)
-	st.add_vertex(p2)
-	st.set_color(c_top)
-	st.add_vertex(p3)
+		var segment := SuperEgg.build_part(
+			Vector3(half_extents.x, segment_half_height, half_extents.z),
+			LAPIS_COLORS[i], EPSILON_MINIMAL, EPSILON_MINIMAL
+		)
+		segment.position.y = -half_extents.y + segment_half_height + float(i) * (segment_height - layer_compression)
+		# A bit shinier than the figures' own default 0.6, per earlier direct
+		# instruction -- moderate, no clearcoat, so it stays the same
+		# well-lit material family instead of reintroducing the risk that
+		# caused the darkness in the hand-rolled version.
+		var material := segment.get_surface_override_material(0) as StandardMaterial3D
+		material.roughness = 0.45
+		container.add_child(segment)
+	return container
