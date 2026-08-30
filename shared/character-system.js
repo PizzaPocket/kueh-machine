@@ -115,8 +115,16 @@
     enableEditorMenuAction: function () {
       if (!window.KuehAccount) return;
       window.KuehAccount.registerAccountAction('edit-character', 'Edit character', function () {
-        window.kuehCharacterEditorRequested = true;
-        window.dispatchEvent(new CustomEvent('kueh-edit-character', { detail: getState() }));
+        // A user may have signed in after the Hub's Godot instance started.
+        // Wait for that account's character profile before asking Godot to
+        // construct the editor; otherwise it opens from the stale anonymous
+        // appearance and only a full-page reload corrects it.
+        refresh().catch(function (error) {
+          console.error('[KuehCharacters] editor refresh failed:', error);
+        }).then(function () {
+          window.kuehCharacterEditorRequested = true;
+          window.dispatchEvent(new CustomEvent('kueh-edit-character', { detail: getState() }));
+        });
       });
     }
   };

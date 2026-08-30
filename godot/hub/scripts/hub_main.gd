@@ -79,6 +79,11 @@ func _poll_character_editor_request() -> void:
 		_open_character_editor()
 
 func _open_character_editor() -> void:
+	# Authentication can change while the Web export remains running. Refresh
+	# the browser bridge here instead of relying on the startup-only bootstrap,
+	# otherwise an in-place login leaves the editor holding the signed-out
+	# visitor's random appearance until the entire page is reloaded.
+	_load_character_bootstrap()
 	_player.input_locked = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	_ui.set_prompt(false)
