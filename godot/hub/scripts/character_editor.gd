@@ -80,6 +80,12 @@ var _color_buttons: Array[Dictionary] = []
 var _scroll: ScrollContainer
 var _scroll_touch_index := -1
 var _scroll_drag_remainder := 0.0
+var _scroll_touch_start := Vector2.ZERO
+var _scroll_touch_dragged := false
+var _custom_color_buttons: Array[Button] = []
+var _color_popups: Array[PopupPanel] = []
+
+const TOUCH_TAP_SLOP := 14.0
 
 func setup(initial: Dictionary, owned_contributor_key := "") -> void:
 	_kaixin_pattern_unlocked = owned_contributor_key in ["kaixin", "leonard"]
@@ -143,14 +149,28 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
+			if _dismiss_color_popup_at(touch.position):
+				get_viewport().set_input_as_handled()
+				return
 			if _scroll_touch_index == -1 and _scroll.get_global_rect().has_point(touch.position):
 				_scroll_touch_index = touch.index
 				_scroll_drag_remainder = 0.0
+				_scroll_touch_start = touch.position
+				_scroll_touch_dragged = false
 		elif touch.index == _scroll_touch_index:
 			_scroll_touch_index = -1
+			# Keep the dragged state alive through this release event so a Button
+			# beneath the finger cannot interpret the end of a scroll as a tap.
+			call_deferred("_finish_scroll_touch")
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if drag.index == _scroll_touch_index:
+			if not _scroll_touch_dragged and drag.position.distance_to(_scroll_touch_start) > TOUCH_TAP_SLOP:
+				_scroll_touch_dragged = true
+				# Disabling an armed custom-colour button cancels Godot's pending
+				# release activation while the same gesture scrolls the panel.
+				for button in _custom_color_buttons:
+					button.disabled = true
 			# scroll_vertical is an int; carry the fractional remainder
 			# forward instead of truncating it away each event, so a slow
 			# drag doesn't lose most of its motion to rounding.
@@ -159,6 +179,21 @@ func _input(event: InputEvent) -> void:
 			_scroll_drag_remainder = total - float(delta)
 			_scroll.scroll_vertical -= delta
 			get_viewport().set_input_as_handled()
+
+func _finish_scroll_touch() -> void:
+	for button in _custom_color_buttons:
+		button.disabled = false
+	_scroll_touch_dragged = false
+
+func _dismiss_color_popup_at(position: Vector2) -> bool:
+	for popup in _color_popups:
+		if not popup.visible:
+			continue
+		var popup_rect := Rect2(Vector2(popup.position), Vector2(popup.size))
+		if not popup_rect.has_point(position):
+			popup.hide()
+			return true
+	return false
 
 func _build_ui() -> void:
 	var backdrop := ColorRect.new()
@@ -194,21 +229,10 @@ func _build_ui() -> void:
 
 	_preview_container = SubViewportContainer.new()
 	_preview_container.stretch = true
-	# Mobile height reduced further per direct follow-up instruction
-	# (255 -> 210 -> 170 -> 140 now) to keep reclaiming pixels for the
-	# larger content below (see the outer margin_top above). The camera in
-	# _build_preview_world() stays shared with desktop rather than a
-	# mobile-specific tighter crop -- verified via a headless render first
-	# (SubViewportContainer.stretch scales the doll uniformly into the
-	# shorter box with no distortion or cropping, just a slightly smaller
-	# figure), and a camera re-tuned against one hand-picked body preset
-	# risked framing oddly for others (Hunky/More-tall, etc) with no way to
-	# check every combination.
-	# Desktop's own minimum grown a little too (430x420 -> 480x470) per
-	# direct instruction -- the side-by-side layout has room to let the
-	# doll read bigger, unlike the stacked layout's own space-conservation
-	# principle below.
-	_preview_container.custom_minimum_size = Vector2(0, 140) if _mobile else Vector2(480, 470)
+	# Preserve enough height in the stacked layout for the full-body preview
+	# to remain a primary part of the editor rather than collapsing into a
+	# thumbnail. The fixed camera remains shared across body presets.
+	_preview_container.custom_minimum_size = Vector2(0, 300) if _mobile else Vector2(480, 470)
 	_preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# SIZE_EXPAND_FILL on mobile previously meant _preview_container and
 	# _controls -- both EXPAND_FILL siblings in a VBoxContainer -- split
@@ -244,18 +268,11 @@ func _build_ui() -> void:
 	var body_padding := MarginContainer.new()
 	body_padding.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body_padding.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# Shrunk on mobile (was scaled UP like content, same as everything
-	# else) per direct correction -- growing this outer inset shrank the
-	# width actually available to each section's own swatch/button rows,
-	# forcing extra wrapping on top of each item's own larger size and
-	# inflating the scrollable height well past the intended 33%, which
-	# read as the scrolling itself feeling "out of sync" with the content.
-	# This is chrome, not touch-target spacing -- it should conserve space
-	# for the panel the same way the outer margin above does, not grow
-	# with everything else.
-	body_padding.add_theme_constant_override("margin_left", UITheme.SPACE_MD if _mobile else UITheme.SPACE_XL)
-	body_padding.add_theme_constant_override("margin_right", UITheme.SPACE_MD if _mobile else UITheme.SPACE_XL)
-	body_padding.add_theme_constant_override("margin_top", UITheme.SPACE_SM if _mobile else UITheme.SPACE_XL)
+	# Give the enlarged touch controls a deliberate frame instead of letting
+	# the heading and first row crowd the panel's curved edge.
+	body_padding.add_theme_constant_override("margin_left", _si(UITheme.SPACE_LG) if _mobile else UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_right", _si(UITheme.SPACE_LG) if _mobile else UITheme.SPACE_XL)
+	body_padding.add_theme_constant_override("margin_top", _si(UITheme.SPACE_MD) if _mobile else UITheme.SPACE_XL)
 	# The scroll viewport ends directly at the footer rule. Bottom breathing
 	# room belongs inside the scrolling content, not between viewport and rule.
 	body_padding.add_theme_constant_override("margin_bottom", 0)
@@ -525,7 +542,14 @@ func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	picker_center.add_child(picker)
 	popup.add_child(picker_center)
 	add_child(popup)
+	_color_popups.append(popup)
+	_custom_color_buttons.append(button)
 	button.pressed.connect(func() -> void:
+		if _scroll_touch_dragged:
+			return
+		for other_popup in _color_popups:
+			if other_popup != popup:
+				other_popup.hide()
 		picker.color = appearance.get(key, Color.WHITE)
 		popup.popup_centered(popup_size)
 	)
@@ -749,7 +773,7 @@ func _apply_responsive_layout() -> void:
 	# as before this file's own mobile-scale work (a live resize crossing the
 	# breakpoint mid-edit is a rare enough case that a full content rebuild
 	# here wasn't already worth it).
-	_preview_container.custom_minimum_size = Vector2(0, 140) if _mobile else Vector2(480, 470)
+	_preview_container.custom_minimum_size = Vector2(0, 300) if _mobile else Vector2(480, 470)
 	_preview_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if _mobile else Control.SIZE_EXPAND_FILL
 	_controls.custom_minimum_size.x = 0 if _mobile else 510
 	_panel_shell.add_theme_constant_override("margin_top", 0 if _mobile else 56)
