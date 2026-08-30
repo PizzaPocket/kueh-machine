@@ -48,8 +48,6 @@ var _owned_contributor_key := ""
 var _remote_appearances: Dictionary = {}
 var _character_editor: CharacterEditor
 var _editor_input_mode_active := false
-var _previous_emulate_mouse_from_touch := false
-var _previous_emulate_touch_from_mouse := false
 
 func _ready() -> void:
 	_load_character_bootstrap()
@@ -103,22 +101,14 @@ func _enter_character_editor_input_mode() -> void:
 		return
 	_editor_input_mode_active = true
 	_ui.set_input_enabled(false)
-	if OS.has_feature("web"):
-		_previous_emulate_mouse_from_touch = Input.emulate_mouse_from_touch
-		_previous_emulate_touch_from_mouse = Input.emulate_touch_from_mouse
-		# Gameplay consumes raw multi-touch. The modal editor instead uses
-		# Godot's standard GUI event path so ScrollContainer, Button and Popup
-		# share one native tap/drag arbitration model on mobile web.
-		Input.emulate_mouse_from_touch = true
-		Input.emulate_touch_from_mouse = true
+	# Keep physical touch as the editor's single input stream. Godot Controls
+	# and ScrollContainer handle touch natively; enabling touch-to-mouse and
+	# mouse-to-touch together duplicates one gesture and exaggerates scrolling.
 
 func _restore_character_editor_input_mode() -> void:
 	if not _editor_input_mode_active:
 		return
 	_editor_input_mode_active = false
-	if OS.has_feature("web"):
-		Input.emulate_mouse_from_touch = _previous_emulate_mouse_from_touch
-		Input.emulate_touch_from_mouse = _previous_emulate_touch_from_mouse
 	if is_instance_valid(_ui):
 		_ui.set_input_enabled(true)
 

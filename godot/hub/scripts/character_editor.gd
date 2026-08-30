@@ -337,7 +337,7 @@ func _add_choice_section(parent: VBoxContainer, title: String, options: Array, k
 	for option in options:
 		var option_value: Variant = option["value"]
 		var option_key := key
-		var button := _editor_button(str(option["label"]), func() -> void: _set_option(option_key, option_value))
+		var button := _scroll_button(str(option["label"]), func() -> void: _set_option(option_key, option_value))
 		button.button_group = selection_group
 		_choice_buttons.append({"button": button, "key": option_key, "value": option_value})
 		row.add_child(button)
@@ -357,7 +357,7 @@ func _add_clothing_section(parent: VBoxContainer, title: String, options: Array,
 	for option in options:
 		var option_value: Variant = option["value"]
 		var option_key := style_key
-		var button := _editor_button(str(option["label"]), func() -> void: _set_option(option_key, option_value))
+		var button := _scroll_button(str(option["label"]), func() -> void: _set_option(option_key, option_value))
 		button.button_group = selection_group
 		_choice_buttons.append({"button": button, "key": option_key, "value": option_value})
 		choices.add_child(button)
@@ -377,6 +377,7 @@ func _color_row(colors: Array, key: String, accessible_name: String) -> HFlowCon
 	for html in colors:
 		var color := Color(str(html))
 		var swatch := Button.new()
+		_allow_scroll_gesture(swatch)
 		swatch.custom_minimum_size = Vector2(_s(72), _s(72))
 		swatch.tooltip_text = "Choose " + accessible_name.to_lower()
 		swatch.accessibility_name = swatch.tooltip_text
@@ -408,6 +409,7 @@ func _kaixin_pattern_swatch() -> Button:
 	if _kaixin_pattern_texture == null:
 		_kaixin_pattern_texture = _kaixin_swatch_texture()
 	var button := Button.new()
+	_allow_scroll_gesture(button)
 	button.custom_minimum_size = Vector2(_s(72), _s(72))
 	button.tooltip_text = "Kara-o-kueh polka dots"
 	button.accessibility_name = button.tooltip_text
@@ -456,6 +458,7 @@ func _select_kaixin_pattern() -> void:
 
 func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	var button := Button.new()
+	_allow_scroll_gesture(button)
 	button.custom_minimum_size = Vector2(_s(72), _s(72))
 	button.tooltip_text = "Choose a custom " + accessible_name.to_lower()
 	button.accessibility_name = button.tooltip_text
@@ -531,6 +534,17 @@ func _editor_button(text: String, callback: Callable, selectable := true) -> But
 	button.add_theme_font_size_override("font_size", _si(UITheme.FONT_BUTTON))
 	button.toggle_mode = selectable
 	return button
+
+## Buttons inside ScrollContainer must pass the gesture upward so the native
+## deadzone can distinguish a tap from a drag. Controls outside the scrolling
+## body (Save and Cancel) retain the default STOP behavior.
+func _scroll_button(text: String, callback: Callable) -> Button:
+	var button := _editor_button(text, callback)
+	_allow_scroll_gesture(button)
+	return button
+
+func _allow_scroll_gesture(button: Button) -> void:
+	button.mouse_filter = Control.MOUSE_FILTER_PASS
 
 func _set_option(key: String, value: Variant) -> void:
 	if key == "glasses_choice":
