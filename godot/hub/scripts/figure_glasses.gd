@@ -24,9 +24,16 @@ const BRIDGE_ARCH_HEIGHT := 0.008
 ## SuperEgg segments upward) rather than shared, since that file is a
 ## standalone dev capture tool with no class_name, not something other
 ## scripts can reference.
+## The white/cream bands here get a pandan-green tint (blended 30% toward
+## the same green as LAPIS_LENS_COLORS' own green band, stepped up from an
+## initial 10% that read as too subtle), per direct instruction -- kueh
+## lapis's cream layer is plain, but pandan is such a defining
+## lapis-adjacent flavor/color that a hint of it in the lenses reads as an
+## intentional accent rather than a plain cream band.
+const LAPIS_LENS_CREAM := Color("bcd3b5")
 const LAPIS_LENS_COLORS := [
-	Color("d6203a"), Color("2f8c46"), Color("f8f2e4"), Color("d6203a"),
-	Color("2f8c46"), Color("f8f2e4"), Color("d6203a"), Color("f8f2e4"),
+	Color("d6203a"), Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"),
+	Color("2f8c46"), LAPIS_LENS_CREAM, Color("d6203a"), LAPIS_LENS_CREAM,
 	Color("2f8c46"),
 ]
 const LENS_TEXTURE_SIZE := 128
@@ -94,9 +101,10 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	var eye_radius := semi_axes.x * FigureEyes.EYE_RADIUS_FACTOR
 	var left_eye := SuperEgg.surface_point(semi_axes, 0.0, -EYE_OFFSET)
 	var right_eye := SuperEgg.surface_point(semi_axes, 0.0, EYE_OFFSET)
-	# 10% wider / 25% taller than a standard rim, per direct instruction.
-	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR * 1.1
-	var lens_half_height := eye_radius * FigureEyes.EYE_HEIGHT_RATIO * RIM_HEIGHT_FACTOR * 1.25
+	# 10% wider / 25% taller than a standard rim, a further 25% on top of
+	# that, then 5% smaller overall, per direct follow-up instructions.
+	var lens_half_width := eye_radius * RIM_WIDTH_FACTOR * 1.1 * 1.25 * 0.95
+	var lens_half_height := eye_radius * FigureEyes.EYE_HEIGHT_RATIO * RIM_HEIGHT_FACTOR * 1.25 * 1.25 * 0.95
 	var frame_z := (left_eye.z + right_eye.z) * 0.5 + FRONT_CLEARANCE + FRAME_DEPTH * 0.5
 
 	var glasses := Node3D.new()
@@ -106,9 +114,9 @@ static func add_lapis_glasses(head: MeshInstance3D, semi_axes: Vector3) -> void:
 	var lens_material := StandardMaterial3D.new()
 	lens_material.albedo_texture = _lapis_lens_texture()
 	# "some transparency... so they look like tinted glass", per direct
-	# instruction -- 0.6 overall alpha on top of the texture's own opaque
-	# band colors.
-	lens_material.albedo_color = Color(1, 1, 1, 0.6)
+	# instruction -- overall alpha on top of the texture's own opaque band
+	# colors, dropped from an initial 0.6 to 0.4 per direct follow-up.
+	lens_material.albedo_color = Color(1, 1, 1, 0.4)
 	lens_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	lens_material.roughness = 0.15
 	lens_material.metallic = 0.1
