@@ -241,33 +241,33 @@ func _add_response(text: String, callback: Callable) -> void:
 	row.add_theme_constant_override("separation", UITheme.SPACE_SM)
 	_response_list.add_child(row)
 
+	var is_mobile := UIKit.is_mobile_viewport(self)
 	var option := UIKit.response_option(text, callback)
-	if UIKit.is_mobile_viewport(self):
+	if is_mobile:
 		option.custom_minimum_size.y = RESPONSE_BUTTON_HEIGHT_MOBILE
 		option.add_theme_font_size_override("font_size", RESPONSE_FONT_SIZE_MOBILE)
-		# Same reasoning as dropping the focus arrow below, per direct
-		# instruction: response_option()'s own dim TEXT_SECONDARY normal
-		# color (vs TEXT_PRIMARY once focused/hovered) exists to distinguish
-		# a keyboard/dpad-focused option from the rest. Touch has no such
+		# response_option()'s own dim TEXT_SECONDARY normal color (vs
+		# TEXT_PRIMARY once focused/hovered) exists to distinguish a
+		# keyboard/dpad-focused option from the rest. Touch has no such
 		# state -- every option shows at the same full brightness instead.
 		option.add_theme_color_override("font_color", UITheme.TEXT_PRIMARY)
 	row.add_child(option)
 	_response_buttons.append(option)
 
-	# Skipped entirely on touchscreen, per direct instruction -- it's a
-	# keyboard/dpad "which option is currently focused" indicator, and a
-	# touch user just taps the option they want directly with nothing to
-	# indicate beforehand.
-	if not UIKit.is_mobile_viewport(self):
-		var arrow := UIKit.response_arrow()
-		# Keep the arrow control present even while unfocused: Containers
-		# exclude hidden children from layout, which made the option text
-		# expand into this margin and jump left/right whenever selection
-		# changed.
-		arrow.modulate.a = 0.0
-		row.add_child(arrow)
-		option.focus_entered.connect(func(): arrow.modulate.a = 1.0)
-		option.focus_exited.connect(func(): arrow.modulate.a = 0.0)
+	# Kept on touchscreen too now, per direct correction -- it's the one
+	# clue that this text is an interactive, tappable choice at all, not
+	# just a keyboard/dpad nicety. Scaled up to match the mobile text size
+	# instead of staying its fixed desktop footprint (see
+	# UIKit.response_arrow()'s own scale_factor param).
+	var arrow := UIKit.response_arrow(float(RESPONSE_FONT_SIZE_MOBILE) / float(UITheme.FONT_BODY) if is_mobile else 1.0)
+	# Keep the arrow control present even while unfocused: Containers
+	# exclude hidden children from layout, which made the option text
+	# expand into this margin and jump left/right whenever selection
+	# changed.
+	arrow.modulate.a = 0.0
+	row.add_child(arrow)
+	option.focus_entered.connect(func(): arrow.modulate.a = 1.0)
+	option.focus_exited.connect(func(): arrow.modulate.a = 0.0)
 	option.mouse_entered.connect(option.grab_focus)
 
 

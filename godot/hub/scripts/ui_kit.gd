@@ -182,17 +182,25 @@ static func response_option(text: String, on_pressed: Callable) -> Button:
 
 ## Drawn rather than a Unicode glyph so the response cursor belongs to the
 ## same authored icon language as the rest of UIKit. It points left from the
-## right margin toward the currently focused spoken response.
+## right margin toward the currently focused spoken response. `scale_factor`
+## (default 1.0) scales both its footprint and its drawn geometry uniformly
+## -- dialog_ui.gd passes its own mobile/desktop text-size ratio so the
+## arrow stays proportional to whichever size the response text is actually
+## showing at, rather than a fixed size that reads as too small next to
+## larger touch text.
 class ResponseArrow extends Control:
-	func _init() -> void:
-		custom_minimum_size = Vector2(UITheme.SPACE_MD, UITheme.BUTTON_MIN_HEIGHT)
+	var _scale_factor: float
+
+	func _init(scale_factor: float = 1.0) -> void:
+		_scale_factor = scale_factor
+		custom_minimum_size = Vector2(UITheme.SPACE_MD, UITheme.BUTTON_MIN_HEIGHT) * scale_factor
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
 		var center := size * 0.5
-		var half_height := minf(size.y * 0.18, UITheme.SPACE_SM)
-		var tip := Vector2(UITheme.SPACE_XS, center.y)
-		var back_x := size.x - UITheme.SPACE_XS
+		var half_height := minf(size.y * 0.18, UITheme.SPACE_SM * _scale_factor)
+		var tip := Vector2(UITheme.SPACE_XS * _scale_factor, center.y)
+		var back_x := size.x - UITheme.SPACE_XS * _scale_factor
 		draw_colored_polygon(PackedVector2Array([
 			tip,
 			Vector2(back_x, center.y - half_height),
@@ -200,8 +208,8 @@ class ResponseArrow extends Control:
 		]), UITheme.TEXT_PRIMARY)
 
 
-static func response_arrow() -> Control:
-	return ResponseArrow.new()
+static func response_arrow(scale_factor: float = 1.0) -> Control:
+	return ResponseArrow.new(scale_factor)
 
 
 ## Blorbus's two embedded eye markings, translated into the shared 2D

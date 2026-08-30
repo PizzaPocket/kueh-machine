@@ -11,9 +11,13 @@ const MACHINE_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/machine_syne_
 ## straight through to the same ambient, non-modal auto-dismiss every
 ## ambient_npc already uses (see _talk_to_nearby(): an empty actions array
 ## sets _ambient_dialog_active instead of locking player input for a
-## response).
+## response). Each remaining entry is a list, not a single string -- Kevin's
+## own single response left him with exactly one option and nothing else,
+## which per direct correction should never happen (a conversation should
+## always give the player somewhere to go); his second entry is the German
+## equivalent of "Later."
 const PLAYER_RESPONSES := {
-	"Kevin Dreher": "Schön, dich zu besuchen!",
+	"Kevin Dreher": ["Schön, dich zu besuchen!", "Bis später!"],
 }
 const CONTRIBUTOR_KEYS := {
 	"Amanda Ng": "amanda", "Amy Fu": "amy", "Azri": "azri",
@@ -531,17 +535,23 @@ func _talk_to_nearby() -> void:
 	var data := _nearby_data
 	var actions: Array[Dictionary] = []
 	var url: String = data.get("url", "")
+	# "View project" (no trailing period) is the one uniform label for a
+	# project link now, per direct instruction -- display-kind interactions
+	# (Li Wei's Lapis cabinet, etc) and an ordinary contributor NPC's own
+	# project link used three different labels between them ("Visit
+	# project", "Visit project.", Nicole Ng's own "View project." special
+	# case) for what's the same action everywhere.
 	if _nearby_kind == "display" and not url.is_empty():
 		actions.append({
-			"label": "Visit project",
+			"label": "View project",
 			"callback": func() -> void:
 				DialogUI.hide_dialog()
 				_visit_project(url)
 				_on_dialog_closed()
 		})
 	elif _nearby_kind != "ambient_npc":
-		var player_response: String = PLAYER_RESPONSES.get(data["name"], "")
-		if not player_response.is_empty():
+		var player_responses: Array = PLAYER_RESPONSES.get(data["name"], [])
+		for player_response in player_responses:
 			actions.append({
 				"label": player_response,
 				"callback": func() -> void:
@@ -550,7 +560,7 @@ func _talk_to_nearby() -> void:
 			})
 		if not url.is_empty():
 			actions.append({
-				"label": "View project." if data["name"] == "Nicole Ng" else "Visit project.",
+				"label": "View project",
 				"callback": func() -> void:
 					DialogUI.hide_dialog()
 					_visit_project(url)
@@ -558,7 +568,21 @@ func _talk_to_nearby() -> void:
 			})
 	if _nearby_kind == "ambient_npc" and _nearby is HubRoamingNPC:
 		(_nearby as HubRoamingNPC).pause_for_interaction()
-	var dismiss_label := "Back" if _nearby_kind == "display" else ("" if _nearby_kind == "ambient_npc" or PLAYER_RESPONSES.has(data["name"]) else "Goodbye.")
+	# "Later" pairs with "View project" above for anyone presenting a
+	# project (display-kind, or an ordinary NPC whose own url is set) --
+	# replaces "display" kind's separate "Back" per direct instruction, so
+	# both read as the same pair of options everywhere a project link
+	# shows up. ambient_npc/PLAYER_RESPONSES cases still add no extra
+	# dismiss action of their own (empty string) -- their own response(s)
+	# already are the full set of options. Everything else (plain chatter
+	# with neither a url nor a scripted response) keeps "Goodbye."
+	var dismiss_label: String
+	if _nearby_kind == "ambient_npc" or PLAYER_RESPONSES.has(data["name"]):
+		dismiss_label = ""
+	elif _nearby_kind == "display" or not url.is_empty():
+		dismiss_label = "Later"
+	else:
+		dismiss_label = "Goodbye."
 	var speaker_name := "Mirror Universe You" if bool(data.get("is_owner_doppelganger", false)) else String(data["name"])
 	# Modal response choices own player input; ambient Eleblorb-style chatter is
 	# purely informational and remains on screen while traversal continues.
