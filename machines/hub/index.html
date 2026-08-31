@@ -91,6 +91,29 @@ body {
 }
 
 
+/* Godot's non-scrolling shell otherwise fills Safari's larger layout
+   viewport, while the actually visible viewport can begin tens of pixels
+   lower beneath the browser chrome. These variables are synchronized from
+   visualViewport below so both the game and its loader occupy exactly the
+   visible rectangle, with no clipped top or compensating black gap below. */
+:root {
+	--kueh-vv-left: 0px;
+	--kueh-vv-top: 0px;
+	--kueh-vv-width: 100vw;
+	--kueh-vv-height: 100vh;
+}
+
+#canvas,
+#status {
+	position: fixed !important;
+	left: var(--kueh-vv-left) !important;
+	top: var(--kueh-vv-top) !important;
+	right: auto !important;
+	bottom: auto !important;
+	width: var(--kueh-vv-width) !important;
+	height: var(--kueh-vv-height) !important;
+}
+
 /* Kueh-verse's only loading surface: the real Godot download progress. */
 #status {
 	background: #ffffff;
@@ -382,6 +405,29 @@ const engine = new Engine(GODOT_CONFIG);
 	const statusNotice = document.getElementById('status-notice');
 	const statusPhase = document.getElementById('status-phase');
 	const loadingControls = document.getElementById('loading-controls');
+
+	function syncVisibleViewport(notifyGodot) {
+		const viewport = window.visualViewport;
+		const left = viewport ? viewport.offsetLeft : 0;
+		const top = viewport ? viewport.offsetTop : 0;
+		const width = viewport ? viewport.width : window.innerWidth;
+		const height = viewport ? viewport.height : window.innerHeight;
+		const rootStyle = document.documentElement.style;
+		rootStyle.setProperty('--kueh-vv-left', left + 'px');
+		rootStyle.setProperty('--kueh-vv-top', top + 'px');
+		rootStyle.setProperty('--kueh-vv-width', width + 'px');
+		rootStyle.setProperty('--kueh-vv-height', height + 'px');
+		if (notifyGodot) {
+			requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+		}
+	}
+
+	syncVisibleViewport(false);
+	window.addEventListener('resize', () => syncVisibleViewport(false));
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener('resize', () => syncVisibleViewport(true));
+		window.visualViewport.addEventListener('scroll', () => syncVisibleViewport(false));
+	}
 
 	let initializing = true;
 	let statusMode = '';

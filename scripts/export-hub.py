@@ -28,6 +28,29 @@ FONT_LINKS = """\t<link rel="preconnect" href="https://fonts.googleapis.com">
 STYLE_END = "\t\t</style>"
 LOADER_CSS = """
 
+/* Godot's non-scrolling shell otherwise fills Safari's larger layout
+   viewport, while the actually visible viewport can begin tens of pixels
+   lower beneath the browser chrome. These variables are synchronized from
+   visualViewport below so both the game and its loader occupy exactly the
+   visible rectangle, with no clipped top or compensating black gap below. */
+:root {
+	--kueh-vv-left: 0px;
+	--kueh-vv-top: 0px;
+	--kueh-vv-width: 100vw;
+	--kueh-vv-height: 100vh;
+}
+
+#canvas,
+#status {
+	position: fixed !important;
+	left: var(--kueh-vv-left) !important;
+	top: var(--kueh-vv-top) !important;
+	right: auto !important;
+	bottom: auto !important;
+	width: var(--kueh-vv-width) !important;
+	height: var(--kueh-vv-height) !important;
+}
+
 /* Kueh-verse's only loading surface: the real Godot download progress. */
 #status {
 	background: #ffffff;
@@ -296,7 +319,30 @@ STATUS_VARIABLES = """\tconst statusProgress = document.getElementById('status-p
 STATUS_VARIABLES_WITH_TIPS = """\tconst statusProgress = document.getElementById('status-progress');
 \tconst statusNotice = document.getElementById('status-notice');
 \tconst statusPhase = document.getElementById('status-phase');
-\tconst loadingControls = document.getElementById('loading-controls');"""
+\tconst loadingControls = document.getElementById('loading-controls');
+
+\tfunction syncVisibleViewport(notifyGodot) {
+\t\tconst viewport = window.visualViewport;
+\t\tconst left = viewport ? viewport.offsetLeft : 0;
+\t\tconst top = viewport ? viewport.offsetTop : 0;
+\t\tconst width = viewport ? viewport.width : window.innerWidth;
+\t\tconst height = viewport ? viewport.height : window.innerHeight;
+\t\tconst rootStyle = document.documentElement.style;
+\t\trootStyle.setProperty('--kueh-vv-left', left + 'px');
+\t\trootStyle.setProperty('--kueh-vv-top', top + 'px');
+\t\trootStyle.setProperty('--kueh-vv-width', width + 'px');
+\t\trootStyle.setProperty('--kueh-vv-height', height + 'px');
+\t\tif (notifyGodot) {
+\t\t\trequestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+\t\t}
+\t}
+
+\tsyncVisibleViewport(false);
+\twindow.addEventListener('resize', () => syncVisibleViewport(false));
+\tif (window.visualViewport) {
+\t\twindow.visualViewport.addEventListener('resize', () => syncVisibleViewport(true));
+\t\twindow.visualViewport.addEventListener('scroll', () => syncVisibleViewport(false));
+\t}"""
 
 HIDE_STATUS = """\t\tif (mode === 'hidden') {
 \t\t\tstatusOverlay.remove();"""
