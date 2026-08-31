@@ -562,7 +562,7 @@ static func _build_restaurant_kueh_paintings(parent: Node3D) -> void:
 	var lapis_painting_colors := FigureGlasses.LAPIS_LENS_COLORS.duplicate()
 	for color_index in range(lapis_painting_colors.size()):
 		if lapis_painting_colors[color_index] == FigureGlasses.LAPIS_LENS_CREAM:
-			lapis_painting_colors[color_index] = Color("f8f2e4")
+			lapis_painting_colors[color_index] = Color("f3e4c5")
 	_restaurant_kueh_painting(parent, Vector3(0.20, 2.30, 0.15), 1.0, lapis_painting_colors, "KuehLapisLensPainting")
 	var salat_painting_colors := [FigureGlasses.SALAT_LENS_COLORS[0], Color("9fb9e3")]
 	_restaurant_kueh_painting(parent, Vector3(7.80, 2.30, 0.15), -1.0, salat_painting_colors, "KuehSalatLensPainting")
