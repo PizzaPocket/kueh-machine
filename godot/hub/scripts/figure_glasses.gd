@@ -222,6 +222,12 @@ static func _salat_lens_texture() -> ImageTexture:
 	return _salat_lens_texture_cache
 
 
+## Public access for other scene details that deliberately share the glasses'
+## exact equal-band texture treatment, such as the eating-house paintings.
+static func band_texture(colors: Array) -> ImageTexture:
+	return _build_band_lens_texture(colors)
+
+
 static func _build_band_lens_texture(colors: Array) -> ImageTexture:
 	var image := Image.create(LENS_TEXTURE_SIZE, LENS_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
 	var band_count := colors.size()

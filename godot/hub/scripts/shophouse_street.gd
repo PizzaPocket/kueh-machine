@@ -555,31 +555,31 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	_part(dining, Vector3(0.055, 0.34, 0.055), stainless_dark, Vector3(6.25, 1.66, -12.68), "SinkTapStem", 0.76, 0.18)
 	_part(dining, Vector3(0.18, 0.055, 0.055), stainless_dark, Vector3(6.25, 1.96, -12.53), "SinkTapSpout", 0.76, 0.18)
 
-## Two unframed canvases above the front dining tables borrow the exact lens
-## patterns from the new Kueh Lapis and Kueh Salat glasses. Their backing
-## boxes touch the eating-house wall skins, and every color band touches the
-## canvas face, so they read as mounted paintings rather than floating cards.
+## Two unframed Superegg canvases borrow the exact lens patterns from the new
+## Kueh Lapis and Kueh Salat glasses. They sit farther back than the tables,
+## in the quieter wall span between the front and rear dining groupings.
 static func _build_restaurant_kueh_paintings(parent: Node3D) -> void:
-	_restaurant_kueh_painting(parent, Vector3(0.20, 2.30, 1.45), 1.0, FigureGlasses.LAPIS_LENS_COLORS, "KuehLapisLensPainting")
-	_restaurant_kueh_painting(parent, Vector3(7.80, 2.30, 1.45), -1.0, FigureGlasses.SALAT_LENS_COLORS, "KuehSalatLensPainting")
+	_restaurant_kueh_painting(parent, Vector3(0.20, 2.30, 0.15), 1.0, FigureGlasses.LAPIS_LENS_COLORS, "KuehLapisLensPainting")
+	_restaurant_kueh_painting(parent, Vector3(7.80, 2.30, 0.15), -1.0, FigureGlasses.SALAT_LENS_COLORS, "KuehSalatLensPainting")
 
 static func _restaurant_kueh_painting(parent: Node3D, wall_face: Vector3, outward_sign: float, colors: Array, painting_name: String) -> void:
-	var painting := Node3D.new()
-	painting.name = painting_name
-	parent.add_child(painting)
 	var half_width := 0.68
 	var half_height := 0.50
-	var backing_half_depth := 0.025
-	var backing_center_x := wall_face.x + outward_sign * backing_half_depth
-	_flat_part(painting, Vector3(backing_half_depth, half_height, half_width), Color("f8ead1"), Vector3(backing_center_x, wall_face.y, wall_face.z), "CanvasBacking", 0.76)
-
-	var band_height := (half_height * 2.0) / float(colors.size())
-	var canvas_front_x := wall_face.x + outward_sign * backing_half_depth * 2.0
-	var band_half_depth := 0.004
-	var band_center_x := canvas_front_x + outward_sign * band_half_depth
-	for band_index in range(colors.size()):
-		var band_y := wall_face.y + half_height - band_height * (float(band_index) + 0.5)
-		_flat_part(painting, Vector3(band_half_depth, band_height * 0.5, half_width), colors[band_index], Vector3(band_center_x, band_y, wall_face.z), "LensPatternBand%d" % band_index, 0.66)
+	var half_depth := 0.025
+	var canvas := MeshInstance3D.new()
+	canvas.name = painting_name
+	canvas.mesh = SuperEgg.build_mesh(
+		Vector3(half_depth, half_height, half_width),
+		FigureGlasses.SHAPE_EPSILON, FigureGlasses.SHAPE_EPSILON, Vector3.ZERO, true
+	)
+	canvas.position = Vector3(wall_face.x + outward_sign * half_depth, wall_face.y, wall_face.z)
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = FigureGlasses.band_texture(colors)
+	material.albedo_color = Color.WHITE
+	material.roughness = 0.6
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	canvas.set_surface_override_material(0, material)
+	parent.add_child(canvas)
 
 ## Five small blank recipe slips connect the kitchen to Taste of Home's
 ## paper-and-masking-tape interface without turning the backsplash into a
