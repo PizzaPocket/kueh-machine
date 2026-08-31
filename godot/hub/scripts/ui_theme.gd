@@ -1,6 +1,8 @@
 class_name UITheme
 extends RefCounted
 
+const BODY_FONT: Font = preload("res://assets/fonts/InstrumentSans-Regular.ttf")
+
 ## Central design-system tokens for every UI surface in the game (Hud,
 ## DialogUI, ShopUI, InventoryUI) -- one shared Theme resource so visual
 ## language (colors, type scale, spacing, panel/button style) lives in one
@@ -137,6 +139,7 @@ static func get_theme() -> Theme:
 	if _cached != null:
 		return _cached
 	var theme := Theme.new()
+	theme.default_font = BODY_FONT
 
 	theme.set_font_size("font_size", "Label", FONT_BODY)
 	theme.set_color("font_color", "Label", TEXT_PRIMARY)

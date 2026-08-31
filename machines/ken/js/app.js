@@ -2,7 +2,7 @@
    STATE + ELEMENT REFS
 ------------------------------------------------------------------- */
 const COLLECTION_KEY = "kueh-machine-collection";
-const STOP_MOTION_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8].map((frame) => `./Resources/images/Set 2/${frame}.png`);
+const STOP_MOTION_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8].map((frame) => `./Resources/images/optimized/Set 2/${frame}.webp`);
 const STOP_MOTION_SCALES = [0.4, 0.515, 0.63, 0.745, 0.855, 0.97, 1.085, 1.2];
 const STOP_MOTION_GLOW_MULTIPLIERS = [1, 1, 1.18, 1.28, 1.38, 1.48, 1.58, 1.68];
 const STOP_MOTION_GLOW_OPACITIES = [0.72, 0.72, 1, 1, 1, 1, 1, 1];
@@ -12,15 +12,15 @@ const STOP_MOTION_PRELOADS = STOP_MOTION_FRAMES.map((source) => {
   return image;
 });
 const COLLECTION_IMAGES = {
-  bahulu: "./Resources/images/Kueh balls/bahulu.png",
-  dadar: "./Resources/images/Kueh balls/dadar.png",
-  lapis: "./Resources/images/Kueh balls/lapis.png",
-  ondeh: "./Resources/images/Kueh balls/ondeh.png",
-  salat: "./Resources/images/Kueh balls/salat.png",
-  angku: "./Resources/images/Kueh balls/ang ku kueh.png",
-  talam: "./Resources/images/Kueh balls/talam.png",
-  koswee: "./Resources/images/Kueh balls/ko swee.png?v=2",
-  "pulut-hitam": "./Resources/images/Kueh balls/pulut hitam.png?v=2"
+  bahulu: "./Resources/images/optimized/Kueh balls/bahulu.webp",
+  dadar: "./Resources/images/optimized/Kueh balls/dadar.webp",
+  lapis: "./Resources/images/optimized/Kueh balls/lapis.webp",
+  ondeh: "./Resources/images/optimized/Kueh balls/ondeh.webp",
+  salat: "./Resources/images/optimized/Kueh balls/salat.webp",
+  angku: "./Resources/images/optimized/Kueh balls/ang ku kueh.webp",
+  talam: "./Resources/images/optimized/Kueh balls/talam.webp",
+  koswee: "./Resources/images/optimized/Kueh balls/ko swee.webp?v=2",
+  "pulut-hitam": "./Resources/images/optimized/Kueh balls/pulut hitam.webp?v=2"
 };
 const SHOP_PRICES = {
   bahulu: 12,

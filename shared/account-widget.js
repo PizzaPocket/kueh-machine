@@ -236,6 +236,18 @@
   }
   loadSyneFont();
 
+  // Instrument Sans is the site's chosen body face. Load the same local
+  // stylesheet on contributor pages that mount this standalone widget;
+  // the root page already includes it directly to avoid a body-font flash.
+  function loadInstrumentSansFont() {
+    if (document.querySelector('link[href="/styles/fonts.css"]')) return;
+    var stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = '/styles/fonts.css';
+    document.head.appendChild(stylesheet);
+  }
+  loadInstrumentSansFont();
+
   // Same icon library the root site uses (src/organisms/icons.js — Lucide,
   // imported by name from esm.sh, no bundler needed). createElement() gives
   // a real SVG element directly rather than Lucide's DOM-scanning
@@ -643,7 +655,7 @@
     + '  --ka-color-danger: #C43A2E;'
     + '  --ka-radius-card: 12px;'
     + '  --ka-radius-interactive: 8px;'
-    + '  --ka-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;'
+    + '  --ka-font-sans: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;'
     + '  --ka-font-display: "Syne", var(--ka-font-sans);'
     + '  --ka-tracking-heading: -0.025em;'
     // Mirrors root's --type-label-size/--type-label-weight/--tracking-label

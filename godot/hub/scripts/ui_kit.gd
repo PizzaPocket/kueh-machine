@@ -65,6 +65,10 @@ static func density_root(layer: CanvasLayer) -> Control:
 	var root := Control.new()
 	root.name = "MobileDensityRoot"
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Make the shared body face inherit through every UI child, including
+	# lightweight HUD labels and traversal controls that do not create a
+	# panel with its own explicit Theme assignment.
+	root.theme = UITheme.get_theme()
 	layer.add_child(root)
 	var update := func() -> void:
 		var density := mobile_density_scale(layer)

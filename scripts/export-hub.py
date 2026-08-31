@@ -23,6 +23,7 @@ HEAD_END = "\t</head>"
 FONT_LINKS = """\t<link rel="preconnect" href="https://fonts.googleapis.com">
 \t<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 \t<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+\t<link rel="stylesheet" href="/styles/fonts.css">
 """
 
 STYLE_END = "\t\t</style>"
@@ -122,7 +123,7 @@ LOADER_CSS = """
 	left: 50%;
 	transform: translateX(-50%);
 	color: #5c564e;
-	font-family: Syne, Arial, sans-serif;
+	font-family: "Instrument Sans", Arial, sans-serif;
 	font-size: 13px;
 	font-weight: 600;
 	white-space: nowrap;
@@ -136,7 +137,7 @@ LOADER_CSS = """
 	width: min(760px, calc(100vw - 64px));
 	transform: translate(-50%, -50%);
 	color: #5c564e;
-	font-family: Syne, Arial, sans-serif;
+	font-family: "Instrument Sans", Arial, sans-serif;
 	font-size: 16px;
 	font-weight: 600;
 	line-height: 1.4;

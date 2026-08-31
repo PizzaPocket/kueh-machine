@@ -9,7 +9,7 @@
   --type-label-size: 0.8125rem;
   --type-label-weight: 700;
   --tracking-label: 0.08em;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Syne", var(--font-sans);
 }
 
