@@ -1142,15 +1142,30 @@ async function renderRecipes() {
   const grid = document.getElementById('recipe-grid');
   const savedCards = grid.querySelectorAll('.recipe-card[data-id]');
   savedCards.forEach((card) => card.remove());
+  grid.querySelectorAll('.recipe-loading-error').forEach((item) => item.remove());
+  grid.setAttribute('aria-busy', 'true');
   cardObjectUrls.forEach((url) => URL.revokeObjectURL(url));
   cardObjectUrls = [];
 
-  let recipes = await dbGetAll('recipes');
-  recipes = await ensureRecipeOrder(recipes);
-  recipes.sort((a, b) => a.order - b.order);
+  try {
+    let recipes = await dbGetAll('recipes');
+    recipes = await ensureRecipeOrder(recipes);
+    recipes.sort((a, b) => a.order - b.order);
 
-  const built = await Promise.all(recipes.map((recipe, index) => buildRecipeCard(recipe, index, recipes.length)));
-  built.forEach((card) => grid.appendChild(card));
+    const built = await Promise.all(recipes.map((recipe, index) => buildRecipeCard(recipe, index, recipes.length)));
+    grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
+    built.forEach((card) => grid.appendChild(card));
+  } catch (error) {
+    console.error('Could not render recipe cards:', error);
+    grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
+    const message = document.createElement('p');
+    message.className = 'recipe-loading-error';
+    message.setAttribute('role', 'alert');
+    message.textContent = 'The recipe cards could not be opened. Refresh the page to try again.';
+    grid.appendChild(message);
+  } finally {
+    grid.setAttribute('aria-busy', 'false');
+  }
 }
 
 async function buildRecipeCard(recipe, index, total) {
@@ -1605,8 +1620,12 @@ function setupVoiceInput() {
 /* ---------- Init ---------- */
 
 async function init() {
-  await seedGlossaryIfEmpty();
-  await seedRecipesIfNeeded();
+  try {
+    await seedGlossaryIfEmpty();
+    await seedRecipesIfNeeded();
+  } catch (error) {
+    console.error('Could not prepare local recipe data:', error);
+  }
   setupGlossary();
   renderGlossary();
 
@@ -1618,7 +1637,7 @@ async function init() {
   setupMediaViewer();
   setupVoiceInput();
   setupBackup();
-  renderRecipes();
+  await renderRecipes();
 }
 
 document.addEventListener('DOMContentLoaded', init);
