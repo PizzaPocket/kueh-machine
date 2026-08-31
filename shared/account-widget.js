@@ -973,6 +973,12 @@
     + '}'
     + '.row-list > .acct-row:first-child { padding-top: 0; }'
     + '.row-list > .acct-row:last-child { border-bottom: none; padding-bottom: 0; }'
+    // Signed-out navigation uses the same row rhythm as the signed-in
+    // panel, but keeps one separating rule above the pair because the auth
+    // form is not itself part of this list.
+    + '.signed-out-site-links {'
+    + '  margin-top: 16px; padding-top: 16px; border-top: var(--ka-stroke-width) solid var(--ka-color-surface-border);'
+    + '}'
     + '.field { margin: 0; }'
     + '.field-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }'
     + '.field-value {'
@@ -1921,17 +1927,19 @@
     });
     panelBodyEl.appendChild(switchEl);
 
-    // Same row, same icon, as the signed-in panel's own "Kueh Machine Home"
-    // (renderAccountPanel()) — a plain top border + margin here since this
-    // view doesn't have a .row-list of its own to hang a divider off of.
-    var homeRow = el('a', 'row-home', '<span class="row-home-icon">' + HOME_ICON_SVG + '</span><span>Kueh Machine Home</span>');
-    homeRow.href = '/';
-    homeRow.style.cssText = 'margin-top:16px; padding-top:16px; border-top:var(--ka-stroke-width) solid var(--ka-color-surface-border);';
-    panelBodyEl.appendChild(homeRow);
+    // Same row-list rhythm as the signed-in panel. Keeping both site links
+    // in one list prevents them collapsing into one visually crammed block
+    // while preserving a single divider between the auth form and nav.
+    var siteLinks = el('div', 'row-list signed-out-site-links');
+    panelBodyEl.appendChild(siteLinks);
 
-    var hubRow = el('a', 'row-home', '<span class="row-home-icon">' + HUB_ICON_SVG + '</span><span>Kueh-Verse</span>');
+    var homeRow = el('a', 'row-home acct-row', '<span class="row-home-icon">' + HOME_ICON_SVG + '</span><span>Kueh Machine Home</span>');
+    homeRow.href = '/';
+    siteLinks.appendChild(homeRow);
+
+    var hubRow = el('a', 'row-home acct-row', '<span class="row-home-icon">' + HUB_ICON_SVG + '</span><span>Kueh-Verse</span>');
     hubRow.href = '/hub/';
-    panelBodyEl.appendChild(hubRow);
+    siteLinks.appendChild(hubRow);
 
     function showError(msg) { errEl.textContent = msg; }
   }
