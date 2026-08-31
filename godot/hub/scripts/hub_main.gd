@@ -358,7 +358,15 @@ func _build_contributors() -> void:
 		if _remote_appearances.has(contributor_key):
 			var remote: Dictionary = _normalize_appearance(_remote_appearances[contributor_key])
 			if not remote.is_empty():
-				(data["appearance"] as Dictionary).merge(remote, true)
+				var appearance: Dictionary = data["appearance"]
+				# Optional visual treatments encode "off" by being absent from the
+				# saved profile. Remove bundled contributor defaults before merging,
+				# otherwise Kaixin selecting a normal top cannot clear her original
+				# Kara-o-kueh pattern when the persistent NPC is reconstructed.
+				for optional_key in ["shirt_pattern", "shirt_texture"]:
+					if not remote.has(optional_key):
+						appearance.erase(optional_key)
+				appearance.merge(remote, true)
 		var npc_position: Vector3 = data["position"]
 		var display_kind: String = data.get("display", "")
 		if not display_kind.is_empty():
