@@ -98,6 +98,63 @@
   'use strict';
   if (window.KuehAccount) return;
 
+  // Mobile Safari can occasionally carry a small layout-viewport scroll into
+  // a fresh cross-page navigation while its browser chrome is settling. The
+  // result looks like every page has been translated upward by roughly the
+  // iPhone status-bar height. Reset only that narrow fresh-load case: hashes
+  // and history traversal keep their intentional/restored positions, and a
+  // user who has begun scrolling is never pulled back later.
+  function viewportSnapshot(reason) {
+    var visual = window.visualViewport;
+    window.__kuehViewportState = {
+      reason: reason,
+      scrollY: window.scrollY || 0,
+      visualOffsetTop: visual ? visual.offsetTop : 0,
+      visualHeight: visual ? visual.height : window.innerHeight,
+      innerHeight: window.innerHeight,
+      timestamp: Date.now(),
+    };
+  }
+
+  var viewportNormalizationStarted = false;
+  function normalizeFreshMobileScroll() {
+    if (viewportNormalizationStarted) return;
+    viewportNormalizationStarted = true;
+    if (window.location.hash || !window.matchMedia('(pointer: coarse)').matches) return;
+    var navigation = window.performance && window.performance.getEntriesByType
+      ? window.performance.getEntriesByType('navigation')[0]
+      : null;
+    if (navigation && navigation.type === 'back_forward') return;
+
+    var startedAt = window.performance ? window.performance.now() : 0;
+    function check(reason) {
+      viewportSnapshot(reason);
+      var elapsed = window.performance ? window.performance.now() - startedAt : 0;
+      var y = window.scrollY || 0;
+      if (elapsed < 1200 && y > 0 && y <= 80) {
+        window.scrollTo(0, 0);
+        viewportSnapshot(reason + '-reset');
+      }
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { check('initial-layout'); });
+    });
+    window.setTimeout(function () { check('browser-chrome-settled'); }, 350);
+  }
+
+  window.addEventListener('pageshow', function (event) {
+    viewportSnapshot(event.persisted ? 'pageshow-restored' : 'pageshow-fresh');
+    if (!event.persisted) normalizeFreshMobileScroll();
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () { viewportSnapshot('visual-resize'); });
+  }
+  if (document.readyState === 'complete') {
+    window.setTimeout(normalizeFreshMobileScroll, 0);
+  } else {
+    window.addEventListener('load', normalizeFreshMobileScroll, { once: true });
+  }
+
   // The publishable key is meant to be public — it's safe as long as every
   // table has RLS enabled, same assumption Ruth's and Liwei's games already
   // make (see AUTH.md → "Setting up the shared project").
