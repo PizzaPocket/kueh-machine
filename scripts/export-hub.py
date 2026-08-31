@@ -93,6 +93,18 @@ LOADER_CSS = """
 	background: #171311;
 }
 
+#status-phase {
+	position: absolute;
+	bottom: calc(10% + 16px);
+	left: 50%;
+	transform: translateX(-50%);
+	color: #5c564e;
+	font-family: Syne, Arial, sans-serif;
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
 #loading-controls {
 	display: none;
 	position: absolute;
@@ -256,7 +268,8 @@ LOADER_CSS = """
 SPLASH_IMAGE = '\t\t\t<img id="status-splash" class="show-image--false fullsize--true use-filter--true" src="index.png" alt="">\n'
 PROGRESS_ELEMENT = '\t\t\t<progress id="status-progress"></progress>'
 WORDMARK_HTML = '\t\t\t<a class="wordmark" href="/" aria-label="Kueh Machine home"><span class="wordmark-kueh">Kueh</span> <span class="wordmark-machine">Machine</span></a>\n'
-PROGRESS_WITH_TIP = WORDMARK_HTML + """\t\t\t<progress id="status-progress"></progress>
+PROGRESS_WITH_TIP = WORDMARK_HTML + """\t\t\t<div id="status-phase" role="status">Getting things ready…</div>
+\t\t\t<progress id="status-progress"></progress>
 \t\t\t<div id="loading-controls">
 \t\t\t\t<div class="loader-desktop">
 \t\t\t\t\t<div class="loader-control">
@@ -282,6 +295,7 @@ STATUS_VARIABLES = """\tconst statusProgress = document.getElementById('status-p
 \tconst statusNotice = document.getElementById('status-notice');"""
 STATUS_VARIABLES_WITH_TIPS = """\tconst statusProgress = document.getElementById('status-progress');
 \tconst statusNotice = document.getElementById('status-notice');
+\tconst statusPhase = document.getElementById('status-phase');
 \tconst loadingControls = document.getElementById('loading-controls');"""
 
 HIDE_STATUS = """\t\tif (mode === 'hidden') {
@@ -291,7 +305,31 @@ HIDE_STATUS_WITH_TIP_CLEANUP = """\t\tif (mode === 'hidden') {
 
 PROGRESS_VISIBILITY = "\t\tstatusProgress.style.display = mode === 'progress' ? 'block' : 'none';"
 PROGRESS_AND_TIP_VISIBILITY = """\t\tstatusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusPhase.style.display = mode === 'progress' ? 'block' : 'none';
 \t\tloadingControls.style.display = mode === 'progress' ? 'block' : 'none';"""
+
+PROGRESS_CALLBACK = """\t\t\t'onProgress': function (current, total) {
+\t\t\t\tif (current > 0 && total > 0) {
+\t\t\t\t\tstatusProgress.value = current;
+\t\t\t\t\tstatusProgress.max = total;
+\t\t\t\t} else {
+\t\t\t\t\tstatusProgress.removeAttribute('value');
+\t\t\t\t\tstatusProgress.removeAttribute('max');
+\t\t\t\t}
+\t\t\t},"""
+
+WHOLE_LAUNCH_PROGRESS = """\t\t\t'onProgress': function (current, total) {
+\t\t\t\tif (current > 0 && total > 0) {
+\t\t\t\t\tconst downloadRatio = Math.min(current / total, 1);
+\t\t\t\t\tstatusProgress.max = 1;
+\t\t\t\t\tstatusProgress.value = downloadRatio * 0.9;
+\t\t\t\t\tstatusPhase.textContent = downloadRatio >= 1 ? 'Starting Kuehverse…' : 'Loading Kuehverse…';
+\t\t\t\t} else {
+\t\t\t\t\tstatusProgress.removeAttribute('value');
+\t\t\t\t\tstatusProgress.removeAttribute('max');
+\t\t\t\t\tstatusPhase.textContent = 'Getting things ready…';
+\t\t\t\t}
+\t\t\t},"""
 
 START = """\t\tsetStatusMode('progress');
 \t\tengine.startGame({"""
@@ -337,7 +375,10 @@ BRIDGE = """\t\tsetStatusMode('progress');
 END = """\t\t}).then(() => {
 \t\t\tsetStatusMode('hidden');"""
 BRIDGED_END = """\t\t})).then(() => {
-\t\t\tsetStatusMode('hidden');"""
+\t\t\tstatusProgress.max = 1;
+\t\t\tstatusProgress.value = 1;
+\t\t\tstatusPhase.textContent = 'Ready';
+\t\t\trequestAnimationFrame(() => requestAnimationFrame(() => setStatusMode('hidden')));"""
 
 
 def replace_once(source: str, old: str, new: str, label: str) -> str:
@@ -363,6 +404,7 @@ def main() -> None:
     html = replace_once(html, HIDE_STATUS, HIDE_STATUS_WITH_TIP_CLEANUP, "tooltip cleanup")
     html = replace_once(html, PROGRESS_VISIBILITY, PROGRESS_AND_TIP_VISIBILITY, "tooltip visibility")
     html = replace_once(html, START, BRIDGE, "engine start")
+    html = replace_once(html, PROGRESS_CALLBACK, WHOLE_LAUNCH_PROGRESS, "whole-launch progress")
     html = replace_once(html, END, BRIDGED_END, "engine completion")
     HTML.write_text(html)
     print(f"Exported Hub with character bridge: {HTML}")

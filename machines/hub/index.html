@@ -156,6 +156,18 @@ body {
 	background: #171311;
 }
 
+#status-phase {
+	position: absolute;
+	bottom: calc(10% + 16px);
+	left: 50%;
+	transform: translateX(-50%);
+	color: #5c564e;
+	font-family: Syne, Arial, sans-serif;
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
 #loading-controls {
 	display: none;
 	position: absolute;
@@ -331,6 +343,7 @@ body {
 
 		<div id="status">
 			<a class="wordmark" href="/" aria-label="Kueh Machine home"><span class="wordmark-kueh">Kueh</span> <span class="wordmark-machine">Machine</span></a>
+			<div id="status-phase" role="status">Getting things ready…</div>
 			<progress id="status-progress"></progress>
 			<div id="loading-controls">
 				<div class="loader-desktop">
@@ -367,6 +380,7 @@ const engine = new Engine(GODOT_CONFIG);
 	const statusOverlay = document.getElementById('status');
 	const statusProgress = document.getElementById('status-progress');
 	const statusNotice = document.getElementById('status-notice');
+	const statusPhase = document.getElementById('status-phase');
 	const loadingControls = document.getElementById('loading-controls');
 
 	let initializing = true;
@@ -383,6 +397,7 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 		statusOverlay.style.visibility = 'visible';
 		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusPhase.style.display = mode === 'progress' ? 'block' : 'none';
 		loadingControls.style.display = mode === 'progress' ? 'block' : 'none';
 		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
 		statusMode = mode;
@@ -487,15 +502,21 @@ const engine = new Engine(GODOT_CONFIG);
 		characterReady.then(() => engine.startGame({
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
+					const downloadRatio = Math.min(current / total, 1);
+					statusProgress.max = 1;
+					statusProgress.value = downloadRatio * 0.9;
+					statusPhase.textContent = downloadRatio >= 1 ? 'Starting Kuehverse…' : 'Loading Kuehverse…';
 				} else {
 					statusProgress.removeAttribute('value');
 					statusProgress.removeAttribute('max');
+					statusPhase.textContent = 'Getting things ready…';
 				}
 			},
 		})).then(() => {
-			setStatusMode('hidden');
+			statusProgress.max = 1;
+			statusProgress.value = 1;
+			statusPhase.textContent = 'Ready';
+			requestAnimationFrame(() => requestAnimationFrame(() => setStatusMode('hidden')));
 		}, displayFailureNotice);
 	}
 }());
