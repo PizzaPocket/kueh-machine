@@ -15,6 +15,12 @@ const MOBILE_BREAKPOINT_WIDTH := 700.0
 ## backing pixels, so the same raw Control dimensions become 50% larger in
 ## CSS points on a 2x iPhone unless the UI is density-normalized.
 const MOBILE_REFERENCE_PIXEL_RATIO := 3.0
+## A content-driven second touch tier. CSS pixels are used here rather than
+## raw Godot backing pixels, so Retina density cannot make a landscape phone
+## look like a tablet. Even the shorter side must provide 600 CSS px: current
+## phones remain below it in either orientation, while compact tablets clear
+## it in both.
+const TABLET_MIN_SHORT_SIDE_CSS := 600.0
 
 ## Narrow width OR touch hardware, not narrow width alone -- a tablet held
 ## in landscape (or even portrait, for the larger ones) is comfortably wider
@@ -25,6 +31,17 @@ const MOBILE_REFERENCE_PIXEL_RATIO := 3.0
 ## touch-or-narrow media query (see scripts/export-hub.py's LOADER_CSS).
 static func is_mobile_viewport(node: Node) -> bool:
 	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH or DisplayServer.is_touchscreen_available()
+
+
+static func is_tablet_touch_viewport() -> bool:
+	if not DisplayServer.is_touchscreen_available() or not OS.has_feature("web"):
+		return false
+	var window := JavaScriptBridge.get_interface("window")
+	if window == null:
+		return false
+	var css_width := float(window.innerWidth)
+	var css_height := float(window.innerHeight)
+	return minf(css_width, css_height) >= TABLET_MIN_SHORT_SIDE_CSS
 
 
 ## Keeps authored UI pixels visually consistent across Retina densities while

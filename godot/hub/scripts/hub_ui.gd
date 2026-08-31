@@ -17,6 +17,10 @@ const JOYSTICK_KNOB_SIZE := 128.0
 const MOBILE_ACTION_SIZE := 156.0
 const MOBILE_CONTROL_MARGIN := 54.0
 const MOBILE_ACTION_GAP := 24.0
+const TABLET_CONTROL_SCALE := 1.25
+const TABLET_MARGIN_SCALE := 2.0
+var _joystick_outer_size := JOYSTICK_OUTER_SIZE
+var _joystick_knob_size := JOYSTICK_KNOB_SIZE
 # Maps each mobile action button (or desktop hint key) to the input action it
 # drives. Joystick movement uses four continuously variable action strengths.
 var _key_actions: Dictionary = {}
@@ -158,6 +162,12 @@ func _build_desktop_movement_hint() -> void:
 	_movement_hint.add_child(bottom_row)
 
 func _build_mobile_controls() -> void:
+	var tablet_layout := UIKit.is_tablet_touch_viewport()
+	var control_scale := TABLET_CONTROL_SCALE if tablet_layout else 1.0
+	var control_margin := MOBILE_CONTROL_MARGIN * (TABLET_MARGIN_SCALE if tablet_layout else 1.0)
+	_joystick_outer_size = JOYSTICK_OUTER_SIZE * control_scale
+	_joystick_knob_size = JOYSTICK_KNOB_SIZE * control_scale
+
 	_movement_hint = Control.new()
 	_movement_hint.name = "MobileTraversalControls"
 	_movement_hint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -166,10 +176,10 @@ func _build_mobile_controls() -> void:
 
 	_joystick_outer = Panel.new()
 	_joystick_outer.name = "MovementJoystickOuter"
-	_joystick_outer.custom_minimum_size = Vector2.ONE * JOYSTICK_OUTER_SIZE
+	_joystick_outer.custom_minimum_size = Vector2.ONE * _joystick_outer_size
 	_joystick_outer.mouse_filter = Control.MOUSE_FILTER_STOP
-	_joystick_outer.add_theme_stylebox_override("panel", _squircle_style(Color(0.16, 0.11, 0.07, 0.48), JOYSTICK_OUTER_SIZE))
-	UIKit.anchor_to_edge(_joystick_outer, 0.0, 1.0, MOBILE_CONTROL_MARGIN, MOBILE_CONTROL_MARGIN)
+	_joystick_outer.add_theme_stylebox_override("panel", _squircle_style(Color(0.16, 0.11, 0.07, 0.48), _joystick_outer_size))
+	UIKit.anchor_to_edge(_joystick_outer, 0.0, 1.0, control_margin, control_margin)
 	_movement_hint.add_child(_joystick_outer)
 
 	_joystick_knob = Panel.new()
@@ -179,7 +189,7 @@ func _build_mobile_controls() -> void:
 	_joystick_knob.anchor_right = 0.5
 	_joystick_knob.anchor_top = 0.5
 	_joystick_knob.anchor_bottom = 0.5
-	_joystick_knob.add_theme_stylebox_override("panel", _squircle_style(Color(0.97, 0.93, 0.85, 0.90), JOYSTICK_KNOB_SIZE))
+	_joystick_knob.add_theme_stylebox_override("panel", _squircle_style(Color(0.97, 0.93, 0.85, 0.90), _joystick_knob_size))
 	_set_joystick_knob_offset(Vector2.ZERO)
 	_joystick_outer.add_child(_joystick_knob)
 
@@ -187,9 +197,11 @@ func _build_mobile_controls() -> void:
 	action_stack.name = "MobileActionButtons"
 	action_stack.add_theme_constant_override("separation", int(MOBILE_ACTION_GAP))
 	action_stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UIKit.anchor_to_edge(action_stack, 1.0, 1.0, MOBILE_CONTROL_MARGIN, MOBILE_CONTROL_MARGIN)
-	action_stack.add_child(_movement_key("JUMP", "jump", MOBILE_ACTION_SIZE, UITheme.FONT_BUTTON))
-	action_stack.add_child(_movement_key("RUN", "run", MOBILE_ACTION_SIZE, UITheme.FONT_BUTTON))
+	UIKit.anchor_to_edge(action_stack, 1.0, 1.0, control_margin, control_margin)
+	var action_size := MOBILE_ACTION_SIZE * control_scale
+	var action_font_size := int(roundi(UITheme.FONT_BUTTON * control_scale))
+	action_stack.add_child(_movement_key("JUMP", "jump", action_size, action_font_size))
+	action_stack.add_child(_movement_key("RUN", "run", action_size, action_font_size))
 	_movement_hint.add_child(action_stack)
 
 func _squircle_style(color: Color, size: float) -> SuperellipseStyleBox:
@@ -295,7 +307,7 @@ func _begin_joystick(index: int, position: Vector2) -> void:
 func _update_joystick(position: Vector2) -> void:
 	var local_position := _joystick_outer.get_global_transform_with_canvas().affine_inverse() * position
 	var center := _joystick_outer.size * 0.5
-	var radius := (JOYSTICK_OUTER_SIZE - JOYSTICK_KNOB_SIZE) * 0.5
+	var radius := (_joystick_outer_size - _joystick_knob_size) * 0.5
 	var offset := (local_position - center).limit_length(radius)
 	_set_joystick_knob_offset(offset)
 	var direction := offset / radius
@@ -319,7 +331,7 @@ func _set_action_strength(action: StringName, strength: float) -> void:
 		Input.action_release(action)
 
 func _set_joystick_knob_offset(offset: Vector2) -> void:
-	var half := JOYSTICK_KNOB_SIZE * 0.5
+	var half := _joystick_knob_size * 0.5
 	_joystick_knob.offset_left = -half + offset.x
 	_joystick_knob.offset_right = half + offset.x
 	_joystick_knob.offset_top = -half + offset.y
