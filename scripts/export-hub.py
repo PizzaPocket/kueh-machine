@@ -323,8 +323,13 @@ STATUS_VARIABLES_WITH_TIPS = """\tconst statusProgress = document.getElementById
 
 \tfunction syncVisibleViewport(notifyGodot) {
 \t\tconst viewport = window.visualViewport;
-\t\tconst left = viewport ? viewport.offsetLeft : 0;
-\t\tconst top = viewport ? viewport.offsetTop : 0;
+\t\t// Safari generally exposes browser-chrome displacement through
+\t\t// offsetTop. Chrome on iOS can instead retain it as document scroll,
+\t\t// making offsetTop zero even though the visible page begins lower.
+\t\t// pageLeft/pageTop include both components, which is the coordinate
+\t\t// this locked, non-scrolling Godot document needs.
+\t\tconst left = viewport ? viewport.pageLeft : (window.scrollX || 0);
+\t\tconst top = viewport ? viewport.pageTop : (window.scrollY || 0);
 \t\tconst width = viewport ? viewport.width : window.innerWidth;
 \t\tconst height = viewport ? viewport.height : window.innerHeight;
 \t\tconst rootStyle = document.documentElement.style;

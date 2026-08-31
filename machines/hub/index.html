@@ -408,8 +408,13 @@ const engine = new Engine(GODOT_CONFIG);
 
 	function syncVisibleViewport(notifyGodot) {
 		const viewport = window.visualViewport;
-		const left = viewport ? viewport.offsetLeft : 0;
-		const top = viewport ? viewport.offsetTop : 0;
+		// Safari generally exposes browser-chrome displacement through
+		// offsetTop. Chrome on iOS can instead retain it as document scroll,
+		// making offsetTop zero even though the visible page begins lower.
+		// pageLeft/pageTop include both components, which is the coordinate
+		// this locked, non-scrolling Godot document needs.
+		const left = viewport ? viewport.pageLeft : (window.scrollX || 0);
+		const top = viewport ? viewport.pageTop : (window.scrollY || 0);
 		const width = viewport ? viewport.width : window.innerWidth;
 		const height = viewport ? viewport.height : window.innerHeight;
 		const rootStyle = document.documentElement.style;
