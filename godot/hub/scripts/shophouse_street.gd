@@ -551,17 +551,17 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	_part(dining, Vector3(0.055, 0.34, 0.055), stainless_dark, Vector3(6.25, 1.66, -12.68), "SinkTapStem", 0.76, 0.18)
 	_part(dining, Vector3(0.18, 0.055, 0.055), stainless_dark, Vector3(6.25, 1.96, -12.53), "SinkTapSpout", 0.76, 0.18)
 
-## A restrained cluster of Mei Jun's taped recipe notes connects the kitchen
-## to Taste of Home's paper-and-masking-tape interface. The backsplash's
-## room-facing plane is z=-12.825: every paper begins exactly on that plane,
-## every tape strip begins on the paper's front face, and the text sits just
-## on top. Those layer-to-layer contacts avoid both clipping and floating.
+## Four small blank recipe slips connect the kitchen to Taste of Home's
+## paper-and-masking-tape interface without turning the backsplash into a
+## readable UI panel. They stay in the clear central steel band, below the
+## hood and between the left/right shelf-and-bracket assemblies.
 static func _build_meijun_recipe_notes(parent: Node3D) -> void:
 	const BACKSPLASH_FRONT_Z := -12.825
 	var notes := [
-		{"position": Vector2(2.62, 2.18), "size": Vector2(0.48, 0.32), "angle": -3.5, "tape_angle": 2.0, "text": "taste, then adjust"},
-		{"position": Vector2(4.06, 2.51), "size": Vector2(0.54, 0.34), "angle": 2.0, "tape_angle": -3.0, "text": "mum says: agak-agak"},
-		{"position": Vector2(5.43, 2.12), "size": Vector2(0.45, 0.30), "angle": -1.5, "tape_angle": 3.5, "text": "a little more pandan"},
+		{"position": Vector2(3.16, 1.78), "size": Vector2(0.13, 0.09), "angle": -3.5, "tape_angle": 2.0},
+		{"position": Vector2(3.58, 2.24), "size": Vector2(0.12, 0.085), "angle": 2.0, "tape_angle": -3.0},
+		{"position": Vector2(4.45, 2.48), "size": Vector2(0.14, 0.095), "angle": -1.5, "tape_angle": 3.5},
+		{"position": Vector2(4.92, 1.92), "size": Vector2(0.125, 0.09), "angle": 3.0, "tape_angle": -2.0},
 	]
 	for note_index in range(notes.size()):
 		var note_data: Dictionary = notes[note_index]
@@ -573,23 +573,14 @@ static func _build_meijun_recipe_notes(parent: Node3D) -> void:
 		assembly.rotation.z = deg_to_rad(float(note_data["angle"]))
 		parent.add_child(assembly)
 
-		# 16mm total paper depth: its back face is flush to the steel at local z=0.
-		_part(assembly, Vector3(note_size.x, note_size.y, 0.008), Color("fff8e9"), Vector3(0, 0, 0.008), "RecipePaper", 0.0, 0.92)
+		# A plain BoxMesh keeps the paper corners square rather than giving these
+		# tiny utilitarian slips the rounded SuperEgg treatment. Its back face is
+		# flush to the steel at local z=0.
+		_flat_part(assembly, Vector3(note_size.x, note_size.y, 0.004), Color("fff8e9"), Vector3(0, 0, 0.004), "RecipePaper", 0.92)
 		# The tape is deliberately a little imperfect in angle and width, but its
-		# back face touches the paper front at local z=0.016 exactly.
-		var tape := _part(assembly, Vector3(note_size.x * 0.34, 0.075, 0.004), Color("e8d9a8"), Vector3(0, note_size.y - 0.015, 0.020), "MaskingTape", 0.0, 0.86)
+		# back face touches the paper front at local z=0.008 exactly.
+		var tape := _flat_part(assembly, Vector3(note_size.x * 0.34, 0.025, 0.002), Color("e8d9a8"), Vector3(0, note_size.y - 0.004, 0.010), "MaskingTape", 0.86)
 		tape.rotation.z = deg_to_rad(float(note_data["tape_angle"]))
-
-		var writing := Label3D.new()
-		writing.name = "HandwrittenRecipeNote"
-		writing.text = str(note_data["text"])
-		writing.font_size = 38
-		writing.pixel_size = 0.0025
-		writing.modulate = Color("6b4b35")
-		writing.outline_size = 0
-		writing.shaded = true
-		writing.position = Vector3(0, -0.035, 0.025)
-		assembly.add_child(writing)
 
 ## Shrinks every belt-run (local X) dimension so the whole assembly reads
 ## shorter without moving its center -- the previous full length crowded the
@@ -993,6 +984,17 @@ static func _part(parent: Node3D, axes: Vector3, color: Color, position: Vector3
 	node.name = part_name
 	node.position = position
 	node.material_override = HubPalette.material(color, metallic, roughness)
+	parent.add_child(node)
+	return node
+
+static func _flat_part(parent: Node3D, half_size: Vector3, color: Color, position: Vector3, part_name: String, roughness := 0.58) -> MeshInstance3D:
+	var mesh := BoxMesh.new()
+	mesh.size = half_size * 2.0
+	var node := MeshInstance3D.new()
+	node.name = part_name
+	node.mesh = mesh
+	node.position = position
+	node.material_override = HubPalette.material(color, 0.0, roughness)
 	parent.add_child(node)
 	return node
 
