@@ -493,18 +493,27 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	var table_color := Color("f4efe3")
 	var table_edge := Color("c9bda9")
 	var stool_color := Color("efc84f")
-	for table_data in [
+	var dining_tables := [
 		{"position": Vector3(0.72, 0.78, 1.45), "side": 1.0},
 		{"position": Vector3(7.28, 0.78, 1.45), "side": -1.0},
 		{"position": Vector3(7.28, 0.78, -1.35), "side": -1.0},
-	]:
+	]
+	for table_index in range(dining_tables.size()):
+		var table_data: Dictionary = dining_tables[table_index]
 		var table_position: Vector3 = table_data["position"]
 		var stool_side: float = table_data["side"]
 		_part(dining, Vector3(0.58, 0.08, 1.05), table_color, table_position, "WallDiningTableTop")
 		_part(dining, Vector3(0.60, 0.035, 1.07), table_edge, table_position + Vector3(0, -0.10, 0), "DiningTableEdge")
 		_part(dining, Vector3(0.12, 0.36, 0.12), table_edge.darkened(0.28), Vector3(table_position.x, 0.38, table_position.z), "WallDiningTableStem")
-		for stool_z_offset in [-0.67, 0.67]:
-			_part(dining, Vector3(0.30, 0.28, 0.30), stool_color, Vector3(table_position.x + stool_side * 0.83, 0.30, table_position.z + stool_z_offset), "TuckedDiningStool")
+		# Separate top and stem colliders follow the furniture rather than filling
+		# its open underside, while the broad upper face remains a stable landing.
+		_collision(dining, Vector3(1.20, 0.215, 2.14), table_position + Vector3(0, -0.0275, 0), "DiningTableTopSolid%d" % table_index)
+		_collision(dining, Vector3(0.24, 0.72, 0.24), Vector3(table_position.x, 0.36, table_position.z), "DiningTableStemSolid%d" % table_index)
+		var stool_offsets := [-0.67, 0.67]
+		for stool_index in range(stool_offsets.size()):
+			var stool_position := Vector3(table_position.x + stool_side * 0.83, 0.30, table_position.z + stool_offsets[stool_index])
+			_part(dining, Vector3(0.30, 0.28, 0.30), stool_color, stool_position, "TuckedDiningStool")
+			_collision(dining, Vector3(0.60, 0.58, 0.60), stool_position + Vector3(0, -0.01, 0), "DiningStoolSolid%d_%d" % [table_index, stool_index])
 	_build_restaurant_kueh_paintings(dining)
 	# The rear half reads immediately as a separate washable kitchen zone.
 	var tile_size := 0.48
