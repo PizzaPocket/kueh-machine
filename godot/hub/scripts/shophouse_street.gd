@@ -559,18 +559,23 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 ## Kueh Lapis and Kueh Salat glasses. They sit farther back than the tables,
 ## in the quieter wall span between the front and rear dining groupings.
 static func _build_restaurant_kueh_paintings(parent: Node3D) -> void:
-	_restaurant_kueh_painting(parent, Vector3(0.20, 2.30, 0.15), 1.0, FigureGlasses.LAPIS_LENS_COLORS, "KuehLapisLensPainting")
-	_restaurant_kueh_painting(parent, Vector3(7.80, 2.30, 0.15), -1.0, FigureGlasses.SALAT_LENS_COLORS, "KuehSalatLensPainting")
+	var lapis_painting_colors := FigureGlasses.LAPIS_LENS_COLORS.duplicate()
+	for color_index in range(lapis_painting_colors.size()):
+		if lapis_painting_colors[color_index] == FigureGlasses.LAPIS_LENS_CREAM:
+			lapis_painting_colors[color_index] = Color("f8f2e4")
+	_restaurant_kueh_painting(parent, Vector3(0.20, 2.30, 0.15), 1.0, lapis_painting_colors, "KuehLapisLensPainting")
+	var salat_painting_colors := [FigureGlasses.SALAT_LENS_COLORS[0], Color("9fb9e3")]
+	_restaurant_kueh_painting(parent, Vector3(7.80, 2.30, 0.15), -1.0, salat_painting_colors, "KuehSalatLensPainting")
 
 static func _restaurant_kueh_painting(parent: Node3D, wall_face: Vector3, outward_sign: float, colors: Array, painting_name: String) -> void:
-	var half_width := 0.68
-	var half_height := 0.50
+	var half_width := 0.78
+	var half_height := 0.575
 	var half_depth := 0.025
 	var canvas := MeshInstance3D.new()
 	canvas.name = painting_name
 	canvas.mesh = SuperEgg.build_mesh(
 		Vector3(half_depth, half_height, half_width),
-		FigureGlasses.SHAPE_EPSILON, FigureGlasses.SHAPE_EPSILON, Vector3.ZERO, true
+		5.0, 5.0, Vector3.ZERO, true
 	)
 	canvas.position = Vector3(wall_face.x + outward_sign * half_depth, wall_face.y, wall_face.z)
 	var material := StandardMaterial3D.new()
