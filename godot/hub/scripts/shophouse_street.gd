@@ -533,9 +533,10 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 			var door_x: float = float(counter_x) - 1.10 + float(door_index) * 1.10
 			_part(dining, Vector3(0.49, 0.49, 0.035), stainless_dark, Vector3(door_x, 0.61, -11.87), "CommercialCabinetDoor", 0.60, 0.28)
 			_part(dining, Vector3(0.30, 0.025, 0.025), Color("edf0ef"), Vector3(door_x, 0.97, -11.82), "CabinetPull", 0.82, 0.18)
-	# Washable steel backsplash and a broad extraction hood make the rear zone
-	# read as a working commercial kitchen rather than domestic furniture.
-	_part(dining, Vector3(3.86, 0.78, 0.045), Color("d7dbda"), Vector3(4.0, 2.05, -12.87), "CommercialBacksplash", 0.58, 0.28)
+	# The shallow backsplash panel now continues the eating house wall finish
+	# exactly; the commercial character comes from the counters, shelves and
+	# extraction hood rather than a contrasting steel sheet behind the notes.
+	_part(dining, Vector3(3.86, 0.78, 0.045), ROOM_COLORS[2], Vector3(4.0, 2.05, -12.87), "CommercialBacksplash")
 	_build_meijun_recipe_notes(dining)
 	_part(dining, Vector3(1.20, 0.24, 0.42), stainless_dark, Vector3(4.0, 3.36, -12.53), "ExtractionHoodCanopy", 0.70, 0.24)
 	_part(dining, Vector3(0.72, 0.62, 0.26), stainless, Vector3(4.0, 3.94, -12.69), "ExtractionHoodFlue", 0.68, 0.25)
@@ -551,7 +552,7 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	_part(dining, Vector3(0.055, 0.34, 0.055), stainless_dark, Vector3(6.25, 1.66, -12.68), "SinkTapStem", 0.76, 0.18)
 	_part(dining, Vector3(0.18, 0.055, 0.055), stainless_dark, Vector3(6.25, 1.96, -12.53), "SinkTapSpout", 0.76, 0.18)
 
-## Four small blank recipe slips connect the kitchen to Taste of Home's
+## Five small blank recipe slips connect the kitchen to Taste of Home's
 ## paper-and-masking-tape interface without turning the backsplash into a
 ## readable UI panel. They stay in the clear central steel band, below the
 ## hood and between the left/right shelf-and-bracket assemblies.
@@ -560,6 +561,7 @@ static func _build_meijun_recipe_notes(parent: Node3D) -> void:
 	var notes := [
 		{"position": Vector2(3.16, 1.78), "size": Vector2(0.13, 0.09), "angle": -3.5, "tape_angle": 2.0},
 		{"position": Vector2(3.58, 2.24), "size": Vector2(0.12, 0.085), "angle": 2.0, "tape_angle": -3.0},
+		{"position": Vector2(4.05, 1.82), "size": Vector2(0.13, 0.09), "angle": 1.0, "tape_angle": -2.5},
 		{"position": Vector2(4.45, 2.48), "size": Vector2(0.14, 0.095), "angle": -1.5, "tape_angle": 3.5},
 		{"position": Vector2(4.92, 1.92), "size": Vector2(0.125, 0.09), "angle": 3.0, "tape_angle": -2.0},
 	]
