@@ -536,6 +536,7 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	# Washable steel backsplash and a broad extraction hood make the rear zone
 	# read as a working commercial kitchen rather than domestic furniture.
 	_part(dining, Vector3(3.86, 0.78, 0.045), Color("d7dbda"), Vector3(4.0, 2.05, -12.87), "CommercialBacksplash", 0.58, 0.28)
+	_build_meijun_recipe_notes(dining)
 	_part(dining, Vector3(1.20, 0.24, 0.42), stainless_dark, Vector3(4.0, 3.36, -12.53), "ExtractionHoodCanopy", 0.70, 0.24)
 	_part(dining, Vector3(0.72, 0.62, 0.26), stainless, Vector3(4.0, 3.94, -12.69), "ExtractionHoodFlue", 0.68, 0.25)
 	# Open wall shelves keep equipment visible without adding floor obstacles.
@@ -549,6 +550,46 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	_part(dining, Vector3(0.58, 0.025, 0.34), Color("596164"), Vector3(6.25, 1.335, -12.38), "InsetPrepSink", 0.62, 0.24)
 	_part(dining, Vector3(0.055, 0.34, 0.055), stainless_dark, Vector3(6.25, 1.66, -12.68), "SinkTapStem", 0.76, 0.18)
 	_part(dining, Vector3(0.18, 0.055, 0.055), stainless_dark, Vector3(6.25, 1.96, -12.53), "SinkTapSpout", 0.76, 0.18)
+
+## A restrained cluster of Mei Jun's taped recipe notes connects the kitchen
+## to Taste of Home's paper-and-masking-tape interface. The backsplash's
+## room-facing plane is z=-12.825: every paper begins exactly on that plane,
+## every tape strip begins on the paper's front face, and the text sits just
+## on top. Those layer-to-layer contacts avoid both clipping and floating.
+static func _build_meijun_recipe_notes(parent: Node3D) -> void:
+	const BACKSPLASH_FRONT_Z := -12.825
+	var notes := [
+		{"position": Vector2(2.62, 2.18), "size": Vector2(0.48, 0.32), "angle": -3.5, "tape_angle": 2.0, "text": "taste, then adjust"},
+		{"position": Vector2(4.06, 2.51), "size": Vector2(0.54, 0.34), "angle": 2.0, "tape_angle": -3.0, "text": "mum says: agak-agak"},
+		{"position": Vector2(5.43, 2.12), "size": Vector2(0.45, 0.30), "angle": -1.5, "tape_angle": 3.5, "text": "a little more pandan"},
+	]
+	for note_index in range(notes.size()):
+		var note_data: Dictionary = notes[note_index]
+		var note_size: Vector2 = note_data["size"]
+		var note_position: Vector2 = note_data["position"]
+		var assembly := Node3D.new()
+		assembly.name = "MeiJunRecipeNote%d" % note_index
+		assembly.position = Vector3(note_position.x, note_position.y, BACKSPLASH_FRONT_Z)
+		assembly.rotation.z = deg_to_rad(float(note_data["angle"]))
+		parent.add_child(assembly)
+
+		# 16mm total paper depth: its back face is flush to the steel at local z=0.
+		_part(assembly, Vector3(note_size.x, note_size.y, 0.008), Color("fff8e9"), Vector3(0, 0, 0.008), "RecipePaper", 0.0, 0.92)
+		# The tape is deliberately a little imperfect in angle and width, but its
+		# back face touches the paper front at local z=0.016 exactly.
+		var tape := _part(assembly, Vector3(note_size.x * 0.34, 0.075, 0.004), Color("e8d9a8"), Vector3(0, note_size.y - 0.015, 0.020), "MaskingTape", 0.0, 0.86)
+		tape.rotation.z = deg_to_rad(float(note_data["tape_angle"]))
+
+		var writing := Label3D.new()
+		writing.name = "HandwrittenRecipeNote"
+		writing.text = str(note_data["text"])
+		writing.font_size = 38
+		writing.pixel_size = 0.0025
+		writing.modulate = Color("6b4b35")
+		writing.outline_size = 0
+		writing.shaded = true
+		writing.position = Vector3(0, -0.035, 0.025)
+		assembly.add_child(writing)
 
 ## Shrinks every belt-run (local X) dimension so the whole assembly reads
 ## shorter without moving its center -- the previous full length crowded the
