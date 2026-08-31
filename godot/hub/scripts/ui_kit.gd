@@ -11,6 +11,10 @@ extends RefCounted
 ## hint) -- centralized so they all agree on the same viewport-width cutoff
 ## instead of each hand-rolling a slightly different threshold.
 const MOBILE_BREAKPOINT_WIDTH := 700.0
+## Mobile UI was tuned on a 3x iPhone canvas. Godot Web exposes the canvas in
+## backing pixels, so the same raw Control dimensions become 50% larger in
+## CSS points on a 2x iPhone unless the UI is density-normalized.
+const MOBILE_REFERENCE_PIXEL_RATIO := 3.0
 
 ## Narrow width OR touch hardware, not narrow width alone -- a tablet held
 ## in landscape (or even portrait, for the larger ones) is comfortably wider
@@ -21,6 +25,41 @@ const MOBILE_BREAKPOINT_WIDTH := 700.0
 ## touch-or-narrow media query (see scripts/export-hub.py's LOADER_CSS).
 static func is_mobile_viewport(node: Node) -> bool:
 	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH or DisplayServer.is_touchscreen_available()
+
+
+## Keeps authored UI pixels visually consistent across Retina densities while
+## deliberately leaving desktop and the 3D viewport untouched.
+static func mobile_density_scale(node: Node) -> float:
+	if not DisplayServer.is_touchscreen_available() or not OS.has_feature("web"):
+		return 1.0
+	var window := JavaScriptBridge.get_interface("window")
+	if window == null:
+		return 1.0
+	var pixel_ratio := float(window.devicePixelRatio)
+	if pixel_ratio <= 0.0:
+		return 1.0
+	return clampf(pixel_ratio / MOBILE_REFERENCE_PIXEL_RATIO, 1.0 / 3.0, 4.0 / 3.0)
+
+
+## A Control-sized logical canvas inside a CanvasLayer. Children anchor and
+## lay themselves out in reference-device pixels, then this single transform
+## maps the complete UI (including hit targets) back to the real canvas.
+static func density_root(layer: CanvasLayer) -> Control:
+	var root := Control.new()
+	root.name = "MobileDensityRoot"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(root)
+	var update := func() -> void:
+		var density := mobile_density_scale(layer)
+		root.scale = Vector2.ONE * density
+		root.size = layer.get_viewport().get_visible_rect().size / density
+	update.call()
+	layer.get_viewport().size_changed.connect(update)
+	return root
+
+
+static func logical_viewport_size(node: Node) -> Vector2:
+	return node.get_viewport().get_visible_rect().size / mobile_density_scale(node)
 
 ## Shared touchscreen body-text size -- dialog_ui.gd's response options and
 ## NPC line, and hub_ui.gd's own interaction prompt ("Talk (F)" etc), all

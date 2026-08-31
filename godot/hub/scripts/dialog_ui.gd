@@ -70,10 +70,12 @@ var _opened_on_process_frame: int = -1
 ## paths silently colliding. Cleared as soon as it fires so it never
 ## double-runs.
 var _dismiss_callback: Callable = Callable()
+var _density_root: Control
 
 
 func _ready() -> void:
 	layer = 30
+	_density_root = UIKit.density_root(self)
 	_build_ui()
 	get_viewport().size_changed.connect(_update_responsive_layout)
 	_update_responsive_layout()
@@ -107,7 +109,7 @@ func _build_ui() -> void:
 	# setup before then.
 	UIKit.anchor_to_edge(_panel, 0.5, NPC_PANEL_ANCHOR_V_DESKTOP, 0.0, 0.0)
 	_panel.visible = false
-	add_child(_panel)
+	_density_root.add_child(_panel)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", UITheme.SPACE_LG)
@@ -142,7 +144,7 @@ func _build_response_ui(shared_theme: Theme) -> void:
 		_response_panel, 1.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL
 	)
 	_response_panel.visible = false
-	add_child(_response_panel)
+	_density_root.add_child(_response_panel)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", UITheme.SPACE_LG)
@@ -168,7 +170,7 @@ func _build_response_ui(shared_theme: Theme) -> void:
 ## growth (BOTH directions) can't overflow either edge once actually capped.
 func _update_responsive_layout() -> void:
 	var is_mobile := UIKit.is_mobile_viewport(self)
-	var viewport_width := get_viewport().get_visible_rect().size.x
+	var viewport_width := UIKit.logical_viewport_size(self).x
 	var capped_width := viewport_width - MOBILE_SIDE_MARGIN * 2.0
 
 	var target_v := NPC_PANEL_ANCHOR_V_MOBILE if is_mobile else NPC_PANEL_ANCHOR_V_DESKTOP

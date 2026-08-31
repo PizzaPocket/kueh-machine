@@ -10,6 +10,7 @@ var _mobile_controls := false
 var _joystick_outer: Panel
 var _joystick_knob: Panel
 var _joystick_touch := -2
+var _density_root: Control
 const JOYSTICK_NO_TOUCH := -2
 const JOYSTICK_OUTER_SIZE := 292.0
 const JOYSTICK_KNOB_SIZE := 128.0
@@ -32,6 +33,7 @@ const PROMPT_WIDTH_DESKTOP := 900.0
 const PROMPT_SIDE_MARGIN := 32.0
 func _ready() -> void:
 	layer = 20
+	_density_root = UIKit.density_root(self)
 	_build_prompt()
 	_build_movement_hint()
 	get_viewport().size_changed.connect(_update_prompt_width)
@@ -64,7 +66,7 @@ func _build_prompt() -> void:
 	_prompt.gui_input.connect(_on_prompt_gui_input)
 	UIKit.anchor_to_edge(_prompt, 0.5, 1.0, 0.0, UITheme.SPACE_XL * 2)
 	_prompt.visible = false
-	add_child(_prompt)
+	_density_root.add_child(_prompt)
 
 ## Fires the same "interact" action a physical F key press would, via a real
 ## InputEventAction parsed through the normal input pipeline -- hub_player.gd
@@ -108,7 +110,7 @@ func _on_prompt_gui_input(event: InputEvent) -> void:
 ## got their own mobile bump.
 func _update_prompt_width() -> void:
 	var label := _prompt.get_node("Label") as Label
-	var viewport_width := get_viewport().get_visible_rect().size.x
+	var viewport_width := UIKit.logical_viewport_size(self).x
 	if UIKit.is_mobile_viewport(self):
 		_prompt.custom_minimum_size.x = minf(DialogUI.RESPONSE_PANEL_WIDTH_DESKTOP, viewport_width - DialogUI.MOBILE_SIDE_MARGIN * 2.0)
 		if label != null:
@@ -135,7 +137,7 @@ func _build_desktop_movement_hint() -> void:
 	UIKit.anchor_to_edge(_movement_hint, 0.0, 1.0, UITheme.SPACE_XL, UITheme.SPACE_XL)
 	_movement_hint.visible = true
 	_movement_hint.modulate.a = 1.0
-	add_child(_movement_hint)
+	_density_root.add_child(_movement_hint)
 
 	# A full three-key row establishes the alignment width; CenterContainer
 	# then places W directly over S, matching the physical keyboard cluster.
@@ -160,7 +162,7 @@ func _build_mobile_controls() -> void:
 	_movement_hint.name = "MobileTraversalControls"
 	_movement_hint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_movement_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_movement_hint)
+	_density_root.add_child(_movement_hint)
 
 	_joystick_outer = Panel.new()
 	_joystick_outer.name = "MovementJoystickOuter"
@@ -236,7 +238,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			if _mobile_controls and _joystick_outer.get_global_rect().has_point(touch.position):
+			if _mobile_controls and _control_has_canvas_point(_joystick_outer, touch.position):
 				_begin_joystick(touch.index, touch.position)
 				get_viewport().set_input_as_handled()
 			else:
@@ -262,7 +264,7 @@ func _input(event: InputEvent) -> void:
 		var mouse_button := event as InputEventMouseButton
 		if mouse_button.button_index == MOUSE_BUTTON_LEFT:
 			if mouse_button.pressed:
-				if _mobile_controls and _joystick_outer.get_global_rect().has_point(mouse_button.position):
+				if _mobile_controls and _control_has_canvas_point(_joystick_outer, mouse_button.position):
 					_begin_joystick(MOUSE_TOUCH_INDEX, mouse_button.position)
 					get_viewport().set_input_as_handled()
 				else:
@@ -291,9 +293,10 @@ func _begin_joystick(index: int, position: Vector2) -> void:
 	_update_joystick(position)
 
 func _update_joystick(position: Vector2) -> void:
-	var center := _joystick_outer.get_global_rect().get_center()
+	var local_position := _joystick_outer.get_global_transform_with_canvas().affine_inverse() * position
+	var center := _joystick_outer.size * 0.5
 	var radius := (JOYSTICK_OUTER_SIZE - JOYSTICK_KNOB_SIZE) * 0.5
-	var offset := (position - center).limit_length(radius)
+	var offset := (local_position - center).limit_length(radius)
 	_set_joystick_knob_offset(offset)
 	var direction := offset / radius
 	if direction.length() < 0.12:
@@ -324,9 +327,13 @@ func _set_joystick_knob_offset(offset: Vector2) -> void:
 
 func _key_at_position(pos: Vector2) -> Control:
 	for key in _key_actions:
-		if (key as Control).get_global_rect().has_point(pos):
+		if _control_has_canvas_point(key as Control, pos):
 			return key
 	return null
+
+func _control_has_canvas_point(control: Control, canvas_point: Vector2) -> bool:
+	var local_point := control.get_global_transform_with_canvas().affine_inverse() * canvas_point
+	return Rect2(Vector2.ZERO, control.size).has_point(local_point)
 
 func _press_touch(index: int, key: Control) -> void:
 	Input.action_press(_key_actions[key])
@@ -343,7 +350,7 @@ func _release_touch(index: int) -> void:
 ## not resume if the same finger drags back onto a key afterward).
 func _update_touch(index: int, pos: Vector2) -> void:
 	var current: Control = _active_touches[index]
-	if (current as Control).get_global_rect().has_point(pos):
+	if _control_has_canvas_point(current, pos):
 		return
 	Input.action_release(_key_actions[current])
 	var next := _key_at_position(pos)

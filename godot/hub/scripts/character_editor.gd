@@ -79,6 +79,7 @@ var _choice_buttons: Array[Dictionary] = []
 var _color_buttons: Array[Dictionary] = []
 var _scroll: ScrollContainer
 var _color_popups: Array[PopupPanel] = []
+var _density_root: Control
 
 const TOUCH_SCROLL_DEADZONE := 14.0
 
@@ -99,6 +100,7 @@ func setup(initial: Dictionary, owned_contributor_key := "") -> void:
 
 func _ready() -> void:
 	layer = 80
+	_density_root = UIKit.density_root(self)
 	# Determined up front now (was previously only ever set inside
 	# _apply_responsive_layout(), after _build_ui() had already run) so
 	# _build_ui() itself can bake in the correct mobile-scaled sizes from
@@ -134,7 +136,7 @@ func _build_ui() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.color = Color("f2f1ed")
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(backdrop)
+	_density_root.add_child(backdrop)
 
 	var margin := MarginContainer.new()
 	# CanvasLayer is not a Control, so it cannot propagate the shared theme.
@@ -152,7 +154,7 @@ func _build_ui() -> void:
 	# (see _preview_container below) and body_padding's own shrunk insets.
 	margin.add_theme_constant_override("margin_top", 0 if _mobile else UITheme.SPACE_LG)
 	margin.add_theme_constant_override("margin_bottom", UITheme.SPACE_LG)
-	add_child(margin)
+	_density_root.add_child(margin)
 
 	# Mobile/desktop shape decided here now (matches _apply_responsive_
 	# layout()'s own formula for a live transition) instead of always
@@ -484,7 +486,7 @@ func _custom_color_swatch(key: String, accessible_name: String) -> Button:
 	picker.color_changed.connect(func(color: Color) -> void: _set_option(key, color))
 	picker_center.add_child(picker)
 	popup.add_child(picker_center)
-	add_child(popup)
+	_density_root.add_child(popup)
 	# Popup windows report both an outside press and a system close action via
 	# close_requested; Window does not hide itself automatically.
 	popup.close_requested.connect(popup.hide)
@@ -755,7 +757,7 @@ func _mobile_preview_height() -> float:
 	# The camera now removes the former top/bottom dead space, so the preview
 	# only needs roughly the upper third of the stacked editor to show the
 	# figure at the same useful scale.
-	return maxf(240.0, get_viewport().get_visible_rect().size.y * 0.32)
+	return maxf(240.0, UIKit.logical_viewport_size(self).y * 0.32)
 
 ## Scales a float size by MOBILE_SCALE when _mobile, otherwise a no-op --
 ## the one place that ratio is actually applied, so every call site below
