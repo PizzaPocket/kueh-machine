@@ -505,6 +505,7 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 		_part(dining, Vector3(0.12, 0.36, 0.12), table_edge.darkened(0.28), Vector3(table_position.x, 0.38, table_position.z), "WallDiningTableStem")
 		for stool_z_offset in [-0.67, 0.67]:
 			_part(dining, Vector3(0.30, 0.28, 0.30), stool_color, Vector3(table_position.x + stool_side * 0.83, 0.30, table_position.z + stool_z_offset), "TuckedDiningStool")
+	_build_restaurant_kueh_paintings(dining)
 	# The rear half reads immediately as a separate washable kitchen zone.
 	var tile_size := 0.48
 	for tile_x in range(8):
@@ -523,6 +524,8 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	var stainless := Color("b9bec0")
 	var stainless_dark := Color("747b7e")
 	var stainless_light := Color("e4e7e6")
+	var warm_shelf := Color("c49568")
+	var warm_bracket := Color("805a40")
 	var counter_top_y := 1.27
 	for counter_x in [1.80, 6.20]:
 		_part(dining, Vector3(1.70, 0.61, 0.55), stainless, Vector3(counter_x, 0.61, -12.45), "CommercialBaseCabinet")
@@ -543,14 +546,40 @@ static func _build_restaurant_furnishings(root: Node3D) -> void:
 	# Open wall shelves keep equipment visible without adding floor obstacles.
 	for shelf_x in [1.75, 6.25]:
 		for shelf_y in [2.48, 3.08]:
-			_part(dining, Vector3(1.30, 0.055, 0.34), stainless_light, Vector3(shelf_x, shelf_y, -12.53), "StainlessWallShelf", 0.72, 0.20)
-			_part(dining, Vector3(0.06, 0.30, 0.06), stainless_dark, Vector3(shelf_x - 1.05, shelf_y - 0.25, -12.72), "ShelfBracket", 0.62, 0.26)
-			_part(dining, Vector3(0.06, 0.30, 0.06), stainless_dark, Vector3(shelf_x + 1.05, shelf_y - 0.25, -12.72), "ShelfBracket", 0.62, 0.26)
+			_part(dining, Vector3(1.30, 0.055, 0.34), warm_shelf, Vector3(shelf_x, shelf_y, -12.53), "WarmWallShelf", 0.42, 0.30)
+			_part(dining, Vector3(0.06, 0.30, 0.06), warm_bracket, Vector3(shelf_x - 1.05, shelf_y - 0.25, -12.72), "WarmShelfBracket", 0.30, 0.34)
+			_part(dining, Vector3(0.06, 0.30, 0.06), warm_bracket, Vector3(shelf_x + 1.05, shelf_y - 0.25, -12.72), "WarmShelfBracket", 0.30, 0.34)
 	# A compact sink occupies the right-hand run, with the rim level kept at the
 	# same continuous worktop datum.
 	_part(dining, Vector3(0.58, 0.025, 0.34), Color("596164"), Vector3(6.25, 1.335, -12.38), "InsetPrepSink", 0.62, 0.24)
 	_part(dining, Vector3(0.055, 0.34, 0.055), stainless_dark, Vector3(6.25, 1.66, -12.68), "SinkTapStem", 0.76, 0.18)
 	_part(dining, Vector3(0.18, 0.055, 0.055), stainless_dark, Vector3(6.25, 1.96, -12.53), "SinkTapSpout", 0.76, 0.18)
+
+## Two unframed canvases above the front dining tables borrow the exact lens
+## patterns from the new Kueh Lapis and Kueh Salat glasses. Their backing
+## boxes touch the eating-house wall skins, and every color band touches the
+## canvas face, so they read as mounted paintings rather than floating cards.
+static func _build_restaurant_kueh_paintings(parent: Node3D) -> void:
+	_restaurant_kueh_painting(parent, Vector3(0.20, 2.30, 1.45), 1.0, FigureGlasses.LAPIS_LENS_COLORS, "KuehLapisLensPainting")
+	_restaurant_kueh_painting(parent, Vector3(7.80, 2.30, 1.45), -1.0, FigureGlasses.SALAT_LENS_COLORS, "KuehSalatLensPainting")
+
+static func _restaurant_kueh_painting(parent: Node3D, wall_face: Vector3, outward_sign: float, colors: Array, painting_name: String) -> void:
+	var painting := Node3D.new()
+	painting.name = painting_name
+	parent.add_child(painting)
+	var half_width := 0.68
+	var half_height := 0.50
+	var backing_half_depth := 0.025
+	var backing_center_x := wall_face.x + outward_sign * backing_half_depth
+	_flat_part(painting, Vector3(backing_half_depth, half_height, half_width), Color("f8ead1"), Vector3(backing_center_x, wall_face.y, wall_face.z), "CanvasBacking", 0.76)
+
+	var band_height := (half_height * 2.0) / float(colors.size())
+	var canvas_front_x := wall_face.x + outward_sign * backing_half_depth * 2.0
+	var band_half_depth := 0.004
+	var band_center_x := canvas_front_x + outward_sign * band_half_depth
+	for band_index in range(colors.size()):
+		var band_y := wall_face.y + half_height - band_height * (float(band_index) + 0.5)
+		_flat_part(painting, Vector3(band_half_depth, band_height * 0.5, half_width), colors[band_index], Vector3(band_center_x, band_y, wall_face.z), "LensPatternBand%d" % band_index, 0.66)
 
 ## Five small blank recipe slips connect the kitchen to Taste of Home's
 ## paper-and-masking-tape interface without turning the backsplash into a
