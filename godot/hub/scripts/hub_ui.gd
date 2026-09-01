@@ -221,7 +221,7 @@ func _squircle_style(color: Color, size: float) -> SuperellipseStyleBox:
 func _joystick_ring_style(size: float) -> SuperellipseStyleBox:
 	var style := SuperellipseStyleBox.new()
 	style.bg_color = Color.TRANSPARENT
-	style.border_color = Color(0.16, 0.11, 0.07, 0.48)
+	style.border_color = Color(0.16, 0.11, 0.07, 0.32)
 	style.border_width = size * JOYSTICK_RING_STROKE_RATIO
 	style.corner_radius = size
 	style.corner_ratio = CONTROL_CORNER_RATIO
