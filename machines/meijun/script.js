@@ -122,6 +122,7 @@ function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep 
 /* ---------- Seed recipes ---------- */
 
 const SEED_FLAG = 'tasteOfHome.seededRecipes.v1';
+const MEDIA_CACHE_CONCURRENCY = 3;
 
 function canFetchLocalFiles() {
   return location.protocol === 'http:' || location.protocol === 'https:';
@@ -136,41 +137,62 @@ async function seedRecipesIfNeeded() {
 
   for (const recipe of SEED_RECIPES) {
     if (existingIds.has(recipe.id)) continue;
-
-    const media = [];
-    for (const item of recipe.media || []) {
-      const entry = {
-        id: item.id,
-        type: item.type,
-        name: item.name,
-        description: item.description || '',
-        /* Kept so the file can still be shown straight from ./media/ if it
-           was never read into a blob. */
-        src: item.src,
-        /* A still frame for videos, made when the project was built. */
-        ...(item.poster ? { poster: item.poster } : {}),
-      };
-
-      /* Opened straight off the filesystem, fetch is blocked outright, so
-         don't attempt it: the file still displays from its path, and only
-         sharing needs the blob. */
-      if (canFetchLocalFiles()) {
-        try {
-          const response = await fetch(item.src);
-          if (!response.ok) throw new Error(response.status);
-          entry.blob = await response.blob();
-        } catch {
-          console.warn('Showing seed media from its file path:', item.src);
-        }
-      }
-
-      media.push(entry);
-    }
-
-    await dbPut('recipes', { ...recipe, media });
+    /* File paths are enough to show every built-in recipe. Offline copies are
+       filled in later, after the cards are already usable. */
+    await dbPut('recipes', recipe);
   }
 
   localStorage.setItem(SEED_FLAG, '1');
+}
+
+async function cacheSeedMediaInBackground() {
+  if (!canFetchLocalFiles() || typeof SEED_RECIPES === 'undefined') return;
+
+  const jobs = [];
+  for (const seedRecipe of SEED_RECIPES) {
+    const storedRecipe = await dbGet('recipes', seedRecipe.id);
+    if (!storedRecipe) continue;
+    if ((storedRecipe.media || []).some((item) => !item.blob && item.src)) jobs.push(seedRecipe.id);
+  }
+
+  let nextJob = 0;
+  async function worker() {
+    while (nextJob < jobs.length) {
+      const recipeId = jobs[nextJob++];
+      const recipe = await dbGet('recipes', recipeId);
+      if (!recipe) continue;
+
+      const media = [];
+      for (const item of recipe.media || []) {
+        if (item.blob || !item.src) {
+          media.push(item);
+          continue;
+        }
+        try {
+          const response = await fetch(item.src);
+          if (!response.ok) throw new Error(response.status);
+          media.push({ ...item, blob: await response.blob() });
+        } catch {
+          console.warn('Could not cache seed media for offline use:', item.src);
+          media.push(item);
+        }
+      }
+      await dbPut('recipes', { ...recipe, media });
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(MEDIA_CACHE_CONCURRENCY, jobs.length) }, worker));
+}
+
+function scheduleSeedMediaCache() {
+  const start = () => cacheSeedMediaInBackground().catch((error) =>
+    console.warn('Could not finish caching seed media:', error)
+  );
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(start, { timeout: 3000 });
+  } else {
+    setTimeout(start, 1000);
+  }
 }
 
 /* ---------- Glossary ---------- */
@@ -892,6 +914,14 @@ function blobToDataURL(blob) {
   });
 }
 
+async function mediaToDataURL(item) {
+  if (item.blob) return blobToDataURL(item.blob);
+  if (!item.src) return null;
+  const response = await fetch(item.src);
+  if (!response.ok) throw new Error(`Could not include ${item.src} in the backup`);
+  return blobToDataURL(await response.blob());
+}
+
 async function exportBackup() {
   const recipes = await dbGetAll('recipes');
   const glossary = await dbGetAll('glossary');
@@ -905,7 +935,7 @@ async function exportBackup() {
           type: m.type,
           name: m.name,
           description: m.description || '',
-          dataUrl: await blobToDataURL(m.blob),
+          dataUrl: await mediaToDataURL(m),
         }))
       ),
     }))
@@ -1090,6 +1120,13 @@ async function thumbBlobFor(item) {
   }
 }
 
+function builtInThumbSrc(item) {
+  if (item.thumb) return item.thumb;
+  if (!item.src || item.type !== 'image') return null;
+  const match = item.src.match(/^\.\/media\/([^/]+)\.(?:jpe?g|png|webp)$/i);
+  return match ? `./media/thumbs/${match[1]}.webp` : null;
+}
+
 function mediaTypeOf(file) {
   if (file.type.startsWith('video')) return 'video';
   if (file.type.startsWith('audio')) return 'audio';
@@ -1109,16 +1146,19 @@ async function mediaTag(item, alt, { playable = false } = {}) {
       return `<video src="${mediaSrc(item)}" controls playsinline preload="metadata"></video>`;
     }
 
-    const frame = await thumbBlobFor(item);
-    const still = frame ? mediaUrl(frame) : item.poster;
+    /* Built-in videos already ship with a poster. Do not download and decode
+       the full recording just to make a card-sized still. */
+    const frame = item.poster ? null : await thumbBlobFor(item);
+    const still = item.poster || (frame ? mediaUrl(frame) : null);
     const inner = still
       ? `<img src="${still}" alt="${alt}" loading="lazy" decoding="async">`
       : `<video src="${mediaSrc(item)}" muted playsinline preload="metadata"></video>`;
     return `<span class="thumb-wrap">${inner}<span class="play-badge">▶</span></span>`;
   }
 
-  const thumb = await thumbBlobFor(item);
-  const url = thumb ? mediaUrl(thumb) : item.src;
+  const builtInThumb = builtInThumbSrc(item);
+  const thumb = builtInThumb ? null : await thumbBlobFor(item);
+  const url = builtInThumb || (thumb ? mediaUrl(thumb) : item.src);
   return `<img src="${url}" alt="${alt}" loading="lazy" decoding="async">`;
 }
 
@@ -1152,9 +1192,15 @@ async function renderRecipes() {
     recipes = await ensureRecipeOrder(recipes);
     recipes.sort((a, b) => a.order - b.order);
 
-    const built = await Promise.all(recipes.map((recipe, index) => buildRecipeCard(recipe, index, recipes.length)));
-    grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
-    built.forEach((card) => grid.appendChild(card));
+    /* Reveal each card as soon as it is ready instead of making the first one
+       wait for the slowest media item in the collection. */
+    for (const [index, recipe] of recipes.entries()) {
+      const card = await buildRecipeCard(recipe, index, recipes.length);
+      if (index === 0) grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
+      grid.appendChild(card);
+      if (index < recipes.length - 1) await new Promise(requestAnimationFrame);
+    }
+    if (!recipes.length) grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
   } catch (error) {
     console.error('Could not render recipe cards:', error);
     grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
@@ -1638,6 +1684,7 @@ async function init() {
   setupVoiceInput();
   setupBackup();
   await renderRecipes();
+  scheduleSeedMediaCache();
 }
 
 document.addEventListener('DOMContentLoaded', init);

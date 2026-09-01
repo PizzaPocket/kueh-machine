@@ -23,6 +23,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEDIA_DIR = os.path.join(ROOT, 'media')
+THUMB_DIR = os.path.join(MEDIA_DIR, 'thumbs')
 SEED_FILE = os.path.join(ROOT, 'recipes-seed.js')
 
 IMAGE_EXT = {'image/png': 'png', 'image/jpeg': 'jpg', 'image/heic': 'heic', 'image/webp': 'webp'}
@@ -79,6 +80,7 @@ def main():
     if os.path.isdir(MEDIA_DIR):
         shutil.rmtree(MEDIA_DIR)
     os.makedirs(MEDIA_DIR)
+    os.makedirs(THUMB_DIR)
 
     recipes = sorted(data['recipes'], key=lambda r: r.get('order', 0))
 
@@ -121,6 +123,18 @@ def main():
                     check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
                 os.remove(raw_path)
+                thumb_name = f'{name}-{index}.webp'
+                thumb_source = os.path.join(MEDIA_DIR, f'.thumb-{name}-{index}.jpg')
+                subprocess.run(
+                    ['sips', '-Z', '480', os.path.join(MEDIA_DIR, final_name), '--out', thumb_source],
+                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                )
+                subprocess.run(
+                    ['cwebp', '-quiet', '-q', '80', thumb_source,
+                     '-o', os.path.join(THUMB_DIR, thumb_name)],
+                    check=True,
+                )
+                os.remove(thumb_source)
 
             media_out.append({
                 **({'poster': f'./media/{poster}'} if poster else {}),
@@ -165,7 +179,9 @@ const SEED_RECIPES = """
 
     total_media = sum(len(r['media']) for r in out)
     size_mb = sum(
-        os.path.getsize(os.path.join(MEDIA_DIR, n)) for n in os.listdir(MEDIA_DIR)
+        os.path.getsize(os.path.join(folder, filename))
+        for folder, _, filenames in os.walk(MEDIA_DIR)
+        for filename in filenames
     ) / 1024 / 1024
 
     print(f'{len(out)} recipes, {len(glossary)} glossary entries, {total_media} media files ({size_mb:.1f} MB)')
