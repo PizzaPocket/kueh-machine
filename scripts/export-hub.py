@@ -233,7 +233,7 @@ LOADER_CSS = """
 
 /* The loader and in-game joystick share one proportional construction:
    transparent outer, a 48%-opacity dark ring 5.13% of the control size,
-   a 43.6%-sized light knob, and 34% squircle curves on both layers. These
+   a 43.6%-sized light knob, and 34% circular corner curves on both layers. These
    ratios are mirrored by hub_ui.gd so phone/tablet scaling cannot change
    the relationship between stroke, knob, and corners. */
 .loader-joystick {
@@ -243,7 +243,6 @@ LOADER_CSS = """
 	box-sizing: border-box;
 	border: 8px solid rgba(41, 28, 18, 0.48);
 	border-radius: 34%;
-	corner-shape: squircle;
 	background: transparent;
 }
 
@@ -255,7 +254,6 @@ LOADER_CSS = """
 	width: 68px;
 	height: 68px;
 	border-radius: 34%;
-	corner-shape: squircle;
 	background: rgba(247, 237, 217, 0.90);
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
 	/* A gentle, looping drift within the outer ring -- per direct

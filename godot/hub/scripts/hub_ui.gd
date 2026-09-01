@@ -193,7 +193,7 @@ func _build_mobile_controls() -> void:
 	_joystick_knob.anchor_right = 0.5
 	_joystick_knob.anchor_top = 0.5
 	_joystick_knob.anchor_bottom = 0.5
-	_joystick_knob.add_theme_stylebox_override("panel", _squircle_style(Color(0.97, 0.93, 0.85, 0.90), _joystick_knob_size))
+	_joystick_knob.add_theme_stylebox_override("panel", _joystick_knob_style(_joystick_knob_size))
 	_set_joystick_knob_offset(Vector2.ZERO)
 	_joystick_outer.add_child(_joystick_knob)
 
@@ -225,7 +225,13 @@ func _joystick_ring_style(size: float) -> SuperellipseStyleBox:
 	style.border_width = size * JOYSTICK_RING_STROKE_RATIO
 	style.corner_radius = size
 	style.corner_ratio = CONTROL_CORNER_RATIO
-	style.exponent = 4.0
+	# Match CSS border-radius's circular curve on the loading-screen hint.
+	style.exponent = 2.0
+	return style
+
+func _joystick_knob_style(size: float) -> SuperellipseStyleBox:
+	var style := _squircle_style(Color(0.97, 0.93, 0.85, 0.90), size)
+	style.exponent = 2.0
 	return style
 
 func _desktop_hint_key_style(size: float) -> SuperellipseStyleBox:
