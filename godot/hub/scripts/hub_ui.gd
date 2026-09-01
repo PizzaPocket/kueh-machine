@@ -19,6 +19,9 @@ const MOBILE_CONTROL_MARGIN := 54.0
 const MOBILE_ACTION_GAP := 24.0
 const TABLET_CONTROL_SCALE := 1.25
 const TABLET_MARGIN_SCALE := 2.0
+const CONTROL_CORNER_RATIO := 0.34
+const JOYSTICK_RING_STROKE_RATIO := 0.0513
+const DESKTOP_HINT_KEY_CORNER_RATIO := 10.0 / 38.0
 var _joystick_outer_size := JOYSTICK_OUTER_SIZE
 var _joystick_knob_size := JOYSTICK_KNOB_SIZE
 # Maps each mobile action button (or desktop hint key) to the input action it
@@ -134,6 +137,7 @@ func _build_movement_hint() -> void:
 func _build_desktop_movement_hint() -> void:
 	var key_size := 78.0
 	var row_separation := 10
+	var key_font_size := 32
 	_movement_hint = VBoxContainer.new()
 	_movement_hint.name = "InitialMovementHint"
 	(_movement_hint as VBoxContainer).add_theme_constant_override("separation", row_separation)
@@ -150,15 +154,15 @@ func _build_desktop_movement_hint() -> void:
 	var top_row := CenterContainer.new()
 	top_row.custom_minimum_size.x = key_size * 3.0 + row_separation * 2.0
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top_row.add_child(_movement_key("W", "move_forward", key_size, UITheme.FONT_BODY))
+	top_row.add_child(_movement_key("W", "move_forward", key_size, key_font_size, true))
 	_movement_hint.add_child(top_row)
 
 	var bottom_row := HBoxContainer.new()
 	bottom_row.add_theme_constant_override("separation", row_separation)
 	bottom_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom_row.add_child(_movement_key("A", "move_left", key_size, UITheme.FONT_BODY))
-	bottom_row.add_child(_movement_key("S", "move_back", key_size, UITheme.FONT_BODY))
-	bottom_row.add_child(_movement_key("D", "move_right", key_size, UITheme.FONT_BODY))
+	bottom_row.add_child(_movement_key("A", "move_left", key_size, key_font_size, true))
+	bottom_row.add_child(_movement_key("S", "move_back", key_size, key_font_size, true))
+	bottom_row.add_child(_movement_key("D", "move_right", key_size, key_font_size, true))
 	_movement_hint.add_child(bottom_row)
 
 func _build_mobile_controls() -> void:
@@ -178,7 +182,7 @@ func _build_mobile_controls() -> void:
 	_joystick_outer.name = "MovementJoystickOuter"
 	_joystick_outer.custom_minimum_size = Vector2.ONE * _joystick_outer_size
 	_joystick_outer.mouse_filter = Control.MOUSE_FILTER_STOP
-	_joystick_outer.add_theme_stylebox_override("panel", _squircle_style(Color(0.16, 0.11, 0.07, 0.48), _joystick_outer_size))
+	_joystick_outer.add_theme_stylebox_override("panel", _joystick_ring_style(_joystick_outer_size))
 	UIKit.anchor_to_edge(_joystick_outer, 0.0, 1.0, control_margin, control_margin)
 	_movement_hint.add_child(_joystick_outer)
 
@@ -208,13 +212,33 @@ func _squircle_style(color: Color, size: float) -> SuperellipseStyleBox:
 	var style := SuperellipseStyleBox.new()
 	style.bg_color = color
 	style.corner_radius = size
-	style.corner_ratio = 0.34
+	style.corner_ratio = CONTROL_CORNER_RATIO
 	style.exponent = 4.0
 	style.shadow_size = 5
 	style.shadow_color = Color(0, 0, 0, 0.22)
 	return style
 
-func _movement_key(letter: String, action: String, key_size: float, font_size: int) -> PanelContainer:
+func _joystick_ring_style(size: float) -> SuperellipseStyleBox:
+	var style := SuperellipseStyleBox.new()
+	style.bg_color = Color.TRANSPARENT
+	style.border_color = Color(0.16, 0.11, 0.07, 0.48)
+	style.border_width = size * JOYSTICK_RING_STROKE_RATIO
+	style.corner_radius = size
+	style.corner_ratio = CONTROL_CORNER_RATIO
+	style.exponent = 4.0
+	return style
+
+func _desktop_hint_key_style(size: float) -> SuperellipseStyleBox:
+	var style := SuperellipseStyleBox.new()
+	style.bg_color = Color("f4f2ed")
+	style.border_color = Color("aaa59c")
+	style.border_width = 2.0
+	style.corner_radius = size
+	style.corner_ratio = DESKTOP_HINT_KEY_CORNER_RATIO
+	style.exponent = 4.0
+	return style
+
+func _movement_key(letter: String, action: String, key_size: float, font_size: int, desktop_hint_style := false) -> PanelContainer:
 	var key := PanelContainer.new()
 	key.custom_minimum_size = Vector2(key_size, key_size)
 	# STOP (not the surrounding rows' IGNORE) so this panel's own
@@ -226,13 +250,13 @@ func _movement_key(letter: String, action: String, key_size: float, font_size: i
 	# forward+strafe held together for a diagonal).
 	key.mouse_filter = Control.MOUSE_FILTER_STOP
 	_key_actions[key] = action
-	key.add_theme_stylebox_override("panel", _squircle_style(Color(0.16, 0.11, 0.07, 0.64), key_size))
+	key.add_theme_stylebox_override("panel", _desktop_hint_key_style(key_size) if desktop_hint_style else _squircle_style(Color(0.16, 0.11, 0.07, 0.64), key_size))
 	var label := Label.new()
 	label.text = letter
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.85, 0.92))
+	label.add_theme_color_override("font_color", Color("171311") if desktop_hint_style else Color(0.97, 0.93, 0.85, 0.92))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	key.add_child(label)
 	return key

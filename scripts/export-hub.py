@@ -190,7 +190,8 @@ LOADER_CSS = """
 .key {
 	width: 38px;
 	height: 38px;
-	border-radius: 10px;
+	border-radius: 26.3158%;
+	corner-shape: squircle;
 }
 
 .space-key {
@@ -228,25 +229,20 @@ LOADER_CSS = """
 	gap: 24px;
 }
 
-/* Reconciled with the real in-game joystick's own colors/shape/shadow
-   (hub_ui.gd's _squircle_style(): outer Color(0.16,0.11,0.07,0.48), knob
-   Color(0.97,0.93,0.85,0.90), corner_ratio 0.34, shadow_size 5 @ 22%
-   black) -- this tooltip previously had the light/dark relationship
-   backwards (light outer ring, near-black knob) instead of the real
-   widget's dark ring with a light knob. Solid hex approximations below are
-   those same colors alpha-composited over this loading screen's own white
-   background, not just guessed. Border dropped in favor of the shadow
-   alone, matching the real widget having no separate stroke.
-   corner-shape/border-radius: 34% already matched corner_ratio -- left
-   alone. */
+/* The loader and in-game joystick share one proportional construction:
+   transparent outer, a 48%-opacity dark ring 5.13% of the control size,
+   a 43.6%-sized light knob, and 34% squircle curves on both layers. These
+   ratios are mirrored by hub_ui.gd so phone/tablet scaling cannot change
+   the relationship between stroke, knob, and corners. */
 .loader-joystick {
 	position: relative;
 	width: 156px;
 	height: 156px;
+	box-sizing: border-box;
+	border: 8px solid rgba(41, 28, 18, 0.48);
 	border-radius: 34%;
 	corner-shape: squircle;
-	background: #98928d;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
+	background: transparent;
 }
 
 .loader-joystick::after {
@@ -258,7 +254,8 @@ LOADER_CSS = """
 	height: 68px;
 	border-radius: 34%;
 	corner-shape: squircle;
-	background: #f8efdd;
+	background: rgba(247, 237, 217, 0.90);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22);
 	/* A gentle, looping drift within the outer ring -- per direct
 	   instruction, hints the knob is draggable rather than sitting
 	   perfectly still and reading as a fixed icon. The forward/back drift
