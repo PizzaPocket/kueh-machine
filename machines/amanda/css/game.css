@@ -165,9 +165,14 @@ button:focus-visible,
   top: 15px;
   right: var(--account-safe-right);
   background: rgba(255, 255, 255, 0.85);
-  font-size: 1.5rem;
-  line-height: 1;
   z-index: 1;
+}
+
+.hero-settings-icon {
+  display: block;
+  width: 26px;
+  height: 26px;
+  flex: none;
 }
 
 .hero-cta-stack {

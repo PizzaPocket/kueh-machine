@@ -6,6 +6,14 @@
 window.KG = window.KG || {};
 
 (function () {
+  // Lucide Settings icon, inlined so it inherits the button's currentColor
+  // and never falls back to a platform-specific emoji glyph.
+  const SETTINGS_ICON_SVG = `
+    <svg class="hero-settings-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.5a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>`;
+
   const state = {
     current: {
       screen: "title",
@@ -54,7 +62,7 @@ window.KG = window.KG || {};
         </div>
         ${window.KG.cafeMenu.renderHotspots()}
         ${window.KG.cafeMenu.renderMobileNav()}
-        <button type="button" class="icon-btn hero-settings-btn" data-action="open-settings" aria-label="Open settings">⚙</button>
+        <button type="button" class="icon-btn hero-settings-btn" data-action="open-settings" aria-label="Open settings">${SETTINGS_ICON_SVG}</button>
         <div class="hero-cta-stack">
           <button type="button" class="hero-cta" data-action="${ctaAction}">
             <span class="cta-star star-1" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L22 9.2l-5.4 4.7L18.2 21 12 17.3 5.8 21l1.6-7.1L2 9.2l7.4-.6z" fill="#F6C445" stroke="#3D2B1F" stroke-width="2.2" stroke-linejoin="round"/></svg></span>
