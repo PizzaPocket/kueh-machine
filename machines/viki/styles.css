@@ -352,6 +352,7 @@ h1, h2 { font-family: var(--serif); font-weight: 400; }
   mask-image: linear-gradient(270deg, transparent 0, black 12%);
   -webkit-mask-image: linear-gradient(270deg, transparent 0, black 12%);
 }
+.belt-side--mobile { display: none; }
 
 .belt-lane {
   display: flex;
@@ -1612,15 +1613,23 @@ h1, h2 { font-family: var(--serif); font-weight: 400; }
      the hero moves the entire bottom-anchored conveyor (belt, rail and legs)
      together; offsetting only the machine keeps it in its established spot. */
   .hero {
-    height: calc(100svh + 56px);
+    height: calc(100svh + 80px);
     padding-top: 90px;
+  }
+  .belt-side--left, .belt-side--right { display: none; }
+  .belt-side--mobile {
+    display: block;
+    left: 0;
+    width: 100%;
+    mask-image: linear-gradient(90deg, transparent 0, black 8%, black 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, black 8%, black 92%, transparent 100%);
   }
   .belt { bottom: 50px; height: 96px; }
   .belt-slot { min-width: 104px; }
   .belt-kueh { width: 100px; }
   /* Keep the machine narrow enough that the conveyor still reads either side. */
   .machine {
-    top: -56px;
+    top: -80px;
     width: min(300px, 72vw);
   }
   .interior-body { padding: 14px; }

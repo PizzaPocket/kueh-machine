@@ -1174,7 +1174,7 @@
     hero: document.querySelector('.hero'),
     machine: $('machine'), machineBody: $('machine-body'), steam: $('steam'),
     hopperHint: $('hopper-hint'), rail: $('belt-rail'),
-    beltLeft: $('belt-left'), beltRight: $('belt-right'),
+    beltLeft: $('belt-left'), beltRight: $('belt-right'), beltMobile: $('belt-mobile'),
     statusLabel: $('status-label'), statusLabel2: $('status-label-2'),
     readout: $('readout'), readout2: $('readout-2'),
     modify: $('modify'), runChamber: $('run-chamber'),
@@ -1495,9 +1495,8 @@
   }
 
   function buildBelt() {
-    // Two full cycles per lane so the -50% loop is seamless.
-    [el.beltLeft, el.beltRight].forEach(function (lane, laneIndex) {
-      const shapes = laneShapes(laneIndex);
+    function fillLane(lane, shapes) {
+      // Two full cycles per lane so the -50% loop is seamless.
       for (let cycle = 0; cycle < 2; cycle++) {
         shapes.forEach(function (b) {
           const slot = document.createElement('div');
@@ -1517,7 +1516,14 @@
           lane.appendChild(slot);
         });
       }
-    });
+    }
+
+    // The desktop steamer conceals the join between two deliberately distinct
+    // half-belts. Mobile exposes the belt below it, so it gets one uninterrupted
+    // lane containing the complete sequence instead of revealing that join.
+    fillLane(el.beltLeft, laneShapes(0));
+    fillLane(el.beltRight, laneShapes(1));
+    fillLane(el.beltMobile, BELT_SHAPES);
   }
 
   function buildCards(container, dict, kind, key, swatchClass) {
