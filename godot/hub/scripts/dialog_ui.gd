@@ -11,9 +11,9 @@ extends CanvasLayer
 ## separate player-response window. UIState then owns gameplay input so the
 ## same stick/D-pad and X action used elsewhere can navigate and answer.
 
-# 6.0, not the original 3.5 -- per direct correction, villager lines were
-# disappearing before there was time to actually read them.
-const AUTO_DISMISS_TIME := 6.0
+# Five seconds keeps passive chatter readable without making it trail the
+# player after they have already moved on to the next nearby interaction.
+const AUTO_DISMISS_TIME := 5.0
 
 ## Godot has no declarative CSS-style media query, but the equivalent is this
 ## straightforward: check the viewport's own width at runtime (and again on
@@ -39,6 +39,16 @@ const NPC_PANEL_ANCHOR_V_MOBILE := 0.10
 const NPC_PANEL_WIDTH_DESKTOP := 840.0
 const RESPONSE_PANEL_WIDTH_DESKTOP := 600.0
 const MOBILE_SIDE_MARGIN := 24.0
+## Passive dialogue and HubUI's bottom action prompt can coexist. Reserve the
+## prompt's bottom inset, its single-line panel height, and one full spacing
+## unit between them instead of hoping two unrelated percentage anchors do not
+## overlap at a particular widescreen height.
+const PASSIVE_PANEL_BOTTOM_MARGIN_DESKTOP := (
+	UITheme.SPACE_XL * 2.0
+	+ UITheme.SPACE_MD * 2.0
+	+ UITheme.FONT_BUTTON
+	+ UITheme.SPACE_MD
+)
 ## Real touch targets, per direct correction that the response options
 ## weren't large enough to comfortably tap -- bumped well past
 ## BUTTON_MIN_HEIGHT/FONT_BODY's own already-touch-friendly desktop values.
@@ -173,8 +183,12 @@ func _update_responsive_layout() -> void:
 	var viewport_width := UIKit.logical_viewport_size(self).x
 	var capped_width := viewport_width - MOBILE_SIDE_MARGIN * 2.0
 
-	var target_v := NPC_PANEL_ANCHOR_V_MOBILE if is_mobile else NPC_PANEL_ANCHOR_V_DESKTOP
-	UIKit.anchor_to_edge(_panel, 0.5, target_v, 0.0, 0.0)
+	if is_mobile:
+		UIKit.anchor_to_edge(_panel, 0.5, NPC_PANEL_ANCHOR_V_MOBILE, 0.0, 0.0)
+	elif _is_modal:
+		UIKit.anchor_to_edge(_panel, 0.5, NPC_PANEL_ANCHOR_V_DESKTOP, 0.0, 0.0)
+	else:
+		UIKit.anchor_to_edge(_panel, 0.5, 1.0, 0.0, PASSIVE_PANEL_BOTTOM_MARGIN_DESKTOP)
 	_panel.custom_minimum_size.x = minf(NPC_PANEL_WIDTH_DESKTOP, capped_width)
 
 	if is_mobile:
@@ -221,6 +235,7 @@ func show_line(
 	# that prompt above the caption if their bounds meet; response-based dialog
 	# remains the topmost, input-owning surface.
 	layer = 30 if _is_modal else 15
+	_update_responsive_layout()
 	if _is_modal:
 		for action in actions:
 			_add_response(action["label"], action["callback"])
