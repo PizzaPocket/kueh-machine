@@ -1067,6 +1067,7 @@
     // the field silently doing nothing.
     + '.field-status { margin-top: 6px; font-size: var(--ka-fs-label); color: var(--ka-color-text-on-surface-muted); }'
     + '.field-status-error { color: var(--ka-color-danger); font-weight: var(--ka-fw-medium); }'
+    + '.account-action-row .field-status:empty { display: none; }'
     + '.field-help { margin-top: 4px; font-size: var(--ka-fs-label); color: var(--ka-color-text-on-surface-muted); }'
     + '.field-help-danger { color: var(--ka-color-danger); }'
     // Same shape/weight/size as .btn — only the color changes, so a
@@ -1953,6 +1954,22 @@
     hubRow.href = '/hub/';
     siteLinks.appendChild(hubRow);
 
+    accountActions.forEach(function (action) {
+      if (!action.signedOutMessage) return;
+
+      var actionContainer = el('div', 'acct-row account-action-row');
+      var actionRow = el('div', 'row-link', '<span>' + escapeHtml(action.label) + '</span>' + (ICON_FORWARD_SVG || FALLBACK_FORWARD_SVG));
+      var actionError = el('div', 'field-status field-status-error', '');
+      actionError.setAttribute('role', 'status');
+      actionError.setAttribute('aria-live', 'polite');
+      makeButtonLike(actionRow, function () {
+        actionError.textContent = action.signedOutMessage;
+      });
+      actionContainer.appendChild(actionRow);
+      actionContainer.appendChild(actionError);
+      siteLinks.appendChild(actionContainer);
+    });
+
     function showError(msg) { errEl.textContent = msg; }
   }
 
@@ -2363,10 +2380,15 @@
         if (idx !== -1) profileListeners.splice(idx, 1);
       };
     },
-    registerAccountAction: function (id, label, onActivate) {
+    registerAccountAction: function (id, label, onActivate, options) {
       accountActions = accountActions.filter(function (action) { return action.id !== id; });
-      accountActions.push({ id: id, label: label, onActivate: onActivate });
-      if (currentSession && panelEl && panelEl.classList.contains('open')) renderPanel();
+      accountActions.push({
+        id: id,
+        label: label,
+        onActivate: onActivate,
+        signedOutMessage: options && options.signedOutMessage ? options.signedOutMessage : '',
+      });
+      if (panelEl && panelEl.classList.contains('open')) renderPanel();
       return function () {
         accountActions = accountActions.filter(function (action) { return action.id !== id; });
       };

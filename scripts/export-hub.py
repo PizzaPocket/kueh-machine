@@ -455,7 +455,7 @@ def main() -> None:
     html = replace_once(html, START, BRIDGE, "engine start")
     html = replace_once(html, PROGRESS_CALLBACK, WHOLE_LAUNCH_PROGRESS, "whole-launch progress")
     html = replace_once(html, END, BRIDGED_END, "engine completion")
-    HTML.write_text(html)
+    HTML.write_text(html.rstrip() + "\n")
     print(f"Exported Hub with character bridge: {HTML}")
 
 

@@ -217,6 +217,10 @@ func show_line(
 
 	var was_modal := _is_modal
 	_is_modal = not actions.is_empty()
+	# Passive speech shares the screen with the HubUI interaction prompt. Keep
+	# that prompt above the caption if their bounds meet; response-based dialog
+	# remains the topmost, input-owning surface.
+	layer = 30 if _is_modal else 15
 	if _is_modal:
 		for action in actions:
 			_add_response(action["label"], action["callback"])
@@ -274,17 +278,6 @@ func _add_response(text: String, callback: Callable) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _is_modal and _panel.visible and event.is_action_pressed("interact"):
-		# As with response dialogs, do not let the F press that opened this line
-		# immediately close it later in the same input dispatch.
-		if Engine.get_process_frames() == _opened_on_process_frame:
-			get_viewport().set_input_as_handled()
-			return
-		if event is InputEventKey and event.echo:
-			return
-		_on_dismiss_pressed()
-		get_viewport().set_input_as_handled()
-		return
 	# Tap/click the dialog itself to dismiss early instead of waiting out
 	# AUTO_DISMISS_TIME, per direct instruction. Routed through
 	# _unhandled_input (checking the event's own position against _panel's

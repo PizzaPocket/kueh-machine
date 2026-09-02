@@ -125,7 +125,7 @@
           window.kuehCharacterEditorRequested = true;
           window.dispatchEvent(new CustomEvent('kueh-edit-character', { detail: getState() }));
         });
-      });
+      }, { signedOutMessage: 'Sign up or log in to edit character' });
     }
   };
 

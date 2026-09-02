@@ -10,8 +10,8 @@ const MACHINE_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/machine_syne_
 ## Azri's own entry dropped per direct instruction -- his line now falls
 ## straight through to the same ambient, non-modal auto-dismiss every
 ## ambient_npc already uses (see _talk_to_nearby(): an empty actions array
-## sets _ambient_dialog_active instead of locking player input for a
-## response). Each remaining entry is a list, not a single string -- Kevin's
+## leaves traversal and other world interactions available). Each remaining
+## entry is a list, not a single string -- Kevin's
 ## own single response left him with exactly one option and nothing else,
 ## which per direct correction should never happen (a conversation should
 ## always give the player somewhere to go); his second entry is the German
@@ -37,7 +37,6 @@ var _nearby: Node3D
 var _nearby_data: Dictionary = {}
 var _nearby_prompt := "Talk (F)"
 var _nearby_kind := "npc"
-var _ambient_dialog_active := false
 var _street_data: Dictionary = {}
 var _logo: Node3D
 var _logo_origin_y := 0.0
@@ -501,9 +500,6 @@ const FACING_BIAS_STRENGTH := 0.6
 func _update_nearby() -> void:
 	if _player == null or _ui == null or _player.input_locked:
 		return
-	if _ambient_dialog_active:
-		_ui.set_prompt(false)
-		return
 	var closest: Node3D = null
 	var closest_data: Dictionary = {}
 	var closest_prompt := "Talk (F)"
@@ -564,8 +560,12 @@ func _update_nearby() -> void:
 	_ui.set_prompt(_nearby != null, _nearby_prompt)
 
 func _talk_to_nearby() -> void:
-	if _nearby == null or _ambient_dialog_active:
+	if _nearby == null:
 		return
+	# Passive lines do not own interaction input. Replace whichever line is
+	# currently visible before opening this one so nearby conversations and
+	# display observations can flow naturally without ever stacking panels.
+	DialogUI.hide_dialog()
 	_ui.set_prompt(false)
 	var data := _nearby_data
 	var actions: Array[Dictionary] = []
@@ -621,15 +621,12 @@ func _talk_to_nearby() -> void:
 	var speaker_name := "Mirror Universe You" if bool(data.get("is_owner_doppelganger", false)) else String(data["name"])
 	# Modal response choices own player input; ambient Eleblorb-style chatter is
 	# purely informational and remains on screen while traversal continues.
-	if actions.is_empty():
-		_ambient_dialog_active = true
-	else:
+	if not actions.is_empty():
 		_player.input_locked = true
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	DialogUI.show_line(speaker_name, data["dialog"], actions, dismiss_label, _on_dialog_closed)
 
 func _on_dialog_closed() -> void:
-	_ambient_dialog_active = false
 	_player.input_locked = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
