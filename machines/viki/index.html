@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kueh Machine — build a kueh nobody's auntie has made yet</title>
   <meta name="description" content="Load the belt, pick your layers, filling and finish, and let the machine steam it into something suspiciously delicious.">
-  <link rel="stylesheet" href="./styles.css?v=mobile-belt-gap-3">
+  <link rel="stylesheet" href="./styles.css?v=mobile-instructions-1">
 </head>
 <body>
 
@@ -47,7 +47,7 @@
     <section class="hero">
       <div class="hero-eyebrow">Feed it &middot; fiddle with it &middot; out comes yours</div>
       <h1>Build a kueh nobody's auntie has made yet.</h1>
-      <p class="hero-sub">Drag a kueh off the belt, open the hatch, and fiddle with its layers, filling and finish until the machine steams out something suspiciously delicious.</p>
+      <p class="hero-sub"><span class="desktop-instruction">Drag a kueh off the belt</span><span class="mobile-instruction">Tap a kueh on the belt</span>, open the hatch, and fiddle with its layers, filling and finish until the machine steams out something suspiciously delicious.</p>
 
       <div class="stage">
 
@@ -135,7 +135,7 @@
 
           <div class="rack rack--left" id="rack-left">
             <div class="rack-group" id="filling-rack">
-              <div class="rack-label">Fillings &middot; drag in</div>
+              <div class="rack-label"><span class="desktop-instruction">Fillings &middot; drag in</span><span class="mobile-instruction">Fillings &middot; tap to add</span></div>
               <div class="rack-group" id="filling-cards"></div>
             </div>
             <div class="rack-group" id="finish-rack">
@@ -287,7 +287,7 @@
 
           <div class="rack rack--right" id="rack-right">
             <div class="rack-group" id="dye-rack">
-              <div class="rack-label">Dyes &middot; drag in</div>
+              <div class="rack-label"><span class="desktop-instruction">Dyes &middot; drag in</span><span class="mobile-instruction">Dyes &middot; tap to add</span></div>
               <div class="rack-group" id="dye-cards"></div>
             </div>
 
@@ -353,6 +353,6 @@
   <script src="/shared/account-widget.js"
           data-mode="docked" data-mount-into=".site-header"
           data-accent-color="#5f8c3f"></script>
-  <script src="./app.js?v=mobile-belt-gap-2"></script>
+  <script src="./app.js?v=mobile-instructions-1"></script>
 </body>
 </html>

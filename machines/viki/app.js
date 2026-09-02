@@ -1828,7 +1828,9 @@
     // Interior
     el.interior.hidden = !state.interior;
     el.chamber.classList.toggle('is-over', !!(state.over && state.dragging));
-    el.chamberHint.textContent = state.loaded ? state.loaded + ' in chamber' : 'drag ingredients in';
+    el.chamberHint.textContent = state.loaded
+      ? state.loaded + ' in chamber'
+      : (window.matchMedia('(max-width: 700px)').matches ? 'tap an ingredient to add it' : 'drag ingredients in');
     el.log.textContent = '';
     state.log.forEach(function (line) {
       const d = document.createElement('div');
