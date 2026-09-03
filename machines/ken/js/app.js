@@ -4,8 +4,8 @@
 const COLLECTION_KEY = "kueh-machine-collection";
 const STOP_MOTION_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8].map((frame) => `./Resources/images/optimized/Set 2/${frame}.webp`);
 const STOP_MOTION_SCALES = [0.4, 0.515, 0.63, 0.745, 0.855, 0.97, 1.085, 1.2];
-const STOP_MOTION_GLOW_MULTIPLIERS = [1, 1, 1.18, 1.28, 1.38, 1.48, 1.58, 1.68];
-const STOP_MOTION_GLOW_OPACITIES = [0.72, 0.72, 1, 1, 1, 1, 1, 1];
+const STOP_MOTION_GLOW_MULTIPLIERS = [1, 1, 1.18, 1.28, 1.55, 1.9, 2.3, 2.75];
+const STOP_MOTION_GLOW_OPACITIES = [0.72, 0.72, 0.9, 0.95, 1, 1, 1, 1];
 const STOP_MOTION_PRELOADS = STOP_MOTION_FRAMES.map((source) => {
   const image = new Image();
   image.src = source;
@@ -35,12 +35,11 @@ const SHOP_PRICES = {
 };
 const shopBag = {};
 const KUEH_MAKERS = [
-  { name: "Bengawan Solo", address: "1 Woodlands Link, Singapore 738730", website: "https://www.bengawansolo.com.sg/", image: "./Resources/images/makers/bengawan-solo.jpg" },
-  { name: "Kim Choo Kueh Chang", address: "60 Joo Chiat Place, Singapore 427784", website: "https://www.kimchoo.com/", image: "./Resources/images/makers/kim-choo.png" },
-  { name: "Ji Xiang Confectionery", address: "36 Joo Chiat Place, Singapore 427760", website: "https://tartreats.com/", image: "./Resources/images/makers/ji-xiang.png" },
-  { name: "Kueh Ho Jiak", address: "2 Everton Park, Singapore 080002", website: "https://www.kuehhojiak.com/", image: "./Resources/images/makers/kueh-ho-jiak.png" },
-  { name: "Lek Lim Nonya Cake", address: "15 Simon Road, Singapore 545907", website: "https://www.leklim.com.sg/", image: "./Resources/images/shopfront.png" },
-  { name: "The Kueh Consultancy", address: "Singapore, by appointment and delivery", website: "https://www.thekuehconsultancy.com/", image: "./Resources/images/shopfront.png" }
+  { name: "Bengawan Solo", address: "Multiple locations", website: "https://www.bengawansolo.com.sg/", image: "./Resources/images/optimized/shops/bengawan-solo.webp" },
+  { name: "Ji Xiang Confectionery", address: "Block 1 Everton Park, #01-33, Singapore 081001", website: "https://jixiangeverton.com.sg", image: "./Resources/images/optimized/shops/jixiang.webp" },
+  { name: "Kueh Ho Jiak", address: "6 Tanjong Pagar Plaza, #02-20, Singapore 081006", website: "https://kuehhojiak.com", image: "./Resources/images/optimized/shops/kueh-ho-jiak.webp" },
+  { name: "Kim Choo Kueh Chang", address: "60 Joo Chiat Place, Singapore 427784", website: "https://www.kimchoo.com/", image: "./Resources/images/optimized/shops/kim-choo.webp" },
+  { name: "Ollella", address: "135 Amoy St, #01-04 Far East Square, Singapore 049964", website: "https://ollella.com", image: "./Resources/images/optimized/shops/ollella.webp" }
 ];
 
 const state = {
@@ -229,7 +228,7 @@ function renderShop() {
 function renderMakers() {
   els.makersCarousel.innerHTML = KUEH_MAKERS.map((maker) => `
     <article class="maker-card">
-      <img class="maker-card-image" src="${maker.image}" alt="${maker.name} storefront">
+      <img class="maker-card-image" src="${maker.image}" alt="${maker.name} storefront" loading="lazy" decoding="async">
       <div class="maker-card-body">
         <h3>${maker.name}</h3>
         <p>${maker.address}</p>
@@ -377,6 +376,7 @@ function setStopMotionFrame(image, source, frameIndex, initialScale) {
 async function doPull() {
   if (state.isPulling) return;
   state.isPulling = true;
+  els.machineStage.scrollIntoView({ behavior: "smooth", block: "start" });
   els.leverBtn.disabled = true;
   els.gatchaCta.disabled = true;
   els.outputSection.hidden = true;

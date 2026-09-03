@@ -155,7 +155,7 @@ p { margin: 0 0 16px; color: var(--ink-soft); }
   inset: 0;
   z-index: 1;
   background: #000;
-  opacity: 0.6;
+  opacity: 0.8;
   pointer-events: none;
 }
 .machine-section .wrap { position: relative; z-index: 2; }
@@ -275,7 +275,7 @@ p { margin: 0 0 16px; color: var(--ink-soft); }
   background: radial-gradient(circle, rgba(255, 255, 244, 1) 0%, rgba(255, 226, 133, 0.92) 24%, rgba(245, 194, 75, 0.34) 58%, transparent 72%);
   filter: blur(5px);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
 .stop-motion-layer::after {
   content: "";
@@ -291,7 +291,7 @@ p { margin: 0 0 16px; color: var(--ink-soft); }
   filter: blur(3px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease, width 0.3s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
 .stop-motion-layer.is-playing { opacity: 1; }
 .stop-motion-layer.is-playing::before { opacity: var(--glow-opacity, 0.72); }
@@ -585,7 +585,7 @@ p { margin: 0 0 16px; color: var(--ink-soft); }
 }
 
 /* ---------------- REVEAL ---------------- */
-.output { padding: 8px 0 72px; }
+.output { padding: 80px 0 72px; }
 .output-card {
   position: relative;
   background: var(--bg-elevated);
@@ -690,7 +690,7 @@ body::after {
 body.is-flash::after { opacity: 0.16; transition: opacity 0.05s ease; }
 
 /* ---------------- COLLECTION ---------------- */
-.collection-section { padding: 40px 0 80px; }
+.collection-section { padding: 80px 0; }
 .collection-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -756,42 +756,43 @@ button.collection-card:focus-visible { outline: 2px solid var(--gold); outline-o
 .kueh-ball-frame.rarity-ultraRare::before {
   content: "";
   position: absolute;
-  top: -12%;
-  right: -10%;
+  top: 7%;
+  right: 8%;
   z-index: 2;
-  width: 22%;
+  width: 15%;
   aspect-ratio: 1;
   background: #fff8d0;
   clip-path: polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%);
   filter: drop-shadow(0 0 5px rgba(255, 219, 91, 0.85));
-  opacity: 0.58;
+  opacity: 0.5;
   pointer-events: none;
   animation: ultra-ball-sparkle 3.8s ease-in-out infinite;
 }
 .kueh-ball-frame.rarity-ultraRare::after {
   content: "";
   position: absolute;
-  bottom: -8%;
-  left: -10%;
+  bottom: 16%;
+  left: 13%;
   z-index: 3;
-  width: 12%;
+  width: 8%;
   aspect-ratio: 1;
   background: #fff8d0;
   clip-path: polygon(50% 0%, 64% 36%, 100% 50%, 64% 64%, 50% 100%, 36% 64%, 0% 50%, 36% 36%);
   filter: drop-shadow(0 0 4px rgba(255, 219, 91, 0.75));
-  opacity: 0.38;
+  box-shadow: 18px -13px 0 -2px rgba(255, 248, 208, 0.7), 28px 3px 0 -3px rgba(255, 248, 208, 0.55);
+  opacity: 0.32;
   pointer-events: none;
   animation: ultra-ball-sparkle-small 4.6s ease-in-out infinite 1.2s;
 }
 @keyframes ultra-ball-sparkle {
-  0%, 70%, 100% { opacity: 0.28; transform: scale(0.78); }
-  78% { opacity: 0.72; transform: scale(1.08); }
-  86% { opacity: 0.42; transform: scale(0.92); }
+  0%, 70%, 100% { opacity: 0.18; transform: scale(0.8); }
+  78% { opacity: 0.68; transform: scale(1.08); }
+  86% { opacity: 0.34; transform: scale(0.94); }
 }
 @keyframes ultra-ball-sparkle-small {
-  0%, 72%, 100% { opacity: 0.18; transform: scale(0.7); }
-  80% { opacity: 0.58; transform: scale(1.12); }
-  88% { opacity: 0.24; transform: scale(0.86); }
+  0%, 72%, 100% { opacity: 0.12; transform: scale(0.72); }
+  80% { opacity: 0.54; transform: scale(1.12); }
+  88% { opacity: 0.2; transform: scale(0.88); }
 }
 @keyframes ultra-ball-border-glow {
   0%, 100% { box-shadow: 0 0 8px rgba(245, 194, 75, 0.28), inset 0 0 8px rgba(255, 244, 181, 0.12); }
@@ -811,7 +812,7 @@ button.collection-card:focus-visible { outline: 2px solid var(--gold); outline-o
 .collection-count { color: var(--ink-faint); font-weight: 400; }
 
 /* ---------------- SHOP ---------------- */
-.shop-section { padding: 40px 0 88px; border-top: 1px solid var(--border); }
+.shop-section { padding: 80px 0 88px; border-top: 1px solid var(--border); }
 .shop-heading-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 .shop-heading-row h2 { margin-bottom: 8px; }
 .shop-copy { max-width: 420px; margin-bottom: 0; }
@@ -880,7 +881,7 @@ body.shop-product-open { overflow: hidden; }
 body.shop-tray-open { overflow: hidden; }
 
 /* ---------------- KUEH MAKERS ---------------- */
-.makers-section { padding: 24px 0 96px; border-top: 1px solid var(--border); overflow: hidden; }
+.makers-section { padding: 80px 0 96px; border-top: 1px solid var(--border); overflow: hidden; }
 .makers-heading-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
 .makers-heading-row h2 { margin: 0 0 8px; }
 .makers-subtitle { margin: 0; color: var(--ink-soft); font-size: 17px; }
