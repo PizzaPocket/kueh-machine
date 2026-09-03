@@ -538,27 +538,42 @@ function renderCollections() {
   });
 }
 
-// On a completely fresh copy of the project (no local data yet at all),
-// seed from public/seed-data.json if one was bundled in. Existing local
-// data always wins — this only ever fills in a blank slate.
-async function seedFromBundleIfEmpty() {
-  const alreadyHasData =
-    localStorage.getItem("karaokueh-collections") ||
-    localStorage.getItem("karaokueh-blocked-lyrics") ||
-    localStorage.getItem("karaokueh-song-overrides");
-  if (alreadyHasData) return;
-
+// Merge each bundled seed once. The previous all-or-nothing check meant an
+// unrelated saved preference could prevent the starter songs from appearing.
+async function seedFromBundle() {
+  const seedVersionKey = "karaokueh-seed-version";
+  const seedVersion = "1";
+  if (localStorage.getItem(seedVersionKey) === seedVersion) return;
   try {
     const response = await fetch("./seed-data.json");
     if (!response.ok) return;
     const bundle = await response.json();
-    if (bundle.collections) localStorage.setItem("karaokueh-collections", JSON.stringify(bundle.collections));
-    if (bundle.blockedLyrics) localStorage.setItem("karaokueh-blocked-lyrics", JSON.stringify(bundle.blockedLyrics));
-    if (bundle.songOverrides) localStorage.setItem("karaokueh-song-overrides", JSON.stringify(bundle.songOverrides));
+
+    const savedCollections = JSON.parse(localStorage.getItem("karaokueh-collections") || "{}");
+    Object.entries(bundle.collections || {}).forEach(([name, seedSongs]) => {
+      const savedSongs = savedCollections[name] || [];
+      const savedIds = new Set(savedSongs.map((song) => song.videoId));
+      savedCollections[name] = [...savedSongs, ...seedSongs.filter((song) => !savedIds.has(song.videoId))];
+    });
+    localStorage.setItem("karaokueh-collections", JSON.stringify(savedCollections));
+
+    const savedBlocked = JSON.parse(localStorage.getItem("karaokueh-blocked-lyrics") || "[]");
+    localStorage.setItem(
+      "karaokueh-blocked-lyrics",
+      JSON.stringify([...new Set([...(bundle.blockedLyrics || []), ...savedBlocked])])
+    );
+
+    const savedOverrides = JSON.parse(localStorage.getItem("karaokueh-song-overrides") || "{}");
+    const mergedOverrides = { ...(bundle.songOverrides || {}) };
+    Object.entries(savedOverrides).forEach(([songId, overrides]) => {
+      mergedOverrides[songId] = { ...(mergedOverrides[songId] || {}), ...overrides };
+    });
+    localStorage.setItem("karaokueh-song-overrides", JSON.stringify(mergedOverrides));
+    localStorage.setItem(seedVersionKey, seedVersion);
   } catch {
-    // No seed file bundled — completely normal, just start with a blank slate.
+    // Preserve the user's current local data if storage or the seed is unavailable.
   }
 }
 
-await seedFromBundleIfEmpty();
+await seedFromBundle();
 renderCollections();

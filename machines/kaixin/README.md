@@ -2,6 +2,13 @@
 
 By Kaixin — part of [kuehmachine.com](https://kuehmachine.com)
 
+## YouTube search configuration
+
+Production song searches go through `/api/kaixin-youtube-search` so the
+YouTube API key is not shipped in the browser bundle. Set `YOUTUBE_API_KEY`
+in the Vercel project environment. The server also accepts the former
+`VITE_YOUTUBE_API_KEY` name during migration.
+
 ## Concept
 
 Kara-o-kueh is a karaoke app with a Singapore/Malaysian twist. Search for
