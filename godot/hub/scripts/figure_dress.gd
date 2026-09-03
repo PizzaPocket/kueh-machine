@@ -26,11 +26,12 @@ const SKIRT_TOP_LOWER := 0.25
 const SKIRT_HALF_HEIGHT := 0.36 - SKIRT_TOP_LOWER * 0.5
 const ROUND_CROWN_EPSILON := 2.0
 const SHARP_HEM_EPSILON := 8.0
-# Base limb radius plus a small visual margin at the canonical dress size.
-# _envelope_for_points() scales this with each figure's actual garment size;
-# keeping it fixed made broad/soft bodies grow thicker legs without giving
-# their stride envelope correspondingly more room.
-const STRIDE_LEG_CLEARANCE := 0.06
+# Horizontal half-diagonal of a canonical bare upper leg, plus a small visual
+# margin. The skirt yaws relative to the legs during a stride, so using only
+# one axis' half-width does not contain the corners of their rounded-square
+# cross-section. _envelope_for_points() scales this with each figure's actual
+# garment/body size.
+const STRIDE_LEG_CLEARANCE := 0.082
 const STRIDE_WIDTH_UTILIZATION := 0.82
 const STRIDE_MIN_WIDTH_SCALE := 0.78
 
