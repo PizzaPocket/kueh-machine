@@ -130,9 +130,12 @@ func _process(delta: float) -> void:
 			resting_skirt.rotation.y = lerp_angle(resting_skirt.rotation.y, 0.0, settle)
 			var resting_pitch_pivot: Node3D = _figure.get("skirt_pitch_pivot")
 			if resting_pitch_pivot != null:
-				resting_pitch_pivot.rotation.y = lerp_angle(resting_pitch_pivot.rotation.y, 0.0, settle)
-				resting_pitch_pivot.scale.x = lerpf(resting_pitch_pivot.scale.x, 1.0, settle)
-				resting_pitch_pivot.scale.z = lerpf(resting_pitch_pivot.scale.z, 1.0, settle)
+				# The lower skirt independently fits the stride beneath a rotated,
+				# non-uniformly scaled upper shell. Keep cancelling that shell's full
+				# live basis while it settles; decomposing the old inverse into Euler
+				# rotation/scale channels can choose a wildly different equivalent
+				# transform for one frame, producing the visible transition flash.
+				resting_pitch_pivot.basis = resting_hips.basis.inverse()
 		if _rest_timer <= 0.0:
 			_pick_target()
 
