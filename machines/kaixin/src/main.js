@@ -194,13 +194,19 @@ function finalizeAddToQueue(video, lines, lyricsCandidateId) {
 // offset from last time — no re-searching or re-matching needed, since
 // that was already verified when it was saved.
 function addSavedSongToQueue(saved) {
+  const rawLines = (saved.lines || []).map((line) => ({
+    time: line.time,
+    original: line.original ?? line.text,
+  }));
+  const lines = punifySong(rawLines, getOverridesForSong(saved.lyricsCandidateId));
+
   enqueueSong({
     videoId: saved.videoId,
     title: saved.title,
     channel: saved.channel,
     thumbnail: saved.thumbnail,
-    lines: saved.lines,
-    lyricsStatus: saved.lines?.length > 0 ? "ok" : "missing",
+    lines,
+    lyricsStatus: lines.length > 0 ? "ok" : "missing",
     offset: saved.offset ?? 0,
     lyricsCandidateId: saved.lyricsCandidateId ?? null,
   });
