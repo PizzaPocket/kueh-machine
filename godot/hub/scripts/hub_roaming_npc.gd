@@ -234,7 +234,12 @@ func _enter_rest(duration: float) -> void:
 	_roll_idle_pose()
 
 func _set_walk_pose(delta: float, swing: float) -> void:
-	var settle := POSE_SETTLE_SPEED * delta
+	# setup_roaming() deliberately passes 1.0 to establish a randomized walk
+	# pose immediately. This blend must therefore saturate at 1: the previous
+	# weight of 8 extrapolated every joint far beyond the authored gait on the
+	# first frame (and could do so again after a long frame), while the player
+	# gait assigns its stride directly and never has that failure mode.
+	var settle := minf(1.0, POSE_SETTLE_SPEED * delta)
 	var arm_left := _figure["arm_left"] as Node3D
 	var arm_right := _figure["arm_right"] as Node3D
 	var leg_left := _figure["leg_left"] as Node3D
