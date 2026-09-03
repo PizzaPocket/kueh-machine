@@ -26,7 +26,11 @@ const SKIRT_TOP_LOWER := 0.25
 const SKIRT_HALF_HEIGHT := 0.36 - SKIRT_TOP_LOWER * 0.5
 const ROUND_CROWN_EPSILON := 2.0
 const SHARP_HEM_EPSILON := 8.0
-const STRIDE_LEG_CLEARANCE := 0.055
+# Base limb radius plus a small visual margin at the canonical dress size.
+# _envelope_for_points() scales this with each figure's actual garment size;
+# keeping it fixed made broad/soft bodies grow thicker legs without giving
+# their stride envelope correspondingly more room.
+const STRIDE_LEG_CLEARANCE := 0.06
 const STRIDE_WIDTH_UTILIZATION := 0.82
 const STRIDE_MIN_WIDTH_SCALE := 0.78
 
@@ -139,17 +143,23 @@ static func _envelope_for_points(part: MeshInstance3D, points: Array[Vector2]) -
 	var bounds := part.mesh.get_aabb()
 	var half_width := maxf(bounds.size.x * 0.5, 0.001)
 	var half_depth := maxf(bounds.size.z * 0.5, 0.001)
+	# Dress geometry and bare-leg thickness both follow hip build scale. Infer
+	# that per-figure scale from the actual mesh rather than accepting another
+	# appearance parameter that could drift out of sync. Taking the larger axis
+	# also remains conservative if a future body preset varies X and Z apart.
+	var garment_scale := maxf(half_width / SKIRT_HALF_WIDTH, half_depth / SKIRT_HALF_DEPTH)
+	var leg_clearance := STRIDE_LEG_CLEARANCE * garment_scale
 	var required_x := 0.0
 	for point in rotated_points:
-		required_x = maxf(required_x, absf(point.x) + STRIDE_LEG_CLEARANCE)
+		required_x = maxf(required_x, absf(point.x) + leg_clearance)
 	# Leave some width headroom so the elliptical corner still has depth
 	# available; fitting X exactly to its axis would mathematically force Z
 	# toward infinity at that point.
 	var width_scale := maxf(STRIDE_MIN_WIDTH_SCALE, required_x / (half_width * STRIDE_WIDTH_UTILIZATION))
 	var depth_scale := 1.0
 	for point in rotated_points:
-		var x_ratio := clampf((absf(point.x) + STRIDE_LEG_CLEARANCE) / (half_width * width_scale), 0.0, 0.98)
+		var x_ratio := clampf((absf(point.x) + leg_clearance) / (half_width * width_scale), 0.0, 0.98)
 		var available_z_fraction := sqrt(maxf(1.0 - x_ratio * x_ratio, 0.04))
-		var required_depth := (absf(point.y) + STRIDE_LEG_CLEARANCE) / (half_depth * available_z_fraction)
+		var required_depth := (absf(point.y) + leg_clearance) / (half_depth * available_z_fraction)
 		depth_scale = maxf(depth_scale, required_depth)
 	return {"yaw": yaw, "scale_x": width_scale, "scale_z": depth_scale}
