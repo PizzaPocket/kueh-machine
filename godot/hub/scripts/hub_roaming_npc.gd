@@ -13,13 +13,6 @@ const WALK_KNEE_BEND := 0.42
 const WALK_ELBOW_BEND := 0.48
 const WALK_SPINE_LEAN := deg_to_rad(2.5)
 const WALK_BODY_DIP := 0.007
-## How much extra front-to-back skirt depth (as a fraction of its resting
-## depth) is added at the stride's extremes, so the legs don't clip through
-## it -- see _set_walk_pose()'s skirt_flare. Sized to the thigh's own
-## forward reach at this walk's 0.44 swing amplitude against the now-flatter
-## resting depth, not an arbitrary margin -- the smallest expansion that
-## should still clear a normal stride.
-const DRESS_HIP_STRIDE_GIVE := 0.05
 
 ## One or more separate rectangles the NPC picks random targets from -- e.g.
 ## an outdoor plaza strip plus a building's interior, connected only through
@@ -98,7 +91,14 @@ func _process(delta: float) -> void:
 		if _walk_timer <= 0.0:
 			_enter_rest(_rng.randf_range(REST_TIME_MIN, REST_TIME_MAX))
 			return
-		var direction := (toward.normalized() + _separation_steering()).normalized()
+		# Door routes are deliberately aligned with the opening's outer/inner
+		# waypoints. Lateral separation steering here can pull an NPC off that
+		# narrow safe line and into the solid shopfront panel between the gallery
+		# and restaurant doors. While any routed waypoint remains, keep the lane
+		# authoritative; ordinary walks still use separation as before.
+		var direction := toward.normalized()
+		if _route.is_empty():
+			direction = (direction + _separation_steering()).normalized()
 		var proposed := global_position + Vector3(direction.x, 0, direction.y) * WALK_SPEED * delta
 		if not _can_move_to(proposed):
 			_enter_rest(_rng.randf_range(1.0, 2.2))
@@ -273,14 +273,17 @@ func _set_walk_pose(delta: float, swing: float) -> void:
 	hips.position.y = _hips_rest_y + body_dip
 	var skirt: Node3D = _figure.get("skirt")
 	if skirt != null:
+		# Apply the envelopes directly from the already-settled live leg pose,
+		# just as the player does. Easing the garment toward these values lets
+		# it lag behind the stride and briefly defeats the containment solve.
 		var upper_envelope := FigureDress.upper_skirt_envelope(hips, leg_left, leg_right, knee_left, knee_right)
-		hips.rotation.y = lerp_angle(hips.rotation.y, float(upper_envelope["yaw"]), settle)
-		hips.scale.x = lerpf(hips.scale.x, float(upper_envelope["scale_x"]), settle)
-		hips.scale.z = lerpf(hips.scale.z, float(upper_envelope["scale_z"]), settle)
+		hips.rotation.y = float(upper_envelope["yaw"])
+		hips.scale.x = float(upper_envelope["scale_x"])
+		hips.scale.z = float(upper_envelope["scale_z"])
 		var envelope := FigureDress.stride_envelope(skirt as MeshInstance3D, hips, knee_left, knee_right)
-		skirt.rotation.y = lerp_angle(skirt.rotation.y, float(envelope["yaw"]), settle)
-		skirt.scale.x = lerpf(skirt.scale.x, float(envelope["scale_x"]), settle)
-		skirt.scale.z = lerpf(skirt.scale.z, float(envelope["scale_z"]), settle)
+		skirt.rotation.y = float(envelope["yaw"])
+		skirt.scale.x = float(envelope["scale_x"])
+		skirt.scale.z = float(envelope["scale_z"])
 		var skirt_pitch_pivot: Node3D = _figure.get("skirt_pitch_pivot")
 		if skirt_pitch_pivot != null:
 			skirt_pitch_pivot.basis = hips.basis.inverse()
