@@ -11,6 +11,10 @@ extends RefCounted
 ## hint) -- centralized so they all agree on the same viewport-width cutoff
 ## instead of each hand-rolling a slightly different threshold.
 const MOBILE_BREAKPOINT_WIDTH := 700.0
+## Desktop UI was authored and visually approved on a 2x Retina MacBook.
+## Normalize other desktop display densities against that same reference so
+## a 1x monitor does not render every Control at twice the intended CSS size.
+const DESKTOP_REFERENCE_PIXEL_RATIO := 2.0
 ## Mobile UI was tuned on a 3x iPhone canvas. Godot Web exposes the canvas in
 ## backing pixels, so the same raw Control dimensions become 50% larger in
 ## CSS points on a 2x iPhone unless the UI is density-normalized.
@@ -30,6 +34,10 @@ const TABLET_MIN_SHORT_SIDE_CSS := 600.0
 ## hardware regardless of window size, matching the loader screen's own
 ## touch-or-narrow media query (see scripts/export-hub.py's LOADER_CSS).
 static func is_mobile_viewport(node: Node) -> bool:
+	if OS.has_feature("web"):
+		var window := JavaScriptBridge.get_interface("window")
+		if window != null:
+			return float(window.innerWidth) < MOBILE_BREAKPOINT_WIDTH or DisplayServer.is_touchscreen_available()
 	return node.get_viewport().get_visible_rect().size.x < MOBILE_BREAKPOINT_WIDTH or DisplayServer.is_touchscreen_available()
 
 
@@ -44,10 +52,11 @@ static func is_tablet_touch_viewport() -> bool:
 	return minf(css_width, css_height) >= TABLET_MIN_SHORT_SIDE_CSS
 
 
-## Keeps authored UI pixels visually consistent across Retina densities while
-## deliberately leaving desktop and the 3D viewport untouched.
-static func mobile_density_scale(node: Node) -> float:
-	if not DisplayServer.is_touchscreen_available() or not OS.has_feature("web"):
+## Keeps authored UI pixels visually consistent across display densities while
+## deliberately leaving the 3D viewport untouched. Desktop and touch layouts
+## retain their independently approved 2x and 3x reference sizes.
+static func ui_density_scale(node: Node) -> float:
+	if not OS.has_feature("web"):
 		return 1.0
 	var window := JavaScriptBridge.get_interface("window")
 	if window == null:
@@ -55,7 +64,8 @@ static func mobile_density_scale(node: Node) -> float:
 	var pixel_ratio := float(window.devicePixelRatio)
 	if pixel_ratio <= 0.0:
 		return 1.0
-	return clampf(pixel_ratio / MOBILE_REFERENCE_PIXEL_RATIO, 1.0 / 3.0, 4.0 / 3.0)
+	var reference_ratio := MOBILE_REFERENCE_PIXEL_RATIO if DisplayServer.is_touchscreen_available() else DESKTOP_REFERENCE_PIXEL_RATIO
+	return clampf(pixel_ratio / reference_ratio, 1.0 / 3.0, 2.0)
 
 
 ## A Control-sized logical canvas inside a CanvasLayer. Children anchor and
@@ -63,7 +73,7 @@ static func mobile_density_scale(node: Node) -> float:
 ## maps the complete UI (including hit targets) back to the real canvas.
 static func density_root(layer: CanvasLayer) -> Control:
 	var root := Control.new()
-	root.name = "MobileDensityRoot"
+	root.name = "UIDensityRoot"
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Make the shared body face inherit through every UI child, including
 	# lightweight HUD labels and traversal controls that do not create a
@@ -71,7 +81,7 @@ static func density_root(layer: CanvasLayer) -> Control:
 	root.theme = UITheme.get_theme()
 	layer.add_child(root)
 	var update := func() -> void:
-		var density := mobile_density_scale(layer)
+		var density := ui_density_scale(layer)
 		root.scale = Vector2.ONE * density
 		root.size = layer.get_viewport().get_visible_rect().size / density
 	update.call()
@@ -80,7 +90,7 @@ static func density_root(layer: CanvasLayer) -> Control:
 
 
 static func logical_viewport_size(node: Node) -> Vector2:
-	return node.get_viewport().get_visible_rect().size / mobile_density_scale(node)
+	return node.get_viewport().get_visible_rect().size / ui_density_scale(node)
 
 ## Shared touchscreen body-text size -- dialog_ui.gd's response options and
 ## NPC line, and hub_ui.gd's own interaction prompt ("Talk (F)" etc), all
