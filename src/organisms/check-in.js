@@ -28,7 +28,7 @@ import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 const CONTRIBUTORS = [
   { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one where a bear serves up your placeholder content)", url: '/amanda/', randomiserKey: 'Amanda' },
   { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }], randomiserKey: 'Amy' },
-  { initials: 'AM', name: 'Azri Masran', title: 'The Great Reverse Makan', desc: "(the one where you outrun giant kueh)", url: '/azri/', randomiserKey: 'Azri' },
+  { initials: 'AM', name: 'Azri Masran', title: 'Run Kueh Run', desc: "(the one where you outrun giant kueh)", url: '/azri/', randomiserKey: 'Azri' },
   { initials: 'GE', name: 'Geraldine Chua', desc: "(the one that's a ___)" },
   {
     initials: 'JN',
