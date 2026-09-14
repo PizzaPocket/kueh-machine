@@ -1,0 +1,80 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Syne', sans-serif;
+  background: #0a0820;
+}
+
+body {
+  /* var(--app-height) is set by an inline script in index.html from
+     window.visualViewport — see the comment there for why dvh alone
+     isn't reliable enough on real mobile browsers. 100dvh is only a
+     fallback for the instant before that script's first run. */
+  height: var(--app-height, 100dvh);
+  box-sizing: border-box;
+  /* Safe-area padding lives here, on #game-frame's own parent, rather
+     than on #game-frame itself — Phaser's ENVELOP mode measures its
+     parent's full box to decide how to crop-to-cover, so the padding
+     needs to already be "spent" a level up, or the canvas would render
+     straight under the notch/home-indicator again. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ENVELOP crops-to-cover whenever the container's aspect ratio doesn't
+   exactly match the 390x844 design ratio — and on a real phone it often
+   doesn't, especially the instant Safari's address/tab bar shows or
+   hides: that only eats into height, so the visible area briefly goes
+   flatter (relatively wider) than 390:844, and ENVELOP crops the
+   difference straight off the top and bottom. That's what was cropping
+   Dr Leonard and the pause button on real mobile Safari — "full-bleed is
+   correct on a phone" turned out to only hold when the phone's aspect
+   ratio happens to match the design ratio exactly, which the toolbar
+   breaks. Sizing the container to the design ratio, contained within
+   whatever space is actually available (the same trick already proven
+   on desktop, just generalized instead of gated behind a media query —
+   two independent min() expressions, one per axis, is a pure-CSS
+   equivalent of object-fit:contain) means ENVELOP always has an exact
+   match to cover and nothing left to crop. Any leftover space becomes a
+   thin, harmless letterbox bar instead of eating into the game. On a
+   typical phone, at rest, the two ratios are close enough that this bar
+   is invisible — it only appears for the moment the toolbar is
+   animating. */
+#game-frame {
+  position: relative;
+  overflow: hidden;
+  --avail-w: min(430px, 100vw);
+  width: min(var(--avail-w), calc(var(--app-height, 100dvh) * 390 / 844));
+  height: min(var(--app-height, 100dvh), calc(var(--avail-w) * 844 / 390));
+}
+
+/* A separate element from #game-frame above, on purpose: Phaser's own
+   Scale.ENVELOP mode sets its parent's width/height to inline "100%" the
+   moment the game boots, which was silently overwriting #game-frame's own
+   min()-based sizing above (its whole point is to keep this box at the
+   390x844 design ratio, contained within whatever space is actually
+   available, so ENVELOP always has an exact match to cover -- see that
+   rule's own comment). Handing Phaser this separate inner div instead
+   means its inline overwrite only ever targets 100% of #game-frame's own
+   already-correct box, not the page's full width/height. */
+#game-container {
+  width: 100%;
+  height: 100%;
+}
+
+#game-container canvas {
+  display: block;
+}

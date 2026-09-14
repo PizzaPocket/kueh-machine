@@ -7,20 +7,16 @@ const HEIGHT_TALL := 1.0
 const HEIGHT_MORE_TALL := 1.06
 const KUEH_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/kueh_syne_800.obj")
 const MACHINE_WORDMARK_MESH: Mesh = preload("res://assets/wordmark/machine_syne_600.obj")
-## Azri's own entry dropped per direct instruction -- his line now falls
-## straight through to the same ambient, non-modal auto-dismiss every
-## ambient_npc already uses (see _talk_to_nearby(): an empty actions array
-## leaves traversal and other world interactions available). Each remaining
-## entry is a list, not a single string -- Kevin's
-## own single response left him with exactly one option and nothing else,
-## which per direct correction should never happen (a conversation should
-## always give the player somewhere to go); his second entry is the German
-## equivalent of "Later."
+## Each entry is a list, not a single string -- Kevin's own single response
+## left him with exactly one option and nothing else, which per direct
+## correction should never happen (a conversation should always give the
+## player somewhere to go); his second entry is the German equivalent of
+## "Later."
 const PLAYER_RESPONSES := {
 	"Kevin Dreher": ["Schön, dich zu besuchen!", "Bis später!"],
 }
 const CONTRIBUTOR_KEYS := {
-	"Amanda Ng": "amanda", "Amy Fu": "amy", "Azri": "azri",
+	"Amanda Ng": "amanda", "Amy Fu": "amy", "Azri Masran": "azri",
 	"Geraldine Chua": "geraldine", "Jesslyn Teo": "jesslyn",
 	"Kaixin Cai": "kaixin", "Ken Lee": "ken", "Kevin Dreher": "kevin",
 	"Leonard Reese": "leonard", "Li Wei Lim": "liwei", "Mei Jun Chew": "meijun",
@@ -652,7 +648,7 @@ func _contributors() -> Array[Dictionary]:
 	var contributors: Array[Dictionary] = [
 		_person("Amanda Ng", Vector3(-12, 0, -13), Vector3(-10.5, 0, -11.3), "amanda", "/amanda/", "Beary is ready to serve up something sweet. Have a look around the shop.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "very_long_full", "none", "none", Color("191919"), true, Color("191919"), Color("5b3a29"))),
 		_person("Amy Fu", Vector3(-7.0, 0, -13), Vector3(-5.2, 0, -11.3), "amy_gacha", "/amy/", "Give the knob a turn. Every capsule has a little Kueh surprise inside.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("18283f"), false, Color("18283f"), Color("5b3a29"))),
-		_person("Azri", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "", "", "This is pretty cool. What does Kueh Machine mean again?", _appearance("slim", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "buzzcut", "round", "short", Color("287fc2"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Azri Masran", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "", "/azri/", "Ever seen a kueh wake up giant and hungry? Come find out before it finds you.", _appearance("slim", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "buzzcut", "round", "short", Color("287fc2"), false, Color("18283f"), Color("5b3a29"))),
 		_person("Ken Lee", Vector3(-0.6, 0, -13), Vector3(-2.4, 0, -11.3), "ken_gacha", "/ken/", "Try your luck, you might get a rare one.", _appearance("broad", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "hero", "none", "short", Color("191919"), false, Color("191919"), Color("fbf6ec"))),
 		_person("Geraldine Chua", Vector3(6, 0, -13), Vector3.ZERO, "", "", "Just out for a stroll today, taking it all in.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("191919"), false, Color("191919"), Color("5b3a29"))),
 		_person("Jesslyn Teo", Vector3(-14, 0, -9), Vector3(-11.7, 0, -9), "jesslyn", "/jesslyn/", "A good birthday starts with knowing what you can spend. Mine helps you plan the whole day.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "full_long", "round", "none", Color("d97b66"), false, Color("f0b429"), Color("5b3a29"))),
@@ -699,7 +695,7 @@ func _apply_even_hub_layout(contributors: Array[Dictionary]) -> void:
 		"Viki Yap": {"display_kind": "", "npc": Vector3(5.15, 0, -7.65)},
 		"Natalia Lionardy": {"display_kind": "", "npc": Vector3(2.45, 0, -4.15)},
 		# Outdoor ambient cast: all share a safe strip in front of the arcade.
-		"Azri": {"display_kind": "", "npc": Vector3(-7.0, 0, 10.5), "roaming": true},
+		"Azri Masran": {"display_kind": "", "npc": Vector3(-7.0, 0, 10.5), "roaming": true},
 		"Geraldine Chua": {"display_kind": "", "npc": Vector3(-2.0, 0, 12.2), "roaming": true, "ambient_dialog": true},
 		"Kevin Dreher": {"display_kind": "", "npc": Vector3(4.5, 0, 10.0), "roaming": true},
 		"Leonard Reese": {"display_kind": "", "npc": Vector3(0.5, 0, 9.4), "roaming": true, "ambient_dialog": true, "npc_dialog": "I'm just glad to be here."},

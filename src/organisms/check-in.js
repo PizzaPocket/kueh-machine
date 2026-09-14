@@ -14,9 +14,9 @@ import { revealWireBundle } from '../atoms/wire-bundle.js';
 import { renderKuehSvg, accentForKueh } from '../atoms/kueh-icon.js';
 import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 
-// Full team roster, alphabetical by first name. Nine real submissions so
-// far (Amanda, Amy, Jesslyn, Kaixin, Kevin, Ruth, Samantha, Sophia, Viki)
-// carry a real tagline; everyone else's desc stays "___" until their
+// Full team roster, alphabetical by first name. Ten real submissions so
+// far (Amanda, Amy, Azri, Jesslyn, Kaixin, Kevin, Ruth, Samantha, Sophia,
+// Viki) carry a real tagline; everyone else's desc stays "___" until their
 // project lands — see scripts/add-contributor.mjs.
 //
 // randomiserKey: the matching entry in randomiser.html's own `names` array
@@ -28,6 +28,7 @@ import { KUEH_DATA, KUEH_SHAPE_TABLE } from '../data/kueh.js';
 const CONTRIBUTORS = [
   { initials: 'AA', name: 'Amanda Ng', title: "Beary's Kueh Shop", desc: "(the one where a bear serves up your placeholder content)", url: '/amanda/', randomiserKey: 'Amanda' },
   { initials: 'AY', name: 'Amy Fu', title: 'Gacha Cacha Kueh', desc: "(the one you crack for a Kueh surprise)", url: '/amy/', windowDecors: [{ src: 'images/checkin/bird-amy.svg', position: 'bottom-right' }], randomiserKey: 'Amy' },
+  { initials: 'AM', name: 'Azri Masran', title: 'The Great Reverse Makan', desc: "(the one where you outrun giant kueh)", url: '/azri/', randomiserKey: 'Azri' },
   { initials: 'GE', name: 'Geraldine Chua', desc: "(the one that's a ___)" },
   {
     initials: 'JN',

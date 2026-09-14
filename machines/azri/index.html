@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Kueh Machine: The Great Reverse Makan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script>
+  // CSS dvh is meant to track the real visible viewport as mobile
+  // browser chrome (address bar, etc.) shows/hides, but support is
+  // inconsistent in practice — on some Android/Chrome builds it locks
+  // onto a taller "chrome hidden" measurement and never corrects,
+  // cropping both ends of the game permanently. window.visualViewport
+  // is the reliable cross-browser source for the actually-visible
+  // height, so it drives a CSS custom property directly instead.
+  (function () {
+    function setAppHeight() {
+      var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', h + 'px');
+    }
+    setAppHeight();
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('orientationchange', setAppHeight);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setAppHeight);
+    }
+  })();
+</script>
+</head>
+<body>
+<div id="game-frame">
+<div id="game-container"></div>
+</div>
+
+<script src="/shared/account-widget.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.87.0/dist/phaser.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
