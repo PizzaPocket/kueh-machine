@@ -308,7 +308,7 @@ body.modal-open {
   display: block;
   font-size: 0.9rem;
   color: var(--ink-soft);
-  margin-top: 1.1rem;
+  margin-top: 0.75rem;
 }
 
 /* Only the wrappers that follow a label need the gap; the ones inside
@@ -324,12 +324,12 @@ body.modal-open {
   width: 100%;
   margin-top: 0.35rem;
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 0.87rem;
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 3px;
-  padding: 0.5rem 0.6rem;
+  padding: 0.42rem 0.6rem;
 }
 
 /* Comes after the rule above so it wins the tie: a field inside a mic wrapper
@@ -356,6 +356,194 @@ body.modal-open {
   cursor: pointer;
 }
 
+/* "Fill from note": a banner at the top of the form, then a quiet "or"
+   rule leading into the fields. */
+.note-fill {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+}
+
+/* Just the line icon, in the accent colour, no ring around it. */
+.note-fill-icon {
+  flex: 0 0 auto;
+  display: flex;
+  color: var(--accent);
+}
+
+.note-fill-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.note-fill-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipe-form .note-fill-title {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.recipe-form .note-fill-status {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.note-fill-unsure {
+  color: var(--accent);
+}
+
+.note-fill .mini-btn {
+  flex: 0 0 auto;
+}
+
+.note-fill .mini-btn[disabled] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.form-or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.form-or::before,
+.form-or::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--line);
+}
+
+.form-or[hidden] {
+  display: none;
+}
+
+/* The two dish names side by side. */
+.form-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1rem;
+}
+
+/* Ingredients, steps and media each start below a hairline. */
+.recipe-form .form-block {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+/* Column labels over the her-words / translation fields. */
+.ingredient-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1.6rem;
+  margin: 0.5rem 0 -0.15rem;
+  padding: 0 2.15rem 0 1.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.ing-arrow {
+  flex: 0 0 auto;
+  color: var(--accent);
+  padding: 0 0.1rem;
+}
+
+/* Steps numbered by position, so they renumber as rows are dragged. */
+#step-rows {
+  counter-reset: step;
+}
+
+.step-row-input {
+  counter-increment: step;
+}
+
+.step-num {
+  flex: 0 0 1.4rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.step-num::before {
+  content: counter(step);
+}
+
+/* "+ Add ingredient" and "+ Add step": quiet text buttons under the rows. */
+.text-btn {
+  margin: 0.45rem 0 0 1.5rem;
+  padding: 0.2rem 0;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.text-btn:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.text-btn-steps {
+  margin-left: 3rem;
+}
+
+#existing-media-preview .section-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+}
+
+/* The dashed slip that opens the file picker. */
+.media-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--accent-soft);
+  border-radius: 3px;
+  background: var(--paper);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.media-drop:hover {
+  border-color: var(--accent);
+}
+
+.media-drop-title {
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.media-drop-note {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
 .form-block {
   margin-top: 1.3rem;
 }
@@ -373,17 +561,17 @@ body.modal-open {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 .ingredient-row-input input,
 .step-row-input input {
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 0.87rem;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 3px;
-  padding: 0.45rem 0.55rem;
+  padding: 0.4rem 0.55rem;
   flex: 1;
   min-width: 0;
 }
@@ -504,9 +692,17 @@ body.modal-open {
   line-height: 1;
 }
 
+/* Save stays in reach at the bottom while the form scrolls. */
 .form-actions {
-  margin-top: 1.5rem;
+  position: sticky;
+  /* The overlay's 3rem padding would otherwise hold it above the bottom. */
+  bottom: -3rem;
+  z-index: 2;
+  margin: 1.2rem -2rem -2.25rem;
+  padding: 0.9rem 2rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
   text-align: right;
+  background: var(--paper-card);
+  border-top: 1px solid var(--line);
 }
 
 /* ---------- Recipe cards ---------- */
@@ -2285,6 +2481,40 @@ body.modal-open {
     padding: 0;
   }
 
+  .form-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .note-fill {
+    align-items: flex-start;
+  }
+
+  /* Stacked on phones: one line saying which field is which. */
+  .ingredient-columns {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0 0 0 1.5rem;
+  }
+
+  .ingredient-columns span:first-child::after {
+    content: ' (top) →';
+  }
+
+  .ingredient-columns span:last-child::after {
+    content: ' (below)';
+  }
+
+  .ing-arrow {
+    display: none;
+  }
+
+  .form-actions {
+    bottom: 0;
+    margin: 1.2rem -1.25rem -1.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
   .recipe-form {
     padding: 2.5rem 1.25rem 1.5rem;
     max-width: none;
@@ -2311,11 +2541,11 @@ body.modal-open {
     grid-area: handle;
   }
 
-  .ingredient-row-input .field-with-mic:nth-of-type(1) {
+  .ingredient-row-input .field-her {
     grid-area: her;
   }
 
-  .ingredient-row-input .field-with-mic:nth-of-type(2) {
+  .ingredient-row-input .field-mine {
     grid-area: mine;
   }
 
@@ -2327,8 +2557,8 @@ body.modal-open {
      ingredient ends and the next begins. */
   .ingredient-row-input + .ingredient-row-input {
     border-top: 1px dashed var(--line);
-    padding-top: 0.7rem;
-    margin-top: 0.7rem;
+    padding-top: 0.55rem;
+    margin-top: 0.55rem;
   }
 
   .step-row-input {
