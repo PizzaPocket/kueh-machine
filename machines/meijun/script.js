@@ -485,7 +485,44 @@ async function saveEditedTerm(li) {
   showToast('Glossary updated');
 }
 
+/* Clicking "+ Add" with a half missing: mark the empty field(s), say what's
+   needed, and put the cursor where to start. Typing clears it. */
+function showGlossaryAddError(termMissing, meaningMissing, { moveFocus = true } = {}) {
+  const term = document.getElementById('glossary-term');
+  const meaning = document.getElementById('glossary-meaning');
+  const error = document.getElementById('glossary-add-error');
+  term.setAttribute('aria-invalid', String(termMissing));
+  meaning.setAttribute('aria-invalid', String(meaningMissing));
+  error.textContent = termMissing && meaningMissing
+    ? 'Write what Mum says and what it really means, then add it.'
+    : termMissing
+      ? 'Add what Mum says too, e.g. 一点点.'
+      : 'Add what it really means too, e.g. ~½ tbsp.';
+  error.hidden = false;
+  if (moveFocus) (termMissing ? term : meaning).focus();
+}
+
+function clearGlossaryAddError() {
+  document.getElementById('glossary-term').removeAttribute('aria-invalid');
+  document.getElementById('glossary-meaning').removeAttribute('aria-invalid');
+  const error = document.getElementById('glossary-add-error');
+  error.hidden = true;
+  error.textContent = '';
+}
+
 function setupGlossary() {
+  ['glossary-term', 'glossary-meaning'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      const error = document.getElementById('glossary-add-error');
+      if (error.hidden) return;
+      /* Narrow the message to whatever is still missing, or clear it. */
+      const termMissing = !document.getElementById('glossary-term').value.trim();
+      const meaningMissing = !document.getElementById('glossary-meaning').value.trim();
+      if (termMissing || meaningMissing) showGlossaryAddError(termMissing, meaningMissing, { moveFocus: false });
+      else clearGlossaryAddError();
+    });
+  });
+
   document.getElementById('glossary-search').addEventListener('input', (e) => {
     renderGlossary(e.target.value);
   });
@@ -503,7 +540,11 @@ function setupGlossary() {
     const meaningInput = document.getElementById('glossary-meaning');
     const term = termInput.value.trim();
     const meaning = meaningInput.value.trim();
-    if (!term || !meaning) return;
+    if (!term || !meaning) {
+      showGlossaryAddError(!term, !meaning);
+      return;
+    }
+    clearGlossaryAddError();
 
     const existing = await dbGetAll('glossary');
     const match = existing.find((entry) => entry.term.trim().toLowerCase() === term.toLowerCase());
@@ -1011,7 +1052,9 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.remove('hidden');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.add('hidden'), 2600);
+  /* Longer messages (instructions, not just "Saved") stay up long enough to read. */
+  const duration = Math.min(8000, Math.max(2600, message.length * 55));
+  toastTimer = setTimeout(() => toast.classList.add('hidden'), duration);
 }
 
 const DEFAULT_SHARE_NAME = { video: 'video', audio: 'recording', image: 'photo' };
@@ -2401,6 +2444,27 @@ function voiceLangName(lang) {
   return lang === 'zh-CN' ? '中文' : 'English / Singlish';
 }
 
+/* What went wrong, in words someone holding a phone can act on. The browser
+   only reports a code; left silent, a failed mic just looks broken. */
+function voiceErrorMessage(code, lang) {
+  switch (code) {
+    case 'not-allowed':
+      return 'The microphone is blocked. Allow it for this site (the icon in the address bar), and for your browser in your device’s privacy settings, then try again.';
+    case 'service-not-allowed':
+      return 'Voice input is switched off on this device. On iPhone, turn on Siri & Dictation in Settings, then try again.';
+    case 'audio-capture':
+      return 'No microphone was found. Check one is connected and not in use by another app.';
+    case 'network':
+      return 'Voice input needs the internet to turn speech into text. Check your connection and try again.';
+    case 'language-not-supported':
+      return `This browser can’t listen in ${voiceLangName(lang)}. Try the other field’s mic, or type it in.`;
+    case 'no-speech':
+      return `Nothing heard in ${voiceLangName(lang)}. Tap the mic and try again.`;
+    default:
+      return 'Voice input stopped unexpectedly. Tap the mic to try again.';
+  }
+}
+
 function setupVoiceInput() {
   /* The one in the markup is left empty so the icon lives in a single place. */
   document.querySelectorAll('.mic-btn:empty').forEach((btn) => {
@@ -2410,14 +2474,30 @@ function setupVoiceInput() {
   if (!SpeechRecognitionAPI) {
     document.querySelectorAll('.mic-btn').forEach((btn) => {
       btn.classList.add('unsupported');
-      btn.title = 'Voice input is not supported in this browser — try Chrome.';
+      btn.title = 'Voice input isn’t available in this browser';
+    });
+    /* A tooltip never shows on a phone, so say it when the mic is tapped. */
+    document.body.addEventListener('click', (e) => {
+      if (!e.target.closest('.mic-btn')) return;
+      showToast('Voice input isn’t available in this browser. Try Chrome, Edge, or Safari on iPhone.');
     });
     return;
   }
 
+  /* One listener at a time: tapping the same mic again stops it. */
+  let active = null;
+
   document.body.addEventListener('click', (e) => {
     const micBtn = e.target.closest('.mic-btn');
-    if (!micBtn || micBtn.classList.contains('unsupported')) return;
+    if (!micBtn) return;
+
+    if (active) {
+      const wasThisMic = active.button === micBtn;
+      active.stopped = true;
+      active.recognition.abort();
+      active = null;
+      if (wasThisMic) return;
+    }
 
     const targetField = micBtn.dataset.target
       ? document.getElementById(micBtn.dataset.target)
@@ -2429,23 +2509,44 @@ function setupVoiceInput() {
     recognition.lang = lang;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
+    const session = { recognition, button: micBtn, heard: false, reported: false, stopped: false };
 
-    micBtn.classList.add('listening');
+    const finish = () => {
+      micBtn.classList.remove('listening');
+      if (active === session) active = null;
+    };
 
+    recognition.onstart = () => showToast(`Listening in ${voiceLangName(lang)}… tap the mic again to stop`);
     recognition.onresult = (event) => {
+      session.heard = true;
       const transcript = event.results[0][0].transcript;
       targetField.value = targetField.value ? `${targetField.value} ${transcript}` : transcript;
       targetField.dispatchEvent(new Event('input'));
     };
     recognition.onerror = (event) => {
-      micBtn.classList.remove('listening');
-      if (event.error === 'no-speech') {
-        showToast(`Nothing heard in ${voiceLangName(lang)} — try again`);
+      finish();
+      session.reported = true;
+      if (event.error === 'aborted') return; // stopped on purpose
+      console.warn('Voice input error:', event.error, event.message || '');
+      showToast(voiceErrorMessage(event.error, lang));
+    };
+    /* Some browsers stop without an error when they catch no words; say so
+       rather than leave the mic looking broken. */
+    recognition.onend = () => {
+      finish();
+      if (!session.heard && !session.reported && !session.stopped) {
+        showToast(voiceErrorMessage('no-speech', lang));
       }
     };
-    recognition.onend = () => micBtn.classList.remove('listening');
 
-    recognition.start();
+    try {
+      recognition.start();
+      micBtn.classList.add('listening');
+      active = session;
+    } catch (err) {
+      console.warn('Voice input could not start:', err);
+      showToast('Voice input couldn’t start. Tap the mic to try again.');
+    }
   });
 }
 
