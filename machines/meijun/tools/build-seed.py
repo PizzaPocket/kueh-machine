@@ -14,6 +14,7 @@ video and audio are copied through untouched, so keep an eye on their size.
 """
 
 import base64
+import datetime
 import json
 import os
 import re
@@ -25,11 +26,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEDIA_DIR = os.path.join(ROOT, 'media')
 THUMB_DIR = os.path.join(MEDIA_DIR, 'thumbs')
 SEED_FILE = os.path.join(ROOT, 'recipes-seed.js')
+INDEX_FILE = os.path.join(ROOT, 'index.html')
 
 IMAGE_EXT = {'image/png': 'png', 'image/jpeg': 'jpg', 'image/heic': 'heic', 'image/webp': 'webp'}
 VIDEO_EXT = {'video/quicktime': 'mov', 'video/mp4': 'mp4', 'video/webm': 'webm'}
 AUDIO_EXT = {
-    'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/mpeg': 'mp3',
+    'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/mp4a-latm': 'm4a', 'audio/mpeg': 'mp3',
     'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/webm': 'webm', 'audio/ogg': 'ogg',
 }
 
@@ -54,6 +56,80 @@ def make_poster(video_path, out_name):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def to_h264(video_path):
+    """iPhone video is usually HEVC, which Firefox and many Chrome installs
+    can't play. Re-encode to H.264 MP4 with macOS's own converter; an MP4
+    that's already H.264 is left as it is."""
+    out_path = os.path.splitext(video_path)[0] + '.mp4'
+    if video_path.endswith('.mp4'):
+        with open(video_path, 'rb') as f:
+            if b'avc1' in f.read():
+                return video_path
+    tmp_path = out_path + '.tmp.mp4'
+    try:
+        subprocess.run(['avconvert', '--source', video_path, '--preset', 'Preset1280x720',
+                        '--output', tmp_path, '--replace'],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print(f'  ! Could not convert {os.path.basename(video_path)}; it may not play in every browser')
+        return video_path
+    os.remove(video_path)
+    os.rename(tmp_path, out_path)
+    return out_path
+
+
+def make_thumb(image_name):
+    """A 480px JPEG for the recipe cards, so they never load a full photo.
+    Returns its path relative to the project, as the seed stores it."""
+    os.makedirs(THUMB_DIR, exist_ok=True)
+    try:
+        subprocess.run(['sips', '-Z', '480', '-s', 'format', 'jpeg', '-s', 'formatOptions', '72',
+                        os.path.join(MEDIA_DIR, image_name), '--out', os.path.join(THUMB_DIR, image_name)],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return f'./media/thumbs/{image_name}'
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+
+def fits_already(path, limit=1600):
+    """True if the image is no larger than `limit` on its longest side."""
+    try:
+        out = subprocess.run(['sips', '-g', 'pixelWidth', '-g', 'pixelHeight', path],
+                             capture_output=True, text=True, check=True).stdout
+        sizes = [int(v) for v in re.findall(r'pixel(?:Width|Height): (\d+)', out)]
+        return len(sizes) == 2 and max(sizes) <= limit
+    except (subprocess.CalledProcessError, FileNotFoundError, ValueError):
+        return False
+
+
+def read_media(item):
+    """The file's bytes and type: from the backup, or, for built-in media the
+    browser hadn't copied in yet, from the project's current media folder."""
+    if item.get('dataUrl'):
+        header, encoded = item['dataUrl'].split(',', 1)
+        return base64.b64decode(encoded), header[5:].split(';')[0]
+    src = item.get('src')
+    if src and os.path.exists(os.path.join(ROOT, src)):
+        with open(os.path.join(ROOT, src), 'rb') as f:
+            data = f.read()
+        ext = os.path.splitext(src)[1][1:].lower()
+        every = {**IMAGE_EXT, **VIDEO_EXT, **AUDIO_EXT}
+        mime = next((m for m, e in every.items() if e == ext), 'image/jpeg')
+        return data, mime
+    return None, None
+
+
+def bump_asset_version():
+    """Change the ?v= tag on index.html's own files, so browsers that cached
+    the old ones fetch the new recipes instead of quietly reusing them."""
+    with open(INDEX_FILE) as f:
+        html = f.read()
+    stamp = datetime.datetime.now().strftime('%Y%m%d%H%M')
+    html = re.sub(r'(\./(?:style\.css|script\.js|recipes-seed\.js))(\?v=[^"]*)?"', rf'\1?v={stamp}"', html)
+    with open(INDEX_FILE, 'w') as f:
+        f.write(html)
+
+
 def slug(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')[:24].strip('-')
 
@@ -76,13 +152,20 @@ def main():
     if data.get('app') != 'tasteOfHome':
         sys.exit('That file does not look like a Taste of Home backup.')
 
+    recipes = sorted(data['recipes'], key=lambda r: r.get('order', 0))
+
+    # Read everything before clearing the media folder, since built-in files
+    # missing from the backup are taken from it.
+    for recipe in recipes:
+        for item in recipe.get('media', []):
+            item['_bytes'], item['_mime'] = read_media(item)
+            if item['_bytes'] is None:
+                print(f"  ! Skipping \"{item.get('name')}\" in {recipe['nameEn']}: no file in the backup")
+
     # Start from a clean media folder so deleted photos don't linger in the zip.
     if os.path.isdir(MEDIA_DIR):
         shutil.rmtree(MEDIA_DIR)
     os.makedirs(MEDIA_DIR)
-    os.makedirs(THUMB_DIR)
-
-    recipes = sorted(data['recipes'], key=lambda r: r.get('order', 0))
 
     if order_names:
         chosen = []
@@ -99,14 +182,14 @@ def main():
         name = slug(recipe['nameEn'])
         media_out = []
 
-        for index, item in enumerate(recipe.get('media', []), 1):
+        present = [m for m in recipe.get('media', []) if m['_bytes'] is not None]
+        for index, item in enumerate(present, 1):
             poster = None
-            header, encoded = item['dataUrl'].split(',', 1)
-            mime = header[5:].split(';')[0]
+            mime = item['_mime']
             raw_ext = IMAGE_EXT.get(mime) or VIDEO_EXT.get(mime) or AUDIO_EXT.get(mime) or 'bin'
             raw_path = os.path.join(MEDIA_DIR, f'raw-{name}-{index}.{raw_ext}')
             with open(raw_path, 'wb') as f:
-                f.write(base64.b64decode(encoded))
+                f.write(item['_bytes'])
 
             # Only photos get resized; video and audio are copied through as they are.
             if mime in VIDEO_EXT or mime in AUDIO_EXT:
@@ -114,7 +197,14 @@ def main():
                 final_path = os.path.join(MEDIA_DIR, final_name)
                 os.rename(raw_path, final_path)
                 if mime in VIDEO_EXT:
+                    final_path = to_h264(final_path)
+                    final_name = os.path.basename(final_path)
                     poster = make_poster(final_path, f'{name}-{index}-poster.jpg')
+            elif mime == 'image/jpeg' and fits_already(raw_path):
+                # Already a small enough JPEG (e.g. one this script made last
+                # time): keep the exact bytes rather than compressing again.
+                final_name = f'{name}-{index}.jpg'
+                os.rename(raw_path, os.path.join(MEDIA_DIR, final_name))
             else:
                 final_name = f'{name}-{index}.jpg'
                 subprocess.run(
@@ -123,21 +213,12 @@ def main():
                     check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 )
                 os.remove(raw_path)
-                thumb_name = f'{name}-{index}.webp'
-                thumb_source = os.path.join(MEDIA_DIR, f'.thumb-{name}-{index}.jpg')
-                subprocess.run(
-                    ['sips', '-Z', '480', os.path.join(MEDIA_DIR, final_name), '--out', thumb_source],
-                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                )
-                subprocess.run(
-                    ['cwebp', '-quiet', '-q', '80', thumb_source,
-                     '-o', os.path.join(THUMB_DIR, thumb_name)],
-                    check=True,
-                )
-                os.remove(thumb_source)
+
+            thumb = make_thumb(final_name) if final_name.endswith('.jpg') else None
 
             media_out.append({
                 **({'poster': f'./media/{poster}'} if poster else {}),
+                **({'thumb': thumb} if thumb else {}),
                 'id': f'{name}-{index}',
                 'type': item.get('type', 'image'),
                 # What it was called in the browser, not what the file is called.
@@ -158,7 +239,10 @@ def main():
             'media': media_out,
         })
 
-    glossary = [{'term': e['term'], 'meaning': e['meaning']} for e in data.get('glossary', [])]
+    # In the order they were dragged into in the browser; unordered ones after.
+    entries = data.get('glossary', [])
+    ranked = sorted(enumerate(entries), key=lambda p: (p[1].get('order') if isinstance(p[1].get('order'), (int, float)) else 1e6 + p[0]))
+    glossary = [{'term': e['term'], 'meaning': e['meaning']} for _, e in ranked]
 
     header = """/* ---------- Built-in content ----------
    Generated by tools/build-seed.py from a backup file. Don't hand-edit:
@@ -176,6 +260,8 @@ const SEED_RECIPES = """
 
     with open(SEED_FILE, 'w') as f:
         f.write(header + body + ';\n\nconst SEED_GLOSSARY = ' + gloss + ';\n')
+
+    bump_asset_version()
 
     total_media = sum(len(r['media']) for r in out)
     size_mb = sum(

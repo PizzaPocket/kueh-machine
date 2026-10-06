@@ -4,10 +4,21 @@ const DB_NAME = 'tasteOfHome';
 const DB_VERSION = 2;
 let dbPromise = null;
 
+/* Some browsers refuse IndexedDB outright (Safari opening the file straight
+   off disk, some private windows). Then everything lives here instead, so
+   the recipes still show; changes just don't outlast the tab. */
+const memoryStores = { recipes: new Map(), glossary: new Map(), thumbs: new Map() };
+
 function openDB() {
   if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+  dbPromise = new Promise((resolve) => {
+    let request;
+    try {
+      request = indexedDB.open(DB_NAME, DB_VERSION);
+    } catch {
+      resolve(null);
+      return;
+    }
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains('recipes')) {
@@ -23,13 +34,17 @@ function openDB() {
       }
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      console.warn('IndexedDB unavailable, keeping recipes in memory:', request.error);
+      resolve(null);
+    };
   });
   return dbPromise;
 }
 
 async function dbGetAll(storeName) {
   const db = await openDB();
+  if (!db) return Array.from(memoryStores[storeName].values());
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readonly');
     const req = tx.objectStore(storeName).getAll();
@@ -40,6 +55,10 @@ async function dbGetAll(storeName) {
 
 async function dbPut(storeName, value) {
   const db = await openDB();
+  if (!db) {
+    memoryStores[storeName].set(value.id, value);
+    return undefined;
+  }
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite');
     tx.objectStore(storeName).put(value);
@@ -50,6 +69,10 @@ async function dbPut(storeName, value) {
 
 async function dbDelete(storeName, id) {
   const db = await openDB();
+  if (!db) {
+    memoryStores[storeName].delete(id);
+    return undefined;
+  }
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite');
     tx.objectStore(storeName).delete(id);
@@ -60,6 +83,7 @@ async function dbDelete(storeName, id) {
 
 async function dbGet(storeName, id) {
   const db = await openDB();
+  if (!db) return memoryStores[storeName].get(id);
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readonly');
     const req = tx.objectStore(storeName).get(id);
@@ -121,77 +145,161 @@ function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep 
 
 /* ---------- Seed recipes ---------- */
 
-const SEED_FLAG = 'tasteOfHome.seededRecipes.v1';
-const MEDIA_CACHE_CONCURRENCY = 3;
+/* Which built-in recipes this browser has been given, so one deleted here
+   doesn't come back on the next visit. */
+const SEEDED_IDS_KEY = 'tasteOfHome.seededRecipeIds';
+
+/* localStorage throws instead of returning nothing when site data is blocked. */
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // blocked: the recipes are simply checked again next visit
+  }
+}
 
 function canFetchLocalFiles() {
   return location.protocol === 'http:' || location.protocol === 'https:';
 }
 
-async function seedRecipesIfNeeded() {
+/* A fingerprint of a built-in recipe as recipes-seed.js has it. A browser
+   copy still carrying an older fingerprint was never edited in that browser
+   (saving the form drops it), so it's safe to bring up to date. */
+function seedFingerprint(recipe) {
+  const { order, ...content } = recipe;
+  const text = JSON.stringify(content);
+  let hash = 5381;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash * 33) ^ text.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+/* Media is shown straight from its file in ./media/ until the background
+   fetch below has a copy in the browser. */
+function seedCopy(recipe, order) {
+  return {
+    ...recipe,
+    order,
+    seedHash: seedFingerprint(recipe),
+    media: (recipe.media || []).map((item) => ({ ...item, description: item.description || '' })),
+  };
+}
+
+async function syncSeedRecipes() {
   if (typeof SEED_RECIPES === 'undefined') return;
-  if (localStorage.getItem(SEED_FLAG)) return;
 
   const existing = await dbGetAll('recipes');
-  const existingIds = new Set(existing.map((r) => r.id));
+  const byId = new Map(existing.map((r) => [r.id, r]));
 
-  for (const recipe of SEED_RECIPES) {
-    if (existingIds.has(recipe.id)) continue;
-    /* File paths are enough to show every built-in recipe. Offline copies are
-       filled in later, after the cards are already usable. */
-    await dbPut('recipes', recipe);
+  let delivered = null;
+  try {
+    delivered = JSON.parse(readStorage(SEEDED_IDS_KEY));
+  } catch {
+    delivered = null;
   }
+  const deliveredIds = new Set(Array.isArray(delivered) ? delivered : existing.map((r) => r.id));
 
-  localStorage.setItem(SEED_FLAG, '1');
-}
+  const lineup = [...existing].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const changed = new Set();
+  const staleMediaIds = [];
+  let adoptSeedOrder = false;
 
-async function cacheSeedMediaInBackground() {
-  if (!canFetchLocalFiles() || typeof SEED_RECIPES === 'undefined') return;
+  for (const seed of SEED_RECIPES) {
+    const current = byId.get(seed.id);
 
-  const jobs = [];
-  for (const seedRecipe of SEED_RECIPES) {
-    const storedRecipe = await dbGet('recipes', seedRecipe.id);
-    if (!storedRecipe) continue;
-    if ((storedRecipe.media || []).some((item) => !item.blob && item.src)) jobs.push(seedRecipe.id);
-  }
-
-  let nextJob = 0;
-  async function worker() {
-    while (nextJob < jobs.length) {
-      const recipeId = jobs[nextJob++];
-      const recipe = await dbGet('recipes', recipeId);
-      if (!recipe) continue;
-
-      const media = [];
-      for (const item of recipe.media || []) {
-        if (item.blob || !item.src) {
-          media.push(item);
-          continue;
-        }
-        try {
-          const response = await fetch(item.src);
-          if (!response.ok) throw new Error(response.status);
-          media.push({ ...item, blob: await response.blob() });
-        } catch {
-          console.warn('Could not cache seed media for offline use:', item.src);
-          media.push(item);
-        }
-      }
-      await dbPut('recipes', { ...recipe, media });
+    if (!current) {
+      if (deliveredIds.has(seed.id)) continue; // deleted in this browser
+      /* New to this browser: slot it in where the seed puts it. */
+      const fresh = seedCopy(seed, 0);
+      lineup.splice(Math.min(seed.order ?? lineup.length, lineup.length), 0, fresh);
+      changed.add(fresh);
+      continue;
     }
+
+    /* A copy carrying a fingerprint is refreshed when the seed has moved on.
+       One without came from before fingerprints existed (the first
+       version's seeding, or a restored backup) and is only kept if it was
+       saved through the form since, which stamps editedAt; otherwise it's
+       older than the seed, which was built from those same recipes. */
+    const presync = !current.seedHash && !current.editedAt;
+    const outdated = current.seedHash ? current.seedHash !== seedFingerprint(seed) : presync;
+    if (!outdated) continue;
+    if (presync) adoptSeedOrder = true;
+
+    const refreshed = seedCopy(seed, current.order);
+    lineup[lineup.indexOf(current)] = refreshed;
+    changed.add(refreshed);
+    (current.media || []).forEach((m) => staleMediaIds.push(m.id));
   }
 
-  await Promise.all(Array.from({ length: Math.min(MEDIA_CACHE_CONCURRENCY, jobs.length) }, worker));
+  /* Pre-fingerprint copies brought their order from an old seed or backup,
+     not from anyone dragging cards here, so take the current one. */
+  if (adoptSeedOrder) {
+    const seedOrder = new Map(SEED_RECIPES.map((r, i) => [r.id, i]));
+    const rank = (r) => (seedOrder.has(r.id) ? seedOrder.get(r.id) : SEED_RECIPES.length);
+    lineup.sort((a, b) => rank(a) - rank(b));
+  }
+
+  lineup.forEach((recipe, i) => {
+    if (recipe.order !== i) {
+      recipe.order = i;
+      changed.add(recipe);
+    }
+  });
+
+  for (const recipe of changed) await dbPut('recipes', recipe);
+  /* Thumbnails are keyed by media id, and a refreshed file may differ. */
+  for (const id of staleMediaIds) await dbDelete('thumbs', id);
+  thumbIndex = null;
+
+  SEED_RECIPES.forEach((r) => deliveredIds.add(r.id));
+  writeStorage(SEEDED_IDS_KEY, JSON.stringify([...deliveredIds]));
 }
 
-function scheduleSeedMediaCache() {
-  const start = () => cacheSeedMediaInBackground().catch((error) =>
-    console.warn('Could not finish caching seed media:', error)
-  );
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(start, { timeout: 3000 });
-  } else {
-    setTimeout(start, 1000);
+/* The file itself, for sharing and backing up: the copy held in the browser,
+   or failing that, fetched from ./media/. */
+async function mediaBlob(item) {
+  if (item.blob) return item.blob;
+  if (!item.src || !canFetchLocalFiles()) return null;
+  try {
+    const response = await fetch(item.src);
+    return response.ok ? await response.blob() : null;
+  } catch {
+    return null;
+  }
+}
+
+/* After the page is up, quietly pull built-in media into the browser, one
+   file at a time, so sharing has files to attach and photos get thumbnails
+   on the next visit. Nothing waits on this. */
+async function fetchSeedMediaInBackground() {
+  if (!canFetchLocalFiles()) return;
+  const recipes = await dbGetAll('recipes');
+
+  for (const { id } of recipes) {
+    const recipe = await dbGet('recipes', id);
+    const missing = (recipe?.media || []).filter((m) => !m.blob && m.src);
+
+    for (const item of missing) {
+      const blob = await mediaBlob(item);
+      if (!blob) continue;
+      /* Read again just before writing, in case it was edited meanwhile. */
+      const latest = await dbGet('recipes', id);
+      const target = latest?.media?.find((m) => m.id === item.id && m.src === item.src);
+      if (!target) continue;
+      target.blob = blob;
+      await dbPut('recipes', latest);
+      if (recipeCache.has(id)) recipeCache.set(id, latest);
+    }
   }
 }
 
@@ -204,40 +312,100 @@ const DEFAULT_GLOSSARY = [
   { term: '$2 worth of ginger', meaning: 'a thumb-sized knob, ~15g' },
 ];
 
-async function seedGlossaryIfEmpty() {
-  const existing = await dbGetAll('glossary');
-  if (existing.length > 0) return;
-  const entries = typeof SEED_GLOSSARY !== 'undefined' && SEED_GLOSSARY.length
+/* Which built-in glossary this browser last took in, so it can tell when
+   recipes-seed.js has a newer one. */
+const SEEDED_GLOSSARY_KEY = 'tasteOfHome.seededGlossary';
+
+/* Every phrase that has ever shipped with the site. A browser's copy of one
+   of these came from the project, not from its visitor, so it can be swapped
+   for the current list. */
+const PAST_SEED_GLOSSARY = [
+  ['$2 worth of ginger', 'a thumb-sized knob, ~15g'],
+  ['一大汤匙', 'about 2 tbsp'],
+  ['一把', 'a handful  ~30g'],
+  ['一把 (a handful)', '~30g'],
+  ['一点点', '1/2 tbsp'],
+  ['一粒椰糖', '1 block of Palm sugar (100g)'],
+  ['两块钱姜', '$2 worth of ginger, a thumb-sized knob, ~15g'],
+  ['少许', 'a little  ~1/4 tsp'],
+  ['少许 (a little)', '~1/4 tsp'],
+];
+
+/* Brings this browser's glossary up to the built-in one whenever that
+   changes: built-in phrases are replaced and put in the site's order, and
+   phrases the visitor added or edited themselves are kept after them. */
+async function syncSeedGlossary() {
+  const seed = typeof SEED_GLOSSARY !== 'undefined' && SEED_GLOSSARY.length
     ? SEED_GLOSSARY
     : DEFAULT_GLOSSARY;
-  for (const entry of entries) {
-    await dbPut('glossary', { id: makeId(), ...entry });
+  const fingerprint = seedFingerprint({ glossary: seed });
+  const existing = sortGlossary(await dbGetAll('glossary'));
+  if (existing.length && readStorage(SEEDED_GLOSSARY_KEY) === fingerprint) return;
+
+  const builtIn = new Set(
+    [...PAST_SEED_GLOSSARY, ...seed.map((e) => [e.term, e.meaning])].map(([t, m]) => `${t}\u0000${m}`)
+  );
+  const fromProject = (e) => e.fromSeed || builtIn.has(`${e.term}\u0000${e.meaning}`);
+  const own = existing.filter((e) => !fromProject(e));
+
+  for (const e of existing) if (fromProject(e)) await dbDelete('glossary', e.id);
+  for (const [order, entry] of seed.entries()) {
+    await dbPut('glossary', { id: makeId(), term: entry.term, meaning: entry.meaning, order, fromSeed: true });
+  }
+  for (const [i, entry] of own.entries()) {
+    await dbPut('glossary', { ...entry, order: seed.length + i });
+  }
+  writeStorage(SEEDED_GLOSSARY_KEY, fingerprint);
+}
+
+/* Phrases in the order they've been dragged into. Ones saved before ordering
+   existed keep the order they were showing in, after the ordered ones. */
+function sortGlossary(entries) {
+  return entries
+    .map((entry, i) => ({ entry, rank: typeof entry.order === 'number' ? entry.order : 1e6 + i }))
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ entry }) => entry);
+}
+
+async function persistGlossaryOrder() {
+  const ids = Array.from(document.querySelectorAll('#glossary-list li[data-id]')).map((li) => li.dataset.id);
+  for (let i = 0; i < ids.length; i += 1) {
+    const entry = await dbGet('glossary', ids[i]);
+    if (entry && entry.order !== i) await dbPut('glossary', { ...entry, order: i });
   }
 }
 
 async function renderGlossary(filterText = '') {
   const list = document.getElementById('glossary-list');
-  const all = await dbGetAll('glossary');
+  const all = sortGlossary(await dbGetAll('glossary'));
   const filtered = all.filter((entry) =>
     entry.term.toLowerCase().includes(filterText.toLowerCase()) ||
     entry.meaning.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  const count = document.getElementById('glossary-count');
-  if (count) {
-    if (!all.length) {
-      count.textContent = 'Nothing pinned down yet';
-    } else if (filterText) {
-      count.textContent = `${filtered.length} of ${all.length} phrases`;
-    } else {
-      count.textContent = `${all.length} phrase${all.length === 1 ? '' : 's'} pinned down`;
-    }
-  }
+  /* The total lives in the search placeholder; the match count only shows
+     inside the field while searching. */
+  const search = document.getElementById('glossary-search');
+  search.placeholder = all.length
+    ? `Search ${all.length} decoded phrase${all.length === 1 ? '' : 's'}…`
+    : 'Nothing decoded yet, add one above';
+  document.getElementById('glossary-count').textContent = filterText
+    ? `${filtered.length} of ${all.length}`
+    : '';
+
+  /* Reordering a search's matches would be guesswork about where they sit in
+     the full list, so the handles only show when nothing is filtered. */
+  const sortable = !filterText;
+  list.classList.toggle('sortable', sortable);
+  const handle = sortable
+    ? `<button type="button" class="drag-handle glossary-grip" aria-label="Drag to reorder, or use the arrow keys">${ICON.grip}</button>`
+    : '';
 
   list.innerHTML = filtered
     .map(
       (entry) => `
         <li data-id="${entry.id}">
+          ${handle}
           <span class="term">${entry.term}</span>
           <span class="arrow">→</span>
           <span class="meaning">${entry.meaning}</span>
@@ -311,7 +479,8 @@ async function saveEditedTerm(li) {
   }
 
   const entry = await dbGet('glossary', li.dataset.id);
-  await dbPut('glossary', { ...entry, term, meaning });
+  /* Edited here, so it's this visitor's now: built-in updates leave it be. */
+  await dbPut('glossary', { ...entry, term, meaning, fromSeed: false });
   await renderGlossary(currentGlossaryFilter());
   showToast('Glossary updated');
 }
@@ -339,19 +508,24 @@ function setupGlossary() {
     const existing = await dbGetAll('glossary');
     const match = existing.find((entry) => entry.term.trim().toLowerCase() === term.toLowerCase());
     if (match) {
-      await dbPut('glossary', { ...match, meaning });
+      await dbPut('glossary', { ...match, meaning, fromSeed: false });
       showToast(`Updated “${match.term}”`);
     } else {
-      await dbPut('glossary', { id: makeId(), term, meaning });
+      /* New phrases go to the top, where they can be seen landing. */
+      const orders = existing.map((entry) => entry.order).filter((n) => typeof n === 'number');
+      const order = (orders.length ? Math.min(...orders) : 0) - 1;
+      await dbPut('glossary', { id: makeId(), term, meaning, order });
+      showToast(`Added “${term}”`);
     }
 
     termInput.value = '';
     meaningInput.value = '';
     document.getElementById('glossary-search').value = '';
     termInput.focus();
-    showToast(`Added “${term}”`);
     renderGlossary();
   });
+
+  makeSortable(document.getElementById('glossary-list'), 'li[data-id]', persistGlossaryOrder);
 
   document.getElementById('glossary-list').addEventListener('click', async (e) => {
     const li = e.target.closest('li');
@@ -434,7 +608,7 @@ function renderExistingMediaPreview() {
   }
 
   container.innerHTML = `
-    <p class="section-note">Photos, videos and recordings so far, in the order they'll appear. Drag &#10303; to reorder. Name each one and add a note if it helps, both show up when it's opened.</p>
+    <p class="section-note">Drag &#10303; to reorder. Names and notes appear when a file is opened.</p>
     <div class="media-editor"></div>
   `;
 
@@ -460,11 +634,11 @@ function renderExistingMediaPreview() {
         const still = frame ? URL.createObjectURL(frame) : m.poster;
         thumb.innerHTML = still
           ? `<span class="thumb-wrap"><img src="${still}" alt="" decoding="async"><span class="play-badge">▶</span></span>`
-          : `<span class="thumb-wrap"><video src="${URL.createObjectURL(m.blob)}" muted preload="metadata"></video><span class="play-badge">▶</span></span>`;
+          : `<span class="thumb-wrap"><video src="${m.blob ? URL.createObjectURL(m.blob) : m.src}" muted preload="metadata"></video><span class="play-badge">▶</span></span>`;
       });
     } else {
       thumbBlobFor(m).then((blob) => {
-        thumb.innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="" decoding="async">`;
+        thumb.innerHTML = `<img src="${blob ? URL.createObjectURL(blob) : m.src}" alt="" decoding="async">`;
       });
     }
 
@@ -578,6 +752,8 @@ async function handleRecipeSubmit(e) {
     media: currentMedia,
     order,
     createdAt: editingRecipe ? editingRecipe.createdAt : Date.now(),
+    /* Marks this as changed in this browser, so built-in updates leave it be. */
+    editedAt: Date.now(),
   };
 
   await dbPut('recipes', recipe);
@@ -672,6 +848,10 @@ function setupRecipeForm() {
 
   document.getElementById('add-ingredient').addEventListener('click', () => addIngredientRow());
   document.getElementById('add-step').addEventListener('click', () => addStepRow());
+
+  document.getElementById('add-media').addEventListener('click', () => {
+    document.getElementById('field-media').click();
+  });
 
   document.getElementById('field-media').addEventListener('change', (e) => {
     const files = Array.from(e.target.files);
@@ -850,12 +1030,405 @@ function shareFileName(item) {
   const base = (item.name || DEFAULT_SHARE_NAME[item.type] || 'photo')
     .replace(/\.[a-z0-9]{2,4}$/i, '')
     .replace(/[\\/:*?"<>|]+/g, '')
+    .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 60) || 'photo';
   return `${base}.${ext}`;
 }
 
-async function shareRecipe(recipe) {
+/* ---------- Recipe card as PDF ---------- */
+
+/* A one-page PDF built by hand around the card drawn as a JPEG: an image
+   filling the page, plus a link annotation over the "Open this recipe online"
+   line so it can be tapped in a PDF viewer. Small enough not to need a PDF
+   library. */
+function cardPdf(jpegBytes, width, height, link, title) {
+  const enc = new TextEncoder();
+  const pageW = 595.28; // A4 width in points; the page is as long as the card
+  const scale = pageW / width;
+  const pageH = height * scale;
+  const n = (v) => Number(v.toFixed(2));
+
+  /* PDF strings: titles as UTF-16 hex (Chinese survives), URLs escaped. */
+  const utf16Hex = (str) => {
+    let hex = 'FEFF';
+    for (const ch of str) {
+      const code = ch.codePointAt(0);
+      if (code > 0xffff) {
+        const c = code - 0x10000;
+        hex += (0xd800 + (c >> 10)).toString(16).padStart(4, '0');
+        hex += (0xdc00 + (c & 0x3ff)).toString(16).padStart(4, '0');
+      } else {
+        hex += code.toString(16).padStart(4, '0');
+      }
+    }
+    return `<${hex.toUpperCase()}>`;
+  };
+  const pdfString = (str) => `(${encodeURI(decodeURI(str)).replace(/[\\()]/g, (c) => `\\${c}`)})`;
+
+  const content = `q ${n(pageW)} 0 0 ${n(pageH)} 0 0 cm /Card Do Q`;
+  const annots = link ? ' /Annots [6 0 R]' : '';
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(pageW)} ${n(pageH)}] /Resources << /XObject << /Card 4 0 R >> >> /Contents 5 0 R${annots} >>`,
+    [`<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`, jpegBytes, '\nendstream'],
+    `<< /Length ${enc.encode(content).length} >>\nstream\n${content}\nendstream`,
+    link
+      ? `<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [${n(link.left * scale)} ${n(pageH - link.bottom * scale)} ${n(link.right * scale)} ${n(pageH - link.top * scale)}] /A << /S /URI /URI ${pdfString(link.url)} >> >>`
+      : '<< >>',
+    `<< /Title ${utf16Hex(title)} /Creator (Taste of Home, kuehmachine.com) >>`,
+  ];
+
+  const parts = [];
+  let length = 0;
+  const push = (chunk) => {
+    const bytes = typeof chunk === 'string' ? enc.encode(chunk) : chunk;
+    parts.push(bytes);
+    length += bytes.length;
+  };
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const offsets = [];
+  objects.forEach((body, i) => {
+    offsets.push(length);
+    push(`${i + 1} 0 obj\n`);
+    (Array.isArray(body) ? body : [body]).forEach(push);
+    push('\nendobj\n');
+  });
+  const xrefAt = length;
+  push(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`);
+  offsets.forEach((o) => push(`${String(o).padStart(10, '0')} 00000 n \n`));
+  push(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 7 0 R >>\nstartxref\n${xrefAt}\n%%EOF\n`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+
+/* ---------- Recipe links ---------- */
+
+/* Each recipe has its own address on the site: opening it lands on the page
+   with that recipe's pop-up open. Built from wherever the site is served, so
+   it's a kuehmachine.com link once it lives there. */
+function recipeLink(recipe) {
+  return `${location.href.split('#')[0]}#recipe=${encodeURIComponent(recipe.id)}`;
+}
+
+function recipeIdFromHash() {
+  const match = location.hash.match(/^#recipe=(.+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+async function openRecipeFromHash() {
+  const id = recipeIdFromHash();
+  if (!id) return;
+  const detailOpen = !document.getElementById('recipe-detail-overlay').classList.contains('hidden');
+  if (detailOpen && document.getElementById('recipe-detail').dataset.id === id) return;
+  const recipe = recipeCache.get(id) || (await dbGet('recipes', id));
+  if (recipe) {
+    await openRecipeDetail(recipe);
+  } else {
+    showToast('That recipe isn’t on this copy of the site');
+  }
+}
+
+/* Where this part of the kueh machine lives once it's on the site. The PDF's
+   link and the shared message both point here. */
+const SITE_URL = 'https://www.kuehmachine.com/meijun/';
+
+/* The message that travels with the PDF. */
+function shareMessage(recipe) {
+  const dish = [recipe.nameEn, recipe.nameCn].filter(Boolean).join(' ');
+  /* *…* is WhatsApp's bold; other apps show the asterisks as they are. */
+  return `Sharing the *${dish}* recipe from 家常菜 · Taste of Home.\nFor more recipes: kuehmachine.com/meijun`;
+}
+
+/* ---------- Recipe card image (for sharing) ---------- */
+
+/* Many apps (WhatsApp, Messages, AirDrop) keep only the pictures when a share
+   carries both text and photos. So the whole recipe also goes as a picture:
+   a scrapbook card drawn on a canvas, sent ahead of the photos. Cards are
+   drawn ahead of time, because the share sheet has to open straight off the
+   click. */
+
+const CARD_WIDTH = 1080;
+const CARD_PAD = 84;
+const recipeCardCache = new Map();
+
+function recipeCardKey(recipe) {
+  const { nameEn, nameCn, story, ingredients, steps } = recipe;
+  const photos = cardPhotoItems(recipe).map((m) => m.id);
+  return JSON.stringify([nameEn, nameCn, story, ingredients, steps, photos]);
+}
+
+/* Breaks text into lines that fit. Chinese can break between any two
+   characters; Latin text only between words. */
+function wrapText(ctx, text, maxWidth) {
+  const tokens = String(text || '').match(/[⺀-鿿豈-﫿＀-￯　-〿]|[^\s⺀-鿿豈-﫿＀-￯　-〿]+\s*|\s+/g) || [];
+  const lines = [];
+  let line = '';
+  for (const token of tokens) {
+    const next = line + token;
+    if (line && ctx.measureText(next.trimEnd()).width > maxWidth) {
+      lines.push(line.trimEnd());
+      line = token.trimStart();
+    } else {
+      line = next;
+    }
+  }
+  if (line.trim()) lines.push(line.trimEnd());
+  return lines.length ? lines : [''];
+}
+
+/* Lays the card out once to measure its height, then again to draw it.
+   photos: decoded images for the thumbnail strip under the story. */
+function paintRecipeCard(ctx, recipe, draw, photos = [], withLink = false) {
+  const css = getComputedStyle(document.documentElement);
+  const color = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+  const ink = color('--ink', '#3a2a1e');
+  const inkSoft = color('--ink-soft', '#6b5a48');
+  const accent = color('--accent', '#b7472a');
+  const accentSoft = color('--accent-soft', '#c98a4b');
+  const line = color('--line', 'rgba(58, 42, 30, 0.14)');
+  const serif = "'Noto Serif SC', serif";
+  const hand = "'Caveat', cursive";
+  const inner = CARD_WIDTH - CARD_PAD * 2;
+  let y = CARD_PAD;
+
+  const text = (str, x, font, fill) => {
+    if (!draw) return;
+    ctx.font = font;
+    ctx.fillStyle = fill;
+    ctx.fillText(str, x, y);
+  };
+  /* Draws wrapped text with its first baseline at y; returns the distance
+     from that baseline to the last one. */
+  const block = (str, x, width, font, fill, lineHeight) => {
+    ctx.font = font;
+    const lines = wrapText(ctx, str, width);
+    if (draw) {
+      ctx.fillStyle = fill;
+      lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+    }
+    return (lines.length - 1) * lineHeight;
+  };
+  const rule = (dashed) => {
+    if (!draw) return;
+    ctx.save();
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 2;
+    if (dashed) ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.moveTo(CARD_PAD, y);
+    ctx.lineTo(CARD_WIDTH - CARD_PAD, y);
+    ctx.stroke();
+    ctx.restore();
+  };
+  const heading = (en, cn) => {
+    y += 64;
+    ctx.font = `600 40px ${serif}`;
+    const w = ctx.measureText(en).width;
+    text(en, CARD_PAD, `600 40px ${serif}`, ink);
+    text(cn, CARD_PAD + w + 16, `400 30px ${serif}`, inkSoft);
+    y += 30;
+  };
+
+  ctx.textBaseline = 'alphabetic';
+
+  // Kicker, title and Chinese name
+  text('家常菜 · Taste of Home', CARD_PAD, `700 34px ${hand}`, accent);
+  y += 84;
+  y += block(recipe.nameEn, CARD_PAD, inner, `600 60px ${serif}`, ink, 80);
+  if (recipe.nameCn) {
+    y += 68;
+    text(recipe.nameCn, CARD_PAD, `400 40px ${serif}`, inkSoft);
+  }
+
+  // Story
+  if (recipe.story) {
+    y += 72;
+    y += block(recipe.story, CARD_PAD, inner, `italic 400 31px ${serif}`, inkSoft, 54);
+  }
+
+  // Photo strip: up to four, cropped to fill equal 4:3 frames
+  if (photos.length) {
+    y += 48;
+    const gap = 18;
+    const w = (inner - gap * (photos.length - 1)) / photos.length;
+    const h = Math.round(w * (photos.length === 1 ? 0.6 : 0.75));
+    if (draw) {
+      photos.forEach((img, i) => {
+        const x = CARD_PAD + i * (w + gap);
+        const scale = Math.max(w / img.width, h / img.height);
+        const sw = w / scale;
+        const sh = h / scale;
+        ctx.save();
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, w, h, 6);
+        else ctx.rect(x, y, w, h);
+        ctx.clip();
+        ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+        ctx.restore();
+      });
+    }
+    y += h;
+  }
+
+  // Ingredients: her words in one column, mine in the next
+  if (recipe.ingredients.length) {
+    y += 64;
+    rule(false);
+    heading('Ingredients', '材料');
+    const herWidth = inner * 0.42;
+    const arrowX = CARD_PAD + herWidth + 18;
+    const mineX = arrowX + 54;
+    const mineWidth = CARD_WIDTH - CARD_PAD - mineX;
+    recipe.ingredients.forEach((row) => {
+      y += 28;
+      rule(true);
+      y += 54;
+      const top = y;
+      const herHeight = block(row.her || '', CARD_PAD, herWidth, `400 30px ${serif}`, ink, 46);
+      text('→', arrowX, `400 30px ${serif}`, accentSoft);
+      const mineHeight = block(row.mine || '', mineX, mineWidth, `400 30px ${serif}`, accent, 46);
+      y = top + Math.max(herHeight, mineHeight);
+    });
+  }
+
+  // Steps, numbered in the hand font
+  if (recipe.steps.length) {
+    y += 76;
+    rule(false);
+    heading('Steps', '做法');
+    recipe.steps.forEach((step, i) => {
+      y += i ? 72 : 58;
+      text(`${i + 1}.`, CARD_PAD, `700 38px ${hand}`, accent);
+      y += block(step, CARD_PAD + 58, inner - 58, `400 30px ${serif}`, ink, 50);
+    });
+  }
+
+  // Sign-off
+  y += 80;
+  rule(true);
+  y += 60;
+  text('From 家常菜 · Taste of Home, by Mei Jun · kuehmachine.com', CARD_PAD, `500 32px ${hand}`, inkSoft);
+
+  /* PDF only: a line to tap through to the rest of the recipes. */
+  let link = null;
+  if (withLink) {
+    y += 62;
+    const label = 'More recipes at kuehmachine.com/meijun →';
+    text(label, CARD_PAD, `700 38px ${hand}`, accent);
+    ctx.font = `700 38px ${hand}`;
+    link = { left: CARD_PAD - 8, top: y - 40, right: CARD_PAD + ctx.measureText(label).width + 8, bottom: y + 14 };
+  }
+  return { height: y + CARD_PAD - 24, link };
+}
+
+/* The first few photos, decoded small, for the card's thumbnail strip. Files
+   only shown from ./media/ are fetched first; opened straight off the disk
+   they'd make the canvas unexportable, so they're left out there. */
+const CARD_PHOTOS = 4;
+
+function cardPhotoItems(recipe) {
+  return (recipe.media || []).filter((m) => m.type === 'image').slice(0, CARD_PHOTOS);
+}
+
+async function loadCardPhotos(recipe) {
+  const photos = [];
+  for (const item of cardPhotoItems(recipe)) {
+    try {
+      const blob = item.blob || (canFetchLocalFiles() ? await mediaBlob(item) : null);
+      if (!blob) continue;
+      photos.push(await createImageBitmap(blob, { resizeWidth: 520, resizeQuality: 'high' }));
+    } catch {
+      // leave that one out
+    }
+  }
+  return photos;
+}
+
+async function drawRecipeCard(recipe) {
+  /* Google Fonts serves Chinese in slices, so ask for the glyphs this recipe
+     actually uses before drawing, or the canvas falls back to a system font. */
+  const sample = [recipe.nameEn, recipe.nameCn, recipe.story,
+    ...recipe.ingredients.flatMap((r) => [r.her, r.mine]), ...recipe.steps,
+    '家常菜 材料 做法 Taste of Home →'].join(' ');
+  if (document.fonts && document.fonts.load) {
+    try {
+      await Promise.all([
+        document.fonts.load("400 30px 'Noto Serif SC'", sample),
+        document.fonts.load("600 30px 'Noto Serif SC'", sample),
+        document.fonts.load("700 30px 'Caveat'", sample),
+        document.fonts.load("500 30px 'Caveat'", sample),
+      ]);
+    } catch {
+      // draw with whatever fonts are there
+    }
+  }
+
+  const photos = await loadCardPhotos(recipe);
+  const paper = getComputedStyle(document.documentElement).getPropertyValue('--paper-card').trim() || '#fbf4e6';
+
+  const render = (withLink) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = CARD_WIDTH;
+    canvas.height = Math.ceil(paintRecipeCard(ctx, recipe, false, photos, withLink).height);
+    ctx.fillStyle = paper;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const { link } = paintRecipeCard(ctx, recipe, true, photos, withLink);
+    return { canvas, link };
+  };
+  const toBlob = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+  /* The image card for downloads and previews; the PDF card adds the link. */
+  const image = render(false);
+  const forPdf = render(true);
+  photos.forEach((p) => p.close && p.close());
+
+  const png = await toBlob(image.canvas, 'image/png');
+  const jpeg = await toBlob(forPdf.canvas, 'image/jpeg', 0.9);
+  let pdf = null;
+  if (jpeg) {
+    const bytes = new Uint8Array(await jpeg.arrayBuffer());
+    const title = [recipe.nameEn, recipe.nameCn].filter(Boolean).join(' ');
+    pdf = cardPdf(bytes, forPdf.canvas.width, forPdf.canvas.height, { ...forPdf.link, url: SITE_URL }, title);
+  }
+  return { png, pdf };
+}
+
+/* The card for this recipe as it stands, drawing it if it isn't ready. */
+async function recipeCardFiles(recipe) {
+  const key = recipeCardKey(recipe);
+  const cached = recipeCardCache.get(recipe.id);
+  if (cached && cached.key === key) return cached;
+  const { png, pdf } = await drawRecipeCard(recipe);
+  const entry = { key, png, pdf };
+  if (png) recipeCardCache.set(recipe.id, entry);
+  return entry;
+}
+
+/* The card as an image (preview and download). */
+async function recipeCardBlob(recipe) {
+  return (await recipeCardFiles(recipe)).png;
+}
+
+/* Only what's already drawn, so sharing never has to wait. */
+function readyRecipeCard(recipe) {
+  const cached = recipeCardCache.get(recipe.id);
+  return cached && cached.key === recipeCardKey(recipe) ? cached : null;
+}
+
+async function prepareRecipeCards(recipes) {
+  for (const recipe of recipes) {
+    try {
+      await recipeCardBlob(recipe);
+    } catch (err) {
+      console.warn('Could not draw the recipe card for', recipe.nameEn, err);
+    }
+  }
+}
+
+/* The whole recipe as plain text, for the share sheet and the clipboard. */
+function recipeText(recipe) {
   const lines = [`${recipe.nameEn}${recipe.nameCn ? ` · ${recipe.nameCn}` : ''}`];
   if (recipe.story) lines.push('', recipe.story);
   if (recipe.ingredients.length) {
@@ -869,38 +1442,245 @@ async function shareRecipe(recipe) {
     recipe.steps.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
   }
   lines.push('', 'From 家常菜 · Taste of Home — kuehmachine.com');
-  const text = lines.join('\n');
-  const shareData = { title: recipe.nameEn, text };
+  return lines.join('\n');
+}
 
-  if (navigator.canShare && recipe.media && recipe.media.some((m) => m.blob)) {
+const SHARE_PHOTOS = 3;
+
+/* "Hainanese Yi Bua Kueh recipe.png": the bracketed gloss would push the
+   name past the length limit. */
+function recipeCardFileName(recipe) {
+  const shortName = recipe.nameEn.replace(/\s*\([^)]*\)/g, '').slice(0, 50);
+  return shareFileName({ name: shortName, type: 'image', blob: { type: 'image/png' } })
+    .replace(/\.png$/, ' recipe.png');
+}
+
+function sharePhotos(recipe) {
+  return (recipe.media || []).filter((m) => m.blob && m.type === 'image').slice(0, SHARE_PHOTOS);
+}
+
+/* Opens the system share sheet with the recipe card leading (so apps that
+   keep only pictures still get the whole recipe), then the photos, with the
+   text alongside. Resolves to 'shared', 'cancelled' or 'failed'. */
+/* Opens the system share sheet with the recipe card as a PDF and a short
+   message carrying a link back to the recipe on the site. Resolves to
+   'shared', 'cancelled' or 'failed'. */
+async function shareNatively(recipe) {
+  /* No separate title: share targets add it as its own line or subject,
+     repeating the dish name that's already in the message. */
+  const shareData = { text: shareMessage(recipe) };
+
+  if (navigator.canShare) {
     try {
-      const files = recipe.media.filter((m) => m.blob).slice(0, 4).map(
-        (m) =>
-          new File([m.blob], shareFileName(m), {
-            type: m.blob.type || DEFAULT_SHARE_TYPE[m.type] || 'image/jpeg',
-          })
-      );
-      if (navigator.canShare({ files })) shareData.files = files;
+      const card = readyRecipeCard(recipe) || (await recipeCardFiles(recipe));
+      if (card.pdf) {
+        const files = [new File([card.pdf], recipeCardFileName(recipe).replace(/\.png$/, '.pdf'), { type: 'application/pdf' })];
+        if (navigator.canShare({ files })) shareData.files = files;
+      }
     } catch {
-      // share without files
-    }
-  }
-
-  if (navigator.share) {
-    try {
-      await navigator.share(shareData);
-      return;
-    } catch (err) {
-      if (err.name === 'AbortError') return;
+      // share the message and link without the file
     }
   }
 
   try {
-    await navigator.clipboard.writeText(text);
-    showToast('Recipe copied to clipboard');
-  } catch {
-    window.prompt('Copy this recipe:', text);
+    await navigator.share(shareData);
+    return 'shared';
+  } catch (err) {
+    if (err.name === 'AbortError') return 'cancelled';
+    /* Some share targets turn down attached files; the message and link
+       still go. */
+    if (shareData.files) {
+      try {
+        delete shareData.files;
+        await navigator.share(shareData);
+        return 'shared';
+      } catch (retryErr) {
+        if (retryErr.name === 'AbortError') return 'cancelled';
+      }
+    }
+    return 'failed';
   }
+}
+
+/* ---------- Share panel ---------- */
+
+/* Share opens this panel rather than going straight out: it shows the recipe
+   card that will be sent and offers every way to send it, including the ones
+   a desktop browser without a share sheet can still do. */
+let sharePanelRecipe = null;
+let sharePanelReturnFocus = null;
+let sharePreviewUrl = null;
+
+function shareRecipe(recipe) {
+  openSharePanel(recipe);
+}
+
+function setShareStatus(message) {
+  document.getElementById('share-status').textContent = message;
+}
+
+async function openSharePanel(recipe) {
+  sharePanelRecipe = recipe;
+  sharePanelReturnFocus = document.activeElement;
+
+  const canShare = Boolean(navigator.share);
+
+  /* The hand font has no Chinese, so the Chinese name gets its own smaller
+     serif span rather than a heavy fallback at the full size. */
+  const dish = document.getElementById('share-dish');
+  dish.textContent = recipe.nameEn;
+  if (recipe.nameCn) {
+    const cn = document.createElement('span');
+    cn.className = 'cn';
+    cn.textContent = recipe.nameCn;
+    dish.append(' ', cn);
+  }
+  document.getElementById('share-summary').textContent = canShare
+    ? 'Share this recipe and the memories that come with it.'
+    : 'Download the card to send it on, or save the recipe as a PDF to print.';
+
+  const nativeBtn = document.getElementById('share-native');
+  nativeBtn.innerHTML = `${ICON.share}<span>Share…</span>`;
+  nativeBtn.hidden = !canShare;
+  document.getElementById('share-download').innerHTML = `${ICON.download}<span>Download recipe card</span>`;
+  document.getElementById('share-pdf').innerHTML = `${ICON.pdf}<span>Save as PDF</span>`;
+  setShareStatus('');
+
+  const preview = document.getElementById('share-preview');
+  preview.innerHTML = '<p class="share-preview-wait">Drawing the card…</p>';
+  preview.scrollTop = 0;
+
+  document.getElementById('share-overlay').classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  /* Focus the panel itself: keyboard users tab straight to the buttons, and
+     nobody sees a focus ring on Share before they've done anything. */
+  document.getElementById('share-card').focus({ preventScroll: true });
+
+  try {
+    const blob = await recipeCardBlob(recipe);
+    if (sharePanelRecipe !== recipe || !blob) return;
+    if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl);
+    sharePreviewUrl = URL.createObjectURL(blob);
+    preview.innerHTML = `<img src="${sharePreviewUrl}" alt="">`;
+    /* A brief glimpse of the thumb, so it's clear the card scrolls. */
+    preview.querySelector('img').addEventListener('load', () => showShareScrollThumb(), { once: true });
+  } catch {
+    preview.innerHTML = '<p class="share-preview-wait">The card couldn’t be drawn here.</p>';
+  }
+}
+
+function closeSharePanel() {
+  document.getElementById('share-overlay').classList.add('hidden');
+  if (document.querySelectorAll('.form-overlay:not(.hidden)').length === 0) {
+    document.body.classList.remove('modal-open');
+  }
+  if (sharePreviewUrl) {
+    URL.revokeObjectURL(sharePreviewUrl);
+    sharePreviewUrl = null;
+  }
+  sharePanelRecipe = null;
+  if (sharePanelReturnFocus && sharePanelReturnFocus.focus) {
+    sharePanelReturnFocus.focus({ preventScroll: true });
+  }
+}
+
+/* ---------- Quiet scrollbars ---------- */
+
+/* A short, thin scroll thumb that shows while something scrolls and fades a
+   moment after it stops, in place of the browser's own scrollbar (hidden by
+   the .quiet-scroll class). The thumb lives in `host`, a positioned element
+   that holds the scroller but doesn't scroll itself. */
+const QUIET_THUMB = 36;
+const QUIET_INSET = 8;
+
+function attachQuietScrollbar(scroller, host) {
+  scroller.classList.add('quiet-scroll');
+  const thumb = document.createElement('span');
+  thumb.className = 'quiet-thumb';
+  thumb.setAttribute('aria-hidden', 'true');
+  host.appendChild(thumb);
+  let timer = null;
+
+  function show() {
+    const range = scroller.scrollHeight - scroller.clientHeight;
+    if (range <= 0) {
+      thumb.classList.remove('visible');
+      return;
+    }
+    const track = scroller.clientHeight - QUIET_THUMB - QUIET_INSET * 2;
+    const top = scroller.offsetTop + QUIET_INSET + (scroller.scrollTop / range) * track;
+    thumb.style.transform = `translateY(${top}px)`;
+    thumb.classList.add('visible');
+    clearTimeout(timer);
+    timer = setTimeout(() => thumb.classList.remove('visible'), 900);
+  }
+
+  scroller.addEventListener('scroll', show, { passive: true });
+  return show;
+}
+
+let showShareScrollThumb = () => {};
+
+function setupSharePanel() {
+  const overlay = document.getElementById('share-overlay');
+  const preview = document.getElementById('share-preview');
+  showShareScrollThumb = attachQuietScrollbar(preview, preview.parentElement);
+
+  document.getElementById('share-close').addEventListener('click', closeSharePanel);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeSharePanel();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || overlay.classList.contains('hidden')) return;
+    e.stopPropagation();
+    closeSharePanel();
+  }, true);
+
+  document.getElementById('share-native').addEventListener('click', async () => {
+    const recipe = sharePanelRecipe;
+    if (!recipe) return;
+    const result = await shareNatively(recipe);
+    if (result === 'shared') {
+      closeSharePanel();
+      showToast('Recipe shared');
+    } else if (result === 'failed') {
+      setShareStatus('The share sheet couldn’t open here. Download the card and send it instead.');
+    }
+  });
+
+  document.getElementById('share-download').addEventListener('click', async () => {
+    const recipe = sharePanelRecipe;
+    if (!recipe) return;
+    const blob = await recipeCardBlob(recipe);
+    if (!blob) {
+      setShareStatus('The card couldn’t be drawn here. Try Save as PDF instead.');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = recipeCardFileName(recipe);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const status = document.getElementById('share-status');
+    const file = document.createElement('em');
+    file.textContent = link.download;
+    status.replaceChildren('Saved ', file, ' to your downloads.');
+  });
+
+  /* The print stylesheet lays out the open recipe pop-up, so open it first
+     when sharing started from a card. */
+  document.getElementById('share-pdf').addEventListener('click', async () => {
+    const recipe = sharePanelRecipe;
+    if (!recipe) return;
+    closeSharePanel();
+    const detail = document.getElementById('recipe-detail');
+    const detailOpen = !document.getElementById('recipe-detail-overlay').classList.contains('hidden');
+    if (!detailOpen || detail.dataset.id !== recipe.id) await openRecipeDetail(recipe);
+    printRecipe(recipe);
+  });
 }
 
 /* ---------- Backup & restore ---------- */
@@ -912,14 +1692,6 @@ function blobToDataURL(blob) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(blob);
   });
-}
-
-async function mediaToDataURL(item) {
-  if (item.blob) return blobToDataURL(item.blob);
-  if (!item.src) return null;
-  const response = await fetch(item.src);
-  if (!response.ok) throw new Error(`Could not include ${item.src} in the backup`);
-  return blobToDataURL(await response.blob());
 }
 
 async function exportBackup() {
@@ -935,7 +1707,8 @@ async function exportBackup() {
           type: m.type,
           name: m.name,
           description: m.description || '',
-          dataUrl: await mediaToDataURL(m),
+          ...(m.src ? { src: m.src } : {}),
+          dataUrl: await mediaBlob(m).then((blob) => (blob ? blobToDataURL(blob) : null)),
         }))
       ),
     }))
@@ -982,6 +1755,7 @@ async function importBackup(file) {
         type: m.type,
         name: m.name,
         description: m.description || '',
+        ...(m.src ? { src: m.src } : {}),
         blob: m.dataUrl ? await (await fetch(m.dataUrl)).blob() : m.blob,
       }))
     );
@@ -1015,6 +1789,11 @@ function setupBackup() {
 
 /* Object URLs handed out to the current set of cards, revoked on re-render. */
 let cardObjectUrls = [];
+
+/* The recipes on screen, by id. Sharing reads from here rather than from
+   IndexedDB, because the share sheet only opens straight off a click: an
+   await in between can cost the browser's permission to show it. */
+const recipeCache = new Map();
 
 function mediaUrl(blob) {
   const url = URL.createObjectURL(blob);
@@ -1120,13 +1899,6 @@ async function thumbBlobFor(item) {
   }
 }
 
-function builtInThumbSrc(item) {
-  if (item.thumb) return item.thumb;
-  if (!item.src || item.type !== 'image') return null;
-  const match = item.src.match(/^\.\/media\/([^/]+)\.(?:jpe?g|png|webp)$/i);
-  return match ? `./media/thumbs/${match[1]}.webp` : null;
-}
-
 function mediaTypeOf(file) {
   if (file.type.startsWith('video')) return 'video';
   if (file.type.startsWith('audio')) return 'audio';
@@ -1146,8 +1918,8 @@ async function mediaTag(item, alt, { playable = false } = {}) {
       return `<video src="${mediaSrc(item)}" controls playsinline preload="metadata"></video>`;
     }
 
-    /* Built-in videos already ship with a poster. Do not download and decode
-       the full recording just to make a card-sized still. */
+    /* Built-in videos ship with a poster; don't download and decode the
+       whole video just to make a card-sized still. (From Leonard.) */
     const frame = item.poster ? null : await thumbBlobFor(item);
     const still = item.poster || (frame ? mediaUrl(frame) : null);
     const inner = still
@@ -1156,9 +1928,10 @@ async function mediaTag(item, alt, { playable = false } = {}) {
     return `<span class="thumb-wrap">${inner}<span class="play-badge">▶</span></span>`;
   }
 
-  const builtInThumb = builtInThumbSrc(item);
-  const thumb = builtInThumb ? null : await thumbBlobFor(item);
-  const url = builtInThumb || (thumb ? mediaUrl(thumb) : item.src);
+  /* Built-in photos ship with a small thumbnail made by build-seed.py;
+     only photos added in the browser need one made here. */
+  const thumb = item.thumb ? null : await thumbBlobFor(item);
+  const url = item.thumb || (thumb ? mediaUrl(thumb) : item.src);
   return `<img src="${url}" alt="${alt}" loading="lazy" decoding="async">`;
 }
 
@@ -1186,24 +1959,29 @@ async function renderRecipes() {
   grid.setAttribute('aria-busy', 'true');
   cardObjectUrls.forEach((url) => URL.revokeObjectURL(url));
   cardObjectUrls = [];
+  const clearPlaceholders = () => grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
 
   try {
     let recipes = await dbGetAll('recipes');
     recipes = await ensureRecipeOrder(recipes);
     recipes.sort((a, b) => a.order - b.order);
+    recipeCache.clear();
+    recipes.forEach((r) => recipeCache.set(r.id, r));
 
-    /* Reveal each card as soon as it is ready instead of making the first one
-       wait for the slowest media item in the collection. */
+    /* Each card appears as soon as it's ready, rather than all of them
+       waiting for the slowest. (From Leonard.) */
     for (const [index, recipe] of recipes.entries()) {
       const card = await buildRecipeCard(recipe, index, recipes.length);
-      if (index === 0) grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
+      if (index === 0) clearPlaceholders();
       grid.appendChild(card);
       if (index < recipes.length - 1) await new Promise(requestAnimationFrame);
     }
-    if (!recipes.length) grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
+    if (!recipes.length) clearPlaceholders();
+    /* Draw the share cards once the page is up, one at a time. */
+    setTimeout(() => prepareRecipeCards(recipes), 500);
   } catch (error) {
     console.error('Could not render recipe cards:', error);
-    grid.querySelectorAll('.recipe-loading').forEach((item) => item.remove());
+    clearPlaceholders();
     const message = document.createElement('p');
     message.className = 'recipe-loading-error';
     message.setAttribute('role', 'alert');
@@ -1271,6 +2049,10 @@ async function buildRecipeCard(recipe, index, total) {
 /* ---------- Recipe detail overlay ---------- */
 
 async function openRecipeDetail(recipe) {
+  recipeCache.set(recipe.id, recipe);
+  /* The address bar names the open recipe, so it can be copied as a link. */
+  if (recipeIdFromHash() !== recipe.id) history.replaceState(null, '', `#recipe=${encodeURIComponent(recipe.id)}`);
+  recipeCardBlob(recipe).catch(() => {});
   const overlay = document.getElementById('recipe-detail-overlay');
   const panel = document.getElementById('recipe-detail');
 
@@ -1348,6 +2130,8 @@ async function openRecipeDetail(recipe) {
 }
 
 function closeRecipeDetail() {
+  document.querySelectorAll('#recipe-detail audio').forEach((a) => a.pause());
+  if (recipeIdFromHash()) history.replaceState(null, '', location.pathname + location.search);
   closeMediaViewer();
   const overlay = document.getElementById('recipe-detail-overlay');
   overlay.classList.add('hidden');
@@ -1370,6 +2154,8 @@ const ICON = {
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3"/><path d="M8.5 6.5L12 3l3.5 3.5"/><path d="M5 12v7a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19v-7"/></svg>',
   edit:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10-10a2.1 2.1 0 10-3-3L5 17v3z"/><path d="M14.5 6.5l3 3"/></svg>',
+  download:
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="M8 11.5l4 4 4-4"/><path d="M5 19.5h14"/></svg>',
   trash:
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M10 4h4a1 1 0 011 1v2H9V5a1 1 0 011-1z"/><path d="M6 7l1 12.5a1.5 1.5 0 001.5 1.4h7a1.5 1.5 0 001.5-1.4L18 7"/><path d="M10.5 11v6M13.5 11v6"/></svg>',
 };
@@ -1528,20 +2314,20 @@ function setupRecipeDetail() {
       await openViewerFromTile(tile);
       return;
     }
+    /* closest(), not the click target itself: a click on the button's
+       label lands on its <span>, which used to do nothing. */
     const panel = document.getElementById('recipe-detail');
-    if (e.target.classList.contains('detail-pdf')) {
-      const recipe = await dbGet('recipes', panel.dataset.id);
+    const id = panel.dataset.id;
+    if (e.target.closest('.detail-share')) {
+      const recipe = recipeCache.get(id) || (await dbGet('recipes', id));
+      if (recipe) shareRecipe(recipe);
+    } else if (e.target.closest('.detail-pdf')) {
+      const recipe = recipeCache.get(id) || (await dbGet('recipes', id));
       if (recipe) printRecipe(recipe);
-      return;
-    }
-
-    if (e.target.classList.contains('detail-edit')) {
-      const recipe = await dbGet('recipes', panel.dataset.id);
+    } else if (e.target.closest('.detail-edit')) {
+      const recipe = await dbGet('recipes', id);
       closeRecipeDetail();
       openRecipeForm(recipe);
-    } else if (e.target.classList.contains('detail-share')) {
-      const recipe = await dbGet('recipes', panel.dataset.id);
-      shareRecipe(recipe);
     }
   });
 
@@ -1574,7 +2360,7 @@ function setupRecipeCardActions() {
     const card = e.target.closest('.recipe-card[data-id]');
     if (!card) return;
 
-    if (e.target.classList.contains('delete-recipe')) {
+    if (e.target.closest('.delete-recipe')) {
       const recipe = await dbGet('recipes', card.dataset.id);
       const thumbIds = recipe ? (recipe.media || []).map((m) => m.id) : [];
       const name = recipe ? recipe.nameEn : 'this recipe';
@@ -1588,12 +2374,12 @@ function setupRecipeCardActions() {
       await dbDelete('recipes', card.dataset.id);
       for (const id of thumbIds) await dbDelete('thumbs', id);
       renderRecipes();
-    } else if (e.target.classList.contains('edit-recipe')) {
+    } else if (e.target.closest('.edit-recipe')) {
       const recipe = await dbGet('recipes', card.dataset.id);
       openRecipeForm(recipe);
-    } else if (e.target.classList.contains('share-recipe')) {
-      const recipe = await dbGet('recipes', card.dataset.id);
-      shareRecipe(recipe);
+    } else if (e.target.closest('.share-recipe')) {
+      const recipe = recipeCache.get(card.dataset.id) || (await dbGet('recipes', card.dataset.id));
+      if (recipe) shareRecipe(recipe);
     } else if (!e.target.closest('.card-actions') && !card.classList.contains('dragging')) {
       const recipe = await dbGet('recipes', card.dataset.id);
       if (recipe) await openRecipeDetail(recipe);
@@ -1666,16 +2452,19 @@ function setupVoiceInput() {
 /* ---------- Init ---------- */
 
 async function init() {
+  /* A hiccup here mustn't stop the page: whatever is stored still renders. */
   try {
-    await seedGlossaryIfEmpty();
-    await seedRecipesIfNeeded();
-  } catch (error) {
-    console.error('Could not prepare local recipe data:', error);
+    await syncSeedGlossary();
+    await syncSeedRecipes();
+  } catch (err) {
+    console.warn('Could not check the built-in recipes:', err);
   }
   setupGlossary();
   renderGlossary();
 
   setupRecipeForm();
+  const story = document.getElementById('field-story');
+  attachQuietScrollbar(story, story.parentElement);
   setupReordering();
   setupRecipeCardActions();
   setupRecipeDragging();
@@ -1683,8 +2472,14 @@ async function init() {
   setupMediaViewer();
   setupVoiceInput();
   setupBackup();
+  setupSharePanel();
   await renderRecipes();
-  scheduleSeedMediaCache();
+  openRecipeFromHash();
+  window.addEventListener('hashchange', openRecipeFromHash);
+  /* Once the browser is idle, so it never competes with the page loading. */
+  const cacheMedia = () => fetchSeedMediaInBackground().catch((err) => console.warn('Background media fetch stopped:', err));
+  if ('requestIdleCallback' in window) requestIdleCallback(cacheMedia, { timeout: 3000 });
+  else setTimeout(cacheMedia, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -63,7 +63,7 @@ const SEED_RECIPES = [
       "Soak dried mushrooms in water for an hour to soften it",
       "Dice all the ingredients into cube (Yam, mushrooms, cured sausage and shrimps)",
       "Chop and fried shallots in 3 tablespoons of cooking oil",
-      "Set aside the shallots and stir fried the ingredients individually (Yam first, shrimp, mushroom, curated sausage)",
+      "Set aside the shallots and stir fried the ingredients individually (Yam first, shrimp, mushroom, cured sausage)",
       "In a big bowl, add rice flour, tapioca flour and water to mix well, add salt, pepper, sesame oil",
       "Add all ingredients to the flour/water mixture into big wok",
       "Cook the mixture in light heat until it congregate",
@@ -74,6 +74,7 @@ const SEED_RECIPES = [
     "createdAt": 1785209869544,
     "media": [
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-1.jpg",
         "id": "orh-kueh-yam-cake-1",
         "type": "image",
         "name": "Yam Cake! Orh Kueh!",
@@ -81,6 +82,7 @@ const SEED_RECIPES = [
         "src": "./media/orh-kueh-yam-cake-1.jpg"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-2.jpg",
         "id": "orh-kueh-yam-cake-2",
         "type": "image",
         "name": "Cutting Yam into slices",
@@ -88,6 +90,7 @@ const SEED_RECIPES = [
         "src": "./media/orh-kueh-yam-cake-2.jpg"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-3.jpg",
         "id": "orh-kueh-yam-cake-3",
         "type": "image",
         "name": "Ingredients all chopped nicely",
@@ -95,6 +98,7 @@ const SEED_RECIPES = [
         "src": "./media/orh-kueh-yam-cake-3.jpg"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-4.jpg",
         "id": "orh-kueh-yam-cake-4",
         "type": "image",
         "name": "Stir frying shrimps",
@@ -102,6 +106,7 @@ const SEED_RECIPES = [
         "src": "./media/orh-kueh-yam-cake-4.jpg"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-5.jpg",
         "id": "orh-kueh-yam-cake-5",
         "type": "image",
         "name": "Mixing of flour mixtures and ingredients",
@@ -109,40 +114,59 @@ const SEED_RECIPES = [
         "src": "./media/orh-kueh-yam-cake-5.jpg"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-6.jpg",
         "id": "orh-kueh-yam-cake-6",
         "type": "image",
-        "name": "Adding mixtures into big wok",
+        "name": "Add the mixture to a large wok",
         "description": "",
         "src": "./media/orh-kueh-yam-cake-6.jpg"
       },
       {
+        "poster": "./media/orh-kueh-yam-cake-7-poster.jpg",
         "id": "orh-kueh-yam-cake-7",
-        "type": "image",
-        "name": "Cooking and stirring of mixtures",
+        "type": "video",
+        "name": "Stir well as it cooks",
         "description": "",
-        "src": "./media/orh-kueh-yam-cake-7.jpg"
+        "src": "./media/orh-kueh-yam-cake-7.mp4"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-8.jpg",
         "id": "orh-kueh-yam-cake-8",
         "type": "image",
-        "name": "Pour cooked mixtures into metal tray",
+        "name": "Pour the cooked mixture into a metal tray and smooth the top",
         "description": "",
         "src": "./media/orh-kueh-yam-cake-8.jpg"
       },
       {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-9.jpg",
         "id": "orh-kueh-yam-cake-9",
         "type": "image",
         "name": "Smooth the cooked mixture",
         "description": "",
         "src": "./media/orh-kueh-yam-cake-9.jpg"
+      },
+      {
+        "thumb": "./media/thumbs/orh-kueh-yam-cake-10.jpg",
+        "id": "orh-kueh-yam-cake-10",
+        "type": "image",
+        "name": "Orh Kueh handwritten recipe",
+        "description": "",
+        "src": "./media/orh-kueh-yam-cake-10.jpg"
+      },
+      {
+        "id": "orh-kueh-yam-cake-11",
+        "type": "audio",
+        "name": "芋头糕/Yam cake recipe",
+        "description": "In Mum's voice",
+        "src": "./media/orh-kueh-yam-cake-11.m4a"
       }
     ]
   },
   {
     "id": "1c4e528c-d621-4ed0-8a29-f4e21f8166b2",
-    "nameEn": "Fried honeycomb",
+    "nameEn": "Fried Honeycomb",
     "nameCn": "炸蜂窝",
-    "story": "During chinese new year, it's a tradition that my mum would make this new year goodies for our relative and friends! Always my cousin favourite CNY snacks!",
+    "story": "During chinese new year, it's a tradition that my mum would make this new year goodies for our relative and friends! Always my cousin's favourite CNY snacks!",
     "ingredients": [
       {
         "her": "粘米粉 300g",
@@ -157,16 +181,16 @@ const SEED_RECIPES = [
         "mine": "Coconut milk 200ml"
       },
       {
-        "her": "香兰叶汁",
-        "mine": "Pandan leaf juice 1/2 tsp"
+        "her": "香兰叶汁 1/4 tsp",
+        "mine": "Pandan leaf juice 1/4 tsp"
       },
       {
         "her": "糖 180g",
         "mine": "Sugar 180g"
       },
       {
-        "her": "盐1/4 tsp",
-        "mine": "1/4 tsp salt"
+        "her": "盐1/2 tsp",
+        "mine": "1/2 tsp salt"
       },
       {
         "her": "花生油 1.5 litre",
@@ -176,7 +200,7 @@ const SEED_RECIPES = [
     "steps": [
       "Add  all ingredient (rice flour, eggs, coconut milk, pandan leaf juice, sugar and salt) into a big bowl and mix well",
       "Pour the cooking oil into the wok and dip the iron honeycomb moulds. Turn on the stove to heat up the iron mould",
-      "Wait till the oil is hot enough, dip the honeycomb mould into the batter. (Note just dip to the heigh of the mould, not the entire thing)",
+      "Wait till the oil is hot enough, dip the honeycomb mould into the batter. (Note just dip to the height of the mould, not the entire thing)",
       "Allow the batter to stick to the mould and fry it in hot oil. Shake lightly for the batter to come off the mould",
       "Flip the honeycomb and fried till golden brown"
     ],
@@ -184,6 +208,7 @@ const SEED_RECIPES = [
     "createdAt": 1787502951009,
     "media": [
       {
+        "thumb": "./media/thumbs/fried-honeycomb-1.jpg",
         "id": "fried-honeycomb-1",
         "type": "image",
         "name": "Fried honeycomb",
@@ -191,6 +216,7 @@ const SEED_RECIPES = [
         "src": "./media/fried-honeycomb-1.jpg"
       },
       {
+        "thumb": "./media/thumbs/fried-honeycomb-2.jpg",
         "id": "fried-honeycomb-2",
         "type": "image",
         "name": "Ingredients: Egg, pandan extract, flour",
@@ -198,6 +224,7 @@ const SEED_RECIPES = [
         "src": "./media/fried-honeycomb-2.jpg"
       },
       {
+        "thumb": "./media/thumbs/fried-honeycomb-3.jpg",
         "id": "fried-honeycomb-3",
         "type": "image",
         "name": "Frying in progress",
@@ -205,6 +232,7 @@ const SEED_RECIPES = [
         "src": "./media/fried-honeycomb-3.jpg"
       },
       {
+        "thumb": "./media/thumbs/fried-honeycomb-4.jpg",
         "id": "fried-honeycomb-4",
         "type": "image",
         "name": "Fried honeycombs",
@@ -217,9 +245,10 @@ const SEED_RECIPES = [
         "type": "video",
         "name": "Frying in progress",
         "description": "",
-        "src": "./media/fried-honeycomb-5.mov"
+        "src": "./media/fried-honeycomb-5.mp4"
       },
       {
+        "thumb": "./media/thumbs/fried-honeycomb-6.jpg",
         "id": "fried-honeycomb-6",
         "type": "image",
         "name": "Hand written recipe by my mum",
@@ -229,8 +258,8 @@ const SEED_RECIPES = [
       {
         "id": "fried-honeycomb-7",
         "type": "audio",
-        "name": "Honeycomb recipe voice recording.m4a",
-        "description": "",
+        "name": "炸蜂窝 Fried honeycomb recipe",
+        "description": "In Mum's voice",
         "src": "./media/fried-honeycomb-7.m4a"
       }
     ]
@@ -275,7 +304,7 @@ const SEED_RECIPES = [
       },
       {
         "her": "花生 20g",
-        "mine": "Grounded Peanut 20g"
+        "mine": "Ground Peanut 20g"
       },
       {
         "her": "椰子一粒",
@@ -292,7 +321,7 @@ const SEED_RECIPES = [
       "For fillings: Break palm sugar into smaller pieces, add 4 tbsp water into a pot cook and melt it",
       "Add in pandan leaves into melted palm sugar and cook to extract pandan flavour.",
       "Remove pandan leaves, add in grated coconut continue to cook and mix well with melted palm sugar",
-      "Remove mixture from heat and add in grounded peanuts, sesame and dried orange peels. Mix well",
+      "Remove mixture from heat and add in ground peanuts, sesame and dried orange peels. Mix well",
       "Divide the dough into smaller pieces (roughly about 40g per piece)",
       "Press the dough flat and wrap with 2 tbsp of filling",
       "Wrap the filled dough with banana leaf",
@@ -302,6 +331,7 @@ const SEED_RECIPES = [
     "createdAt": 1785230804163,
     "media": [
       {
+        "thumb": "./media/thumbs/hainanese-yi-bua-kueh-co-1.jpg",
         "id": "hainanese-yi-bua-kueh-co-1",
         "type": "image",
         "name": "Yi Bua!",
@@ -309,6 +339,7 @@ const SEED_RECIPES = [
         "src": "./media/hainanese-yi-bua-kueh-co-1.jpg"
       },
       {
+        "thumb": "./media/thumbs/hainanese-yi-bua-kueh-co-2.jpg",
         "id": "hainanese-yi-bua-kueh-co-2",
         "type": "image",
         "name": "Proud mum with her creation",
@@ -316,19 +347,27 @@ const SEED_RECIPES = [
         "src": "./media/hainanese-yi-bua-kueh-co-2.jpg"
       },
       {
+        "thumb": "./media/thumbs/hainanese-yi-bua-kueh-co-3.jpg",
         "id": "hainanese-yi-bua-kueh-co-3",
         "type": "image",
         "name": "Handwritten recipe for Yi Bua",
         "description": "",
         "src": "./media/hainanese-yi-bua-kueh-co-3.jpg"
+      },
+      {
+        "id": "hainanese-yi-bua-kueh-co-4",
+        "type": "audio",
+        "name": "薏粑 Yi bua recipe",
+        "description": "In Mum's voice",
+        "src": "./media/hainanese-yi-bua-kueh-co-4.m4a"
       }
     ]
   },
   {
     "id": "bce4bd31-c5af-41a6-aa0e-8002fe869502",
-    "nameEn": "Tang yuan / Glutinous rice ball",
+    "nameEn": "Tang Yuan / Glutinous Rice Ball",
     "nameCn": "汤圆",
-    "story": "During 冬至，winter solace or 元宵节，during chinese new year period, my mum will always make tang yuan for the family to signify 一家团圆， family reunion.",
+    "story": "During 冬至, winter solstice or 元宵节, during the Chinese New Year period, my mum will always make tang yuan for the family to signify 一家团圆, family reunion.",
     "ingredients": [
       {
         "her": "糯米粉",
@@ -344,7 +383,7 @@ const SEED_RECIPES = [
       },
       {
         "her": "斑斓叶",
-        "mine": "Pandan leafs"
+        "mine": "Pandan leaves"
       },
       {
         "her": "红糖",
@@ -354,13 +393,14 @@ const SEED_RECIPES = [
     "steps": [
       "Mix water with glutinous rice flour and knead into dough (Add red colouring if required)",
       "Divide the dough into smaller pieces and roll them into balls",
-      "Boil pandan leafs in water for 10mins, and add the Glutinous rice balls in",
+      "Boil pandan leaves in water for 10mins, and add the Glutinous rice balls in",
       "Add red sugar to the soup as required"
     ],
     "order": 3,
     "createdAt": 1785214724657,
     "media": [
       {
+        "thumb": "./media/thumbs/tang-yuan-glutinous-rice-1.jpg",
         "id": "tang-yuan-glutinous-rice-1",
         "type": "image",
         "name": "Tang Yuan!",
@@ -368,6 +408,7 @@ const SEED_RECIPES = [
         "src": "./media/tang-yuan-glutinous-rice-1.jpg"
       },
       {
+        "thumb": "./media/thumbs/tang-yuan-glutinous-rice-2.jpg",
         "id": "tang-yuan-glutinous-rice-2",
         "type": "image",
         "name": "Pink and white dough and pandan leaf",
@@ -375,6 +416,7 @@ const SEED_RECIPES = [
         "src": "./media/tang-yuan-glutinous-rice-2.jpg"
       },
       {
+        "thumb": "./media/thumbs/tang-yuan-glutinous-rice-3.jpg",
         "id": "tang-yuan-glutinous-rice-3",
         "type": "image",
         "name": "Rolled tang yuan",
@@ -382,11 +424,35 @@ const SEED_RECIPES = [
         "src": "./media/tang-yuan-glutinous-rice-3.jpg"
       },
       {
+        "poster": "./media/tang-yuan-glutinous-rice-4-poster.jpg",
         "id": "tang-yuan-glutinous-rice-4",
+        "type": "video",
+        "name": "Pink and white rolled tang yuan",
+        "description": "",
+        "src": "./media/tang-yuan-glutinous-rice-4.mp4"
+      },
+      {
+        "thumb": "./media/thumbs/tang-yuan-glutinous-rice-5.jpg",
+        "id": "tang-yuan-glutinous-rice-5",
         "type": "image",
         "name": "Cooking rolled tang yuan",
         "description": "",
-        "src": "./media/tang-yuan-glutinous-rice-4.jpg"
+        "src": "./media/tang-yuan-glutinous-rice-5.jpg"
+      },
+      {
+        "id": "tang-yuan-glutinous-rice-6",
+        "type": "audio",
+        "name": "汤圆 Tang Yuan recipe",
+        "description": "In Mum's voice",
+        "src": "./media/tang-yuan-glutinous-rice-6.m4a"
+      },
+      {
+        "thumb": "./media/thumbs/tang-yuan-glutinous-rice-7.jpg",
+        "id": "tang-yuan-glutinous-rice-7",
+        "type": "image",
+        "name": "Tang yuan handwritten recipe",
+        "description": "",
+        "src": "./media/tang-yuan-glutinous-rice-7.jpg"
       }
     ]
   }
@@ -394,19 +460,27 @@ const SEED_RECIPES = [
 
 const SEED_GLOSSARY = [
   {
-    "term": "一把 (a handful)",
-    "meaning": "~30g"
+    "term": "两块钱小辣椒",
+    "meaning": "$2 worth of chili padi (~150g, a small bag)"
   },
   {
-    "term": "少许 (a little)",
-    "meaning": "~1/4 tsp"
+    "term": "两块姜",
+    "meaning": "2 knobs of ginger, each about thumb-sized (~30g total)"
   },
   {
-    "term": "一粒椰糖",
-    "meaning": "1 block of Palm sugar (100g)"
+    "term": "一把",
+    "meaning": "a handful  ~30g"
   },
   {
-    "term": "$2 worth of ginger",
-    "meaning": "a thumb-sized knob, ~15g"
+    "term": "少许",
+    "meaning": "a little  ~1/4 tsp"
+  },
+  {
+    "term": "一大汤匙",
+    "meaning": "about 2 tbsp"
+  },
+  {
+    "term": "一点点",
+    "meaning": "1/2 tbsp"
   }
 ];
