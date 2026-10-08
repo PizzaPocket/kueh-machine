@@ -3,7 +3,7 @@ extends RefCounted
 
 const LAPIS_LOGO: Texture2D = preload("res://assets/arcade/lapis-logo.svg")
 const BAKERY_LOGO: Texture2D = preload("res://assets/arcade/kueh-bakery-logo.svg")
-const AZRI_LOGO: Texture2D = preload("res://assets/arcade/run-kueh-run-logo.png")
+const AZRI_LOGO: Texture2D = preload("res://assets/arcade/run-kueh-run-logo.svg")
 
 static func _mesh(parent: Node3D, primitive: PrimitiveMesh, color: Color, pos: Vector3, name: String, metallic := 0.0, roughness := 0.72) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
@@ -413,7 +413,7 @@ static func _arcade(parent: Node3D, position: Vector3, game: String) -> Node3D:
 	# electric mint, danger pink, and amber-gold HUD palette.
 	var title := "RunKuehRun" if is_azri else ("Lapis" if is_lapis else "KuehBakery")
 	var lower_color := Color("0a0820") if is_azri else (Color("0e2110") if is_lapis else Color("7a4818"))
-	var upper_color := Color("1c1650") if is_azri else (Color("132b16") if is_lapis else Color("9b5e20"))
+	var upper_color := Color("0a0820") if is_azri else (Color("132b16") if is_lapis else Color("9b5e20"))
 	var accent := Color("38d39f") if is_azri else (Color("8fd400") if is_lapis else Color("c4863a"))
 	# Per direct correction: a separate inner "screen" superegg nested inside
 	# this bezel didn't read right, so the bezel itself is plain black again
@@ -437,11 +437,13 @@ static func _arcade(parent: Node3D, position: Vector3, game: String) -> Node3D:
 	_super_part(root, Vector3(0.68, 0.72, 0.43), lower_color, Vector3(0, 0.73, -0.03), "LowerCabinet")
 	var shoulder := _super_part(root, Vector3(0.67, 0.49, 0.41), upper_color, Vector3(0, 1.67, -0.08), "ScreenHousing")
 	shoulder.rotation.x = -0.035
-	var crown := _super_part(root, Vector3(0.70, 0.23, 0.46), accent, Vector3(0, 2.28, 0.02), "MarqueeHousing")
+	var crown_color := upper_color if is_azri else accent
+	var crown := _super_part(root, Vector3(0.70, 0.23, 0.46), crown_color, Vector3(0, 2.28, 0.02), "MarqueeHousing")
 	crown.rotation.x = 0.025
 	var screen_bezel := _super_part(root, Vector3(0.53, 0.38, 0.055), bezel_color, Vector3(0, 1.70, 0.385), "ScreenBezel", 0.06, 0.34)
 	screen_bezel.rotation.x = -0.10
-	var deck := _super_part(root, Vector3(0.64, 0.12, 0.47), accent, Vector3(0, 1.18, 0.27), "ControlDeck", 0.04, 0.5)
+	var deck_color := upper_color if is_azri else accent
+	var deck := _super_part(root, Vector3(0.64, 0.12, 0.47), deck_color, Vector3(0, 1.18, 0.27), "ControlDeck", 0.04, 0.5)
 	deck.rotation.x = -0.055
 	var stick := _super_part(root, Vector3(0.055, 0.15, 0.055), Color("252525"), Vector3(-0.25, 1.37, 0.42), "JoystickStem", 0.12, 0.34)
 	stick.rotation.x = -0.055
