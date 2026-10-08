@@ -375,7 +375,7 @@ func _build_contributors() -> void:
 				ShophouseStreet.add_boombox_table(display)
 			if data["name"] == "Amanda Ng":
 				ShophouseStreet.add_beary_chair(display)
-			if data["name"] in ["Amy Fu", "Ken Lee", "Kaixin Cai", "Li Wei Lim", "Ruth Yong", "Samantha Tan"]:
+			if data["name"] in ["Amy Fu", "Azri Masran", "Ken Lee", "Kaixin Cai", "Li Wei Lim", "Ruth Yong", "Samantha Tan"]:
 				var display_data := _hotspot_data(data, data.get("display_title", data["name"]), data.get("display_dialog", data["dialog"]))
 				_register_interactable(display, display_data, "View (F)", "display")
 			# Place the presenter beside—not behind—their display. There are two
@@ -648,7 +648,7 @@ func _contributors() -> Array[Dictionary]:
 	var contributors: Array[Dictionary] = [
 		_person("Amanda Ng", Vector3(-12, 0, -13), Vector3(-10.5, 0, -11.3), "amanda", "/amanda/", "Beary is ready to serve up something sweet. Have a look around the shop.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "very_long_full", "none", "none", Color("191919"), true, Color("191919"), Color("5b3a29"))),
 		_person("Amy Fu", Vector3(-7.0, 0, -13), Vector3(-5.2, 0, -11.3), "amy_gacha", "/amy/", "Give the knob a turn. Every capsule has a little Kueh surprise inside.", _appearance("soft", HEIGHT_LESS_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("18283f"), false, Color("18283f"), Color("5b3a29"))),
-		_person("Azri Masran", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "", "/azri/", "Ever seen a kueh wake up giant and hungry? Come find out before it finds you.", _appearance("slim", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "buzzcut", "round", "short", Color("287fc2"), false, Color("18283f"), Color("5b3a29"))),
+		_person("Azri Masran", Vector3(-5.5, 0, 13.5), Vector3.ZERO, "azri_arcade", "/azri/", "Ever seen a kueh wake up giant and hungry? Come find out before it finds you.", _appearance("slim", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "buzzcut", "round", "short", Color("287fc2"), false, Color("18283f"), Color("5b3a29"))),
 		_person("Ken Lee", Vector3(-0.6, 0, -13), Vector3(-2.4, 0, -11.3), "ken_gacha", "/ken/", "Try your luck, you might get a rare one.", _appearance("broad", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "hero", "none", "short", Color("191919"), false, Color("191919"), Color("fbf6ec"))),
 		_person("Geraldine Chua", Vector3(6, 0, -13), Vector3.ZERO, "", "", "Just out for a stroll today, taking it all in.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("171311"), "less_shoulder", "rect", "colored_upper_arm", Color("191919"), false, Color("191919"), Color("5b3a29"))),
 		_person("Jesslyn Teo", Vector3(-14, 0, -9), Vector3(-11.7, 0, -9), "jesslyn", "/jesslyn/", "A good birthday starts with knowing what you can spend. Mine helps you plan the whole day.", _appearance("soft", HEIGHT_TALL, Color("d9a47e"), Color("3f2a20"), "full_long", "round", "none", Color("d97b66"), false, Color("f0b429"), Color("5b3a29"))),
@@ -680,9 +680,10 @@ func _apply_even_hub_layout(contributors: Array[Dictionary]) -> void:
 		# The microphone and Kaixin both sit just into the curved stage lip. A
 		# slight 4 cm visual sink removes any apparent gap against the deck.
 		"Kaixin Cai": {"display": Vector3(-12.0, 0.44, -10.15), "display_facing": PI, "npc": Vector3(-13.1, 0.44, -10.65), "fixed_npc": true, "ambient_dialog": true, "npc_dialog": "The karaoke stage is ready. The microphone is less scary once the music starts.", "display_title": "Kara-o-kueh", "display_dialog": "A karaoke stage where every song title gets a Kueh-flavored twist."},
-		# Cabinet bank: both games occupy the opposite wall and face inward.
+		# Cabinet bank: all three games occupy the opposite wall and face inward.
 		"Li Wei Lim": {"display": Vector3(-8.72, 0, -0.6), "display_facing": deg_to_rad(-90.0), "npc": Vector3(-10.6, 0, 0.8), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "My cabinet has the layered snake game. Try not to tie yourself in knots.", "display_title": "Lapis", "display_dialog": "A layered spin on Snake: keep growing without folding into yourself."},
 		"Ruth Yong": {"display": Vector3(-8.72, 0, -4.7), "display_facing": deg_to_rad(-90.0), "npc": Vector3(-10.7, 0, -3.3), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "There's my game—give it a try. The bakery gets busy quickly.", "display_title": "Kueh Bakery", "display_dialog": "Stack and serve colorful Kueh as the bakery rush gets faster."},
+		"Azri Masran": {"display": Vector3(-8.72, 0, 3.5), "display_facing": deg_to_rad(-90.0), "npc": Vector3(-10.6, 0, 4.7), "roaming": true, "ambient_dialog": true, "roam_bounds": [Rect2(-13.7, -8.7, 3.4, 11.5)], "npc_dialog": "Mine's the cabinet with the lightning. Keep moving—the kueh monsters don't wait.", "display_title": "Run Kueh Run", "display_dialog": "Cross streets and laboratory floors before the giant kueh reach you."},
 		"Samantha Tan": {"display": Vector3(-14.55, 0, -6.55), "display_facing": deg_to_rad(90.0), "npc": Vector3(-15.55, 0, -6.55), "fixed_npc": true, "display_title": "Remember.fm", "display_dialog": "A retro music archive tuned through the devices and sounds that carried each era."},
 		# Gallery: each presenter and plinth form a shoulder-to-shoulder pair
 		# along a side wall. They share the same x coordinate and differ in z,
@@ -695,7 +696,6 @@ func _apply_even_hub_layout(contributors: Array[Dictionary]) -> void:
 		"Viki Yap": {"display_kind": "", "npc": Vector3(5.15, 0, -7.65)},
 		"Natalia Lionardy": {"display_kind": "", "npc": Vector3(2.45, 0, -4.15)},
 		# Outdoor ambient cast: all share a safe strip in front of the arcade.
-		"Azri Masran": {"display_kind": "", "npc": Vector3(-7.0, 0, 10.5), "roaming": true},
 		"Geraldine Chua": {"display_kind": "", "npc": Vector3(-2.0, 0, 12.2), "roaming": true, "ambient_dialog": true},
 		"Kevin Dreher": {"display_kind": "", "npc": Vector3(4.5, 0, 10.0), "roaming": true},
 		"Leonard Reese": {"display_kind": "", "npc": Vector3(0.5, 0, 9.4), "roaming": true, "ambient_dialog": true, "npc_dialog": "I'm just glad to be here."},
@@ -765,7 +765,7 @@ func _apply_even_hub_layout(contributors: Array[Dictionary]) -> void:
 		contributors[index] = contributor
 
 func _indoor_venue_center(contributor_name: String) -> Vector3:
-	if contributor_name in ["Amy Fu", "Ken Lee", "Kaixin Cai", "Li Wei Lim", "Ruth Yong", "Samantha Tan"]:
+	if contributor_name in ["Amy Fu", "Azri Masran", "Ken Lee", "Kaixin Cai", "Li Wei Lim", "Ruth Yong", "Samantha Tan"]:
 		return Vector3(-12.0, 0, -3.5)
 	if contributor_name in ["Nicole Ng", "Jesslyn Teo"]:
 		return Vector3(-4.0, 0, 0.5)

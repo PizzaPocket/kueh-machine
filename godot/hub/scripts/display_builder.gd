@@ -3,6 +3,7 @@ extends RefCounted
 
 const LAPIS_LOGO: Texture2D = preload("res://assets/arcade/lapis-logo.svg")
 const BAKERY_LOGO: Texture2D = preload("res://assets/arcade/kueh-bakery-logo.svg")
+const AZRI_LOGO: Texture2D = preload("res://assets/arcade/run-kueh-run-logo.png")
 
 static func _mesh(parent: Node3D, primitive: PrimitiveMesh, color: Color, pos: Vector3, name: String, metallic := 0.0, roughness := 0.72) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
@@ -158,6 +159,7 @@ static func build(parent: Node3D, kind: String, position: Vector3) -> Node3D:
 		"ken_gacha": return _ken_gacha(parent, position)
 		"lapis_arcade": return _arcade(parent, position, "lapis")
 		"bakery_arcade": return _arcade(parent, position, "bakery")
+		"azri_arcade": return _arcade(parent, position, "azri")
 		"cat_scan": return _cat_station(parent, position)
 		"remember": return _remember_station(parent, position)
 		"amanda": return _amanda_bear(parent, position)
@@ -404,20 +406,22 @@ static func _add_rosette(parent: Node3D, position: Vector3, petal_color: Color, 
 
 static func _arcade(parent: Node3D, position: Vector3, game: String) -> Node3D:
 	var is_lapis := game == "lapis"
+	var is_azri := game == "azri"
 	# These colors come directly from each game rather than from the hub's
 	# generic palette. Lapis is nocturnal forest + lime/coral; Kueh Bakery
-	# is warm cream, caramel timber, gold signage, and red/green controls.
-	var title := "Lapis" if is_lapis else "KuehBakery"
-	var lower_color := Color("0e2110") if is_lapis else Color("7a4818")
-	var upper_color := Color("132b16") if is_lapis else Color("9b5e20")
-	var accent := Color("8fd400") if is_lapis else Color("c4863a")
+	# is warm cream and caramel; Run Kueh Run carries its deep indigo night,
+	# electric mint, danger pink, and amber-gold HUD palette.
+	var title := "RunKuehRun" if is_azri else ("Lapis" if is_lapis else "KuehBakery")
+	var lower_color := Color("0a0820") if is_azri else (Color("0e2110") if is_lapis else Color("7a4818"))
+	var upper_color := Color("1c1650") if is_azri else (Color("132b16") if is_lapis else Color("9b5e20"))
+	var accent := Color("38d39f") if is_azri else (Color("8fd400") if is_lapis else Color("c4863a"))
 	# Per direct correction: a separate inner "screen" superegg nested inside
 	# this bezel didn't read right, so the bezel itself is plain black again
 	# rather than a per-project tint framing a second shape.
 	var bezel_color := Color("0d0d0d")
-	var primary_button := Color("e8503a") if is_lapis else Color("d42020")
-	var secondary_button := Color("fdf5ee") if is_lapis else Color("3d9a3d")
-	var logo_texture := LAPIS_LOGO if is_lapis else BAKERY_LOGO
+	var primary_button := Color("ff4d6d") if is_azri else (Color("e8503a") if is_lapis else Color("d42020"))
+	var secondary_button := Color("ffd166") if is_azri else (Color("fdf5ee") if is_lapis else Color("3d9a3d"))
+	var logo_texture := AZRI_LOGO if is_azri else (LAPIS_LOGO if is_lapis else BAKERY_LOGO)
 	var root := Node3D.new()
 	root.name = title + "Arcade"
 	root.position = position

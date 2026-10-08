@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720">
+  <defs>
+    <filter id="pixel-shadow" x="-10%" y="-20%" width="120%" height="150%">
+      <feFlood flood-color="#ff4d6d" result="shadow-color"/>
+      <feComposite in="shadow-color" in2="SourceAlpha" operator="in" result="shadow"/>
+      <feOffset in="shadow" dx="10" dy="10" result="offset-shadow"/>
+      <feMerge><feMergeNode in="offset-shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g transform="translate(0 270)">
+    <path d="M18 90 52 22 70 64 99 12 82 79 112 68 74 154 59 105Z" fill="#38d39f"/>
+    <path d="M702 90 668 22 650 64 621 12 638 79 608 68 646 154 661 105Z" fill="#38d39f"/>
+    <text x="360" y="113" fill="#ffd166" stroke="#0a0820" stroke-width="10" paint-order="stroke"
+          text-anchor="middle" font-family="monospace" font-size="76" font-weight="900"
+          letter-spacing="-3" filter="url(#pixel-shadow)">RUN KUEH RUN</text>
+  </g>
+</svg>
