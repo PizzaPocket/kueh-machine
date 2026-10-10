@@ -899,6 +899,9 @@ function renderExistingMediaPreview() {
 }
 
 function fillFormForEdit(recipe) {
+  formFilledFromNote = false;
+  /* Opening or closing the form ends any read, so a late reply can't fill it. */
+  stopNoteReading('closed');
   editingRecipe = recipe;
   const noteStatus = document.getElementById('note-fill-status');
   if (noteStatus) noteStatus.textContent = noteStatus.dataset.start || (noteStatus.dataset.start = noteStatus.textContent);
@@ -2794,10 +2797,12 @@ const RECIPE_READER_URL = 'https://meijun-recipe-reader.chewmeijun014.workers.de
 const NOTE_PHOTO_MAX = 1600;
 
 const NOTE_ERRORS = {
-  daily_limit: 'The free reading allowance is used up for today. Try again tomorrow, or type this one in.',
+  daily_limit: 'The free reading allowance is used up for today. It resets each afternoon, Singapore time. For now, add the recipe below.',
   too_many_requests: 'That was a lot of notes in a minute. Wait a moment and try again.',
   busy: "The reader is busy right now. Try again in a minute.",
-  image_too_large: 'That photo is too large to send. Try a smaller one.',
+  image_too_large: 'That file is too large to send. Try a smaller photo, or a PDF under 14 MB.',
+  file_too_large: 'That file is too large to send. Try a smaller photo, or a PDF under 14 MB.',
+  unsupported_file: "That file type can't be read. Try a photo (JPG, PNG, HEIC) or a PDF.",
   not_a_recipe: "That photo doesn't look like a recipe. Try a clearer photo of the note.",
   nothing_found: "Couldn't find any ingredients or steps in that photo. Try a clearer, closer photo.",
   timeout: 'Reading the note took too long. Check your connection and try again.',
@@ -2809,13 +2814,53 @@ function setNoteStatus(message, unsure = []) {
   if (unsure.length) {
     const list = document.createElement('span');
     list.className = 'note-fill-unsure';
-    list.textContent = `Couldn't read for sure: ${unsure.join('; ')}.`;
-    status.append(' ', list);
+    list.textContent = `Worth a quick check: ${unsure.join('; ')}.`;
+    status.append(list);
   }
 }
 
 /* Photos are shrunk before sending: quicker, and well within the reader's
    limits, while still sharp enough for handwriting. */
+/* Formats the reader takes as they are, when the browser can't open them
+   itself (HEIC in Chrome and Firefox) or they aren't photos (PDF scans). */
+const NOTE_PASSTHROUGH_TYPES = ['image/heic', 'image/heif', 'application/pdf'];
+const NOTE_MAX_UPLOAD_BYTES = 14 * 1024 * 1024;
+
+function noteFileType(file) {
+  const type = (file.type || '').toLowerCase();
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (type === 'application/pdf' || ext === 'pdf') return 'application/pdf';
+  if (type === 'image/heic' || ext === 'heic') return 'image/heic';
+  if (type === 'image/heif' || ext === 'heif') return 'image/heif';
+  return type;
+}
+
+function noteFileError(code) {
+  const err = new Error(code);
+  err.noteCode = code;
+  return err;
+}
+
+/* Gets any upload ready for the reader: photos the browser can open are
+   shrunk to a JPEG (and can join the recipe's photos); HEIC and PDF go as
+   they are. */
+async function prepareNoteFile(file) {
+  const type = noteFileType(file);
+  if (type !== 'application/pdf') {
+    try {
+      const jpeg = await notePhotoAsJpeg(file);
+      if (jpeg) return { blob: jpeg, mimeType: 'image/jpeg', showable: true };
+    } catch {
+      // the browser can't open it; try sending it as it is
+    }
+  }
+  if (NOTE_PASSTHROUGH_TYPES.includes(type)) {
+    if (file.size > NOTE_MAX_UPLOAD_BYTES) throw noteFileError('file_too_large');
+    return { blob: file, mimeType: type, showable: false };
+  }
+  throw noteFileError('unsupported_file');
+}
+
 async function notePhotoAsJpeg(file) {
   let source;
   try {
@@ -2842,7 +2887,11 @@ function formHasContent() {
   return filled('#field-name-en, #field-name-cn, .ing-her, .ing-mine, .step-text');
 }
 
+/* Whether the form's names, ingredients and steps came from an upload. */
+let formFilledFromNote = false;
+
 function fillFormFromNote(recipe) {
+  formFilledFromNote = true;
   if (recipe.nameEn) document.getElementById('field-name-en').value = recipe.nameEn;
   if (recipe.nameCn) document.getElementById('field-name-cn').value = recipe.nameCn;
   document.getElementById('ingredient-rows').innerHTML = '';
@@ -2853,21 +2902,92 @@ function fillFormFromNote(recipe) {
   if (!recipe.steps.length) addStepRow();
 }
 
+/* The read in progress, if any: lets the button (or closing the form)
+   stop it. */
+let noteReading = null;
+
+/* While a note is read: the sub line changes every 7 seconds (the reader
+   can't say how far along it is), then loops the later lines. A hint to
+   skip it appears at 45s and stays. */
+const NOTE_SUBLINES = [
+  { after: 0, text: 'This can take a minute.' },
+  { after: 7, text: 'Still working on it.' },
+  { after: 14, text: 'Making good progress.' },
+  { after: 21, text: 'Every little note counts.' },
+  { after: 28, text: 'Some loops and squiggles take longer.' },
+  { after: 35, text: 'Still reading, not stuck.' },
+  { after: 42, text: 'Good recipes are worth the wait.' },
+  { after: 49, text: 'Still on it. Thanks for your patience.' },
+];
+const NOTE_LOOP_FROM = 56;
+const NOTE_LOOP_LINES = [4, 5, 6, 7];
+const NOTE_LOOP_EVERY = 7;
+const NOTE_HINT_AFTER = 45;
+
+function noteSubline(seconds) {
+  if (seconds >= NOTE_LOOP_FROM) {
+    const step = Math.floor((seconds - NOTE_LOOP_FROM) / NOTE_LOOP_EVERY) % NOTE_LOOP_LINES.length;
+    return NOTE_SUBLINES[NOTE_LOOP_LINES[step]].text;
+  }
+  return NOTE_SUBLINES.filter((line) => seconds >= line.after).pop().text;
+}
+
+function stopNoteReading(reason = 'stopped') {
+  if (!noteReading) return;
+  noteReading.reason = reason;
+  noteReading.controller.abort();
+}
+
 async function readHandwrittenNote(file) {
   const button = document.getElementById('fill-from-note');
+  const box = document.getElementById('note-fill');
+  const idleLabel = button.textContent;
+  const reading = { controller: new AbortController(), reason: '' };
+  noteReading = reading;
+  const stopped = () => reading.reason === 'stopped' || reading.reason === 'closed';
+  /* While reading, the banner shows a sheet of paper with a spinner, says
+     what's happening, and offers ✕ to cancel (see .note-fill.reading). */
+  const cancel = document.getElementById('note-fill-cancel');
+  const title = box.querySelector('.note-fill-title');
+  const idleTitle = title.textContent;
   button.disabled = true;
-  setNoteStatus("Reading Mum's handwriting… this takes a few seconds.");
+  box.setAttribute('aria-busy', 'true');
+  cancel.hidden = false;
+  box.classList.add('reading');
+  title.textContent = "Reading Mum's handwriting…";
+  const status = document.getElementById('note-fill-status');
+  const hint = document.getElementById('note-fill-hint');
+  setNoteStatus(noteSubline(0));
+  /* Announce the first line only; the rotation would be noise to a
+     screen reader. The hint has its own live region. */
+  status.setAttribute('aria-live', 'off');
+  const started = Date.now();
+  const slowTimer = setInterval(() => {
+    if (noteReading !== reading) return;
+    const seconds = (Date.now() - started) / 1000;
+    const line = noteSubline(seconds);
+    if (status.textContent !== line) status.textContent = line;
+    if (seconds >= NOTE_HINT_AFTER && hint.hidden) {
+      hint.textContent = "If it's taking too long, tap ✕ and add the recipe below.";
+      hint.hidden = false;
+    }
+  }, 1000);
 
   try {
-    const photo = await notePhotoAsJpeg(file);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 150000);
+    const prepared = await prepareNoteFile(file);
+    const photo = prepared.blob;
+    if (stopped()) return;
+    const controller = reading.controller;
+    const timer = setTimeout(() => {
+      reading.reason = 'timeout';
+      controller.abort();
+    }, 150000);
     let response;
     try {
       response = await fetch(RECIPE_READER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: (await blobToDataURL(photo)).split(',')[1], mimeType: 'image/jpeg' }),
+        body: JSON.stringify({ image: (await blobToDataURL(photo)).split(',')[1], mimeType: prepared.mimeType }),
         signal: controller.signal,
       });
     } finally {
@@ -2876,6 +2996,7 @@ async function readHandwrittenNote(file) {
     /* The reply is outside data: size-capped, parsed carefully, and only
        used if it has the expected shape. */
     const replyText = await response.text();
+    if (stopped()) return;
     let reply = {};
     if (replyText.length <= LIMITS.noteResponseChars) {
       try {
@@ -2896,28 +3017,59 @@ async function readHandwrittenNote(file) {
     }
 
     if (formHasContent()) {
-      const ok = await askConfirm({
-        title: 'Replace what’s in the form?',
-        body: 'The names, ingredients and steps from the note will replace what’s there now. The story and photos stay.',
-        confirmLabel: 'Replace',
-        cancelLabel: 'Keep mine',
-      });
+      /* Worded for what's actually in the form: an earlier upload, or
+         something typed in by hand. */
+      const ok = await askConfirm(formFilledFromNote
+        ? {
+          title: 'Replace the previous upload?',
+          body: 'The new note will replace the names, ingredients and steps from your last upload. Your story and photos will stay.',
+          confirmLabel: 'Replace',
+          cancelLabel: 'Keep previous',
+        }
+        : {
+          title: "Replace what's in the form?",
+          body: "The new note will replace the names, ingredients and steps you've added. Your story and photos will stay.",
+          confirmLabel: 'Replace',
+          cancelLabel: 'Keep mine',
+        });
       if (!ok) {
-        setNoteStatus('Kept what you had. The note was read but not used.');
+        setNoteStatus(formFilledFromNote
+          ? 'Kept the previous upload. The new note was read but not used.'
+          : 'Kept what you had. The note was read but not used.');
         return;
       }
     }
 
     fillFormFromNote(result);
-    /* The note itself joins the recipe's photos. */
-    currentMedia.push({ id: makeId(), type: 'image', blob: photo, name: 'Handwritten recipe', description: '' });
-    renderExistingMediaPreview();
+    /* The note itself joins the recipe's photos, when it's a photo every
+       browser can show. */
+    if (prepared.showable) {
+      currentMedia.push({ id: makeId(), type: 'image', blob: photo, name: 'Handwritten recipe', description: '' });
+      renderExistingMediaPreview();
+    }
     setNoteStatus('Filled in from the note. Check it over and edit anything before saving.', result.unsure || []);
   } catch (err) {
+    if (stopped()) return;
     console.warn('Could not read the note:', err);
-    setNoteStatus(err.name === 'AbortError' ? NOTE_ERRORS.timeout : "Couldn't read the note right now. Try again in a moment, or type it in.");
+    if (err.noteCode) setNoteStatus(NOTE_ERRORS[err.noteCode]);
+    else setNoteStatus(err.name === 'AbortError' ? NOTE_ERRORS.timeout : "Couldn't read the note right now. Try again in a moment, or type it in.");
   } finally {
+    clearInterval(slowTimer);
+    status.setAttribute('aria-live', 'polite');
+    hint.hidden = true;
+    hint.textContent = '';
+    if (noteReading === reading) noteReading = null;
+    if (reading.reason === 'stopped') setNoteStatus('Cancelled. Add the recipe below, or upload the photo again.');
+    /* Focus sat on ✕ (or fell to the page when ✕ hid): hand it to Upload,
+       never away from a field someone is typing in. */
+    const hadFocus = document.activeElement === cancel || document.activeElement === document.body;
+    cancel.hidden = true;
+    title.textContent = idleTitle;
+    box.removeAttribute('aria-busy');
     button.disabled = false;
+    button.textContent = idleLabel;
+    box.classList.remove('reading');
+    if (hadFocus) button.focus({ preventScroll: true });
   }
 }
 
@@ -2930,6 +3082,7 @@ function setupNoteFill() {
   box.hidden = false;
   document.getElementById('form-or').hidden = false;
   button.addEventListener('click', () => input.click());
+  document.getElementById('note-fill-cancel').addEventListener('click', () => stopNoteReading('stopped'));
   input.addEventListener('change', () => {
     const file = input.files[0];
     input.value = '';
