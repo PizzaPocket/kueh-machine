@@ -311,14 +311,16 @@ async function mediaBlob(item) {
 
 /* After the page is up, quietly pull built-in media into the browser, one
    file at a time, so sharing has files to attach and photos get thumbnails
-   on the next visit. Nothing waits on this. */
+   on the next visit. Nothing waits on this. Videos are left out: they're
+   most of the folder's weight, play straight from ./media/, and backup and
+   share fetch any file they need when they need it. */
 async function fetchSeedMediaInBackground() {
   if (!canFetchLocalFiles()) return;
   const recipes = await dbGetAll('recipes');
 
   for (const { id } of recipes) {
     const recipe = await dbGet('recipes', id);
-    const missing = (recipe?.media || []).filter((m) => !m.blob && m.src);
+    const missing = (recipe?.media || []).filter((m) => !m.blob && m.src && m.type !== 'video');
 
     for (const item of missing) {
       const blob = await mediaBlob(item);
@@ -2204,6 +2206,19 @@ function mediaTypeOf(file) {
   return 'image';
 }
 
+/* A recipe edited in this browser keeps the file names it was saved with.
+   If the built-in files have been renamed since, a thumbnail or poster can
+   point at nothing; then show the copy this browser holds instead. */
+function fallBackToHeldCopy(img, item) {
+  img.addEventListener('error', async () => {
+    if (!item.blob) return;
+    const still = await thumbBlobFor(item);
+    img.removeAttribute('srcset');
+    img.src = mediaUrl(still || item.blob);
+  }, { once: true });
+  return img;
+}
+
 /* Cards and the pop-up gallery show small copies; only the viewer loads the
    full-size file. */
 async function mediaNode(item, alt, { playable = false, large = false } = {}) {
@@ -2216,13 +2231,15 @@ async function mediaNode(item, alt, { playable = false, large = false } = {}) {
       return el('video', { src: mediaSrc(item), controls: true, playsinline: true, preload: 'metadata' });
     }
 
-    /* Built-in videos ship with a poster; don't download and decode the
-       whole video just to make a card-sized still. (From Leonard.) */
+    /* The same still as the recipe form: a frame from the video this
+       browser holds, if it holds one. Otherwise the poster built-in videos
+       ship with (taken from the same moment), so the whole video isn't
+       downloaded just to make a card-sized still. (Poster from Leonard.) */
     const poster = safeMediaUrl(item.poster);
-    const frame = poster ? null : await thumbBlobFor(item);
-    const still = poster || (frame ? mediaUrl(frame) : null);
+    const frame = item.blob ? await thumbBlobFor(item) : null;
+    const still = frame ? mediaUrl(frame) : poster;
     const inner = still
-      ? el('img', { src: still, alt, loading: 'lazy', decoding: 'async' })
+      ? fallBackToHeldCopy(el('img', { src: still, alt, loading: 'lazy', decoding: 'async' }), item)
       : el('video', { src: mediaSrc(item), muted: true, playsinline: true, preload: 'metadata' });
     return el('span', { class: 'thumb-wrap' }, inner, el('span', { class: 'play-badge' }, '▶'));
   }
@@ -2236,7 +2253,7 @@ async function mediaNode(item, alt, { playable = false, large = false } = {}) {
      screens; other screens keep the small one. */
   const builtInCover = large && builtInThumb ? safeMediaUrl(item.cover) : null;
   const sharper = builtInCover ? { srcset: `${builtInThumb} 1x, ${builtInCover} 2x` } : {};
-  return el('img', { src: url, ...sharper, alt, loading: 'lazy', decoding: 'async' });
+  return fallBackToHeldCopy(el('img', { src: url, ...sharper, alt, loading: 'lazy', decoding: 'async' }), item);
 }
 
 function ingredientRows(recipe) {

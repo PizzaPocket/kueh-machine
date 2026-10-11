@@ -204,6 +204,10 @@ const SEED_RECIPES = [
       {
         "her": "花生油 1.5 litre",
         "mine": "Peanut oil 1.5 litres"
+      },
+      {
+        "her": "芝麻1包",
+        "mine": "Sesame seeds 100g"
       }
     ],
     "steps": [
@@ -211,6 +215,7 @@ const SEED_RECIPES = [
       "Pour the cooking oil into the wok and dip the iron honeycomb moulds. Turn on the stove to heat up the iron mould",
       "When the oil is hot enough, dip the mould into the batter, only up to its top edge, not the whole thing",
       "Allow the batter to stick to the mould and fry it in hot oil. Shake lightly for the batter to come off the mould",
+      "Add sesame seeds into the hot oil for extra flavour",
       "Flip the honeycomb and fry till golden brown"
     ],
     "order": 1,
@@ -235,46 +240,79 @@ const SEED_RECIPES = [
         "src": "./media/fried-honeycomb-2.jpg"
       },
       {
-        "thumb": "./media/thumbs/fried-honeycomb-3.jpg",
-        "cover": "./media/covers/fried-honeycomb-3.jpg",
+        "poster": "./media/fried-honeycomb-3-poster.jpg",
         "id": "fried-honeycomb-3",
-        "type": "image",
-        "name": "Frying in progress",
-        "description": "",
-        "src": "./media/fried-honeycomb-3.jpg"
+        "type": "video",
+        "name": "Metal mould dip in batter",
+        "description": "Allow the batter to stick to the mould and fry it in hot oil.",
+        "src": "./media/fried-honeycomb-3.mp4"
       },
       {
-        "thumb": "./media/thumbs/fried-honeycomb-4.jpg",
-        "cover": "./media/covers/fried-honeycomb-4.jpg",
+        "poster": "./media/fried-honeycomb-4-poster.jpg",
         "id": "fried-honeycomb-4",
-        "type": "image",
-        "name": "Fried honeycombs",
+        "type": "video",
+        "name": "Frying in progress",
         "description": "",
-        "src": "./media/fried-honeycomb-4.jpg"
+        "src": "./media/fried-honeycomb-4.mp4"
       },
       {
         "poster": "./media/fried-honeycomb-5-poster.jpg",
         "id": "fried-honeycomb-5",
         "type": "video",
-        "name": "Frying in progress",
+        "name": "Flipping the honeycomb",
         "description": "",
         "src": "./media/fried-honeycomb-5.mp4"
       },
       {
-        "thumb": "./media/thumbs/fried-honeycomb-6.jpg",
-        "cover": "./media/covers/fried-honeycomb-6.jpg",
+        "poster": "./media/fried-honeycomb-6-poster.jpg",
         "id": "fried-honeycomb-6",
+        "type": "video",
+        "name": "Mum and Papa working together",
+        "description": "",
+        "src": "./media/fried-honeycomb-6.mp4"
+      },
+      {
+        "thumb": "./media/thumbs/fried-honeycomb-7.jpg",
+        "cover": "./media/covers/fried-honeycomb-7.jpg",
+        "id": "fried-honeycomb-7",
+        "type": "image",
+        "name": "Fried honeycombs",
+        "description": "",
+        "src": "./media/fried-honeycomb-7.jpg"
+      },
+      {
+        "thumb": "./media/thumbs/fried-honeycomb-8.jpg",
+        "cover": "./media/covers/fried-honeycomb-8.jpg",
+        "id": "fried-honeycomb-8",
+        "type": "image",
+        "name": "Fried honeycombs",
+        "description": "",
+        "src": "./media/fried-honeycomb-8.jpg"
+      },
+      {
+        "thumb": "./media/thumbs/fried-honeycomb-9.jpg",
+        "cover": "./media/covers/fried-honeycomb-9.jpg",
+        "id": "fried-honeycomb-9",
+        "type": "image",
+        "name": "Fried honeycombs",
+        "description": "",
+        "src": "./media/fried-honeycomb-9.jpg"
+      },
+      {
+        "thumb": "./media/thumbs/fried-honeycomb-10.jpg",
+        "cover": "./media/covers/fried-honeycomb-10.jpg",
+        "id": "fried-honeycomb-10",
         "type": "image",
         "name": "Handwritten recipe by my mum",
         "description": "",
-        "src": "./media/fried-honeycomb-6.jpg"
+        "src": "./media/fried-honeycomb-10.jpg"
       },
       {
-        "id": "fried-honeycomb-7",
+        "id": "fried-honeycomb-11",
         "type": "audio",
         "name": "炸蜂窝 Fried honeycomb recipe",
         "description": "",
-        "src": "./media/fried-honeycomb-7.m4a"
+        "src": "./media/fried-honeycomb-11.m4a"
       }
     ]
   },
