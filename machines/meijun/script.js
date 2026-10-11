@@ -131,7 +131,9 @@ function makeId() {
 
 /* Replaces window.confirm so the question is asked on the same paper as
    everything else. Resolves true only if they pick the confirm button. */
-function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep it' }) {
+/* Resolves true for the confirm button and false for the other one.
+   Escape or a tap outside gives `dismissed`, false unless asked otherwise. */
+function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep it', confirmClass = 'danger-btn', dismissed = false }) {
   const overlay = document.getElementById('confirm-overlay');
   const okBtn = document.getElementById('confirm-ok');
   const cancelBtn = document.getElementById('confirm-cancel');
@@ -140,6 +142,7 @@ function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep 
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-body').textContent = body;
   okBtn.textContent = confirmLabel;
+  okBtn.className = confirmClass;
   cancelBtn.textContent = cancelLabel;
 
   overlay.classList.remove('hidden');
@@ -162,9 +165,9 @@ function askConfirm({ title, body, confirmLabel = 'Delete', cancelLabel = 'Keep 
 
     function onOk() { finish(true); }
     function onCancel() { finish(false); }
-    function onBackdrop(e) { if (e.target === overlay) finish(false); }
+    function onBackdrop(e) { if (e.target === overlay) finish(dismissed); }
     function onKey(e) {
-      if (e.key === 'Escape') { e.stopPropagation(); finish(false); }
+      if (e.key === 'Escape') { e.stopPropagation(); finish(dismissed); }
     }
 
     okBtn.addEventListener('click', onOk);
@@ -423,10 +426,12 @@ function cleanSteps(value) {
 function cleanImportedRecipe(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const nameEn = cleanText(raw.nameEn, LIMITS.name);
-  if (!nameEn) return null;
+  const draft = raw.draft === true;
+  if (!nameEn && !draft) return null;
   return {
     id: cleanId(raw.id),
     nameEn,
+    ...(draft ? { draft: true } : {}),
     nameCn: cleanText(raw.nameCn, LIMITS.name),
     story: cleanText(raw.story, LIMITS.story),
     ingredients: cleanIngredients(raw.ingredients),
@@ -974,16 +979,94 @@ function fillFormForEdit(recipe) {
   renderExistingMediaPreview();
 }
 
+/* ---------- Closing without saving ----------
+   Tapping outside the form (or ✕) with unsaved work asks first: save it
+   (a new recipe as a draft, labelled as one on its card until Save recipe
+   is pressed; an existing one with its changes) or don't. Tapping outside
+   the question goes back to the form. */
+let formBaseline = '';
+let formClosing = false;
+
+function readForm() {
+  const value = (id) => document.getElementById(id).value;
+  return {
+    nameEn: value('field-name-en'),
+    nameCn: value('field-name-cn'),
+    story: value('field-story'),
+    ingredients: Array.from(document.querySelectorAll('.ingredient-row-input')).map((row) => ({
+      her: row.querySelector('.ing-her').value,
+      mine: row.querySelector('.ing-mine').value,
+    })),
+    steps: Array.from(document.querySelectorAll('.step-text')).map((input) => input.value),
+    media: currentMedia,
+  };
+}
+
+/* What counts as a change: the words, and which files are attached with
+   what names. Empty rows don't count. */
+function formFingerprint(state) {
+  return JSON.stringify({
+    names: [state.nameEn.trim(), state.nameCn.trim(), state.story.trim()],
+    ingredients: state.ingredients.map((r) => [r.her.trim(), r.mine.trim()]).filter(([h, m]) => h || m),
+    steps: state.steps.map((t) => t.trim()).filter(Boolean),
+    media: state.media.map((m) => [m.id, m.name || '', m.description || '']),
+  });
+}
+
 function openRecipeForm(recipe = null) {
   fillFormForEdit(recipe);
+  formBaseline = formFingerprint(readForm());
+  /* A draft is still being added, so the form says so. */
+  const draft = Boolean(recipe && recipe.draft);
+  document.getElementById('draft-note').hidden = !draft;
+  if (draft) {
+    document.getElementById('recipe-form-heading').textContent = 'Add a Recipe';
+    document.getElementById('recipe-form-submit').textContent = 'Save recipe';
+  }
   document.getElementById('recipe-form-overlay').classList.remove('hidden');
   document.body.classList.add('modal-open');
 }
 
-function closeRecipeForm() {
-  document.getElementById('recipe-form-overlay').classList.add('hidden');
-  document.body.classList.remove('modal-open');
-  fillFormForEdit(null);
+async function closeRecipeForm({ saved = false } = {}) {
+  const overlay = document.getElementById('recipe-form-overlay');
+  if (formClosing || overlay.classList.contains('hidden')) return;
+  formClosing = true;
+  try {
+    if (!saved && formFingerprint(readForm()) !== formBaseline) {
+      const asDraft = !editingRecipe || Boolean(editingRecipe.draft);
+      const question = !editingRecipe
+        ? {
+          title: 'Save this recipe as a draft?',
+          body: "It'll be on the page marked Draft, ready to finish whenever you're back.",
+          confirmLabel: 'Save as draft',
+        }
+        : {
+          title: asDraft ? 'Save your changes to this draft?' : 'Save your changes?',
+          body: `Your changes to “${dishName(editingRecipe)}” haven't been saved yet.`,
+          confirmLabel: asDraft ? 'Save draft' : 'Save changes',
+        };
+      const save = await askConfirm({ ...question, cancelLabel: "Don't save", confirmClass: 'primary-btn', dismissed: null });
+      if (save === null) return; // tapped outside the question: back to the form
+
+      if (save) {
+        try {
+          await saveRecipeFromForm({ draft: asDraft });
+        } catch (err) {
+          /* Couldn't save (storage blocked or full): stay open, so nothing's lost. */
+          console.warn('Could not save on close:', err);
+          showToast("This browser couldn't save it. Keep the form open and try Save recipe, or back up first.");
+          return;
+        }
+        showToast(asDraft ? 'Saved as a draft. Finish it any time from its card.' : 'Changes saved.');
+        renderRecipes();
+      }
+    }
+    overlay.classList.add('hidden');
+    document.body.classList.remove('modal-open');
+    fillFormForEdit(null);
+  } finally {
+    formClosing = false;
+  }
 }
 
 /* Saving without an English name: mark the field and say what's needed, the
@@ -1007,15 +1090,17 @@ function clearDishNameError() {
 
 async function handleRecipeSubmit(e) {
   e.preventDefault();
-
-  const nameEn = document.getElementById('field-name-en').value.trim();
-  const nameCn = document.getElementById('field-name-cn').value.trim();
-  const story = document.getElementById('field-story').value.trim();
-  if (!nameEn) {
+  if (!document.getElementById('field-name-en').value.trim()) {
     showDishNameError();
     return;
   }
+  await saveRecipeFromForm({ draft: false });
+  closeRecipeForm({ saved: true });
+  renderRecipes();
+}
 
+/* The form as a recipe, saved. A draft may not have a name yet. */
+async function saveRecipeFromForm({ draft }) {
   const ingredients = Array.from(document.querySelectorAll('.ingredient-row-input'))
     .map((row) => ({
       her: row.querySelector('.ing-her').value.trim(),
@@ -1039,9 +1124,9 @@ async function handleRecipeSubmit(e) {
 
   const recipe = {
     id: editingRecipe ? editingRecipe.id : makeId(),
-    nameEn,
-    nameCn,
-    story,
+    nameEn: document.getElementById('field-name-en').value.trim(),
+    nameCn: document.getElementById('field-name-cn').value.trim(),
+    story: document.getElementById('field-story').value.trim(),
     ingredients,
     steps,
     media: currentMedia,
@@ -1049,11 +1134,12 @@ async function handleRecipeSubmit(e) {
     createdAt: editingRecipe ? editingRecipe.createdAt : Date.now(),
     /* Marks this as changed in this browser, so built-in updates leave it be. */
     editedAt: Date.now(),
+    ...(draft ? { draft: true } : {}),
   };
 
   await dbPut('recipes', recipe);
-  closeRecipeForm();
-  renderRecipes();
+  recipeCache.set(recipe.id, recipe);
+  return recipe;
 }
 
 /* Pointer events rather than HTML5 drag and drop, so this works on a phone
@@ -1136,7 +1222,7 @@ function setupReordering() {
 
 function setupRecipeForm() {
   document.getElementById('open-recipe-form').addEventListener('click', () => openRecipeForm());
-  document.getElementById('close-recipe-form').addEventListener('click', closeRecipeForm);
+  document.getElementById('close-recipe-form').addEventListener('click', () => closeRecipeForm());
   document.getElementById('recipe-form-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'recipe-form-overlay') closeRecipeForm();
   });
@@ -1438,7 +1524,7 @@ const SITE_URL = 'https://www.kuehmachine.com/meijun/';
 
 /* The message that travels with the PDF. */
 function shareMessage(recipe) {
-  const dish = [recipe.nameEn, recipe.nameCn].filter(Boolean).join(' ');
+  const dish = [dishName(recipe), recipe.nameCn].filter(Boolean).join(' ');
   /* *…* is WhatsApp's bold; other apps show the asterisks as they are. */
   return `Sharing the *${dish}* recipe from 家常菜 · Taste of Home. For more recipes: kuehmachine.com/meijun`;
 }
@@ -1538,7 +1624,7 @@ function paintRecipeCard(ctx, recipe, draw, photos = [], withLink = false) {
   // Kicker, title and Chinese name
   text('家常菜 · Taste of Home', CARD_PAD, `700 34px ${hand}`, accent);
   y += 84;
-  y += block(recipe.nameEn, CARD_PAD, inner, `600 60px ${serif}`, ink, 80);
+  y += block(dishName(recipe), CARD_PAD, inner, `600 60px ${serif}`, ink, 80);
   if (recipe.nameCn) {
     y += 68;
     text(recipe.nameCn, CARD_PAD, `400 40px ${serif}`, inkSoft);
@@ -1651,7 +1737,7 @@ async function loadCardPhotos(recipe) {
 async function drawRecipeCard(recipe) {
   /* Google Fonts serves Chinese in slices, so ask for the glyphs this recipe
      actually uses before drawing, or the canvas falls back to a system font. */
-  const sample = [recipe.nameEn, recipe.nameCn, recipe.story,
+  const sample = [dishName(recipe), recipe.nameCn, recipe.story,
     ...recipe.ingredients.flatMap((r) => [r.her, r.mine]), ...recipe.steps,
     '家常菜 材料 做法 Taste of Home →'].join(' ');
   if (document.fonts && document.fonts.load) {
@@ -1692,7 +1778,7 @@ async function drawRecipeCard(recipe) {
   let pdf = null;
   if (jpeg) {
     const bytes = new Uint8Array(await jpeg.arrayBuffer());
-    const title = [recipe.nameEn, recipe.nameCn].filter(Boolean).join(' ');
+    const title = [dishName(recipe), recipe.nameCn].filter(Boolean).join(' ');
     pdf = cardPdf(bytes, forPdf.canvas.width, forPdf.canvas.height, { ...forPdf.link, url: SITE_URL }, title);
   }
   return { png, pdf };
@@ -1725,14 +1811,14 @@ async function prepareRecipeCards(recipes) {
     try {
       await recipeCardBlob(recipe);
     } catch (err) {
-      console.warn('Could not draw the recipe card for', recipe.nameEn, err);
+      console.warn('Could not draw the recipe card for', dishName(recipe), err);
     }
   }
 }
 
 /* The whole recipe as plain text, for the share sheet and the clipboard. */
 function recipeText(recipe) {
-  const lines = [`${recipe.nameEn}${recipe.nameCn ? ` · ${recipe.nameCn}` : ''}`];
+  const lines = [`${dishName(recipe)}${recipe.nameCn ? ` · ${recipe.nameCn}` : ''}`];
   if (recipe.story) lines.push('', recipe.story);
   if (recipe.ingredients.length) {
     lines.push('', 'Ingredients:');
@@ -1753,7 +1839,7 @@ const SHARE_PHOTOS = 3;
 /* "Hainanese Yi Bua Kueh recipe.png": the bracketed gloss would push the
    name past the length limit. */
 function recipeCardFileName(recipe) {
-  const shortName = recipe.nameEn.replace(/\s*\([^)]*\)/g, '').slice(0, 50);
+  const shortName = dishName(recipe).replace(/\s*\([^)]*\)/g, '').slice(0, 50);
   return shareFileName({ name: shortName, type: 'image', blob: { type: 'image/png' } })
     .replace(/\.png$/, ' recipe.png');
 }
@@ -1831,7 +1917,7 @@ async function openSharePanel(recipe) {
   /* The hand font has no Chinese, so the Chinese name gets its own smaller
      serif span rather than a heavy fallback at the full size. */
   const dish = document.getElementById('share-dish');
-  dish.textContent = recipe.nameEn;
+  dish.textContent = dishName(recipe);
   if (recipe.nameCn) {
     const cn = document.createElement('span');
     cn.className = 'cn';
@@ -2260,10 +2346,15 @@ function mediaTypeOf(file) {
    point at nothing; then show the copy this browser holds instead. */
 function fallBackToHeldCopy(img, item) {
   img.addEventListener('error', async () => {
-    if (!item.blob) return;
-    const still = await thumbBlobFor(item);
     img.removeAttribute('srcset');
-    img.src = mediaUrl(still || item.blob);
+    if (item.blob) {
+      const still = await thumbBlobFor(item);
+      img.src = mediaUrl(still || item.blob);
+    } else {
+      /* Nothing to show: a plain paper tile rather than a broken image. */
+      img.alt = '';
+      img.classList.add('media-missing');
+    }
   }, { once: true });
   return img;
 }
@@ -2318,9 +2409,18 @@ function ingredientRows(recipe) {
     el('span', { class: 'my-words' }, row.mine)));
 }
 
+/* A draft can be saved before it has a name. */
+const dishName = (recipe) => recipe.nameEn || 'Untitled recipe';
+
 /* "Orh Kueh / Yam Cake" with the Chinese name in its smaller span. */
 function dishHeading(tag, recipe, attrs = {}) {
-  return el(tag, attrs, recipe.nameEn, recipe.nameCn ? [' ', el('span', { class: 'cn' }, recipe.nameCn)] : null);
+  return el(tag, attrs, dishName(recipe), recipe.nameCn ? [' ', el('span', { class: 'cn' }, recipe.nameCn)] : null);
+}
+
+/* A "Draft" label above the name of a recipe that hasn't been saved
+   properly yet. */
+function draftLabel(recipe) {
+  return recipe.draft ? el('p', { class: 'draft-line' }, el('span', { class: 'draft-badge' }, 'Draft')) : null;
 }
 
 /* ---------- Recipe cards (preview) ---------- */
@@ -2374,7 +2474,7 @@ async function buildRecipeCard(recipe, index, total) {
   card.dataset.id = recipe.id;
   card.tabIndex = 0;
   card.setAttribute('role', 'button');
-  card.setAttribute('aria-label', `Open the full recipe for ${recipe.nameEn}`);
+  card.setAttribute('aria-label', `Open the full recipe for ${dishName(recipe)}`);
 
   const media = recipe.media || [];
   /* Recordings have nothing to look at, so the card counts them instead. */
@@ -2382,11 +2482,11 @@ async function buildRecipeCard(recipe, index, total) {
   const recordings = media.length - visual.length;
 
   const cover = visual.find((m) => m.type === 'image') || visual[0];
-  const coverNode = cover ? el('div', { class: 'card-cover' }, await mediaNode(cover, recipe.nameEn, { large: true })) : null;
+  const coverNode = cover ? el('div', { class: 'card-cover' }, await mediaNode(cover, dishName(recipe), { large: true })) : null;
 
   const rest = visual.filter((m) => m !== cover).slice(0, 4);
   const remaining = visual.length - 1 - rest.length;
-  const stripNodes = await Promise.all(rest.map((m) => mediaNode(m, recipe.nameEn)));
+  const stripNodes = await Promise.all(rest.map((m) => mediaNode(m, dishName(recipe))));
   const stripNode = rest.length
     ? el('div', { class: 'card-strip' }, stripNodes, remaining > 0 ? el('span', { class: 'more-count' }, `+${remaining}`) : null)
     : null;
@@ -2403,6 +2503,7 @@ async function buildRecipeCard(recipe, index, total) {
       el('button', { type: 'button', class: 'share-recipe', 'aria-label': 'Share recipe' }, icon('share')),
       el('button', { type: 'button', class: 'edit-recipe', 'aria-label': 'Edit recipe' }, icon('edit')),
       el('button', { type: 'button', class: 'delete-recipe', 'aria-label': 'Delete recipe' }, icon('trash'))),
+    draftLabel(recipe),
     dishHeading('h3', recipe),
     recipe.story ? el('p', { class: 'recipe-story' }, recipe.story) : null,
     coverNode,
@@ -2439,7 +2540,7 @@ async function openRecipeDetail(recipe) {
       role: 'button',
       tabindex: '0',
       'aria-label': `${type === 'video' ? 'Play' : 'Open'} ${m.name || `this ${type}`}`,
-    }, await mediaNode(m, recipe.nameEn));
+    }, await mediaNode(m, dishName(recipe)));
   }));
 
   const block = (title, cn, note, ...content) => el('div', { class: 'detail-block' },
@@ -2450,10 +2551,11 @@ async function openRecipeDetail(recipe) {
   const audioItems = await Promise.all(recordings.map(async (m) => el('li', {},
     el('span', { class: 'audio-name' }, `🎙 ${m.name || 'Recording'}`),
     m.description ? el('span', { class: 'audio-note' }, m.description) : null,
-    await mediaNode(m, recipe.nameEn, { playable: true }))));
+    await mediaNode(m, dishName(recipe), { playable: true }))));
 
   const parts = [
     el('button', { type: 'button', id: 'close-recipe-detail', class: 'close-btn', 'aria-label': 'Close' }, '×'),
+    draftLabel(recipe),
     dishHeading('h3', recipe, { id: 'recipe-detail-heading' }),
     recipe.story ? el('p', { class: 'recipe-story' }, recipe.story) : null,
     visual.length ? el('div', { class: 'detail-gallery' }, galleryTiles) : null,
@@ -2648,7 +2750,7 @@ async function openViewerFromTile(tile) {
    needed. The title becomes the suggested filename. */
 function printRecipe(recipe) {
   const previousTitle = document.title;
-  document.title = [recipe.nameEn, recipe.nameCn].filter(Boolean).join(' ');
+  document.title = [dishName(recipe), recipe.nameCn].filter(Boolean).join(' ');
 
   function restore() {
     document.title = previousTitle;
@@ -2726,7 +2828,7 @@ function setupRecipeCardActions() {
     if (e.target.closest('.delete-recipe')) {
       const recipe = await dbGet('recipes', card.dataset.id);
       const thumbIds = recipe ? (recipe.media || []).map((m) => m.id) : [];
-      const name = recipe ? recipe.nameEn : 'this recipe';
+      const name = recipe ? dishName(recipe) : 'this recipe';
       const ok = await askConfirm({
         title: 'Delete this recipe?',
         body: `"${name}" goes for good: her words, the steps, and every photo on the card. If it isn't in a backup file, there's no other copy.`,

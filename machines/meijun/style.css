@@ -304,6 +304,37 @@ body.modal-open {
   margin-top: 0;
 }
 
+/* Shown when a draft is opened again. */
+.recipe-form .draft-note {
+  margin: -0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.recipe-form .draft-note[hidden] {
+  display: none;
+}
+
+/* "Draft" above a recipe's name until it's saved properly: a small
+   handwritten label, like a note pencilled on the card. */
+.draft-line {
+  margin: 0 0 0.35rem;
+  line-height: 1;
+}
+
+.draft-badge {
+  display: inline-block;
+  padding: 0.05rem 0.3rem 0;
+  border: 1px dashed var(--accent);
+  border-radius: 2px;
+  font-family: var(--font-hand);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--accent);
+  transform: rotate(-3deg);
+}
+
 .recipe-form label {
   display: block;
   font-size: 0.9rem;
@@ -434,7 +465,8 @@ body.modal-open {
 
 .note-fill.tall .mini-btn {
   align-self: flex-start;
-  margin-top: -0.25rem;
+  /* The same space above it as when it's centred on two lines. */
+  margin-top: 0.21rem;
 }
 
 .note-fill .mini-btn[disabled] {
@@ -503,7 +535,7 @@ body.modal-open {
 
 .note-fill.tall .note-fill-close {
   align-self: flex-start;
-  margin-top: -0.38rem;
+  margin-top: 0.3rem;
 }
 
 .note-fill-close[hidden] {
@@ -3035,4 +3067,9 @@ body:has(#recipe-form-overlay:not(.hidden)) .toast {
   @page {
     margin: 16mm;
   }
+}
+
+/* A built-in file that can no longer be found: the tile stays plain paper. */
+img.media-missing {
+  visibility: hidden;
 }
