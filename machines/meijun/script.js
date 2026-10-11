@@ -795,12 +795,12 @@ function addIngredientRow(her = '', mine = '') {
   row.innerHTML = `
     <button type="button" class="drag-handle" aria-label="Drag to reorder, or use the arrow keys">⠿</button>
     <span class="field-with-mic field-her">
-      <input type="text" class="ing-her" placeholder="e.g. 一把姜" aria-label="Her words">
+      <input type="text" class="ing-her" placeholder="e.g. 少许糖" aria-label="Her words">
       <button type="button" class="mic-btn" data-lang="zh-CN" aria-label="Record her words with voice">${ICON.mic}</button>
     </span>
     <span class="ing-arrow" aria-hidden="true">→</span>
     <span class="field-with-mic field-mine">
-      <input type="text" class="ing-mine" placeholder="e.g. ~30g" aria-label="Your translation">
+      <input type="text" class="ing-mine" placeholder="e.g. ~1/4 tsp sugar" aria-label="Your translation">
       <button type="button" class="mic-btn" data-lang="en-SG" aria-label="Record your translation with voice">${ICON.mic}</button>
     </span>
     <button type="button" class="remove-row" aria-label="Remove">${ICON.trash}</button>
@@ -992,7 +992,7 @@ function showDishNameError() {
   const field = document.getElementById('field-name-en');
   const error = document.getElementById('field-name-en-error');
   field.setAttribute('aria-invalid', 'true');
-  error.textContent = 'Add a name for the dish, e.g. Yam Cake.';
+  error.textContent = 'Add a name for the dish.';
   error.hidden = false;
   field.focus({ preventScroll: true });
   field.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -3195,6 +3195,20 @@ function setupNoteFill() {
   const input = document.getElementById('note-fill-file');
   box.querySelector('.note-fill-icon').innerHTML = ICON.camera;
   box.hidden = false;
+
+  /* The button sits in the middle of the usual two lines (title and one
+     line under it); once more text makes the banner taller, it moves up
+     to stay level with the title. */
+  const text = box.querySelector('.note-fill-text');
+  const title = box.querySelector('.note-fill-title');
+  const status = document.getElementById('note-fill-status');
+  const fitButton = () => {
+    const oneLine = parseFloat(getComputedStyle(status).lineHeight) || 0;
+    const twoLines = title.offsetHeight + oneLine * 1.5;
+    box.classList.toggle('tall', text.offsetHeight > twoLines);
+  };
+  if ('ResizeObserver' in window) new ResizeObserver(fitButton).observe(text);
+  fitButton();
   document.getElementById('form-or').hidden = false;
   button.addEventListener('click', () => input.click());
   document.getElementById('note-fill-cancel').addEventListener('click', () => stopNoteReading('stopped'));
