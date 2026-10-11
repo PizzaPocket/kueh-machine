@@ -3155,6 +3155,51 @@ function stopNoteReading(reason = 'stopped') {
   noteReading.controller.abort();
 }
 
+/* ---------- Notes already read ----------
+   A photo read before in this browser fills the form again in a few seconds,
+   without asking the reader, so trying the same note twice (a rehearsal,
+   then the real thing) doesn't spend the free daily reads. Kept by a
+   fingerprint of the file, the last few only. */
+const NOTE_READS_KEY = 'tasteOfHome.noteReads';
+const NOTE_READS_KEPT = 12;
+/* A remembered read still takes a few seconds, like a quick real one, so
+   the reading paper shows rather than the form jumping full at once. */
+const NOTE_REREAD_MS = [3000, 5000];
+
+async function noteFingerprint(file) {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null; // no Web Crypto here: just read it as usual
+  }
+}
+
+function earlierNoteRead(fingerprint) {
+  if (!fingerprint) return null;
+  try {
+    const kept = JSON.parse(readStorage(NOTE_READS_KEY) || '[]');
+    const match = Array.isArray(kept) ? kept.find((entry) => entry && entry.fingerprint === fingerprint) : null;
+    /* Checked again like a fresh reply, in case it was tampered with. */
+    return match ? cleanNoteResult(match.result) : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberNoteRead(fingerprint, result) {
+  if (!fingerprint) return;
+  let kept = [];
+  try {
+    kept = JSON.parse(readStorage(NOTE_READS_KEY) || '[]');
+    if (!Array.isArray(kept)) kept = [];
+  } catch {
+    kept = [];
+  }
+  kept = [{ fingerprint, result }, ...kept.filter((entry) => entry && entry.fingerprint !== fingerprint)].slice(0, NOTE_READS_KEPT);
+  writeStorage(NOTE_READS_KEY, JSON.stringify(kept));
+}
+
 async function readHandwrittenNote(file) {
   const button = document.getElementById('fill-from-note');
   const box = document.getElementById('note-fill');
@@ -3194,43 +3239,56 @@ async function readHandwrittenNote(file) {
     const prepared = await prepareNoteFile(file);
     const photo = prepared.blob;
     if (stopped()) return;
-    const controller = reading.controller;
-    const timer = setTimeout(() => {
-      reading.reason = 'timeout';
-      controller.abort();
-    }, 150000);
-    let response;
-    try {
-      response = await fetch(RECIPE_READER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: (await blobToDataURL(photo)).split(',')[1], mimeType: prepared.mimeType }),
-        signal: controller.signal,
+    const fingerprint = await noteFingerprint(file);
+    let result = earlierNoteRead(fingerprint);
+    if (result) {
+      const [shortest, longest] = NOTE_REREAD_MS;
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, shortest + Math.random() * (longest - shortest));
+        /* ✕ still cancels straight away. */
+        reading.controller.signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
       });
-    } finally {
-      clearTimeout(timer);
-    }
-    /* The reply is outside data: size-capped, parsed carefully, and only
-       used if it has the expected shape. */
-    const replyText = await response.text();
-    if (stopped()) return;
-    let reply = {};
-    if (replyText.length <= LIMITS.noteResponseChars) {
+      if (stopped()) return;
+    } else {
+      const controller = reading.controller;
+      const timer = setTimeout(() => {
+        reading.reason = 'timeout';
+        controller.abort();
+      }, 150000);
+      let response;
       try {
-        reply = JSON.parse(replyText);
-      } catch {
-        reply = {};
+        response = await fetch(RECIPE_READER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: (await blobToDataURL(photo)).split(',')[1], mimeType: prepared.mimeType }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timer);
       }
-    }
-    const errorCode = reply && typeof reply.error === 'string' ? reply.error : '';
-    if (!response.ok || errorCode) {
-      setNoteStatus(NOTE_ERRORS[errorCode] || "Couldn't read the note right now. Try again in a moment, or add the recipe below.");
-      return;
-    }
-    const result = cleanNoteResult(reply);
-    if (!result) {
-      setNoteStatus(NOTE_ERRORS.nothing_found);
-      return;
+      /* The reply is outside data: size-capped, parsed carefully, and only
+         used if it has the expected shape. */
+      const replyText = await response.text();
+      if (stopped()) return;
+      let reply = {};
+      if (replyText.length <= LIMITS.noteResponseChars) {
+        try {
+          reply = JSON.parse(replyText);
+        } catch {
+          reply = {};
+        }
+      }
+      const errorCode = reply && typeof reply.error === 'string' ? reply.error : '';
+      if (!response.ok || errorCode) {
+        setNoteStatus(NOTE_ERRORS[errorCode] || "Couldn't read the note right now. Try again in a moment, or add the recipe below.");
+        return;
+      }
+      result = cleanNoteResult(reply);
+      if (!result) {
+        setNoteStatus(NOTE_ERRORS.nothing_found);
+        return;
+      }
+      rememberNoteRead(fingerprint, result);
     }
 
     if (formHasContent()) {
